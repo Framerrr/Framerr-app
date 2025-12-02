@@ -40,13 +40,8 @@ export const AppDataProvider = ({ children }) => {
             // Set tab groups from system config
             setGroups((systemConfig.tabGroups || []).sort((a, b) => a.order - b.order));
 
-            // TODO: Fetch real services from backend
-            // For now, using mock data to enable UI development
-            setServices([
-                { id: 'plex', name: 'Plex', groupId: 'media', icon: 'Play' },
-                { id: 'sonarr', name: 'Sonarr', groupId: 'downloads', icon: 'Tv' },
-                { id: 'radarr', name: 'Radarr', groupId: 'downloads', icon: 'Film' }
-            ]);
+            // TODO: Fetch real services from backend when service system is implemented
+            setServices([]);
 
         } catch (error) {
             console.error('Failed to fetch app data:', error);

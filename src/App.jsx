@@ -15,7 +15,7 @@ import Login from './pages/Login';
 import Setup from './pages/Setup';
 import Dashboard from './pages/Dashboard';
 import UserSettings from './pages/UserSettings';
-import TabView from './pages/TabView';
+import IframeManager from './components/IframeManager';
 import TailwindTest from './pages/TailwindTest';
 
 // Component to load and apply custom colors after user authentication
@@ -72,7 +72,7 @@ const App = () => {
                                                     <Routes>
                                                         <Route path="/" element={<Dashboard />} />
                                                         <Route path="/test" element={<TailwindTest />} />
-                                                        <Route path="/tab/:slug" element={<TabView />} />
+                                                        <Route path="/tab/:slug" element={<IframeManager />} />
 
                                                         {/* User-specific settings for ALL users */}
                                                         <Route path="/settings" element={<UserSettings />} />

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,7 +20,8 @@ import AdvancedSettings from '../components/settings/AdvancedSettings';
 
 
 const UserSettings = () => {
-    const [activeTab, setActiveTab] = useState('tabs');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = searchParams.get('tab') || 'tabs';
     const { user } = useAuth();
     const hasAdminAccess = isAdmin(user);
 
@@ -66,7 +68,7 @@ const UserSettings = () => {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => setSearchParams({ tab: tab.id })}
                             className={`
                                 flex items-center gap-2 px-4 py-2 rounded-lg 
                                 transition-all whitespace-nowrap text-sm font-medium
