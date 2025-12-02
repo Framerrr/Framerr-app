@@ -123,7 +123,7 @@ const Sidebar = () => {
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 px-3">
                     <NavLink
-                        to="/"
+                        to="dashboard"
                         className={({ isActive }) => `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${isActive ? 'bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-600/20' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`}
                     >
                         <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
@@ -151,7 +151,7 @@ const Sidebar = () => {
                             {tabs.filter(tab => !tab.groupId).map(tab => (
                                 <NavLink
                                     key={tab.id}
-                                    to={`/tab/${tab.slug}`}
+                                    to={tab.slug}
                                     className={({ isActive }) => `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${isActive ? 'bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-600/20' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} relative group`}
                                 >
                                     <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
@@ -188,7 +188,7 @@ const Sidebar = () => {
                                                     {groupTabs.map(tab => (
                                                         <NavLink
                                                             key={tab.id}
-                                                            to={`/tab/${tab.slug}`}
+                                                            to={tab.slug}
                                                             className={({ isActive }) => `flex items-center py-3 px-4 pl-8 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${isActive ? 'bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-600/20' : ''}`}
                                                         >
                                                             <span className="mr-3 flex items-center justify-center">
@@ -321,11 +321,11 @@ const Sidebar = () => {
                     <Menu size={24} />
                     <span className="text-[10px]">Menu</span>
                 </button>
-                <NavLink to="/" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
+                <NavLink to="dashboard" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
                     <LayoutDashboard size={24} />
                     <span className="text-[10px]">Dashboard</span>
                 </NavLink>
-                <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
+                <NavLink to="settings" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
                     <SettingsIcon size={24} />
                     <span className="text-[10px]">Settings</span>
                 </NavLink>

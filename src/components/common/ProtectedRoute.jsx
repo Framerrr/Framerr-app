@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children, requiredPermission = null }) => {
         const allowed = hasPermission(user, requiredPermission, systemConfig);
         if (!allowed) {
             // Redirect to dashboard with access denied message
-            return <Navigate to="/" replace />;
+            return <Navigate to="dashboard" replace />;
         }
     }
 

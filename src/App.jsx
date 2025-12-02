@@ -70,13 +70,11 @@ const App = () => {
                                                 <Sidebar />
                                                 <main className="flex-1 overflow-y-auto pb-16 md:pb-0 md:pl-24">
                                                     <Routes>
-                                                        <Route path="/" element={<Dashboard />} />
-                                                        <Route path="/test" element={<TailwindTest />} />
-                                                        <Route path="/tab/:slug" element={<IframeManager />} />
-
-                                                        {/* User-specific settings for ALL users */}
-                                                        <Route path="/settings" element={<UserSettings />} />
-                                                        <Route path="*" element={<Navigate to="/" replace />} />
+                                                        <Route path="dashboard" element={<Dashboard />} />
+                                                        <Route path="settings" element={<UserSettings />} />
+                                                        <Route path=":slug" element={<IframeManager />} />
+                                                        <Route path="test" element={<TailwindTest />} />
+                                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
                                                     </Routes>
                                                 </main>
                                             </div>
