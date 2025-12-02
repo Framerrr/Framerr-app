@@ -247,8 +247,8 @@ If ANY answer is uncertain → MUST re-read full `docs/tasks/HANDOFF.md` + ask u
 ### Required Actions
 
 **Before creating/editing ANY UI component:**
-1. Read `docs/legacy/framerr_theming_rules.md` (MANDATORY)
-2. Read `docs/theme/DEVELOPER_GUIDE.md`
+1. Read `.agent/rules/theming-rules.md` (MANDATORY)
+2. Read `docs/theming/DEVELOPER_GUIDE.md` (if exists)
 3. Use ONLY theme utilities (`.bg-theme-primary`, `.text-theme-secondary`, etc.)
 4. Test in Light theme BEFORE committing
 5. Test with flatten UI enabled
@@ -264,7 +264,7 @@ If ANY answer is uncertain → MUST re-read full `docs/tasks/HANDOFF.md` + ask u
 - [ ] No hardcoded colors (run grep checks)
 - [ ] Build passes
 
-**Full Details**: See `docs/legacy/framerr_theming_rules.md`
+**Full Details**: See `.agent/rules/theming-rules.md`
 
 ---
 
