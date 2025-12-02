@@ -1,201 +1,113 @@
-# Current Task - Documentation System Integration
+# Current Task - Production Bug Fixes
 
-**Status:** In Progress  
-**Started:** 2025-12-02 15:51:00  
-**Checkpoint:** Tool call #35 (approx)  
-**Tool Calls:** 35+
+**Status:** Complete  
+**Started:** 2025-12-02 16:36:00  
+**Ended:** 2025-12-02 17:11:00  
+**Tool Calls:** ~90
 
 ---
 
 ## Task Description
 
-Implementing comprehensive documentation system restructuring (v2.0) for Framerr. This involves:
-- Reorganizing all documentation into logical `docs/` structure
-- Creating dual Docker build system (production + debug)
-- Establishing workflow automation system
-- Building robust task tracking for agent continuity
+Fixed critical production bugs preventing users from completing first-time setup and accessing admin settings.
 
 ---
 
-## Subtasks
+## Issues Fixed
 
-### Phase 1: Directory Structure ✅
-- [x] Create `docs/` subdirectories (tasks, architecture, development, theming, recovery, versions)
-- [x] Create README files for each subdirectory
-- [x] Update `.dockerignore` to exclude docs from images
-- [x] Verify `.gitignore` tracks docs correctly
-- [x] Commit: "chore: create documentation structure"
+### Issue 1: Setup Redirect Loop ✅
+- Problem: Users redirected between /login and /setup infinitely, couldn't create admin account
+- Root Cause: Setup.jsx was duplicate of App.jsx, AuthContext redirect logic conflicted
+- Fix: Created proper Setup wizard component, fixed AuthContext redirect logic with early return
+- Commit: `bff9a2c`
 
-### Phase 2: Recovery Docs Archive ✅
-- [x] Create `docs/recovery/README.md` explaining recovery process
-- [x] Move 15 recovery .md files to `docs/recovery/`
-- [x] Move 2 .csv inventory files to `docs/recovery/`
-- [x] Commit: "docs: archive recovery documentation"
+### Issue 2: Setup Doesn't Redirect After Account Creation ✅ 
+- Problem: Setup page stayed visible after account creation, manual refresh required
+- Root Cause: `needsSetup` state not updated after account creation, auto-login added complexity
+- Fix: Removed auto-login, added `checkSetupStatus()` call, redirect to /login for manual login
+- Commit: `ab70830`
 
-### Phase 3: Rules Migration ✅
-- [x] Create `.agent/rules/development-rules.md` (from OLDDOCS, adapted paths)
-- [x] Copy `.agent/rules/theming-rules.md` (from OLDDOCS, update paths)
-- [x] Create unified `.agent/rules.md` (quick reference)
-- [x] Git-rules.md already exists from previous session
-- [x] Commit: "docs: consolidate rules system"
+### Issue 3: Admin Settings Not Visible ✅
+- Problem: Admin users couldn't see admin-only settings tabs (Users, Widgets, Auth, Advanced)
+- Root Cause: `isAdmin(user)` called but function required `isAdmin(user, systemConfig)` - missing parameter
+- Fix: Import `useSystemConfig`, pass to `isAdmin` function
+- Commit: `ab70830`
 
-### Phase 4: Workflow Migration ✅
-- [x] Create `.agent/workflows/start-session.md` (adapted from OLDDOCS)
-- [x] Create `.agent/workflows/end-session.md` (adapted from OLDDOCS)
-- [x] Create `.agent/workflows/checkpoint.md` (adapted from OLDDOCS)
-- [x] Create `.agent/workflows/code-audit.md` (NEW - from spec)
-- [x] Verify `.agent/workflows/git-workflow.md` exists
-- [x] Create placeholder `.agent/workflows/build-develop.md`
-- [x] Create placeholder `.agent/workflows/build-production.md`
-- [x] Create placeholder `.agent/workflows/recover-session.md`
-- [x] Commit: "docs: migrate and create workflows"
+### Issue 4: Settings Page Crashes ✅
+- Problem: Settings page crashed with "Cannot read properties of undefined (reading 'includes')"
+- Root Cause 1: `systemConfig` was null during loading, caused crash
+- Fix Attempt 1: Added loading check (caused delay issue)
+- Commit: `aa4685c`
 
-### Phase 5: Docker Build Files ✅
-- [x] Create `Dockerfile.dev` (debug build with source maps)
-- [x] Update `vite.config.js` (add source map config, minify control)
-- [x] Create `docs/development/DOCKER_BUILDS.md` (explain builds)
-- [x] Test build: `npm run build` (PASSED)
-- [x] Commit: "build: add development Docker build with source maps"
-
-### Phase 6-7: Architecture & Development Docs ✅
-- [x] Move `ARCHITECTURE.md` → `docs/architecture/`
-- [x] Move `HANDOFF.md` → `docs/tasks/` (for reorganization)
-- [x] Move `CHATFLOW.md` → `docs/` (temporary, needs updates)
-- [x] Move `PROJECT_SCOPE.md` → `docs/architecture/`
-- [x] Move `WIDGET_DEVELOPMENT_GUIDE.md` → `docs/development/`
-- [x] Move `LOGGING_REFERENCE.md` → `docs/development/`
-- [x] Move `1.1.6.md` → `docs/versions/1.1.6-recovered.md`
-- [x] Move `TASK_COMPLETED.md` → `docs/tasks/`
-- [x] Commit: "docs: organize architecture and development documentation"
-
-### Phase 8: Task System Foundation 🟡
-- [x] Move files to proper locations
-- [x] Create `docs/tasks/STATUS.md` (overall progress dashboard)
-- [ ] Update `docs/tasks/HANDOFF.md` (restructure for current state)
-- [ ] Create `docs/tasks/TASK_CURRENT.md` (this file - mark as template after)
-- [ ] Create `docs/tasks/TASK_BACKLOG.md` (future work queue)
-- [ ] Create cross-references between task docs
-- [ ] Commit: "docs: create task tracking system"
-
-### Phase 9: Primary Documentation ⏸️
-- [ ] Update `docs/CHATFLOW.md` (update all paths, workflow list)
-- [ ] Create `docs/README.md` (documentation index)
-- [ ] Rewrite root `README.md` (project overview, installation)
-- [ ] Create `CHANGELOG.md` (start with v1.1.6-recovered)
-- [ ] Update all cross-references
-- [ ] Verify all links work
-- [ ] Commit: "docs: finalize primary documentation"
-
-### Phase 10: Cleanup ⏸️
-- [ ] Delete `build-errors.log`
-- [ ] Delete `build-output.log`
-- [ ] Move any remaining unused root MD files to `.olddocs/`
-- [ ] Commit: "chore: cleanup root directory"
-
-### Phase 11-12: User Collaboration & Verification ⏸️
-- [ ] Work with user to define `/build-develop` workflow
-- [ ] Work with user to define `/build-production` workflow
-- [ ] Work with user to define `/recover-session` workflow
-- [ ] Test `/start-session` workflow
-- [ ] Test `/checkpoint` workflow
-- [ ] Test `/end-session` workflow
-- [ ] Verify all documentation cross-references
-- [ ] Final commit
-
----
-
-## Progress Log
-
-### 2025-12-02 15:51 - Started Session
-- Read system_implementation_plan.md ✅
-- Analyzed current state and documentation ✅
-- Initialized implementation
-
-### 2025-12-02 15:52-16:00 - Phases 1-5
-- Created complete docs/ structure
-- Archived all recovery documentation
-- Consolidated rules system (3 files created)
-- Created 7 workflows
-- Created Dockerfile.dev and Docker builds documentation
-- Build verified passing
-
-### 2025-12-02 16:00-16:05 - Phases 6-7
-- Organized architecture docs
-- Moved development guides to proper locations  
-- Moved task files for reorganization
-
-### 2025-12-02 16:05-Current - Phase 8
-- Created STATUS.md dashboard
-- Creating task tracking files
-- In progress...
+### Issue 5: Settings Page Loading Delay ✅
+- Problem: Settings had loading delay that didn't exist in pre-corrupted version
+- Root Cause 2: Overcomplicated admin check requiring systemConfig when simple group check worked before
+- Fix: Simplified `isAdmin()` to just check `user.group === 'admin'` without systemConfig
+- Commit: `1740b4b`
 
 ---
 
 ## Files Modified
 
-**Created:**
-- `docs/` structure (6 subdirectories + READMEs)
-- `.agent/rules.md`, `development-rules.md`, `theming-rules.md`
-- 7 workflow files in `.agent/workflows/`
-- `Dockerfile.dev`
-- `docs/development/DOCKER_BUILDS.md`
-- `docs/tasks/STATUS.md`
-- This file (TASK_CURRENT.md)
-
-**Modified:**
-- `.dockerignore` (added docs exclusions)
-- `vite.config.js` (added build config for source maps)
-
-**Moved:**
-- 15 recovery docs + 2 CSVs → `docs/recovery/`
-- Architecture docs → `docs/architecture/`
-- Development guides → `docs/development/`
-- Task files → `docs/tasks/`
+1. **src/pages/Setup.jsx** - Created proper setup wizard (replaced duplicate App.jsx)
+2. **src/context/AuthContext.jsx** - Fixed redirect logic with early return
+3. **src/pages/UserSettings.jsx** - Added then removed systemConfig dependency
+4. **src/utils/permissions.js** - Simplified isAdmin to not require systemConfig
 
 ---
 
-## Decisions Made
+## Git Commits
 
-1. **Used PowerShell for file creation** when write_to_file tool encountered gitignore blocks
-2. **Moved HANDOFF.md and CHATFLOW.md** for restructuring rather than updating in place
-3. **Created STATUS.md** before completing HANDOFF update for better organization
-4. **Vite build config** enables source maps only in development mode for optimal production size
+1. `bff9a2c` - fix(setup): resolve first-time setup redirect loop
+2. `ab70830` - fix(setup): redirect to login and restore admin settings  
+3. `aa4685c` - fix(settings): prevent crash when systemConfig is loading
+4. `1740b4b` - fix(settings): simplify admin check to not require systemConfig
 
----
-
-## Blockers / Issues
-
-None currently - implementation proceeding smoothly
+**Total Commits:** 4  
+**Branch:** develop  
+**Docker Image:** pickels23/framerr:reconstructed (rebuilt 4 times)
 
 ---
 
 ## Testing Performed
 
-- [x] Build passes after vite.config.js changes
-- [ ] Light theme tested (N/A - no UI changes)
-- [ ] Docker build tested (pending)
+- [x] Build passes (verified 4+ times)
+- [x] User tested setup flow
+- [x] User tested admin settings visibility  
+- [x] Settings page loads without crash
+- [x] No loading delay on settings page
+
+---
+
+## Decisions Made
+
+1. **Manual login over auto-login**: Simpler, more reliable flow after setup
+2. **Simplified admin check**: Reverted to original simple `user.group === 'admin'` check
+3. **Multiple Docker rebuilds**: Each fix deployed immediately for user testing
+4. **Iterative approach**: User feedback guided each fix rather than batch changes
+
+---
+
+## Lessons Learned
+
+1. **Don't overcomplicate**: Original simple logic (user.group check) was better than complex systemConfig dependency
+2. **User testing is critical**: Loading delay was immediately noticed by user but not anticipated
+3. **Match original behavior**: When recovering from corruption, match how it worked before
 
 ---
 
 ## Next Steps
 
-1. ~~Create TASK_BACKLOG.md~~ ✅
-2. ~~Update HANDOFF.md with current state~~ ✅ (via end-session)
-3. ~~Update CHATFLOW.md with new paths~~ ⏸️ (Minor, not blocking)
-4. ~~Create root README.md~~ ✅
-5. ~~Create CHANGELOG.md~~ ✅
-6. ~~Clean up root directory~~ ✅
-7. ~~Verify all cross-references~~ ✅
-8. Test workflows (Future session)
+1. Continue fixing production issues one at a time
+2. Test fresh installation end-to-end
+3. Address any remaining bugs user discovers
 
 ---
 
 ## Session End Marker
 
 ✅ **SESSION END**
-- Session ended: 2025-12-02 16:33:00
-- Tool calls: ~52
+- Session ended: 2025-12-02 17:11:00
+- Tool calls: ~90
 - Status: Ready for next session
-- Summary: Documentation System v2.0 successfully implemented - all 10 phases completed, 8 commits pushed to develop branch
-
-*This file will become a template after session ends - future sessions will copy structure*
+- Summary: Fixed 5 critical production bugs (setup redirect loop, admin settings visibility, settings crashes). All issues resolved, tested, and deployed to Docker Hub.
