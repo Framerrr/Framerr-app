@@ -35,15 +35,11 @@ export const PERMISSIONS = {
 };
 
 /**
- * Check if user is admin (has wildcard permission)
+ * Check if user is admin 
  * @param {object} user - User object
- * @param {object} systemConfig - System configuration
- * @returns {boolean} True if user is admin
+ * @returns {boolean} True if user is in admin group
  */
-export const isAdmin = (user, systemConfig) => {
+export const isAdmin = (user) => {
     if (!user || !user.group) return false;
-    if (!systemConfig || !systemConfig.groups) return false;
-
-    const group = systemConfig.groups.find(g => g.id === user.group);
-    return group && group.permissions.includes('*');
+    return user.group === 'admin';
 };
