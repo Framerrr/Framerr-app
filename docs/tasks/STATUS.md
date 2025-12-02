@@ -1,6 +1,6 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-02 17:11:00  
+**Last Updated:** 2025-12-02 18:07:00  
 **Current Version:** v1.1.6-recovered  
 **Development Branch:** `develop`  
 **Production Docker:** `pickels23/framerr:reconstructed`
@@ -9,9 +9,9 @@
 
 ## 🎯 Current Phase
 
-**Phase 9:** Production Bug Fixes - COMPLETE ✅
+**Phase 10:** Hash Routing Restoration - BLOCKED ⚠️
 
-**Status:** Fixed critical first-time setup and admin settings issues. Ready for continued production testing.
+**Status:** Hash routing partially implemented but URL format still incorrect. Needs investigation of alternative approaches.
 
 ---
 
@@ -22,7 +22,7 @@
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
 | **Frontend** | ✅ Operational | Built and deployed, 5 stub components |
 | **Docker Production** | ✅ Live | `pickels23/framerr:reconstructed` (updated 4x today) |
-| **Docker Debug** | 🟡 Ready | `Dockerfile.dev` created, not yet built |
+| **Docker Debug** | 🔴 Issues | `pickels23/framerr:debug` (hash routing URLs incorrect) |
 | **Documentation** | ✅ Complete | Full v2.0 system in place |
 | **Workflows** | ✅ Active | 7 workflows created, 3 placeholders |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
@@ -33,20 +33,28 @@
 
 ## 🚀 Recent Accomplishments
 
+### Hash Routing Implementation (Dec 2, 2025 - Evening) - INCOMPLETE
+- ✅ Implemented HashRouter with basename=""
+- ✅ Created IframeManager for iframe persistence
+- ✅ Added settings URL query params (#settings?tab=profile)
+- ✅ Removed placeholder services from sidebar
+- ❌ **BLOCKED:** URL format still incorrect (#/page instead of #page)
+- 🔧 Needs alternative routing approach investigation
+
 ### Production Bug Fixes (Dec 2, 2025 - Evening)
 - ✅ Fixed setup redirect loop preventing admin account creation
 - ✅ Fixed setup not redirecting after account creation
 - ✅ Restored admin settings visibility
 - ✅ Fixed settings page crashes
 - ✅ Removed loading delay (simplified admin check)
+
+### Documentation System v2.0 (Dec 2, 2025 - Afternoon)
 - ✅ Created `docs/` structure with 6 subdirectories
 - ✅ Archived 15 recovery documentation files
 - ✅ Consolidated rules system (git, development, theming)
 - ✅ Created 7 workflows (start-session, end-session, checkpoint, code-audit, git-workflow, + 3 placeholders)
 - ✅ Created `Dockerfile.dev` for debug builds
 - ✅ Organized architecture and development guides
-- 🟡 Building task tracking system
-- ⏸️ Primary documentation updates pending
 
 ---
 

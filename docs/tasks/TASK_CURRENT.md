@@ -1,113 +1,168 @@
-# Current Task - Production Bug Fixes
+# Current Task - Hash Routing Implementation (INCOMPLETE)
 
-**Status:** Complete  
-**Started:** 2025-12-02 16:36:00  
-**Ended:** 2025-12-02 17:11:00  
-**Tool Calls:** ~90
+**Status:** Blocked - Routing still incorrect  
+**Started:** 2025-12-02 17:42:00  
+**Ended:** 2025-12-02 18:07:00  
+**Tool Calls:** ~115
 
 ---
 
 ## Task Description
 
-Fixed critical production bugs preventing users from completing first-time setup and accessing admin settings.
+Restore original hash-based routing system with iframe persistence. User confirmed production was using hash routing with format `#page` (no slash after hash).
 
 ---
 
-## Issues Fixed
+## Target Requirements
 
-### Issue 1: Setup Redirect Loop ✅
-- Problem: Users redirected between /login and /setup infinitely, couldn't create admin account
-- Root Cause: Setup.jsx was duplicate of App.jsx, AuthContext redirect logic conflicted
-- Fix: Created proper Setup wizard component, fixed AuthContext redirect logic with early return
-- Commit: `bff9a2c`
+User's production system uses:
+- `/login` - Login page (no hash)
+- `/#dashboard` - Dashboard
+- `/#settings` - Settings page
+- `/#settings?tab=profile` - Settings with specific tab
+- `/#radarr` - Individual tabs (NOT `/#/tab/radarr`)
 
-### Issue 2: Setup Doesn't Redirect After Account Creation ✅ 
-- Problem: Setup page stayed visible after account creation, manual refresh required
-- Root Cause: `needsSetup` state not updated after account creation, auto-login added complexity
-- Fix: Removed auto-login, added `checkSetupStatus()` call, redirect to /login for manual login
-- Commit: `ab70830`
+---
 
-### Issue 3: Admin Settings Not Visible ✅
-- Problem: Admin users couldn't see admin-only settings tabs (Users, Widgets, Auth, Advanced)
-- Root Cause: `isAdmin(user)` called but function required `isAdmin(user, systemConfig)` - missing parameter
-- Fix: Import `useSystemConfig`, pass to `isAdmin` function
-- Commit: `ab70830`
+## Work Completed
 
-### Issue 4: Settings Page Crashes ✅
-- Problem: Settings page crashed with "Cannot read properties of undefined (reading 'includes')"
-- Root Cause 1: `systemConfig` was null during loading, caused crash
-- Fix Attempt 1: Added loading check (caused delay issue)
-- Commit: `aa4685c`
+### 1. Initial Hash Routing Setup ✅
+- Added `HashRouter` with `basename=""` to `main.jsx`
+- Removed `BrowserRouter`
+- **Commit:** `f1692f6`
 
-### Issue 5: Settings Page Loading Delay ✅
-- Problem: Settings had loading delay that didn't exist in pre-corrupted version
-- Root Cause 2: Overcomplicated admin check requiring systemConfig when simple group check worked before
-- Fix: Simplified `isAdmin()` to just check `user.group === 'admin'` without systemConfig
-- Commit: `1740b4b`
+### 2. Settings URL Query Parameters ✅
+- Updated `UserSettings.jsx` to use `useSearchParams`
+- Tab navigation now updates URL with `?tab=` parameter
+- Supports `#settings?tab=profile` format
+- **Included in commit:** `f1692f6`
+
+### 3. Iframe Persistence System ✅
+- Created `IframeManager.jsx` component
+- Replaced `TabView.jsx` with `IframeManager`
+- Iframes stay mounted until page refresh
+- Uses `Set` to track loaded tabs
+- **Included in commit:** `f1692f6`
+
+### 4. Removed Placeholder Services ✅
+- Removed mock services (Plex, Sonarr, Radarr) from `AppDataContext.jsx`
+- Sidebar now empty by default
+- **Included in commit:** `f1692f6`
+
+### 5. Route Structure Fixes (ATTEMPTED) ❌
+- Removed leading slashes from authenticated routes
+- Changed `/tab/:slug` to `:slug`
+- Updated all Sidebar NavLinks
+- Updated ProtectedRoute redirects
+- **Commit:** `5eb8e81`
+
+---
+
+## Problem (BLOCKER)
+
+**User reports URLs are still wrong:**
+- Getting: `/#/login`, `/#/settings`, `/#/tab/test`
+- Need: `/login`, `/#dashboard`, `/#settings`, `/#test`
+
+**Root Cause Analysis:**
+The issue is that React Router's `HashRouter` with `basename=""` does NOT remove the slash - it just removes the basename prefix. The routes themselves still have leading slashes which HashRouter preserves as `/#/route`.
+
+**Attempted Fix:**
+- Removed leading slashes from route paths: `path="dashboard"` instead of `path="/dashboard"`
+- This SHOULD produce `/#dashboard` but apparently still produces `/#/dashboard`
+
+**Why It's Not Working:**
+The fundamental approach might be wrong. Need to investigate if:
+1. HashRouter always adds `/` after hash (might need custom implementation)
+2. Route paths need different structure
+3. Need to remove HashRouter entirely and use custom hash navigation
+4. Some other React Router configuration is needed
 
 ---
 
 ## Files Modified
 
-1. **src/pages/Setup.jsx** - Created proper setup wizard (replaced duplicate App.jsx)
-2. **src/context/AuthContext.jsx** - Fixed redirect logic with early return
-3. **src/pages/UserSettings.jsx** - Added then removed systemConfig dependency
-4. **src/utils/permissions.js** - Simplified isAdmin to not require systemConfig
+1. **src/main.jsx** - Added HashRouter with basename=""
+2. **src/App.jsx** - Updated routes, removed leading slashes, replaced TabView with IframeManager
+3. **src/pages/UserSettings.jsx** - Added useSearchParams for tab navigation
+4. **src/components/IframeManager.jsx** - NEW: Iframe persistence component
+5. **src/components/Sidebar.jsx** - Updated all NavLink paths
+6. **src/components/common/ProtectedRoute.jsx** - Fixed redirect paths
+7. **src/context/AppDataContext.jsx** - Removed mock services
+8. **src/hooks/useHashNavigation.js** - DELETED (not needed with HashRouter)
 
 ---
 
 ## Git Commits
 
-1. `bff9a2c` - fix(setup): resolve first-time setup redirect loop
-2. `ab70830` - fix(setup): redirect to login and restore admin settings  
-3. `aa4685c` - fix(settings): prevent crash when systemConfig is loading
-4. `1740b4b` - fix(settings): simplify admin check to not require systemConfig
+1. `f1692f6` - feat(routing): restore hash routing with iframe persistence
+2. `5eb8e81` - fix(routing): correct hash URL format to #page instead of #/page
 
-**Total Commits:** 4  
+**Total Commits:** 2  
 **Branch:** develop  
-**Docker Image:** pickels23/framerr:reconstructed (rebuilt 4 times)
+**Docker Image:** pickels23/framerr:debug (pushed twice)
 
 ---
 
-## Testing Performed
+## Docker Deployments
 
-- [x] Build passes (verified 4+ times)
-- [x] User tested setup flow
-- [x] User tested admin settings visibility  
-- [x] Settings page loads without crash
-- [x] No loading delay on settings page
+1. **First deploy:** After initial hash routing setup
+2. **Second deploy:** After route path corrections
+   - Image: `pickels23/framerr:debug`
+   - Digest: `sha256:789d25365ce339f7e89baae6382290cff3303df611854ffec9100c0a8f9427ce`
 
 ---
 
-## Decisions Made
+## Testing Status
 
-1. **Manual login over auto-login**: Simpler, more reliable flow after setup
-2. **Simplified admin check**: Reverted to original simple `user.group === 'admin'` check
-3. **Multiple Docker rebuilds**: Each fix deployed immediately for user testing
-4. **Iterative approach**: User feedback guided each fix rather than batch changes
+- [ ] Hash format correct (`#page` not `#/page`)
+- [x] Settings URL params working (`?tab=`)
+- [x] Iframe persistence working
+- [ ] Tab URLs correct (`#radarr` not `#/tab/radarr`)
+- [ ] Login without hash (`/login` not `/#/login`)
+
+---
+
+## Next Steps for New Agent
+
+1. **Investigate root cause:**
+   - Research if HashRouter can truly produce `#page` without `/`
+   - Check if custom hash navigation is required
+   - Look at user's old minified bundle for clues
+   - Consider if they used a completely different approach
+
+2. **Possible solutions to try:**
+   - Custom hash navigation without React Router
+   - Different HashRouter configuration
+   - Mixed routing (BrowserRouter for some, custom hash for others)
+   - Manual `window.location.hash` management
+
+3. **Reference:**
+   - User's production: `https://server-nebula.com/#settings`
+   - User confirmed this worked before corruption
+   - Minified bundle in `docs/uploaded-from-user/index-CtslTEnJ.js`
+
+4. **Critical question to answer:**
+   How did the original implementation achieve `#page` format? Was it:
+   - React Router HashRouter with special config?
+   - Custom hash routing implementation?
+   - Something else entirely?
 
 ---
 
 ## Lessons Learned
 
-1. **Don't overcomplicate**: Original simple logic (user.group check) was better than complex systemConfig dependency
-2. **User testing is critical**: Loading delay was immediately noticed by user but not anticipated
-3. **Match original behavior**: When recovering from corruption, match how it worked before
-
----
-
-## Next Steps
-
-1. Continue fixing production issues one at a time
-2. Test fresh installation end-to-end
-3. Address any remaining bugs user discovers
+1. **HashRouter with `basename=""` doesn't remove the slash** - It just removes the basename, routes still get `/` prefix
+2. **Need to verify routing approach** - Don't assume HashRouter is the right solution
+3. **User's production example is key** - They showed `#settings` works, need to match that exactly
 
 ---
 
 ## Session End Marker
 
 ✅ **SESSION END**
-- Session ended: 2025-12-02 17:11:00
-- Tool calls: ~90
-- Status: Ready for next session
-- Summary: Fixed 5 critical production bugs (setup redirect loop, admin settings visibility, settings crashes). All issues resolved, tested, and deployed to Docker Hub.
+- Session ended: 2025-12-02 18:07:00
+- Tool calls: ~115
+- Status: BLOCKED - Hash routing URLs still incorrect despite two attempts
+- Summary: Implemented hash routing foundation, iframe persistence, settings URL params, but URL format still wrong. Need to investigate alternative routing approaches.
+- Next agent: Research how to achieve `#page` format (no slash) or consider custom hash navigation implementation
