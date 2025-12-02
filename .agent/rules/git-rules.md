@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Agent Rules for Framerr-app Development
 
 ## Git Operations - Safety Rules

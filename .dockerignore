@@ -10,7 +10,6 @@ yarn-error.log
 .env.local
 .vscode
 .idea
-*.log
 
 # Build artifacts (will be built in Docker)
 dist
@@ -20,7 +19,10 @@ server/data
 server/public/profile-pictures
 server/public/favicon
 
-# Documentation
+# Documentation (DOCKER-IGNORE, but GIT-TRACKED)
+docs/
+.agent/
+.olddocs/
 *.md
 !README.md
 
@@ -33,8 +35,14 @@ server/public/favicon
 .DS_Store
 Thumbs.db
 
+# Logs
+*.log
+
 # Test files
 **/*.test.js
 **/*.spec.js
 __tests__
 coverage
+
+# CSV files (inventories, temp data)
+*.csv
