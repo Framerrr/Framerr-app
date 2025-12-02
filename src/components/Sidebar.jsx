@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import HashNavLink from './common/HashNavLink';
 import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
@@ -122,8 +123,8 @@ const Sidebar = () => {
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 px-3">
-                    <NavLink
-                        to="/dashboard"
+                    <HashNavLink
+                        to="#dashboard"
                         className={({ isActive }) => `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${isActive ? 'bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-600/20' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`}
                     >
                         <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
@@ -132,7 +133,7 @@ const Sidebar = () => {
                         <span className={`whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
                             Dashboard
                         </span>
-                    </NavLink>
+                    </HashNavLink>
 
                     {/* Tabs Section */}
                     {tabs && tabs.length > 0 && (
@@ -149,9 +150,9 @@ const Sidebar = () => {
 
                             {/* Ungrouped tabs first */}
                             {tabs.filter(tab => !tab.groupId).map(tab => (
-                                <NavLink
+                                <HashNavLink
                                     key={tab.id}
-                                    to={`/${tab.slug}`}
+                                    to={`#${tab.slug}`}
                                     className={({ isActive }) => `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${isActive ? 'bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-600/20' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} relative group`}
                                 >
                                     <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
@@ -165,7 +166,7 @@ const Sidebar = () => {
                                             {tab.name}
                                         </div>
                                     )}
-                                </NavLink>
+                                </HashNavLink>
                             ))}
 
                             {/* Grouped tabs */}
@@ -186,24 +187,24 @@ const Sidebar = () => {
                                                 </button>
                                                 <div className={`overflow-hidden transition-all duration-300 space-y-1 ${expandedGroups[group.id] ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                                     {groupTabs.map(tab => (
-                                                        <NavLink
+                                                        <HashNavLink
                                                             key={tab.id}
-                                                            to={`/${tab.slug}`}
+                                                            to={`#${tab.slug}`}
                                                             className={({ isActive }) => `flex items-center py-3 px-4 pl-8 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${isActive ? 'bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-600/20' : ''}`}
                                                         >
                                                             <span className="mr-3 flex items-center justify-center">
                                                                 {renderIcon(tab.icon, 18)}
                                                             </span>
                                                             <span className="truncate">{tab.name}</span>
-                                                        </NavLink>
+                                                        </HashNavLink>
                                                     ))}
                                                 </div>
                                             </>
                                         ) : (
                                             groupTabs.map(tab => (
-                                                <NavLink
+                                                <HashNavLink
                                                     key={tab.id}
-                                                    to={`/${tab.slug}`}
+                                                    to={`#${tab.slug}`}
                                                     className={({ isActive }) => `flex items-center justify-center py-3.5 text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl relative group ${isActive ? 'bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-600/20' : ''}`}
                                                 >
                                                     <span className="flex items-center justify-center">
@@ -213,7 +214,7 @@ const Sidebar = () => {
                                                         {tab.name}
                                                         <span className="text-xs text-slate-400 block">{group.name}</span>
                                                     </div>
-                                                </NavLink>
+                                                </HashNavLink>
                                             ))
                                         )}
                                     </div>
@@ -297,8 +298,8 @@ const Sidebar = () => {
                         </span>
                     </button>
 
-                    <NavLink
-                        to="/settings"
+                    <HashNavLink
+                        to="#settings"
                         className={({ isActive }) => `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all ${isActive ? 'bg-blue-600/20 text-blue-400' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`}
                     >
                         <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
@@ -307,7 +308,7 @@ const Sidebar = () => {
                         <span className={`whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
                             Settings
                         </span>
-                    </NavLink>
+                    </HashNavLink>
                 </div>
             </aside>
         );
@@ -321,14 +322,14 @@ const Sidebar = () => {
                     <Menu size={24} />
                     <span className="text-[10px]">Menu</span>
                 </button>
-                <NavLink to="/dashboard" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
+                <HashNavLink to="#dashboard" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
                     <LayoutDashboard size={24} />
                     <span className="text-[10px]">Dashboard</span>
-                </NavLink>
-                <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
+                </HashNavLink>
+                <HashNavLink to="#settings" className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
                     <SettingsIcon size={24} />
                     <span className="text-[10px]">Settings</span>
-                </NavLink>
+                </HashNavLink>
             </div>
 
             {/* Mobile Menu Overlay */}
@@ -355,7 +356,7 @@ const Sidebar = () => {
                                             <button
                                                 key={tab.id}
                                                 onClick={() => {
-                                                    navigate(`/${tab.slug}`);
+                                                    window.location.hash = `#${tab.slug}`;
                                                     setIsMobileMenuOpen(false);
                                                 }}
                                                 className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"

@@ -6,8 +6,8 @@ import { RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
  * IframeManager - Manages multiple iframes with persistence
  * Once an iframe is loaded, it stays mounted until page refresh
  */
-const IframeManager = () => {
-    const { slug } = useParams();
+const IframeManager = ({ slug }) => {
+    // const { slug } = useParams(); // Removed: passed as prop now
     const navigate = useNavigate();
     const [tabs, setTabs] = useState([]);
     const [loadedTabs, setLoadedTabs] = useState(new Set());
@@ -81,7 +81,7 @@ const IframeManager = () => {
                     <h2 className="text-xl font-bold text-white mb-2">Tab Not Found</h2>
                     <p>The tab "{slug}" could not be found.</p>
                     <button
-                        onClick={() => navigate('/')}
+                        onClick={() => window.location.hash = '#dashboard'}
                         className="mt-4 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
                     >
                         Go to Dashboard
