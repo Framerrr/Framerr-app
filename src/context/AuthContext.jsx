@@ -24,13 +24,16 @@ export const AuthProvider = ({ children }) => {
 
         const currentPath = location.pathname;
 
-        // If setup is needed and not on setup page, redirect to setup
-        if (needsSetup && currentPath !== '/setup') {
-            navigate('/setup', { replace: true });
+        // If setup needed: redirect to /setup (unless already there)
+        if (needsSetup) {
+            if (currentPath !== '/setup') {
+                navigate('/setup', { replace: true });
+            }
+            return; // Don't process other redirects when setup is needed
         }
 
-        // If on setup page but setup not needed, redirect to login
-        if (!needsSetup && currentPath === '/setup') {
+        // Setup complete: redirect away from /setup to /login
+        if (currentPath === '/setup') {
             navigate('/login', { replace: true });
         }
     }, [needsSetup, loading, location.pathname, navigate]);
