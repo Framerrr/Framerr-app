@@ -4,6 +4,11 @@ import path from 'path';
 
 export default defineConfig({
     plugins: [react()],
+    build: {
+        sourcemap: process.env.NODE_ENV === 'development',
+        minify: process.env.NODE_ENV === 'production' ? 'esbuild' : false,
+        outDir: 'dist',
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
