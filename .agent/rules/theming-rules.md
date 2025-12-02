@@ -1,4 +1,5 @@
 ---
+trigger: always_on
 description: Theming system compliance rules for Framerr - enforced by Antigravity
 ---
 

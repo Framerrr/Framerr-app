@@ -1,4 +1,5 @@
 ---
+trigger: always_on
 description: Immutable development rules for Framerr project - enforced by Antigravity
 ---
 

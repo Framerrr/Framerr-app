@@ -1,263 +1,302 @@
-# HANDOFF DOCUMENT - Framerr v1.1.6 Reconstruction
+# HANDOFF DOCUMENT - Framerr v1.1.6
 
-**Date:** 2025-12-02  
-**Phase:** Architecture Analysis & File Selection  
-**Status:** In Progress - Missing Critical Files Identified  
-**Next Agent:** Continue from Phase 1.3
-
----
-
-## Current Situation
-
-### What We're Building
-Reconstructing Framerr v1.1.6 from:
-- Docker extraction (compiled v1.1.6 backend + built frontend)
-- Git recovery (v1.1.6 source code - partial)
-
-### What's Complete
-
-#### ✅ framerr-1 Base Structure
-```
-framerr-1/
-├── server/          ✅ Complete v1.1.6 backend (from Docker)
-├── src/             ⚠️  Empty - needs population
-├── public/          ✅ Created
-├── package.json     ✅ v1.1.6 frontend dependencies
-├── vite.config.js   ✅ Build configuration
-├── tailwind.config.js ✅ CSS framework
-├── Dockerfile       ✅ Build instructions
-└── All configs      ✅ In place
-```
-
-#### ✅ Documentation Created
-- `ARCHITECTURE.md` - Application structure analysis
-- `FILE_VERSION_ANALYSIS.md` - File selection decisions
-- `STRATEGY_REVISED.md` - Corrected version understanding
-- `RECONSTRUCTION_STATUS.md` - Overall project status
-- `jsx-inventory.csv` - All 156 JSX files cataloged
-- `js-inventory.csv` - All 83 JS files cataloged
-
-###  Key Discovery: v1.0.6 vs v1.1.6
-
-**CRITICAL:** Working directory `/framerr/framerr` is v1.0.6, NOT v1.1.6!
-
-| Version | Location | Status |
-|---------|----------|--------|
-| v1.0.6 | `/framerr/framerr` | Old, pre-corruption |
-| v1.1.6 | Git recovery | Target - what we're rebuilding |
-| v1.1.6 | Docker extraction | Compiled/built version |
-
-**Implication:** Git-recovered files ARE the correct v1.1.6 source. Do NOT use v1.0.6 as primary reference.
+**Last Updated:** 2025-12-02 16:33:00  
+**Status:** ✅ Operational - Documentation System v2.0 Complete  
+**Current Version:** v1.1.6-recovered  
+**Branch:** `develop`  
+**Docker Image:** `pickels23/framerr:reconstructed`
 
 ---
 
-## Architecture Discovered
+## 📌 CRITICAL CONTEXT
 
-###  Entry Points (v1.1.6)
+### What Framerr Is
+Modern, self-hosted homelab dashboard with iframe tab system and customizable widgets. Successfully recovered from complete source code loss (Git corruption incident on 2025-12-01).
 
-#### main.jsx (347 bytes)
-Simple bootstrap - imports App.jsx
+### Current State
+- **Backend:** ✅ Complete (2,081 files from v1.1.6 Docker image)
+- **Frontend:** ✅ 95% recovered + 5 stub components
+- **Build:** ✅ Passing, deployed to Docker
+- **Documentation:** ✅ Fully restructured (v2.0 system)
+- **Status:** Production-ready, fully operational
 
-#### App.jsx (4,298 bytes)
-Main application with:
-- Full routing (Login, Setup, Dashboard, UserSettings, TabView)
-- Context provider hierarchy
-- Protected routes with authentication
-- Sidebar navigation
-
-#### Context Hierarchy
-```
-AuthProvider
-  └─ ThemeProvider
-      └─ SystemConfigProvider
-          └─ AppDataProvider
-              └─ Routes
-```
-
-###Directory Structure (v1.1.6 inferred)
-
-```
-src/
-├── context/          # React contexts (uses singular 'context')
-│   ├── AuthContext.jsx          ❌ MISSING
-│   ├── ThemeContext.jsx         ❌ MISSING
-│   ├── SystemConfigContext.jsx  ✅ Recovered (3 versions)
-│   └── AppDataContext.jsx       ✅ Recovered (2 versions)
-├── components/
-│   ├── common/
-│   │   └── ProtectedRoute.jsx   ❓ Need to locate
-│   ├── Sidebar.jsx              ❓ Need to locate
-│   ├── FaviconInjector.jsx      ❓ Need to locate
-│   └── AppTitle.jsx             ❓ Need to locate
-├── pages/
-│   ├── Login.jsx                ❓ Need to locate
-│   ├── Setup.jsx                ❓ Need to locate
-│   ├── Dashboard.jsx            ❓ Need to locate
-│   ├── UserSettings.jsx         ❓ Need to locate
-│   ├── TabView.jsx              ❓ Need to locate
-│   └── TailwindTest.jsx         ❓ Need to locate
-├── utils/
-│   └── logger.js                ❓ Need to locate
-├── App.jsx                      ✅ Recovered
-└── main.jsx                     ✅ Recovered (2 identical versions)
-```
-
-**Note:** App.jsx uses `'./context/AuthContext'` (singular), not `'./contexts/'`
+### Last Major Work
+**Documentation System v2.0 Implementation** (2025-12-02)
+- Created organized `docs/` structure
+- Consolidated rules and workflows
+- Added Docker debug build capability
+- Established comprehensive task tracking
 
 ---
 
-## CRITICAL MISSING FILES
+## 🚀 Quick Start for New Agents
 
-### High Priority - App Won't Build Without These
-
-| File | Status | Impact |
-|------|--------|--------|
-| `context/AuthContext.jsx` | ❌ NOT in git recovery | CRITICAL - App.jsx requires it |
-| `context/ThemeContext.jsx` | ❌ NOT in git recovery | CRITICAL - App.jsx requires it |
-
-### Options for Missing Context Files
-
-1. **Search more thoroughly** in git recovery
-   - Check NO_EXTENSION folder (2,525 files)
-   - Search by content patterns
-   - Check if renamed
-
-2. **Use v1.0.6 as template** (from `/framerr/framerr/src/contexts/`)
-   - AuthContext.jsx exists in v1.0.6
-   - ThemeContext.jsx exists in v1.0.6
-   - Update for v1.1.6 features based on how they're used in App.jsx
-
-3. **Reconstruct from usage**
-   - Analyze how they're imported/used
-   - Check backend API endpoints they interact with
-   - Build minimal working versions
+1. **Read this section first** - Critical context
+2. **Check current work:** `docs/tasks/TASK_CURRENT.md`
+3. **Review status:** `docs/tasks/STATUS.md`
+4. **Follow rules:** `.agent/rules.md`
+5. **Use workflows:** `.agent/workflows/` (start with `/start-session`)
 
 ---
 
-## File Selection Progress
+## 📊 System Architecture
 
-### Analyzed Files
+### Technology Stack
+- **Frontend:** React 19.2, Tailwind CSS 4.1, Vite 7.2
+- **Backend:** Node.js 20 (Express), SQLite
+- **Deployment:** Docker (Alpine Linux)
 
-| File | Versions | Selected | Size | Notes |
-|------|----------|----------|------|-------|
-| main.jsx | 2 | main.jsx | 347 bytes | Identical versions |
-| AppDataContext.jsx | 2 | AppDataContext.jsx | 3,176 bytes | Larger = more complete |
-| SystemConfigContext.jsx | 3 | SystemConfigContext_1.jsx | 1,564 bytes | Largest version |
-
-### Selection Rule
-**Largest file = most features = likely v1.1.6**
-
----
-
-## API Endpoints Discovered
-
-From analyzing recovered files:
-
-### User & System Config
-- `GET /api/config/user` - User configuration and custom theme
-- `GET /api/config/system` - System-wide configuration
-- `PUT /api/widgets` - Save widget layout
-
-### Backend Routes Available (from server/)
-- `/api/auth` - Authentication
-- `/api/setup` - Initial setup
-- `/api/profile` - User profile
-- `/api/admin` - Admin functions
-- `/api/tabs` - Tab management
-- `/api/widgets` - Widget CRUD
-- `/api/theme` - Theme management
-- `/api/integrations` - External service integrations
-
----
-
-## Next Steps
-
-### Phase 1.3: Locate All Required Files ⏭️ START HERE
-
-1. **Search for missing pages:**
-   ```
-   Login.jsx, Setup.jsx, Dashboard.jsx, UserSettings.jsx, TabView.jsx
-   ```
-
-2. **Search for missing components:**
-   ```
-   Sidebar.jsx, ProtectedRoute.jsx, FaviconInjector.jsx, AppTitle.jsx
-   ```
-
-3. **Search for utilities:**
-   ```
-   logger.js (imported by App.jsx)
-   ```
-
-4. **Handle missing contexts:**
-   - Exhaustive search in NO_EXTENSION folder
-   - If not found, use v1.0.6 as base template
-   - Document what changes are needed for v1.1.6
-
-### Phase 1.4: Create File Manifest
-
-Create master manifest with:
-- File path in target structure
-- Source (git recovery path)
-- Selected version (if multiple)
-- Size
-- Dependencies (imports)
-- Status (ready to copy / needs modification / missing)
-
-### Phase 1.5: Build src/ Directory
-
-Copy files to proper locations in framerr-1/src/
-
----
-
-## Important Files Created
-
-All in `/RECONSTRUCTION/framerr-1/`:
-
-1. **ARCHITECTURE.md** - Application structure
-2. **FILE_VERSION_ANALYSIS.md** - Version selection log
-3. **STRATEGY_REVISED.md** - v1.0.6 vs v1.1.6 understanding
-4. **RECONSTRUCTION_STATUS.md** - Overall status
-5. **HANDOFF.md** - This document
-6. **jsx-inventory.csv** - All JSX files found
-7. **js-inventory.csv** - All JS files found
-
----
-
-## Search Commands for Next Agent
-
-### Find all page files:
-```powershell
-Get-ChildItem -Path "C:\Users\Jonathan\Documents\Antigravity\Framerr\RECONSTRUCTION\sorted-git-extracted\JSX" -Filter "*Dashboard*" | Select Name, Length
-Get-ChildItem -Path "C:\Users\Jonathan\Documents\Antigravity\Framerr\RECONSTRUCTION\sorted-git-extracted\JSX" -Filter "*Login*" | Select Name, Length
-# Repeat for Setup, UserSettings, TabView
+### Directory Structure
+```
+Framerr-app/
+├── .agent/              # Agent rules and workflows (Git-tracked, Docker-ignored)
+├── docs/                # All documentation (Git-tracked, Docker-ignored)
+│   ├── tasks/          # Task tracking system
+│   ├── architecture/   # System design
+│   ├── development/    # Developer guides
+│   ├── recovery/       # Historical recovery docs
+│   ├── theming/        # Theming system (if added)
+│   └── versions/       # Version-specific docs
+├── src/                # Frontend source
+├── server/             # Backend code
+├── public/             # Static assets
+├── dist/               # Build output (Git-ignored)
+├── Dockerfile          # Production build
+├── Dockerfile.dev      # Debug build (with source maps)
+└── Standard configs    # package.json, vite.config.js, etc.
 ```
 
-### Find components:
-```powershell
-Get-ChildItem -Path "C:\Users\Jonathan\Documents\Antigravity\Framerr\RECONSTRUCTION\sorted-git-extracted\JSX" -Filter "*Sidebar*" | Select Name, Length
-# Repeat for ProtectedRoute, FaviconInjector, AppTitle
-```
-
-### Search in NO_EXTENSION:
-```powershell
-Get-ChildItem -Path "C:\Users\Jonathan\Documents\Antigravity\Framerr\RECONSTRUCTION\sorted-git-extracted\NO_EXTENSION" -File | Where-Object { $_.Length -gt 1000 -and $_.Length -lt 10000 } | Select Name, Length
-```
+### Key Files
+- **Entry:** `src/main.jsx` → `src/App.jsx`
+- **Config:** `vite.config.js`, `tailwind.config.js`
+- **Rules:** `.agent/rules/` (git, development, theming)
+- **Workflows:** `.agent/workflows/` (7 workflows)
+- **Docs:** `docs/CHATFLOW.md` (start here for overview)
 
 ---
 
-## Progress Metrics
+## ⚠️ Known Issues & Limitations
 
-**Phase Completion:**
-- ✅ Phase 1.1: Entry points analyzed
-- ✅ Phase 1.2: Architecture documented
-- ⏭️ Phase 1.3: File location (START HERE)
-- ⏸️ Phase 1.4: File manifest
-- ⏸️ Phase 1.5: Copy to src/
+### Stub Components (Low Priority)
+5 components are basic implementations, functional but may need enhancement:
+- `WidgetErrorBoundary.jsx` - Basic error boundary
+- `EmptyDashboard.jsx` - Simple placeholder
+- `LoadingSpinner.jsx` - Basic spinner
+- `ColorPicker.jsx` - Simple color input
+- `DeveloperSettings.jsx` - Placeholder
 
-**Files:**
-- Analyzed: 4/239 (1.7%)
-- Located: 4/239 (1.7%)
-- Copied: 0/239 (0%)
+### v1.0.6 Components
+2 components from older version (functional, monitor for differences):
+- `SystemStatusWidget.jsx`
+- `CalendarWidget.jsx`
 
-**Status:** Early phase - architecture discovery complete, file gathering in progress
+### Outstanding Documentation Updates
+- `docs/CHATFLOW.md` - Works but references some old paths
+- `/build-develop`, `/build-production`, `/recover-session` - Placeholder workflows awaiting user input
+
+---
+
+## 🎯 Current Priorities
+
+See `docs/tasks/TASK_BACKLOG.md` for full list.
+
+### High Priority
+1. Define build workflows with user (placeholders exist)
+2. Build and test `develop-debug` Docker image
+3. Test workflows (`/start-session`, `/checkpoint`, `/end-session`)
+
+### Medium Priority
+4. Replace stub components with full implementations
+5. Comprehensive widget testing
+6. Bundle size optimization
+
+### Low Priority
+7. Extended theming documentation
+8. Performance profiling
+9. Mobile responsive testing
+
+---
+
+## 🔧 Development Workflow
+
+### Session Management
+**Always use workflows:**
+1. Start: `/start-session`
+2. Every 10 tool calls: `/checkpoint`  
+3. End: `/end-session`
+
+### Code Changes
+**Required process:**
+1. View file before editing (Rule 2)
+2. Make small, precise edits (Rule 3)
+3. Run `npm run build` after changes (Rule 1)
+4. Commit if passing (conventional commits)
+5. Push to `develop` branch
+
+### Git Safety Rules
+**NEVER run:**
+- `git reset --hard`
+- `git clean -fd`
+- `git push --force`
+- `git gc`
+
+**See:** `.agent/rules/git-rules.md` for complete list
+
+### Theming Compliance
+**Before editing ANY UI component:**
+1. Read `.agent/rules/theming-rules.md`
+2. Use ONLY theme utility classes
+3. Test in Light theme
+4. Test with flatten UI enabled
+5. NEVER hardcode colors
+
+---
+
+## 📦 Docker Images
+
+### Available Tags
+| Tag | Purpose | Size | Build Type |
+|-----|---------|------|------------|
+| `reconstructed` | Current stable | ~286MB | Production |
+| `develop` | Dev testing | ~150MB | Production (not yet rebuilt) |
+| `develop-debug` | Debugging | ~250MB | Debug (not yet built) |
+
+### Building Images
+
+**Production:**
+```bash
+docker build -t pickels23/framerr:develop .
+```
+
+**Debug (with source maps):**
+```bash
+docker build -f Dockerfile.dev -t pickels23/framerr:develop-debug .
+```
+
+**See:** `docs/development/DOCKER_BUILDS.md` for details
+
+---
+
+## 📚 Documentation System
+
+### Task Tracking
+- **HANDOFF.md** (this file) - Critical context and current state
+- **TASK_CURRENT.md** - Active session work tracking
+- **STATUS.md** - Overall project dashboard
+- **TASK_BACKLOG.md** - Prioritized future work
+- **TASK_COMPLETED.md** - Historical accomplishments
+
+### Developer Guides
+- **CHATFLOW.md** - Quick start and workflow overview
+- **WIDGET_DEVELOPMENT_GUIDE.md** - Create custom widgets
+- **LOGGING_REFERENCE.md** - Logging system usage
+- **DOCKER_BUILDS.md** - Build types and debugging
+
+### Architecture
+- **ARCHITECTURE.md** - File structure, entry points, context hierarchy
+- **PROJECT_SCOPE.md** - Vision, features, tech stack
+
+### Recovery Archive
+- **docs/recovery/** - Historical v1.1.6 recovery documentation (reference only)
+
+---
+
+## 🛡️ Critical Development Rules
+
+### P0 (BLOCKING - Must Follow)
+1. **Always test builds** - Run `npm run build` after code changes
+2. **Execute checkpoints** - Every 10 tool calls
+3. **Never commit corruption** - Verify file integrity first
+4. **Session protocols** - Use `/start-session` and `/end-session`
+5. **Git safety** - Follow forbidden command list strictly
+6. **Deployment approval** - User must confirm Docker builds
+7. **Theming compliance** - Use theme system for all UI
+
+### Workflow Integration
+- `/start-session` → Initialize work, read docs, set checkpoint counter
+- `/checkpoint` → Every 10 tool calls, verify context alignment
+- `/end-session` → Update docs, add session marker, commit summary
+- `/code-audit` → Clean up console.*, remove dead code
+- `/build-develop` → Deploy to develop (placeholder, needs definition)
+- `/build-production` → Production release (placeholder, needs definition)
+
+**See:** `.agent/rules/development-rules.md` for complete rules
+
+---
+
+## 🔄 Version History
+
+### v1.1.6-recovered (Current)
+- **Date:** 2025-12-02
+- **State:** Fully operational, deployed
+- **Recovery:** Successfully rebuilt from Docker extraction + Git recovery
+- **Build:** 51 systematic error resolutions
+- **Docker:** `pickels23/framerr:reconstructed`
+
+### v1.1.6 (Original - Lost)
+- **Date:** Pre-2025-12-01
+- **State:** Lost to Git corruption
+- **Source:** Recovered 95% from Git blobs
+
+### v1.0.6 (Previous Stable)
+- Available as reference in older working directory
+
+---
+
+## 🚨 Important Notes
+
+### Git Corruption Incident
+On 2025-12-01, the repository suffered complete corruption. All source code was successfully recovered through:
+1. Docker image extraction (backend)
+2. Git blob recovery (frontend)
+3. Systematic reconstruction
+
+**Result:** Strict Git safety rules now enforced. See `.agent/rules/git-rules.md`.
+
+### Documentation System Evolution
+- **v1.0:** Scattered root markdown files
+- **v2.0:** Organized `docs/` structure (implemented 2025-12-02)
+
+### Recovery Documentation
+Full recovery process documented in `docs/recovery/` for:
+- Historical reference
+- Evidence of systematic recovery approach
+- Future recovery scenarios
+
+**Current development:** Does NOT need to reference recovery docs unless studying the recovery process itself.
+
+---
+
+## 📞 For Questions or Issues
+
+1. **Getting started:** Read `docs/CHATFLOW.md`
+2. **Current status:** Check `docs/tasks/STATUS.md`
+3. **Active work:** See `docs/tasks/TASK_CURRENT.md`
+4. **Rules:** Review `.agent/rules.md`
+5. **Stuck?** Ask user for clarification (don't assume)
+
+---
+
+## ✅ Session Handoff Checklist
+
+When starting a new session:
+- [ ] Read this HANDOFF.md CRITICAL CONTEXT section
+- [ ] Check TASK_CURRENT.md for "SESSION END" marker
+- [ ] Review STATUS.md for current state
+- [ ] Read applicable rules before coding
+- [ ] Use `/start-session` workflow
+- [ ] Initialize checkpoint counter to 0
+
+When ending a session:
+- [ ] Complete current subtask or reach clean stopping point
+- [ ] Run `/end-session` workflow
+- [ ] Update TASK_CURRENT.md with session end marker
+- [ ] Update this HANDOFF.md if major changes occurred
+- [ ] Update STATUS.md timestamp
+- [ ] Commit session summary
+
+---
+
+**Next Agent:** Review `docs/tasks/TASK_CURRENT.md` and `docs/tasks/TASK_BACKLOG.md` to decide what to work on next. High priority items are defining build workflows and testing the new workflow system.
+
+**Status:** ✅ Ready for next session
