@@ -1,0 +1,14 @@
+/* Tailwind v4 - Import the framework */
+@import "tailwindcss";
+
+/* Import Design System & Default Theme */
+/* @import './styles/design-system.css'; */ /* COMMENTED: File not in recovery */
+@import './styles/themes/dark-pro.css';
+@import './styles/premium-effects.css';
+
+/* Global styles */
+body {
+    font-family: var(--font-primary);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}

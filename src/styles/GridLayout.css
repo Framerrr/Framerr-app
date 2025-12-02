@@ -1,0 +1,169 @@
+/**
+ * Grid Layout Styles for react-grid-layout
+ * Custom styling for dashboard grid, widgets, and edit mode
+ * 
+ * Note: Base react-grid-layout CSS is imported in Dashboard.jsx
+ */
+
+/* Grid Container */
+.react-grid-layout {
+    position: relative;
+    transition: height 200ms ease;
+}
+
+/* Grid Items */
+.react-grid-item {
+    transition: all 200ms ease;
+    transition-property: left, top, width, height;
+    border-radius: 0.75rem;
+    overflow: visible;
+}
+
+/* Prevent unwanted text selection while dragging */
+.react-grid-item.react-draggable-dragging {
+    transition: none;
+    z-index: 100;
+    cursor: move;
+}
+
+.react-grid-item.resizing {
+    transition: none;
+    z-index: 100;
+}
+
+/* Edit Mode Styles */
+.react-grid-item.edit-mode {
+    border: 2px dashed rgba(147, 51, 234, 0.4);
+}
+
+.react-grid-item.edit-mode:hover {
+    border-color: rgba(147, 51, 234, 0.6);
+    box-shadow: 0 4px 20px rgba(147, 51, 234, 0.2);
+}
+
+/* Locked Mode - No visual feedback */
+.react-grid-item.locked {
+    cursor: default;
+}
+
+/* Resize Handles */
+.react-resizable-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+}
+
+/* Only show resize handles in edit mode */
+.react-grid-item:not(.edit-mode) .react-resizable-handle {
+    display: none !important;
+}
+
+/* Bottom-Right Resize Handle */
+.react-resizable-handle-se {
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+}
+
+.react-resizable-handle-se::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid rgba(147, 51, 234, 0.8);
+    border-bottom: 2px solid rgba(147, 51, 234, 0.8);
+    border-radius: 0 0 4px 0;
+}
+
+.edit-mode .react-resizable-handle-se:hover::after {
+    border-color: rgba(147, 51, 234, 1);
+    width: 10px;
+    height: 10px;
+}
+
+/* Placeholder while dragging */
+.react-grid-placeholder {
+    background: rgba(147, 51, 234, 0.2);
+    border: 2px dashed rgba(147, 51, 234, 0.6);
+    border-radius: 0.75rem;
+    opacity: 1;
+    transition-duration: 100ms;
+    z-index: 2;
+}
+
+/* Widget Wrapper Styles */
+.widget-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.widget-header {
+    flex-shrink: 0;
+}
+
+.widget-content {
+    flex: 1;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(147, 51, 234, 0.5) rgba(30, 41, 59, 0.5);
+}
+
+.widget-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.widget-content::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 4px;
+}
+
+.widget-content::-webkit-scrollbar-thumb {
+    background: rgba(147, 51, 234, 0.5);
+    border-radius: 4px;
+}
+
+.widget-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(147, 51, 234, 0.7);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .react-grid-item {
+        /* Prevent tiny widgets on mobile */
+        min-height: 150px !important;
+    }
+
+    /* Simpler resize handle on mobile */
+    .react-resizable-handle-se::after {
+        width: 12px;
+        height: 12px;
+        border-width: 3px;
+    }
+}
+
+/* Animation when adding/removing widgets */
+.widget-enter {
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.widget-enter-active {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 300ms, transform 300ms;
+}
+
+.widget-exit {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.widget-exit-active {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 200ms, transform 200ms;
+}

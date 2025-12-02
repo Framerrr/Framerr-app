@@ -1,0 +1,225 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, AlertCircle, CheckCircle2, Loader } from 'lucide-react';
+import { getWidgetsByCategory, getWidgetMetadata } from '../../utils/widgetRegistry';
+import axios from 'axios';
+import logger from '../../utils/logger';
+
+/**
+ * Widget Gallery - Browse and add widgets to dashboard
+ */
+const WidgetGallery = () => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [integrations, setIntegrations] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [addingWidget, setAddingWidget] = useState(null);
+
+    const widgetsByCategory = getWidgetsByCategory();
+    const categories = ['all', ...Object.keys(widgetsByCategory)];
+
+    useEffect(() => {
+        fetchIntegrations();
+    }, []);
+
+    const fetchIntegrations = async () => {
+        try {
+            const response = await axios.get('/api/integrations');
+            setIntegrations(response.data.integrations || {});
+        } catch (error) {
+            logger.error('Failed to fetch integrations:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddWidget = async (widgetType) => {
+        setAddingWidget(widgetType);
+
+        try {
+            const metadata = getWidgetMetadata(widgetType);
+
+            // Check if integration is required and configured
+            if (metadata.requiresIntegration) {
+                const integration = integrations[metadata.requiresIntegration];
+                if (!integration?.enabled || !integration?.url) {
+                    alert(`This widget requires ${metadata.requiresIntegration} integration to be configured. Please configure it in the Integrations tab first.`);
+                    setAddingWidget(null);
+                    return;
+                }
+            }
+
+            // Fetch current widgets
+            const currentResponse = await axios.get('/api/widgets');
+            const currentWidgets = currentResponse.data.widgets || [];
+
+            // Create new widget with defaults
+            const newWidget = {
+                id: `widget-${Date.now()}`,
+                type: widgetType,
+                x: 0,
+                y: Infinity, // Adds to bottom
+                w: metadata.defaultSize.w,
+                h: metadata.defaultSize.h,
+                config: {
+                    title: metadata.name,
+                    // If integration required, copy integration config
+                    ...(metadata.requiresIntegration && {
+                        enabled: true,
+                        ...integrations[metadata.requiresIntegration]
+                    })
+                }
+            };
+
+            // Add to widgets array
+            const updatedWidgets = [...currentWidgets, newWidget];
+
+            // Save updated widgets
+            await axios.put('/api/widgets', { widgets: updatedWidgets });
+
+            alert(`${metadata.name} added to your dashboard! Go to the Dashboard to see it.`);
+        } catch (error) {
+            logger.error('Failed to add widget:', error);
+            alert('Failed to add widget. Please try again.');
+        } finally {
+            setAddingWidget(null);
+        }
+    };
+
+    // Filter widgets
+    const filteredWidgets = Object.entries(widgetsByCategory).reduce((acc, [category, widgets]) => {
+        if (selectedCategory !== 'all' && selectedCategory !== category) {
+            return acc;
+        }
+
+        const filtered = widgets.filter(widget =>
+            widget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            widget.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        if (filtered.length > 0) {
+            acc[category] = filtered;
+        }
+
+        return acc;
+    }, {});
+
+    if (loading) {
+        return <div className="text-center py-16 text-slate-400">Loading widgets...</div>;
+    }
+
+    return (
+        <div className="fade-in">
+            {/* Filters */}
+            <div className="mb-6 flex flex-col sm:flex-row gap-4">
+                {/* Search */}
+                <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search widgets..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-accent"
+                    />
+                </div>
+
+                {/* Category Filter */}
+                <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-accent capitalize"
+                >
+                    {categories.map(cat => (
+                        <option key={cat} value={cat} className="capitalize">
+                            {cat === 'all' ? 'All Categories' : cat}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Widget Grid */}
+            {Object.keys(filteredWidgets).length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                    <p>No widgets found matching your search.</p>
+                </div>
+            ) : (
+                Object.entries(filteredWidgets).map(([category, widgets]) => (
+                    <div key={category} className="mb-8">
+                        <h3 className="text-lg font-semibold text-white mb-4 capitalize flex items-center gap-2">
+                            {category}
+                            <span className="text-sm text-slate-400 font-normal">({widgets.length})</span>
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {widgets.map(widget => {
+                                const Icon = widget.icon;
+                                const isIntegrationRequired = widget.requiresIntegration;
+                                const integration = isIntegrationRequired ? integrations[widget.requiresIntegration] : null;
+                                const isIntegrationReady = !isIntegrationRequired || (integration?.enabled && integration?.url);
+
+                                return (
+                                    <div
+                                        key={widget.type}
+                                        className="glass-subtle shadow-medium rounded-xl p-6 border border-slate-700/50 card-glow"
+                                    >
+                                        {/* Header */}
+                                        <div className="flex items-start gap-4 mb-3">
+                                            <div className="p-3 bg-accent/20 rounded-lg">
+                                                <Icon size={24} className="text-accent" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold text-white mb-1">{widget.name}</h4>
+                                                <p className="text-sm text-slate-400 line-clamp-2">{widget.description}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="flex items-center gap-2 mb-4 text-xs">
+                                            <span className="px-2 py-1 bg-slate-700/50 rounded text-slate-300">
+                                                {widget.defaultSize.w}x{widget.defaultSize.h}
+                                            </span>
+                                            {isIntegrationRequired && (
+                                                <div className={`flex items-center gap-1 px-2 py-1 rounded ${isIntegrationReady
+                                                    ? 'bg-green-500/20 text-green-400'
+                                                    : 'bg-amber-500/20 text-amber-400'
+                                                    }`}>
+                                                    {isIntegrationReady ? (
+                                                        <CheckCircle2 size={12} />
+                                                    ) : (
+                                                        <AlertCircle size={12} />
+                                                    )}
+                                                    <span>{widget.requiresIntegration}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Add Button */}
+                                        <button
+                                            onClick={() => handleAddWidget(widget.type)}
+                                            disabled={addingWidget === widget.type}
+                                            className="button-elevated w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-slate-600 text-white rounded-lg transition-all font-medium"
+                                        >
+                                            {addingWidget === widget.type ? (
+                                                <>
+                                                    <Loader size={18} className="animate-spin" />
+                                                    <span>Adding...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plus size={18} />
+                                                    <span>Add to Dashboard</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
+    );
+};
+
+export default WidgetGallery;
