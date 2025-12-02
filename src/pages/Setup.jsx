@@ -11,7 +11,7 @@ const Setup = () => {
     const [displayName, setDisplayName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, checkSetupStatus } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -42,18 +42,11 @@ const Setup = () => {
             });
 
             if (setupResponse.data.success) {
-                // Auto-login after successful setup
-                const loginResult = await login(username, password, true);
+                // Update setup status to reflect that admin account now exists
+                await checkSetupStatus();
 
-                if (loginResult.success) {
-                    // Redirect to dashboard
-                    navigate('/', { replace: true });
-                } else {
-                    setError('Setup successful, but auto-login failed. Please login manually.');
-                    setTimeout(() => {
-                        navigate('/login', { replace: true });
-                    }, 2000);
-                }
+                // Redirect to login page for manual login
+                navigate('/login', { replace: true });
             }
         } catch (err) {
             const errorMsg = err.response?.data?.error || 'Setup failed. Please try again.';

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSystemConfig } from '../context/SystemConfigContext';
 
 import { isAdmin } from '../utils/permissions';
 import { Card } from '../components/common/Card';
@@ -21,8 +22,9 @@ import AdvancedSettings from '../components/settings/AdvancedSettings';
 const UserSettings = () => {
     const [activeTab, setActiveTab] = useState('tabs');
     const { user } = useAuth();
+    const { systemConfig } = useSystemConfig();
     // Check if user is admin
-    const hasAdminAccess = isAdmin(user);
+    const hasAdminAccess = isAdmin(user, systemConfig);
 
     // User tabs (always visible)
     const userTabs = [
