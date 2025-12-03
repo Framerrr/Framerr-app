@@ -530,6 +530,7 @@ const Sidebar = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                         className={(() => {
                             const hash = window.location.hash.slice(1);
+                            // Highlight Settings when on any settings page EXCEPT when source=profile (then Profile button is highlighted)
                             const shouldHighlight = hash.startsWith('settings') && source !== 'profile';
                             return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${shouldHighlight ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
                         })()}
