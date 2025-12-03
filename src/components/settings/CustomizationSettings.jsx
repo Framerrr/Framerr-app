@@ -694,7 +694,8 @@ const CustomizationSettings = () => {
                                             value={customColors['bg-tertiary']}
                                             onChange={(val) => handleColorChange('bg-tertiary', val)}
                                             description="Buttons and inputs"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                     </div>
 
                                     {/* Accents Column */}
@@ -705,13 +706,15 @@ const CustomizationSettings = () => {
                                             value={customColors['accent']}
                                             onChange={(val) => handleColorChange('accent', val)}
                                             description="Buttons and highlights"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                         <ColorPicker
                                             label="Secondary Accent"
                                             value={customColors['accent-secondary']}
                                             onChange={(val) => handleColorChange('accent-secondary', val)}
                                             description="Links and secondary actions"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                     </div>
 
                                     {/* Text Column */}
@@ -722,19 +725,22 @@ const CustomizationSettings = () => {
                                             value={customColors['text-primary']}
                                             onChange={(val) => handleColorChange('text-primary', val)}
                                             description="Main text color"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                         <ColorPicker
                                             label="Secondary Text"
                                             value={customColors['text-secondary']}
                                             onChange={(val) => handleColorChange('text-secondary', val)}
                                             description="Labels and descriptions"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                         <ColorPicker
                                             label="Muted Text"
                                             value={customColors['text-tertiary']}
                                             onChange={(val) => handleColorChange('text-tertiary', val)}
                                             description="Hints and timestamps"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                     </div>
 
                                     {/* Borders Column */}
@@ -745,13 +751,15 @@ const CustomizationSettings = () => {
                                             value={customColors['border']}
                                             onChange={(val) => handleColorChange('border', val)}
                                             description="Dividers and outlines"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                         <ColorPicker
                                             label="Light Border"
                                             value={customColors['border-light']}
                                             onChange={(val) => handleColorChange('border-light', val)}
                                             description="Subtle separators"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -780,25 +788,29 @@ const CustomizationSettings = () => {
                                             value={customColors['success']}
                                             onChange={(val) => handleColorChange('success', val)}
                                             description="Completed actions"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                         <ColorPicker
                                             label="Warning"
                                             value={customColors['warning']}
                                             onChange={(val) => handleColorChange('warning', val)}
                                             description="Cautions"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                         <ColorPicker
                                             label="Error"
                                             value={customColors['error']}
                                             onChange={(val) => handleColorChange('error', val)}
                                             description="Errors"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                         <ColorPicker
                                             label="Info"
                                             value={customColors['info']}
                                             onChange={(val) => handleColorChange('info', val)}
                                             description="Information"
-                                        />`ndisabled={!customColorsEnabled}`n$3
+                                            disabled={!customColorsEnabled}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -830,19 +842,22 @@ const CustomizationSettings = () => {
                                                 value={customColors['bg-hover']}
                                                 onChange={(val) => handleColorChange('bg-hover', val)}
                                                 description="Background on hover"
-                                            />`ndisabled={!customColorsEnabled}`n$3
+                                                disabled={!customColorsEnabled}
+                                            />
                                             <ColorPicker
                                                 label="Accent Hover"
                                                 value={customColors['accent-hover']}
                                                 onChange={(val) => handleColorChange('accent-hover', val)}
                                                 description="Accent color on hover"
-                                            />`ndisabled={!customColorsEnabled}`n$3
+                                                disabled={!customColorsEnabled}
+                                            />
                                             <ColorPicker
-                                                label="Accent Light"
+                                                label="Light Accent"
                                                 value={customColors['accent-light']}
                                                 onChange={(val) => handleColorChange('accent-light', val)}
                                                 description="Light accent variant"
-                                            />`ndisabled={!customColorsEnabled}`n$3
+                                                disabled={!customColorsEnabled}
+                                            />
                                         </div>
 
                                         {/* Special Borders */}
@@ -853,7 +868,8 @@ const CustomizationSettings = () => {
                                                 value={customColors['border-accent']}
                                                 onChange={(val) => handleColorChange('border-accent', val)}
                                                 description="Highlighted borders"
-                                            />`ndisabled={!customColorsEnabled}`n$3
+                                                disabled={!customColorsEnabled}
+                                            />
                                         </div>
                                     </div>
                                 )}
