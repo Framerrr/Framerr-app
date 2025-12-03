@@ -16,7 +16,7 @@ export const Card = ({
         xl: 'p-8'
     }[padding];
 
-    const baseClasses = `${paddingClass} glass-card rounded-xl transition-all duration-200`;
+    const baseClasses = `${paddingClass} glass-card rounded-xl transition-all duration-200 relative`;
     const hoverClasses = hover ? 'hover:shadow-xl hover:shadow-accent/20 hover:-translate-y-1 hover:border-accent/50 cursor-pointer' : '';
     const allClasses = `${baseClasses} ${hoverClasses} ${className}`.trim();
 
