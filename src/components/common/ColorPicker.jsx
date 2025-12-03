@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Pipette } from 'lucide-react';
 
 // Quick color presets for common theme colors
 const COLOR_PRESETS = [
@@ -13,13 +14,14 @@ const COLOR_PRESETS = [
 ];
 
 /**
- * ColorPicker - Enhanced color picker with presets and validation
+ * ColorPicker - Premium color picker with glassmorphism design
  * @param {string} value - Current hex color value
  * @param {function} onChange - Callback when color changes
  * @param {string} label - Display label
  */
 const ColorPicker = ({ value, onChange, label }) => {
     const [color, setColor] = useState(value || '#3B82F6');
+    const colorInputRef = useRef(null);
 
     // Sync with parent value changes
     useEffect(() => {
@@ -47,58 +49,86 @@ const ColorPicker = ({ value, onChange, label }) => {
         }
     };
 
+    // Trigger native color picker
+    const openColorPicker = () => {
+        colorInputRef.current?.click();
+    };
+
     return (
         <div className="space-y-3">
             {/* Label */}
             {label && (
-                <label className="block text-sm font-medium text-theme-primary">
+                <label className="block text-sm font-medium text-theme-primary mb-2">
                     {label}
                 </label>
             )}
 
-            {/* Main Picker Row */}
-            <div className="flex items-center gap-3 p-3 bg-theme-tertiary/30 rounded-lg border border-theme">
-                {/* Color Swatch Preview */}
-                <div
-                    className="w-10 h-10 rounded-lg border-2 border-theme flex-shrink-0"
-                    style={{ backgroundColor: color }}
-                    title="Current color preview"
-                />
-
-                {/* Hex Input */}
-                <input
-                    type="text"
-                    value={color}
-                    onChange={handleTextChange}
-                    className="flex-1 bg-theme-secondary border border-theme rounded-lg px-3 py-2 text-theme-primary font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
-                    placeholder="#3B82F6"
-                    maxLength={7}
-                />
-
-                {/* Native Color Picker */}
-                <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => handleColorChange(e.target.value)}
-                    className="w-10 h-10 cursor-pointer rounded-lg border border-theme"
-                    title="Open color picker"
-                />
-            </div>
-
-            {/* Quick Presets */}
-            <div className="space-y-2">
-                <div className="text-xs text-theme-tertiary">Quick Presets:</div>
-                <div className="grid grid-cols-8 gap-2">
-                    {COLOR_PRESETS.map(preset => (
-                        <button
-                            key={preset.value}
-                            onClick={() => handleColorChange(preset.value)}
-                            className="w-8 h-8 rounded-lg border-2 border-theme hover:border-accent hover:scale-110 transition-all"
-                            style={{ backgroundColor: preset.value }}
-                            title={`${preset.name}: ${preset.value}`}
-                            type="button"
+            {/* Main Picker */}
+            <div className="glass-subtle rounded-xl p-4 border border-theme space-y-4">
+                {/* Color Display and Input Row */}
+                <div className="flex items-center gap-3">
+                    {/* Large Color Swatch - Clickable */}
+                    <button
+                        type="button"
+                        onClick={openColorPicker}
+                        className="relative w-14 h-14 rounded-xl border-2 border-theme shadow-lg flex-shrink-0 overflow-hidden group cursor-pointer transition-all hover:scale-105 hover:border-accent"
+                        title="Click to open color picker"
+                    >
+                        {/* Color Fill */}
+                        <div
+                            className="absolute inset-0"
+                            style={{ backgroundColor: color }}
                         />
-                    ))}
+
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                            <Pipette
+                                size={20}
+                                className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg"
+                            />
+                        </div>
+                    </button>
+
+                    {/* Hex Input */}
+                    <div className="flex-1">
+                        <input
+                            type="text"
+                            value={color}
+                            onChange={handleTextChange}
+                            className="w-full bg-theme-secondary border border-theme rounded-lg px-4 py-3 text-theme-primary font-mono text-base focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+                            placeholder="#3B82F6"
+                            maxLength={7}
+                        />
+                    </div>
+
+                    {/* Hidden Native Color Input */}
+                    <input
+                        ref={colorInputRef}
+                        type="color"
+                        value={color}
+                        onChange={(e) => handleColorChange(e.target.value)}
+                        className="w-0 h-0 opacity-0 absolute pointer-events-none"
+                        tabIndex={-1}
+                    />
+                </div>
+
+                {/* Quick Presets */}
+                <div className="space-y-2">
+                    <div className="text-xs font-medium text-theme-tertiary uppercase tracking-wider">
+                        Quick Presets
+                    </div>
+                    <div className="grid grid-cols-8 gap-2">
+                        {COLOR_PRESETS.map(preset => (
+                            <button
+                                key={preset.value}
+                                onClick={() => handleColorChange(preset.value)}
+                                className="w-full aspect-square rounded-lg border-2 border-theme hover:border-accent hover:scale-110 transition-all shadow-medium hover:shadow-lg"
+                                style={{ backgroundColor: preset.value }}
+                                title={`${preset.name}: ${preset.value}`}
+                                type="button"
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
