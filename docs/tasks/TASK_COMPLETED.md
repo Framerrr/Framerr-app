@@ -535,3 +535,48 @@ useEffect(() => {
 ---
 
 **Note:** For detailed git history, use `git log --oneline -30` or check individual commit messages.
+## Container Theming & Documentation Organization - 2025-12-03
+
+**Duration:** 01:00 - 01:55 (55 minutes)  
+**Tool Calls:** 673  
+**Commits:** 7  
+**Status:**  Complete
+
+### Summary
+Fixed root cause of theme not applying to containers (Tailwind purging glass-card class + hardcoded colors in Card.jsx). Organized all recovery documentation into clean archive structure. Migrated theming docs to active location.
+
+### Key Achievements
+- **Theming Fixed:** Identified Tailwind safelist issue preventing glass-card from rendering
+- **Card Component:** Replaced hardcoded bg-slate-800 with glass-card class  
+- **Documentation:** Organized 90+ files into /docs/archived/ with clean structure
+- **Theming Docs:** Migrated 688-line THEMING_ENGINE.md and 248-line CSS_VARIABLES.md to active /docs/theming/
+- **Link Grid:** Changed outline to solid #888 for better visibility
+
+### Files Modified
+- Card.jsx, WidgetWrapper.jsx, UserSettings.jsx (theming)
+- LinkGridWidget_v2.jsx (outline color)  
+- tailwind.config.js (safelist  ROOT FIX)
+- 90+ documentation files (moved/created)
+- 2 workflow files (updated references)
+
+### Git Commits
+1. f68c477 - fix(theming): replace hardcoded colors in widget containers
+2. 9217998 - fix(theming): replace hardcoded slate backgrounds with glass-card
+3. 4ba0769 - fix(theming): add position relative to Card for glass-card pseudo-element
+4. ddb0e7e - fix(tailwind): add safelist to prevent purging glass-card classes
+5. 6ca79c7 - fix(link-grid): change outline to medium grey #888
+6. ae6d2d7 - docs: organize archives and migrate theming documentation
+7. fe85076 - docs(workflows): update documentation references
+
+### Docker
+- pickels23/framerr:debug (sha256:5d002851...)
+- Deployed twice (before/after safelist fix)
+
+### Testing
+-  Build passing (1874 modules)
+-  Glass-card rendering correctly
+-  Link grid outlines visible
+-  Documentation organized
+
+---
+
