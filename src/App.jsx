@@ -10,13 +10,12 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import FaviconInjector from './components/FaviconInjector';
 import AppTitle from './components/AppTitle';
-import { useHashLocation } from './hooks/useHashLocation';
 
 import Login from './pages/Login';
 import Setup from './pages/Setup';
 import Dashboard from './pages/Dashboard';
-import UserSettings from './pages/UserSettings';
-import IframeManager from './components/IframeManager';
+import MainContent from './pages/MainContent';
+
 import TailwindTest from './pages/TailwindTest';
 
 // Component to load and apply custom colors after user authentication
@@ -70,7 +69,7 @@ const App = () => {
                                             <div className="flex w-full h-screen">
                                                 <Sidebar />
                                                 <main className="flex-1 overflow-y-auto pb-[86px] md:pb-0 md:pl-24">
-                                                    <ProtectedContent />
+                                                    <MainContent />
                                                 </main>
                                             </div>
                                         </ProtectedRoute>
@@ -84,29 +83,5 @@ const App = () => {
         </AuthProvider>
     );
 };
-
-// Internal component to handle hash-based routing
-
-
-const ProtectedContent = () => {
-    const { route } = useHashLocation();
-
-    // Default to dashboard if route is empty
-    if (!route || route === 'dashboard') {
-        return <Dashboard />;
-    }
-
-    if (route === 'settings') {
-        return <UserSettings />;
-    }
-
-    if (route === 'test') {
-        return <TailwindTest />;
-    }
-
-    // Treat anything else as a tab slug
-    return <IframeManager slug={route} />;
-};
-
 
 export default App;

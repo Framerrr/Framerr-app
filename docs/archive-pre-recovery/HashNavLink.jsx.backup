@@ -9,9 +9,9 @@ const HashNavLink = ({ to, className, children, ...props }) => {
 
     // Check if active
     // Exact match: current hash equals target hash
-    // Default: if hash is empty and target is #dashboard
-    const currentHash = hash || '#dashboard';
-    const isActive = currentHash === targetHash;
+    // Default: if hash is empty or '#', treat as '#dashboard'
+    const normalizedHash = (!hash || hash === '#') ? '#dashboard' : hash;
+    const isActive = normalizedHash === targetHash;
 
     // Resolve className if it's a function
     const resolvedClassName = typeof className === 'function'

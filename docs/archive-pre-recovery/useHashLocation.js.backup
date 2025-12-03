@@ -16,8 +16,8 @@ export const useHashLocation = () => {
     // #dashboard -> dashboard
     // #settings -> settings
     // #radarr -> radarr
-    // # -> ''
-    const route = hash.replace(/^#/, '') || 'dashboard';
+    // # or empty -> ''
+    const route = hash.replace(/^#/, '');
 
     return { hash, route };
 };
