@@ -207,6 +207,23 @@ const CustomizationSettings = () => {
         });
     };
 
+    const resetToThemeColors = async (themeId) => {
+        // Smart reset: remove custom colors, switch theme, wait, then read and apply theme colors
+        removeColorsFromDOM();
+        changeTheme(themeId);
+
+        // Wait for theme CSS to load
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Read theme colors from DOM
+        const themeColors = getCurrentThemeColors();
+
+        // Update state for color pickers
+        setCustomColors(themeColors);
+
+        return themeColors;
+    };
+
 
     const handleColorChange = (key, value) => {
         if (!customColorsEnabled) return; // Only allow changes when enabled
