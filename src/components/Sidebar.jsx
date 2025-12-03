@@ -376,9 +376,9 @@ const Sidebar = () => {
                     }}
                 />
 
-                {/* Menu Content Area (hidden when collapsed) */}
+                {/* Menu Content Area (hidden when collapsed) - Flex container */}
                 <div
-                    className="overflow-y-auto px-6 pt-6 pb-4 relative z-10"
+                    className="flex flex-col relative z-10"
                     style={{
                         flex: isMobileMenuOpen ? 1 : '0 0 0px',
                         opacity: isMobileMenuOpen ? 1 : 0,
@@ -388,41 +388,45 @@ const Sidebar = () => {
                             : 'opacity 200ms ease-out, transform 200ms ease-out, flex 200ms ease-out',
                         pointerEvents: isMobileMenuOpen ? 'auto' : 'none',
                         minHeight: 0,
+                        overflow: 'hidden',
                     }}
                 >
-                    {/* Menu Header */}
-                    <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50">
-                        <div className="flex items-center gap-3 text-accent font-bold text-xl">
-                            {renderIcon(userSettings?.serverIcon, 24)}
-                            <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
+                    {/* Scrollable Nav Section */}
+                    <div className="overflow-y-auto px-6 pt-6 pb-4" style={{ flex: 1, minHeight: 0 }}>
+                        {/* Menu Header */}
+                        <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50">
+                            <div className="flex items-center gap-3 text-accent font-bold text-xl">
+                                {renderIcon(userSettings?.serverIcon, 24)}
+                                <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
+                            </div>
                         </div>
+
+                        {/* Navigation */}
+                        <nav className="space-y-4">
+                            {/* Tabs Section */}
+                            {tabs && tabs.length > 0 && (
+                                <div>
+                                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Tabs</div>
+                                    <div className="space-y-1">
+                                        {tabs.map(tab => (
+                                            <a
+                                                key={tab.id}
+                                                href={`/#${tab.slug}`}
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                            >
+                                                {renderIcon(tab.icon, 18)}
+                                                <span>{tab.name}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </nav>
                     </div>
 
-                    {/* Navigation */}
-                    <nav className="space-y-4">
-                        {/* Tabs Section */}
-                        {tabs && tabs.length > 0 && (
-                            <div>
-                                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Tabs</div>
-                                <div className="space-y-1">
-                                    {tabs.map(tab => (
-                                        <a
-                                            key={tab.id}
-                                            href={`/#${tab.slug}`}
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                                        >
-                                            {renderIcon(tab.icon, 18)}
-                                            <span>{tab.name}</span>
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </nav>
-
-                    {/* Logout Button */}
-                    <div className="mt-6 pt-6 border-t border-slate-800">
+                    {/* Fixed Logout Section (above tab bar) */}
+                    <div className="px-6 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
                         <button
                             onClick={handleLogout}
                             className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
