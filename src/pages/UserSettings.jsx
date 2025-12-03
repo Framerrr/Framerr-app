@@ -68,7 +68,7 @@ const UserSettings = () => {
     const allTabs = [...userTabs, ...adminTabs];
 
     return (
-        <div className="w-full p-4 md:p-8 max-w-6xl mx-auto mobile-tab-bar-spacer">
+        <div className="w-full p-4 md:p-8 max-w-6xl mx-auto">
             {/* Page Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-white">
@@ -137,6 +137,9 @@ const UserSettings = () => {
                     </>
                 )}
             </Card>
+
+            {/* Mobile Tab Bar Spacer - Prevents content cutoff on mobile */}
+            <div className="block md:hidden" style={{ height: '100px' }} aria-hidden="true" />
         </div>
     );
 };

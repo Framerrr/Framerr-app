@@ -206,34 +206,3 @@ body {
 .focus\:border-theme:focus {
     border-color: var(--border) !important;
 }
-/* ============================================
-   MOBILE TAB BAR SPACER
-   ============================================ */
-/**
- * Mobile Tab Bar Spacer
- * 
- * Purpose: Adds bottom padding on mobile viewports to prevent content from 
- * being hidden behind the fixed bottom tab bar.
- * 
- * Height Calculation:
- * - Mobile tab bar height: 70px (Sidebar.jsx line 440)
- * - Bottom margin: 1rem = 16px (Sidebar.jsx line 355)
- * - Total: 86px
- * 
- * Usage:
- * - Apply to non-iframe page containers (Dashboard, Settings, etc.)
- * - DO NOT apply to iframe pages (TabContainer)
- * - Automatically disabled on desktop (>= 768px)
- * 
- * Example:
- *   <div className="mobile-tab-bar-spacer">
- *     Page content...
- *   </div>
- * 
- * To Update: If tab bar height changes, modify the padding-bottom value below.
- */
-@media (max-width: 767px) {
-    .mobile-tab-bar-spacer {
-        padding-bottom: 86px;
-    }
-}

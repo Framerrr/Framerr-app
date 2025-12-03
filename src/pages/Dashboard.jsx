@@ -634,7 +634,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-8 max-w-7xl mx-auto fade-in mobile-tab-bar-spacer">
+        <div className="w-full min-h-screen p-8 max-w-7xl mx-auto fade-in">
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
                 <div>
@@ -788,6 +788,9 @@ const Dashboard = () => {
                 onAddWidget={handleAddWidgetFromModal}
                 integrations={integrations}
             />
+
+            {/* Mobile Tab Bar Spacer - Prevents content cutoff on mobile */}
+            <div className="block md:hidden" style={{ height: '100px' }} aria-hidden="true" />
         </div>
     );
 };
