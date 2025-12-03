@@ -69,7 +69,7 @@ const App = () => {
                                         <ProtectedRoute>
                                             <div className="flex w-full h-screen">
                                                 <Sidebar />
-                                                <main className="flex-1 overflow-y-auto pb-16 md:pb-0 md:pl-24">
+                                                <main className="flex-1 overflow-y-auto pb-[96px] md:pb-0 md:pl-[112px]">
                                                     <ProtectedContent />
                                                 </main>
                                             </div>

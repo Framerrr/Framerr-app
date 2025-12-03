@@ -166,3 +166,16 @@ The fundamental approach might be wrong. Need to investigate if:
 - Status: BLOCKED - Hash routing URLs still incorrect despite two attempts
 - Summary: Implemented hash routing foundation, iframe persistence, settings URL params, but URL format still wrong. Need to investigate alternative routing approaches.
 - Next agent: Research how to achieve `#page` format (no slash) or consider custom hash navigation implementation
+
+---
+
+## New Session Work (Dec 2, 2025)
+
+### Hybrid Routing Implementation ✅
+- **Problem:** HashRouter enforced `/#/page` format and caused URL appending bugs.
+- **Solution:** Implemented hybrid routing system.
+  - `BrowserRouter` for top-level routes (`/login`, `/setup`)
+  - Custom Hash Logic for protected app (`/#dashboard`, `/#settings`)
+  - `HashNavLink` for sidebar navigation (native `href="#..."`)
+- **Status:** Deployed to `pickels23/framerr:debug`
+- **Verification:** Pending user test of URL format and navigation reliability.
