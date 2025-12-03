@@ -1,17 +1,17 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-02 18:07:00  
+**Last Updated:** 2025-12-02 20:20:00  
 **Current Version:** v1.1.6-recovered  
 **Development Branch:** `develop`  
-**Production Docker:** `pickels23/framerr:reconstructed`
+**Production Docker:** `pickels23/framerr:debug`
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 10:** Hash Routing Restoration - BLOCKED ⚠️
+**Phase 11:** Hash Routing System Complete ✅
 
-**Status:** Hash routing partially implemented but URL format still incorrect. Needs investigation of alternative approaches.
+**Status:** Hash routing successfully migrated to recovered implementation. System operational, pending user testing.
 
 ---
 
@@ -20,26 +20,29 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
-| **Frontend** | ✅ Operational | Built and deployed, 5 stub components |
-| **Docker Production** | ✅ Live | `pickels23/framerr:reconstructed` (updated 4x today) |
-| **Docker Debug** | 🔴 Issues | `pickels23/framerr:debug` (hash routing URLs incorrect) |
+| **Frontend** | ✅ Operational | Built and deployed with recovered hash nav |
+| **Docker Production** | ✅ Live | `pickels23/framerr:debug` (hash nav fixed) |
+| **Docker Debug** | ✅ Deployed | Same as production |
 | **Documentation** | ✅ Complete | Full v2.0 system in place |
 | **Workflows** | ✅ Active | 7 workflows created, 3 placeholders |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
 | **Setup Flow** | ✅ Fixed | Users can create admin accounts |
 | **Admin Settings** | ✅ Fixed | Admin users see all settings tabs |
+| **Hash Navigation** | ✅ Complete | Proper state-preserving routing restored |
 
 ---
 
 ## 🚀 Recent Accomplishments
 
-### Hash Routing Implementation (Dec 2, 2025 - Evening) - INCOMPLETE
-- ✅ Implemented HashRouter with basename=""
-- ✅ Created IframeManager for iframe persistence
-- ✅ Added settings URL query params (#settings?tab=profile)
-- ✅ Removed placeholder services from sidebar
-- ❌ **BLOCKED:** URL format still incorrect (#/page instead of #page)
-- 🔧 Needs alternative routing approach investigation
+### Hash Navigation System Migration (Dec 2, 2025 - 20:20) - COMPLETE ✅
+- ✅ Migrated to recovered 3-layer architecture
+- ✅ MainContent component splits Settings vs Dashboard/Tabs
+- ✅ DashboardOrTabs splits Dashboard vs TabContainer
+- ✅ TabContainer manages iframe persistence with lazy loading
+- ✅ Sidebar uses recovered version with plain `<a href="#">` tags
+- ✅ UserSettings parses hash params manually (#settings?tab=profile)
+- ✅ All components use display toggling for state persistence
+- ✅ Build passing, deployed to Docker
 
 ### Production Bug Fixes (Dec 2, 2025 - Evening)
 - ✅ Fixed setup redirect loop preventing admin account creation
