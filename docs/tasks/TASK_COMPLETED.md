@@ -580,3 +580,56 @@ Fixed root cause of theme not applying to containers (Tailwind purging glass-car
 
 ---
 
+
+
+## Mobile Tab Bar Padding & Logout Button Positioning - 2025-12-03
+
+**Duration:** 03:34 - 04:07 (33 minutes)  
+**Tool Calls:** 253  
+**Commits:** 5 (3 final, 2 reverts)  
+**Status:**  Complete
+
+### Summary
+Implemented mobile tab bar padding for non-iframe pages using empty spacer divs, and restructured mobile menu to make logout button fixed above tab bar while tabs scroll.
+
+### Features Implemented
+
+#### 1. Mobile Tab Bar Padding
+- **Problem:** Content at bottom of Dashboard/Settings cut off behind fixed 86px mobile tab bar
+- **Solution:** Empty spacer divs (height: 100px) at bottom of pages
+- **Applied to:** Dashboard.jsx, UserSettings.jsx
+- **Excluded:** TabContainer.jsx (iframe pages)
+- **Result:** Content always visible above tab bar with proper clearance
+
+#### 2. Mobile Menu Logout Button Positioning
+- **Problem:** Logout button scrolled with tabs, hard to access with many tabs
+- **Solution:** Flex column layout with scrollable nav (lex: 1) and fixed logout (lex-shrink: 0)
+- **Applied to:** Sidebar.jsx mobile menu structure
+- **Refinement:** Added equal spacing (pt-4 pb-4) for visual balance
+- **Result:** Logout always visible above tab bar while tabs scroll
+
+### Technical Challenges
+1. **Double Padding:** Fixed by using spacer divs instead of CSS classes
+2. **File Corruption:** Used multi_replace_file_content for large file edits
+3. **Scroll Architecture:** Understood min-h-screen override requiring spacer approach
+
+### Files Modified (3 total)
+- src/pages/Dashboard.jsx - Added 100px spacer div
+- src/pages/UserSettings.jsx - Added 100px spacer div
+- src/components/Sidebar.jsx - Flex layout restructure + spacing
+
+### Git Commits
+- 9d68121 - Initial CSS padding (reverted)
+- 6611085 - Remove double padding (reverted)
+- 63897e - Revert commit
+- 960125 - Spacer div solution 
+- 2679d5a - Fixed logout above tab bar 
+- c0cc1fd - Equal spacing refinement 
+
+### Deployment
+-  Docker image: pickels23/framerr:debug
+-  Digest: sha256:bb485256aa7e7b156029de78a4b2f53656d6668d
+-  Build verified: 1874 modules, all passing
+
+---
+
