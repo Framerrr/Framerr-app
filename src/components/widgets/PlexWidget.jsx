@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Film, Network, Info, ExternalLink, StopCircle, X, Loader2 } from 'lucide-react';
 import PlaybackDataModal from './modals/PlaybackDataModal';
 import MediaInfoModal from './modals/MediaInfoModal';
@@ -15,6 +15,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     const [plexMachineId, setPlexMachineId] = useState(null);
     const [localHideWhenEmpty, setLocalHideWhenEmpty] = useState(hideWhenEmpty);
     const [stoppingSession, setStoppingSession] = useState(null);
+    const previousVisibilityRef = useRef(null);
 
     // Sync local state with config prop
     useEffect(() => {
@@ -77,7 +78,11 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         // Only hide if hideWhenEmpty is enabled and there are no sessions
         const isVisible = !localHideWhenEmpty || shouldBeVisible;
 
-        onVisibilityChange(widgetId, isVisible);
+        // Only call onVisibilityChange if visibility actually changed
+        if (previousVisibilityRef.current !== isVisible) {
+            previousVisibilityRef.current = isVisible;
+            onVisibilityChange(widgetId, isVisible);
+        }
     }, [data, localHideWhenEmpty, editMode, widgetId, onVisibilityChange, enabled]);
 
     const handleStopPlayback = async (session) => {
