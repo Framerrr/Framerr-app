@@ -18,8 +18,9 @@ const COLOR_PRESETS = [
  * @param {string} value - Current hex color value
  * @param {function} onChange - Callback when color changes
  * @param {string} label - Display label
+ * @param {boolean} disabled - Whether the picker is disabled
  */
-const ColorPicker = ({ value, onChange, label }) => {
+const ColorPicker = ({ value, onChange, label, disabled = false }) => {
     const [color, setColor] = useState(value || '#3B82F6');
     const colorInputRef = useRef(null);
 
@@ -29,11 +30,14 @@ const ColorPicker = ({ value, onChange, label }) => {
     }, [value]);
 
     const handleColorChange = (newColor) => {
+        if (disabled) return;
         setColor(newColor);
         if (onChange) onChange(newColor);
     };
 
     const handleTextChange = (e) => {
+        if (disabled) return;
+
         let newValue = e.target.value;
 
         // Auto-add # if missing
@@ -55,7 +59,7 @@ const ColorPicker = ({ value, onChange, label }) => {
     };
 
     return (
-        <div className="space-y-3">
+        <div className={`space-y-3 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
             {/* Label */}
             {label && (
                 <label className="block text-sm font-medium text-theme-primary mb-2">

@@ -46,6 +46,8 @@ const CustomizationSettings = () => {
     // Custom colors state - using kebab-case to match CSS variables
     const [customColors, setCustomColors] = useState(defaultColors);
     const [useCustomColors, setUseCustomColors] = useState(false);
+    const [customColorsEnabled, setCustomColorsEnabled] = useState(false); // Toggle state
+    const [lastSelectedTheme, setLastSelectedTheme] = useState('dark-pro'); // For reverting
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -66,6 +68,38 @@ const CustomizationSettings = () => {
     const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
+    // Function to get current theme colors from CSS variables
+    const getCurrentThemeColors = () => {
+        const root = document.documentElement;
+        const computedStyle = getComputedStyle(root);
+
+        return {
+            // Tier 1: Essentials
+            'bg-primary': computedStyle.getPropertyValue('--bg-primary').trim(),
+            'bg-secondary': computedStyle.getPropertyValue('--bg-secondary').trim(),
+            'bg-tertiary': computedStyle.getPropertyValue('--bg-tertiary').trim(),
+            'accent': computedStyle.getPropertyValue('--accent').trim(),
+            'accent-secondary': computedStyle.getPropertyValue('--accent-secondary').trim(),
+            'text-primary': computedStyle.getPropertyValue('--text-primary').trim(),
+            'text-secondary': computedStyle.getPropertyValue('--text-secondary').trim(),
+            'text-tertiary': computedStyle.getPropertyValue('--text-tertiary').trim(),
+            'border': computedStyle.getPropertyValue('--border').trim(),
+            'border-light': computedStyle.getPropertyValue('--border-light').trim(),
+
+            // Tier 2: Status Colors
+            'success': computedStyle.getPropertyValue('--success').trim(),
+            'warning': computedStyle.getPropertyValue('--warning').trim(),
+            'error': computedStyle.getPropertyValue('--error').trim(),
+            'info': computedStyle.getPropertyValue('--info').trim(),
+
+            // Tier 3: Advanced
+            'bg-hover': computedStyle.getPropertyValue('--bg-hover').trim(),
+            'accent-hover': computedStyle.getPropertyValue('--accent-hover').trim(),
+            'accent-light': computedStyle.getPropertyValue('--accent-light').trim(),
+            'border-accent': computedStyle.getPropertyValue('--border-accent').trim(),
+        };
+    };
+
     // Load custom colors and application name from backend on mount
     useEffect(() => {
         const loadSettings = async () => {
@@ -82,13 +116,31 @@ const CustomizationSettings = () => {
                         ...defaultColors,
                         ...userResponse.data.theme.customColors
                     };
-                    setCustomColors(mergedColors);
 
-                    // If user has custom theme mode set, apply colors
+                    // If user has custom theme mode set, enable toggle and apply colors
                     if (userResponse.data.theme.mode === 'custom') {
+                        setCustomColorsEnabled(true);
+                        setCustomColors(mergedColors);
                         setUseCustomColors(true);
                         applyColorsToDOM(mergedColors);
+
+                        // Load last selected theme for revert functionality
+                        if (userResponse.data.theme.lastSelectedTheme) {
+                            setLastSelectedTheme(userResponse.data.theme.lastSelectedTheme);
+                        }
+                    } else {
+                        // Custom colors off - using a theme
+                        setCustomColorsEnabled(false);
+                        setLastSelectedTheme(userResponse.data.theme.mode);
+                        // Load theme colors into pickers for display
+                        const themeColors = getCurrentThemeColors();
+                        setCustomColors(themeColors);
                     }
+                } else {
+                    // No custom colors saved - load current theme colors for display
+                    setCustomColorsEnabled(false);
+                    const themeColors = getCurrentThemeColors();
+                    setCustomColors(themeColors);
                 }
 
                 // Load system config for application name
@@ -137,14 +189,49 @@ const CustomizationSettings = () => {
         setCustomColors(prev => ({ ...prev, [key]: value }));
     };
 
+    const handleToggleCustomColors = async (enabled) => {
+        if (enabled) {
+            // Turn ON custom colors
+            setCustomColorsEnabled(true);
+            setLastSelectedTheme(theme); // Save current theme
+            setUseCustomColors(false); // Deselect theme in preset picker
+            // customColors already contains theme colors from load, user can now edit
+        } else {
+            // Turn OFF custom colors - revert to last selected theme
+            setCustomColorsEnabled(false);
+            setUseCustomColors(false);
+
+            // Change to last selected theme
+            changeTheme(lastSelectedTheme);
+
+            // Update color pickers to show theme colors
+            const themeColors = getCurrentThemeColors();
+            setCustomColors(themeColors);
+
+            // Save to backend
+            try {
+                await axios.put('/api/config/user', {
+                    theme: { mode: lastSelectedTheme }
+                }, {
+                    withCredentials: true
+                });
+            } catch (error) {
+                logger.error('Failed to revert to theme:', error);
+            }
+        }
+    };
+
     const handleSaveCustomColors = async () => {
+        if (!customColorsEnabled) return; // Can't save when disabled
+
         setSaving(true);
         try {
             // Save to backend
             await axios.put('/api/config/user', {
                 theme: {
                     mode: 'custom',
-                    customColors: customColors
+                    customColors: customColors,
+                    lastSelectedTheme: lastSelectedTheme // Save for revert
                 }
             }, {
                 withCredentials: true
@@ -471,6 +558,10 @@ const CustomizationSettings = () => {
                                         onClick={() => {
                                             changeTheme(t.id);
                                             setUseCustomColors(false);
+                                            setCustomColorsEnabled(false); // Turn off custom toggle
+                                            setLastSelectedTheme(t.id); // Save for future revert
+                                            const themeColors = getCurrentThemeColors();
+                                            setCustomColors(themeColors); // Update pickers display
                                         }}
                                         className={`p-4 rounded-lg border-2 transition-all text-left ${theme === t.id && !useCustomColors
                                             ? 'border-accent bg-accent/10'
@@ -539,6 +630,29 @@ const CustomizationSettings = () => {
                                 )}
                             </div>
 
+                            {/* Enable Custom Colors Toggle */}
+                            <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme mb-6">
+                                <div className="flex-1">
+                                    <div className="text-sm font-medium text-theme-primary mb-1">
+                                        Enable Custom Colors
+                                    </div>
+                                    <div className="text-xs text-theme-tertiary">
+                                        {customColorsEnabled
+                                            ? 'Custom colors active - click Apply to save changes'
+                                            : 'Using theme colors - toggle to customize'}
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={customColorsEnabled}
+                                        onChange={(e) => handleToggleCustomColors(e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+
                             {/* Tier 1: Essentials (Always Visible) */}
                             <div className="mb-8">
                                 <h4 className="text-sm font-bold text-theme-secondary uppercase tracking-wider mb-4">
@@ -553,19 +667,21 @@ const CustomizationSettings = () => {
                                             value={customColors['bg-primary']}
                                             onChange={(val) => handleColorChange('bg-primary', val)}
                                             description="Main page background"
+                                            disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Card Background"
                                             value={customColors['bg-secondary']}
                                             onChange={(val) => handleColorChange('bg-secondary', val)}
                                             description="Cards and panels"
+                                            disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Button Background"
                                             value={customColors['bg-tertiary']}
                                             onChange={(val) => handleColorChange('bg-tertiary', val)}
                                             description="Buttons and inputs"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                     </div>
 
                                     {/* Accents Column */}
@@ -576,13 +692,13 @@ const CustomizationSettings = () => {
                                             value={customColors['accent']}
                                             onChange={(val) => handleColorChange('accent', val)}
                                             description="Buttons and highlights"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                         <ColorPicker
                                             label="Secondary Accent"
                                             value={customColors['accent-secondary']}
                                             onChange={(val) => handleColorChange('accent-secondary', val)}
                                             description="Links and secondary actions"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                     </div>
 
                                     {/* Text Column */}
@@ -593,19 +709,19 @@ const CustomizationSettings = () => {
                                             value={customColors['text-primary']}
                                             onChange={(val) => handleColorChange('text-primary', val)}
                                             description="Main text color"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                         <ColorPicker
                                             label="Secondary Text"
                                             value={customColors['text-secondary']}
                                             onChange={(val) => handleColorChange('text-secondary', val)}
                                             description="Labels and descriptions"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                         <ColorPicker
                                             label="Muted Text"
                                             value={customColors['text-tertiary']}
                                             onChange={(val) => handleColorChange('text-tertiary', val)}
                                             description="Hints and timestamps"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                     </div>
 
                                     {/* Borders Column */}
@@ -616,13 +732,13 @@ const CustomizationSettings = () => {
                                             value={customColors['border']}
                                             onChange={(val) => handleColorChange('border', val)}
                                             description="Dividers and outlines"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                         <ColorPicker
                                             label="Light Border"
                                             value={customColors['border-light']}
                                             onChange={(val) => handleColorChange('border-light', val)}
                                             description="Subtle separators"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                     </div>
                                 </div>
                             </div>
@@ -651,25 +767,25 @@ const CustomizationSettings = () => {
                                             value={customColors['success']}
                                             onChange={(val) => handleColorChange('success', val)}
                                             description="Completed actions"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                         <ColorPicker
                                             label="Warning"
                                             value={customColors['warning']}
                                             onChange={(val) => handleColorChange('warning', val)}
                                             description="Cautions"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                         <ColorPicker
                                             label="Error"
                                             value={customColors['error']}
                                             onChange={(val) => handleColorChange('error', val)}
                                             description="Errors"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                         <ColorPicker
                                             label="Info"
                                             value={customColors['info']}
                                             onChange={(val) => handleColorChange('info', val)}
                                             description="Information"
-                                        />
+                                        />`ndisabled={!customColorsEnabled}`n$3
                                     </div>
                                 )}
                             </div>
@@ -701,19 +817,19 @@ const CustomizationSettings = () => {
                                                 value={customColors['bg-hover']}
                                                 onChange={(val) => handleColorChange('bg-hover', val)}
                                                 description="Background on hover"
-                                            />
+                                            />`ndisabled={!customColorsEnabled}`n$3
                                             <ColorPicker
                                                 label="Accent Hover"
                                                 value={customColors['accent-hover']}
                                                 onChange={(val) => handleColorChange('accent-hover', val)}
                                                 description="Accent color on hover"
-                                            />
+                                            />`ndisabled={!customColorsEnabled}`n$3
                                             <ColorPicker
                                                 label="Accent Light"
                                                 value={customColors['accent-light']}
                                                 onChange={(val) => handleColorChange('accent-light', val)}
                                                 description="Light accent variant"
-                                            />
+                                            />`ndisabled={!customColorsEnabled}`n$3
                                         </div>
 
                                         {/* Special Borders */}
@@ -724,7 +840,7 @@ const CustomizationSettings = () => {
                                                 value={customColors['border-accent']}
                                                 onChange={(val) => handleColorChange('border-accent', val)}
                                                 description="Highlighted borders"
-                                            />
+                                            />`ndisabled={!customColorsEnabled}`n$3
                                         </div>
                                     </div>
                                 )}
@@ -734,7 +850,7 @@ const CustomizationSettings = () => {
                             <div className="flex gap-3">
                                 <Button
                                     onClick={handleSaveCustomColors}
-                                    disabled={saving}
+                                    disabled={saving || !customColorsEnabled}
                                     icon={Save}
                                 >
                                     {saving ? 'Saving...' : 'Apply Custom Colors'}
@@ -769,3 +885,4 @@ const CustomizationSettings = () => {
 };
 
 export default CustomizationSettings;
+
