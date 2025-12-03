@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronUp, LogOut, UserCircle } from 'lucide-react';
 import * as Icons from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
@@ -338,23 +339,34 @@ const Sidebar = () => {
     return (
         <>
             {/* Backdrop - dims main content when menu opens, click to close */}
-            {isMobileMenuOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-[49]"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    style={{
-                        transition: 'opacity 300ms ease-out',
-                    }}
-                />
-            )}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 bg-black/50 z-[49]"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Unified Expanding Mobile Menu Container */}
-            <div
+            <motion.div
                 className="fixed left-4 right-4 z-50 flex flex-col justify-end"
+                animate={{
+                    maxHeight: isMobileMenuOpen ? '80vh' : '70px',
+                    scale: isMobileMenuOpen ? 1 : 0.98,
+                }}
+                transition={{
+                    type: 'spring',
+                    stiffness: 300,
+                    damping: 30,
+                    mass: 0.8,
+                }}
                 style={{
                     bottom: '1rem',
-                    maxHeight: isMobileMenuOpen ? '80vh' : '70px',
-                    transition: 'max-height 500ms cubic-bezier(0.4, 0, 0.2, 1)',
                     overflow: 'hidden',
                     background: 'linear-gradient(135deg, var(--glass-start), var(--glass-end))',
                     backdropFilter: 'blur(var(--blur-strong))',
@@ -377,15 +389,19 @@ const Sidebar = () => {
                 />
 
                 {/* Menu Content Area (hidden when collapsed) - Flex container */}
-                <div
+                <motion.div
                     className="flex flex-col relative z-10"
+                    animate={{
+                        opacity: isMobileMenuOpen ? 1 : 0,
+                        y: isMobileMenuOpen ? 0 : 20,
+                    }}
+                    transition={{
+                        duration: isMobileMenuOpen ? 0.4 : 0.2,
+                        delay: isMobileMenuOpen ? 0.1 : 0,
+                        ease: 'easeOut',
+                    }}
                     style={{
                         flex: isMobileMenuOpen ? 1 : '0 0 0px',
-                        opacity: isMobileMenuOpen ? 1 : 0,
-                        transform: isMobileMenuOpen ? 'translateY(0)' : 'translateY(20px)',
-                        transition: isMobileMenuOpen
-                            ? 'opacity 500ms ease-out 100ms, transform 500ms cubic-bezier(0.4, 0, 0.2, 1) 100ms, flex 500ms cubic-bezier(0.4, 0, 0.2, 1)'
-                            : 'opacity 200ms ease-out, transform 200ms ease-out, flex 200ms ease-out',
                         pointerEvents: isMobileMenuOpen ? 'auto' : 'none',
                         minHeight: 0,
                         overflow: 'hidden',
@@ -406,18 +422,35 @@ const Sidebar = () => {
                             {/* Tabs Section */}
                             {tabs && tabs.length > 0 && (
                                 <div>
-                                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Tabs</div>
+                                    <motion.div
+                                        className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: isMobileMenuOpen ? 1 : 0 }}
+                                        transition={{ delay: 0.2 }}
+                                    >
+                                        Tabs
+                                    </motion.div>
                                     <div className="space-y-1">
-                                        {tabs.map(tab => (
-                                            <a
+                                        {tabs.map((tab, index) => (
+                                            <motion.a
                                                 key={tab.id}
                                                 href={`/#${tab.slug}`}
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                                 className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{
+                                                    opacity: isMobileMenuOpen ? 1 : 0,
+                                                    y: isMobileMenuOpen ? 0 : 10,
+                                                }}
+                                                transition={{
+                                                    delay: isMobileMenuOpen ? 0.3 + (index * 0.05) : 0,
+                                                    duration: 0.3,
+                                                }}
+                                                whileTap={{ scale: 0.97 }}
                                             >
                                                 {renderIcon(tab.icon, 18)}
                                                 <span>{tab.name}</span>
-                                            </a>
+                                            </motion.a>
                                         ))}
                                     </div>
                                 </div>
@@ -435,7 +468,7 @@ const Sidebar = () => {
                             <span className="font-medium">Logout</span>
                         </button>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Tab Bar (always visible, becomes menu footer when expanded) */}
                 <div
@@ -505,7 +538,7 @@ const Sidebar = () => {
                         <span className="text-[10px] font-medium">Settings</span>
                     </a>
                 </div>
-            </div>
+            </motion.div>
         </>
     );
 };
