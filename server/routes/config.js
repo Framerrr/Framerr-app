@@ -100,6 +100,41 @@ router.put('/user', requireAuth, async (req, res) => {
     }
 });
 
+/**
+ * GET /api/config/auth
+ * Get authentication configuration (Admin only)
+ */
+router.get('/auth', requireAdmin, async (req, res) => {
+    try {
+        const config = await getSystemConfig();
+        res.json(config.auth || {});
+    } catch (error) {
+        logger.error('Failed to get auth config', { error: error.message });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * PUT /api/config/auth
+ * Update authentication configuration (Admin only)
+ */
+router.put('/auth', requireAdmin, async (req, res) => {
+    try {
+        await updateSystemConfig({ auth: req.body });
+        const config = await getSystemConfig();
+
+        logger.info('Auth config updated', {
+            userId: req.user.id,
+            username: req.user.username
+        });
+
+        res.json(config.auth);
+    } catch (error) {
+        logger.error('Failed to update auth config', { error: error.message });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Favicon management endpoints
 
 /**

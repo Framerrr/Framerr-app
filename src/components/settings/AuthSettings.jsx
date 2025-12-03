@@ -35,25 +35,37 @@ const AuthSettings = () => {
         setHasChanges(JSON.stringify(current) !== JSON.stringify(originalSettings));
     }, [proxyEnabled, headerName, emailHeaderName, whitelist, overrideLogout, logoutUrl, originalSettings]);
 
+    // Auto-toggle logout override based on proxy state and saved URL
+    useEffect(() => {
+        if (!proxyEnabled && overrideLogout) {
+            // Force logout override off when proxy is disabled
+            setOverrideLogout(false);
+        } else if (proxyEnabled && logoutUrl && !overrideLogout) {
+            // Auto-enable logout override when proxy enabled and URL exists
+            setOverrideLogout(true);
+        }
+    }, [proxyEnabled]);
+
     const fetchSettings = async () => {
         try {
             const response = await axios.get('/api/config/auth');
-            const { authProxy } = response.data;
+            const { proxy } = response.data;
 
-            setProxyEnabled(authProxy?.enabled || false);
-            setHeaderName(authProxy?.headerName || '');
-            setEmailHeaderName(authProxy?.emailHeaderName || '');
-            setWhitelist(authProxy?.whitelist || '');
-            setOverrideLogout(authProxy?.overrideLogout || false);
-            setLogoutUrl(authProxy?.logoutUrl || '');
+            setProxyEnabled(proxy?.enabled || false);
+            setHeaderName(proxy?.headerName || '');
+            setEmailHeaderName(proxy?.emailHeaderName || '');
+            // Convert array to comma-separated string for display
+            setWhitelist((proxy?.whitelist || []).join(', '));
+            setOverrideLogout(proxy?.overrideLogout || false);
+            setLogoutUrl(proxy?.logoutUrl || '');
 
             setOriginalSettings({
-                proxyEnabled: authProxy?.enabled || false,
-                headerName: authProxy?.headerName || '',
-                emailHeaderName: authProxy?.emailHeaderName || '',
-                whitelist: authProxy?.whitelist || '',
-                overrideLogout: authProxy?.overrideLogout || false,
-                logoutUrl: authProxy?.logoutUrl || ''
+                proxyEnabled: proxy?.enabled || false,
+                headerName: proxy?.headerName || '',
+                emailHeaderName: proxy?.emailHeaderName || '',
+                whitelist: (proxy?.whitelist || []).join(', '),
+                overrideLogout: proxy?.overrideLogout || false,
+                logoutUrl: proxy?.logoutUrl || ''
             });
         } catch (error) {
             logger.error('Failed to fetch auth settings', { error: error.message });
@@ -65,13 +77,19 @@ const AuthSettings = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
+            // Convert comma-separated string to array for backend
+            const whitelistArray = whitelist
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+
             await axios.put('/api/config/auth', {
-                authProxy: {
+                proxy: {
                     enabled: proxyEnabled,
                     headerName,
                     emailHeaderName,
-                    whitelist,
-                    overrideLogout,
+                    whitelist: whitelistArray,
+                    overrideLogout: overrideLogout && proxyEnabled,  // Force off if proxy disabled
                     logoutUrl
                 }
             });
@@ -155,7 +173,7 @@ const AuthSettings = () => {
                             value={headerName}
                             onChange={(e) => setHeaderName(e.target.value)}
                             disabled={!proxyEnabled}
-                            placeholder="X-authentik-username"
+                            placeholder="X-Auth-User"
                             helperText="HTTP header containing the username"
                         />
 
@@ -166,7 +184,7 @@ const AuthSettings = () => {
                             value={emailHeaderName}
                             onChange={(e) => setEmailHeaderName(e.target.value)}
                             disabled={!proxyEnabled}
-                            placeholder="X-authentik-email"
+                            placeholder="X-Auth-Email"
                             helperText="HTTP header containing the user email"
                         />
                     </div>
@@ -178,8 +196,8 @@ const AuthSettings = () => {
                         value={whitelist}
                         onChange={(e) => setWhitelist(e.target.value)}
                         disabled={!proxyEnabled}
-                        placeholder="172.19.0.0/16"
-                        helperText="Comma-separated IPs or CIDR ranges trusted to send proxy headers (e.g., 172.19.0.0/16, 10.0.0.1)"
+                        placeholder="10.0.0.0/8, 172.16.0.0/12"
+                        helperText="Trusted proxy source IPs (where auth headers come from) - comma-separated IPs or CIDR ranges"
                     />
 
                     {/* Override Logout Toggle */}
@@ -212,7 +230,7 @@ const AuthSettings = () => {
                             type="text"
                             value={logoutUrl}
                             onChange={(e) => setLogoutUrl(e.target.value)}
-                            placeholder="/outpost.goauthentik.io/sign_out"
+                            placeholder="https://auth.example.com/logout"
                             helperText="URL to redirect to when user logs out"
                         />
                     )}
