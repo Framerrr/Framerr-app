@@ -426,7 +426,7 @@ const Sidebar = () => {
                     </div>
 
                     {/* Fixed Logout Section (above tab bar) */}
-                    <div className="px-6 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
+                    <div className="px-6 pt-4 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
                         <button
                             onClick={handleLogout}
                             className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
