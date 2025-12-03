@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -48,6 +48,8 @@ const CustomizationSettings = () => {
     const [useCustomColors, setUseCustomColors] = useState(false);
     const [customColorsEnabled, setCustomColorsEnabled] = useState(false); // Toggle state
     const [lastSelectedTheme, setLastSelectedTheme] = useState('dark-pro'); // For reverting
+    const [autoSaving, setAutoSaving] = useState(false); // Auto-save indicator
+    const saveTimerRef = useRef(null); // Debounce timer
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -198,8 +200,48 @@ const CustomizationSettings = () => {
         });
     };
 
+
     const handleColorChange = (key, value) => {
-        setCustomColors(prev => ({ ...prev, [key]: value }));
+        if (!customColorsEnabled) return; // Only allow changes when enabled
+
+        setCustomColors(prev => {
+            const updated = { ...prev, [key]: value };
+
+            // Clear existing timer
+            if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+            }
+
+            // Set auto-saving indicator
+            setAutoSaving(true);
+
+            // Debounce auto-save (500ms after last change)
+            saveTimerRef.current = setTimeout(async () => {
+                try {
+                    // Apply colors to DOM immediately
+                    applyColorsToDOM(updated);
+
+                    // Save to backend
+                    await axios.put('/api/config/user', {
+                        theme: {
+                            mode: 'custom',
+                            customColors: updated,
+                            lastSelectedTheme: lastSelectedTheme
+                        }
+                    }, {
+                        withCredentials: true
+                    });
+
+                    setUseCustomColors(true);
+                } catch (error) {
+                    logger.error('Failed to auto-save custom colors:', error);
+                } finally {
+                    setAutoSaving(false);
+                }
+            }, 500);
+
+            return updated;
+        });
     };
 
     const handleToggleCustomColors = async (enabled) => {
@@ -651,7 +693,7 @@ const CustomizationSettings = () => {
                                     </div>
                                     <div className="text-xs text-theme-tertiary">
                                         {customColorsEnabled
-                                            ? 'Custom colors active - click Apply to save changes'
+                                            ? 'Custom colors active - changes save automatically'
                                             : 'Using theme colors - toggle to customize'}
                                     </div>
                                 </div>
@@ -875,24 +917,13 @@ const CustomizationSettings = () => {
                                 )}
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex gap-3">
-                                <Button
-                                    onClick={handleSaveCustomColors}
-                                    disabled={saving || !customColorsEnabled}
-                                    icon={Save}
-                                >
-                                    {saving ? 'Saving...' : 'Apply Custom Colors'}
-                                </Button>
-                                <Button
-                                    onClick={handleResetColors}
-                                    variant="secondary"
-                                    icon={RotateCcw}
-                                    disabled={!customColorsEnabled}
-                                >
-                                    Reset to Preset
-                                </Button>
-                            </div>
+                            {/* Auto-save Indicator */}
+                            {autoSaving && (
+                                <div className="text-xs text-theme-tertiary flex items-center gap-2 mt-3">
+                                    <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                                    Saving...
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
