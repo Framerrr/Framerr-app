@@ -12,49 +12,21 @@ export const Button = ({
     disabled = false,
     type = 'button',
     className = '',
-    fullWidth = false
+    fullWidth = false,
+    ...props
 }) => {
     const variants = {
-        primary: {
-            backgroundColor: 'var(--accent)',
-            color: 'white',
-            border: 'none'
-        },
-        secondary: {
-            backgroundColor: 'var(--bg-tertiary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)'
-        },
-        danger: {
-            backgroundColor: 'var(--error)',
-            color: 'white',
-            border: 'none'
-        },
-        ghost: {
-            backgroundColor: 'transparent',
-            color: 'var(--text-primary)',
-            border: '1px solid transparent'
-        },
-        outline: {
-            backgroundColor: 'transparent',
-            color: 'var(--accent)',
-            border: '1px solid var(--accent)'
-        }
+        primary: 'bg-accent text-white hover:bg-accent-hover border-none',
+        secondary: 'bg-theme-tertiary text-theme-primary border border-theme hover:bg-theme-hover',
+        danger: 'bg-error text-white border-none hover:bg-red-600',
+        ghost: 'bg-transparent text-theme-primary border-transparent hover:bg-theme-hover',
+        outline: 'bg-transparent text-accent border border-accent hover:bg-accent/10'
     };
 
     const sizes = {
-        sm: {
-            padding: 'var(--space-2) var(--space-3)',
-            fontSize: 'var(--text-sm)'
-        },
-        md: {
-            padding: 'var(--space-3) var(--space-4)',
-            fontSize: 'var(--text-base)'
-        },
-        lg: {
-            padding: 'var(--space-4) var(--space-6)',
-            fontSize: 'var(--text-lg)'
-        }
+        sm: 'px-3 py-2 text-sm',
+        md: 'px-4 py-3 text-base',
+        lg: 'px-6 py-4 text-lg'
     };
 
     return (
@@ -62,15 +34,8 @@ export const Button = ({
             type={type}
             onClick={onClick}
             disabled={disabled}
-            className={`inline-flex items-center justify-center gap-2 font-medium transition-all ${className}`}
-            style={{
-                ...variants[variant],
-                ...sizes[size],
-                borderRadius: 'var(--radius-md)',
-                opacity: disabled ? 0.5 : 1,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                width: fullWidth ? '100%' : 'auto'
-            }}
+            className={`inline-flex items-center justify-center gap-2 font-medium transition-all rounded-lg ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${fullWidth ? 'w-full' : 'w-auto'} ${className}`}
+            {...props}
         >
             {Icon && <Icon size={size === 'sm' ? 14 : size === 'lg' ? 20 : 16} />}
             {children}

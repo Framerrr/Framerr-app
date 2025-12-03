@@ -19,41 +19,70 @@ const WidgetsSettings = () => {
 
     return (
         <div className="fade-in">
-            {/* Header */}
-            <div className="mb-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-white">
-                    Dashboard Widgets
-                </h2>
-                <p className="text-slate-400 text-sm">
-                    Add widgets to your dashboard and configure service integrations
-                </p>
-            </div>
-
             {/* Sub-Tab Navigation */}
-            <div className="flex gap-2 border-b border-slate-700">
-                {subTabs.map(tab => {
-                    const Icon = tab.icon;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveSubTab(tab.id)}
-                            className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === tab.id
-                                ? 'border-accent text-accent'
-                                : 'border-transparent text-slate-400 hover:text-slate-300'
-                                }`}
-                        >
-                            <Icon size={18} className="inline mr-2" />
-                            {tab.label}
-                        </button>
-                    );
-                })}
+            <div className="mb-6 border-b border-theme">
+                <div className="flex gap-1">
+                    {subTabs.map(tab => {
+                        const Icon = tab.icon;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveSubTab(tab.id)}
+                                className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === tab.id
+                                    ? 'border-accent text-accent'
+                                    : 'border-transparent text-theme-secondary hover:text-theme-primary'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Icon size={18} />
+                                    <span>{tab.label}</span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-            {/* Content */}
-            <div className="mt-6">
-                {activeSubTab === 'gallery' && <WidgetGallery />}
-                {activeSubTab === 'integrations' && <IntegrationsSettings context="widgets" />}
-                {activeSubTab === 'active' && <ActiveWidgets />}
+            {/* Content - Crossfade between tabs */}
+            <div style={{ position: 'relative', overflow: 'hidden' }}>
+                <div
+                    style={{
+                        opacity: activeSubTab === 'gallery' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'gallery' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'gallery' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <WidgetGallery />
+                </div>
+
+                <div
+                    style={{
+                        opacity: activeSubTab === 'integrations' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'integrations' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'integrations' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <IntegrationsSettings context="widgets" />
+                </div>
+
+                <div
+                    style={{
+                        opacity: activeSubTab === 'active' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'active' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'active' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <ActiveWidgets />
+                </div>
             </div>
         </div>
     );

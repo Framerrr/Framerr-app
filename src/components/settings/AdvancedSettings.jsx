@@ -7,7 +7,6 @@ import SystemSettings from './advanced/SystemSettings';
 import ExperimentalSettings from './advanced/ExperimentalSettings';
 import DeveloperSettings from './advanced/DeveloperSettings';
 
-
 const AdvancedSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('debug');
 
@@ -22,16 +21,16 @@ const AdvancedSettings = () => {
         <div className="fade-in">
             {/* Header */}
             <div className="mb-6 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">
                     Advanced Settings
                 </h2>
-                <p className="text-slate-400 text-sm">
+                <p className="text-theme-secondary text-sm">
                     Debug tools, system monitoring, and experimental features
                 </p>
             </div>
 
             {/* Sub-Tab Navigation */}
-            <div className="mb-6 border-b border-slate-700">
+            <div className="mb-6 border-b border-theme">
                 <div className="flex gap-1 overflow-x-auto">
                     {subTabs.map(tab => {
                         const Icon = tab.icon;
@@ -39,9 +38,9 @@ const AdvancedSettings = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveSubTab(tab.id)}
-                                className={`button-elevated px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeSubTab === tab.id
+                                className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeSubTab === tab.id
                                     ? 'border-accent text-accent'
-                                    : 'border-transparent text-slate-400 hover:text-slate-300'
+                                    : 'border-transparent text-theme-secondary hover:text-theme-primary'
                                     }`}
                             >
                                 <div className="flex items-center gap-2">
@@ -54,12 +53,59 @@ const AdvancedSettings = () => {
                 </div>
             </div>
 
-            {/* Content */}
-            <div>
-                {activeSubTab === 'debug' && <DebugSettings />}
-                {activeSubTab === 'system' && <SystemSettings />}
-                {activeSubTab === 'experimental' && <ExperimentalSettings />}
-                {activeSubTab === 'developer' && <DeveloperSettings />}
+            {/* Content - Crossfade between tabs */}
+            <div style={{ position: 'relative', overflow: 'hidden' }}>
+                <div
+                    style={{
+                        opacity: activeSubTab === 'debug' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'debug' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'debug' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <DebugSettings />
+                </div>
+
+                <div
+                    style={{
+                        opacity: activeSubTab === 'system' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'system' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'system' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <SystemSettings />
+                </div>
+
+                <div
+                    style={{
+                        opacity: activeSubTab === 'experimental' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'experimental' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'experimental' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <ExperimentalSettings />
+                </div>
+
+                <div
+                    style={{
+                        opacity: activeSubTab === 'developer' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'developer' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'developer' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <DeveloperSettings />
+                </div>
             </div>
         </div>
     );

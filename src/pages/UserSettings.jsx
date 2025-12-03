@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
 import { isAdmin } from '../utils/permissions';
 import { Card } from '../components/common/Card';
 
@@ -17,30 +16,27 @@ import TabGroupsSettings from '../components/settings/TabGroupsSettings';
 import AuthSettings from '../components/settings/AuthSettings';
 import AdvancedSettings from '../components/settings/AdvancedSettings';
 
-
-// Manual hash param parser (useSearchParams doesn't work with hashes!)
-const getHashParams = () => {
-    const hash = window.location.hash.slice(1); // Remove '#'
-    const questionMarkIndex = hash.indexOf('?');
-    if (questionMarkIndex === -1) return new URLSearchParams();
-    const queryString = hash.slice(questionMarkIndex + 1);
-    return new URLSearchParams(queryString);
-};
-
 const UserSettings = () => {
     const [activeTab, setActiveTab] = useState('tabs');
     const { user } = useAuth();
-    const hasAdminAccess = isAdmin(user);
 
-    // Listen for hash changes to update active tab
+    // Parse query params from hash manually 
+    // (useSearchParams doesn't work with hash-based routing!)
+    const getHashParams = () => {
+        const hash = window.location.hash.slice(1); // Remove '#'
+        const questionMarkIndex = hash.indexOf('?');
+        if (questionMarkIndex === -1) return new URLSearchParams();
+        const queryString = hash.slice(questionMarkIndex + 1);
+        return new URLSearchParams(queryString);
+    };
+
+    // Read tab from hash query parameter on mount and when hash changes
     useEffect(() => {
         const updateTabFromHash = () => {
             const params = getHashParams();
             const tabFromUrl = params.get('tab');
             if (tabFromUrl) {
                 setActiveTab(tabFromUrl);
-            } else {
-                setActiveTab('tabs'); // Default tab
             }
         };
 
@@ -48,6 +44,9 @@ const UserSettings = () => {
         window.addEventListener('hashchange', updateTabFromHash);
         return () => window.removeEventListener('hashchange', updateTabFromHash);
     }, []);
+
+    // Check if user is admin
+    const hasAdminAccess = isAdmin(user);
 
     // User tabs (always visible)
     const userTabs = [
@@ -67,11 +66,6 @@ const UserSettings = () => {
 
     // Combined tabs
     const allTabs = [...userTabs, ...adminTabs];
-
-    const handleTabChange = (tabId) => {
-        const params = new URLSearchParams({ tab: tabId });
-        window.location.hash = `settings?${params.toString()}`;
-    };
 
     return (
         <div className="w-full p-4 md:p-8 max-w-6xl mx-auto">
@@ -97,7 +91,18 @@ const UserSettings = () => {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => handleTabChange(tab.id)}
+                            onClick={() => {
+                                setActiveTab(tab.id);
+                                // Preserve hash-based navigation with query params
+                                const params = new URLSearchParams({ tab: tab.id });
+                                // Check if there's a source param to preserve
+                                const currentParams = getHashParams();
+                                const currentSource = currentParams.get('source');
+                                if (currentSource) {
+                                    params.set('source', currentSource);
+                                }
+                                window.location.hash = `settings?${params.toString()}`;
+                            }}
                             className={`
                                 flex items-center gap-2 px-4 py-2 rounded-lg 
                                 transition-all whitespace-nowrap text-sm font-medium

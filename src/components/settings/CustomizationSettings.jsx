@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon } from 'lucide-react';
+import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-
 import { isAdmin } from '../../utils/permissions';
 import ColorPicker from '../common/ColorPicker';
+import { Input } from '../common/Input';
+import { Button } from '../common/Button';
 import FaviconSettings from './FaviconSettings';
 import logger from '../../utils/logger';
 
@@ -15,15 +16,31 @@ const CustomizationSettings = () => {
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
 
-    // Default color values matching dark-pro.css
+    // Default color values matching dark-pro.css - 21 customizable variables
     const defaultColors = {
+        // Tier 1: Essentials (10)
         'bg-primary': '#0a0e1a',
         'bg-secondary': '#151922',
+        'bg-tertiary': '#1f2937',
         'accent': '#3b82f6',
         'accent-secondary': '#06b6d4',
         'text-primary': '#f1f5f9',
         'text-secondary': '#94a3b8',
+        'text-tertiary': '#64748b',
         'border': '#374151',
+        'border-light': '#1f2937',
+
+        // Tier 2: Status Colors (4)
+        'success': '#10b981',
+        'warning': '#f59e0b',
+        'error': '#ef4444',
+        'info': '#3b82f6',
+
+        // Tier 3: Advanced (7)
+        'bg-hover': '#374151',
+        'accent-hover': '#2563eb',
+        'accent-light': '#60a5fa',
+        'border-accent': 'rgba(59, 130, 246, 0.3)',
     };
 
     // Custom colors state - using kebab-case to match CSS variables
@@ -45,6 +62,10 @@ const CustomizationSettings = () => {
     const [greetingText, setGreetingText] = useState('Your personal dashboard');
     const [savingGreeting, setSavingGreeting] = useState(false);
 
+    // Collapsible sections state for Custom Colors
+    const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
+    const [advancedExpanded, setAdvancedExpanded] = useState(false);
+
     // Load custom colors and application name from backend on mount
     useEffect(() => {
         const loadSettings = async () => {
@@ -55,12 +76,18 @@ const CustomizationSettings = () => {
                 });
 
                 if (userResponse.data?.theme?.customColors) {
-                    setCustomColors(userResponse.data.theme.customColors);
+                    // Merge saved colors with defaults to ensure all 21 variables exist
+                    // This handles migration from old 7-variable structure to new 21-variable structure
+                    const mergedColors = {
+                        ...defaultColors,
+                        ...userResponse.data.theme.customColors
+                    };
+                    setCustomColors(mergedColors);
 
                     // If user has custom theme mode set, apply colors
                     if (userResponse.data.theme.mode === 'custom') {
                         setUseCustomColors(true);
-                        applyColorsToDOM(userResponse.data.theme.customColors);
+                        applyColorsToDOM(mergedColors);
                     }
                 }
 
@@ -77,6 +104,7 @@ const CustomizationSettings = () => {
                 if (userResponse.data?.ui?.flattenUI !== undefined) {
                     const shouldFlatten = userResponse.data.ui.flattenUI;
                     setFlattenUI(shouldFlatten);
+
                     // Apply to document
                     if (shouldFlatten) {
                         document.documentElement.classList.add('flatten-ui');
@@ -236,26 +264,25 @@ const CustomizationSettings = () => {
         setGreetingText('Your personal dashboard');
     };
 
-
     return (
         <div className="space-y-6 fade-in">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold mb-2 text-white">
+                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
                     Customization
                 </h2>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-theme-secondary">
                     Personalize your dashboard appearance with colors and branding
                 </p>
             </div>
 
             {/* Sub-Tabs */}
-            <div className="flex gap-2 border-b border-slate-700">
+            <div className="flex gap-2 border-b border-theme">
                 <button
                     onClick={() => setActiveSubTab('general')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'general'
                         ? 'border-accent text-accent'
-                        : 'border-transparent text-slate-400 hover:text-slate-300'
+                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
                         }`}
                 >
                     <SettingsIcon size={18} className="inline mr-2" />
@@ -265,7 +292,7 @@ const CustomizationSettings = () => {
                     onClick={() => setActiveSubTab('colors')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'colors'
                         ? 'border-accent text-accent'
-                        : 'border-transparent text-slate-400 hover:text-slate-300'
+                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
                         }`}
                 >
                     <Palette size={18} className="inline mr-2" />
@@ -275,7 +302,7 @@ const CustomizationSettings = () => {
                     onClick={() => setActiveSubTab('favicon')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'favicon'
                         ? 'border-accent text-accent'
-                        : 'border-transparent text-slate-400 hover:text-slate-300'
+                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
                         }`}
                 >
                     <ImageIcon size={18} className="inline mr-2" />
@@ -284,7 +311,7 @@ const CustomizationSettings = () => {
             </div>
 
             {/* Content - CrossFade between tabs */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', overflow: 'hidden' }}>
                 <div
                     style={{
                         opacity: activeSubTab === 'general' ? 1 : 0,
@@ -297,71 +324,56 @@ const CustomizationSettings = () => {
                 >
                     <div className="space-y-6">
                         {/* Application Name Section */}
-                        <div className="rounded-xl p-6 border border-slate-700/50 bg-slate-900/30" style={{ transition: 'all 0.3s ease' }}>
-                            <h3 className="text-lg font-semibold text-white mb-4">
+                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Application Name
                             </h3>
-                            <p className="text-sm text-slate-400 mb-4">
+                            <p className="text-sm text-theme-secondary mb-4">
                                 Customize the application name displayed in the sidebar and throughout the dashboard.
                                 {!userIsAdmin && (
-                                    <span className="block mt-2 text-amber-400">
+                                    <span className="block mt-2 text-warning">
                                         ⚠️ This setting requires admin privileges
                                     </span>
                                 )}
                             </p>
-
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                                        Application Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={applicationName}
-                                        onChange={(e) => setApplicationName(e.target.value)}
-                                        disabled={!userIsAdmin}
-                                        maxLength={50}
-                                        placeholder="Homelab Dashboard"
-                                        className={`input-glow w-full px-4 py-3 bg-slate-900 border rounded-lg text-white placeholder-slate-500 transition-all ${userIsAdmin
-                                            ? 'border-slate-700 focus:outline-none focus:border-accent'
-                                            : 'border-slate-800 opacity-50 cursor-not-allowed'
-                                            }`}
-                                    />
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        {applicationName.length}/50 characters
-                                    </p>
-                                </div>
-
+                                <Input
+                                    label="Application Name"
+                                    value={applicationName}
+                                    onChange={(e) => setApplicationName(e.target.value)}
+                                    disabled={!userIsAdmin}
+                                    maxLength={50}
+                                    placeholder="Homelab Dashboard"
+                                    helperText={`${applicationName.length}/50 characters`}
+                                />
                                 {userIsAdmin && (
-                                    <button
+                                    <Button
                                         onClick={handleSaveApplicationName}
                                         disabled={savingAppName}
-                                        className="button-elevated px-6 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                        icon={Save}
                                     >
-                                        <Save size={18} />
                                         {savingAppName ? 'Saving...' : 'Save Application Name'}
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         </div>
 
                         {/* Dashboard Greeting Section */}
-                        <div className="rounded-xl p-6 border border-slate-700/50 bg-slate-900/30" style={{ transition: 'all 0.3s ease' }}>
-                            <h3 className="text-lg font-semibold text-white mb-4">
+                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Dashboard Greeting
                             </h3>
-                            <p className="text-sm text-slate-400 mb-6">
+                            <p className="text-sm text-theme-secondary mb-6">
                                 Customize the welcome message displayed on your dashboard.
                             </p>
-
                             <div className="space-y-6">
                                 {/* Enable/Disable Toggle */}
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <label className="text-sm font-medium text-slate-300">
+                                        <label className="text-sm font-medium text-theme-primary">
                                             Show Welcome Message
                                         </label>
-                                        <p className="text-xs text-slate-500 mt-1">
+                                        <p className="text-xs text-theme-tertiary mt-1">
                                             Display a custom greeting under your dashboard header
                                         </p>
                                     </div>
@@ -372,67 +384,54 @@ const CustomizationSettings = () => {
                                             onChange={(e) => setGreetingEnabled(e.target.checked)}
                                             className="sr-only peer"
                                         />
-                                        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                     </label>
                                 </div>
 
                                 {/* Greeting Text Input */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                                        Custom Greeting Text
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={greetingText}
-                                        onChange={(e) => setGreetingText(e.target.value)}
-                                        disabled={!greetingEnabled}
-                                        maxLength={100}
-                                        placeholder="Your personal dashboard"
-                                        className={`input-glow w-full px-4 py-3 bg-slate-900 border rounded-lg text-white placeholder-slate-500 transition-all ${greetingEnabled
-                                            ? 'border-slate-700 focus:outline-none focus:border-accent'
-                                            : 'border-slate-800 opacity-50 cursor-not-allowed'
-                                            }`}
-                                    />
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        {greetingText.length}/100 characters
-                                    </p>
-                                </div>
+                                <Input
+                                    label="Custom Greeting Text"
+                                    value={greetingText}
+                                    onChange={(e) => setGreetingText(e.target.value)}
+                                    disabled={!greetingEnabled}
+                                    maxLength={100}
+                                    placeholder="Your personal dashboard"
+                                    helperText={`${greetingText.length}/100 characters`}
+                                />
 
                                 {/* Action Buttons */}
                                 <div className="flex gap-3">
-                                    <button
+                                    <Button
                                         onClick={handleSaveGreeting}
                                         disabled={savingGreeting}
-                                        className="button-elevated px-6 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                        icon={Save}
                                     >
-                                        <Save size={18} />
                                         {savingGreeting ? 'Saving...' : 'Save Greeting'}
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         onClick={handleResetGreeting}
-                                        className="button-elevated px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                        variant="secondary"
+                                        icon={RotateCcw}
                                         title="Reset to default"
                                     >
-                                        <RotateCcw size={18} />
                                         <span className="hidden sm:inline">Reset</span>
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </div>
 
                         {/* Flatten UI Section */}
-                        <div className="rounded-xl p-6 border border-slate-700/50 bg-slate-900/30" style={{ transition: 'all 0.3s ease' }}>
-                            <h3 className="text-lg font-semibold text-white mb-4">
+                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Flatten UI Design
                             </h3>
-                            <p className="text-sm text-slate-400 mb-6">
+                            <p className="text-sm text-theme-secondary mb-6">
                                 Remove glassmorphism effects, shadows, and backdrop blur for a minimal flat design aesthetic. This affects all cards and panels throughout the application.
                             </p>
-
-                            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                            <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
                                 <div className="flex-1">
-                                    <div className="text-sm font-medium text-white mb-1">Flatten UI Design</div>
-                                    <div className="text-xs text-slate-400">
+                                    <div className="text-sm font-medium text-theme-primary mb-1">Flatten UI Design</div>
+                                    <div className="text-xs text-theme-tertiary">
                                         {flattenUI ? 'Flat design enabled' : '3D glassmorphism enabled'}
                                     </div>
                                 </div>
@@ -444,12 +443,13 @@ const CustomizationSettings = () => {
                                         disabled={savingFlattenUI}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                 </label>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div
                     style={{
                         opacity: activeSubTab === 'colors' ? 1 : 0,
@@ -463,7 +463,7 @@ const CustomizationSettings = () => {
                     <div className="space-y-8">
                         {/* Preset Themes Section */}
                         <div>
-                            <h3 className="text-lg font-semibold text-white mb-4">Preset Themes</h3>
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">Preset Themes</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {themes.map((t) => (
                                     <button
@@ -474,13 +474,13 @@ const CustomizationSettings = () => {
                                         }}
                                         className={`p-4 rounded-lg border-2 transition-all text-left ${theme === t.id && !useCustomColors
                                             ? 'border-accent bg-accent/10'
-                                            : 'border-slate-700 hover:border-slate-600 bg-slate-900/30 hover:bg-slate-900/50 transition-all'
+                                            : 'border-theme hover:border-theme-light bg-theme-secondary hover:bg-theme-hover transition-all'
                                             }`}
                                     >
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                                <Palette size={20} className={theme === t.id && !useCustomColors ? 'text-accent' : 'text-slate-400'} />
-                                                <span className="font-semibold text-white">
+                                                <Palette size={20} className={theme === t.id && !useCustomColors ? 'text-accent' : 'text-theme-secondary'} />
+                                                <span className="font-semibold text-theme-primary">
                                                     {t.name}
                                                 </span>
                                             </div>
@@ -490,14 +490,13 @@ const CustomizationSettings = () => {
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-sm text-slate-400">
+                                        <p className="text-sm text-theme-secondary">
                                             {t.description}
                                         </p>
-
                                         {/* Color Preview */}
                                         <div className="flex gap-2 mt-3">
                                             {/* Background Color */}
-                                            <div className="w-8 h-8 rounded border border-slate-600" style={{
+                                            <div className="w-8 h-8 rounded border border-theme" style={{
                                                 backgroundColor:
                                                     t.id === 'light' ? '#ffffff' :
                                                         t.id === 'dracula' ? '#282a36' :
@@ -527,104 +526,231 @@ const CustomizationSettings = () => {
                         </div>
 
                         {/* Custom Colors Section */}
-                        <div className="border-t border-slate-700 pt-8">
-                            <div className="flex items-center justify-between mb-4">
+                        <div className="border-t border-theme pt-8">
+                            <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-white">Custom Colors</h3>
-                                    <p className="text-sm text-slate-400 mt-1">Create your own color scheme</p>
+                                    <h3 className="text-lg font-semibold text-theme-primary">Custom Colors</h3>
+                                    <p className="text-sm text-theme-secondary mt-1">Create your own color scheme</p>
                                 </div>
                                 {useCustomColors && (
-                                    <span className="text-xs px-3 py-1.5 rounded bg-accent text-white">
+                                    <span className="text-xs px-3 py-1.5 rounded bg-accent text-white font-medium">
                                         Custom Theme Active
                                     </span>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                {/* Background Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Background</h4>
-                                    <ColorPicker
-                                        label="Primary Background"
-                                        value={customColors['bg-primary']}
-                                        onChange={(val) => handleColorChange('bg-primary', val)}
-                                        description="Main background color"
-                                    />
-                                    <ColorPicker
-                                        label="Secondary Background"
-                                        value={customColors['bg-secondary']}
-                                        onChange={(val) => handleColorChange('bg-secondary', val)}
-                                        description="Cards and panels"
-                                    />
-                                </div>
+                            {/* Tier 1: Essentials (Always Visible) */}
+                            <div className="mb-8">
+                                <h4 className="text-sm font-bold text-theme-secondary uppercase tracking-wider mb-4">
+                                    Essentials
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Backgrounds Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Backgrounds</h5>
+                                        <ColorPicker
+                                            label="Primary Background"
+                                            value={customColors['bg-primary']}
+                                            onChange={(val) => handleColorChange('bg-primary', val)}
+                                            description="Main page background"
+                                        />
+                                        <ColorPicker
+                                            label="Card Background"
+                                            value={customColors['bg-secondary']}
+                                            onChange={(val) => handleColorChange('bg-secondary', val)}
+                                            description="Cards and panels"
+                                        />
+                                        <ColorPicker
+                                            label="Button Background"
+                                            value={customColors['bg-tertiary']}
+                                            onChange={(val) => handleColorChange('bg-tertiary', val)}
+                                            description="Buttons and inputs"
+                                        />
+                                    </div>
 
-                                {/* Accent Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Accent</h4>
-                                    <ColorPicker
-                                        label="Primary Accent"
-                                        value={customColors['accent']}
-                                        onChange={(val) => handleColorChange('accent', val)}
-                                        description="Buttons and highlights"
-                                    />
-                                    <ColorPicker
-                                        label="Secondary Accent"
-                                        value={customColors['accent-secondary']}
-                                        onChange={(val) => handleColorChange('accent-secondary', val)}
-                                        description="Links and secondary actions"
-                                    />
-                                </div>
+                                    {/* Accents Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Accents</h5>
+                                        <ColorPicker
+                                            label="Primary Accent"
+                                            value={customColors['accent']}
+                                            onChange={(val) => handleColorChange('accent', val)}
+                                            description="Buttons and highlights"
+                                        />
+                                        <ColorPicker
+                                            label="Secondary Accent"
+                                            value={customColors['accent-secondary']}
+                                            onChange={(val) => handleColorChange('accent-secondary', val)}
+                                            description="Links and secondary actions"
+                                        />
+                                    </div>
 
-                                {/* Text Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Text</h4>
-                                    <ColorPicker
-                                        label="Primary Text"
-                                        value={customColors['text-primary']}
-                                        onChange={(val) => handleColorChange('text-primary', val)}
-                                        description="Main text color"
-                                    />
-                                    <ColorPicker
-                                        label="Secondary Text"
-                                        value={customColors['text-secondary']}
-                                        onChange={(val) => handleColorChange('text-secondary', val)}
-                                        description="Muted text and labels"
-                                    />
-                                </div>
+                                    {/* Text Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Text</h5>
+                                        <ColorPicker
+                                            label="Primary Text"
+                                            value={customColors['text-primary']}
+                                            onChange={(val) => handleColorChange('text-primary', val)}
+                                            description="Main text color"
+                                        />
+                                        <ColorPicker
+                                            label="Secondary Text"
+                                            value={customColors['text-secondary']}
+                                            onChange={(val) => handleColorChange('text-secondary', val)}
+                                            description="Labels and descriptions"
+                                        />
+                                        <ColorPicker
+                                            label="Muted Text"
+                                            value={customColors['text-tertiary']}
+                                            onChange={(val) => handleColorChange('text-tertiary', val)}
+                                            description="Hints and timestamps"
+                                        />
+                                    </div>
 
-                                {/* Border Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Borders</h4>
-                                    <ColorPicker
-                                        label="Border Color"
-                                        value={customColors['border']}
-                                        onChange={(val) => handleColorChange('border', val)}
-                                        description="Dividers and outlines"
-                                    />
+                                    {/* Borders Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Borders</h5>
+                                        <ColorPicker
+                                            label="Primary Border"
+                                            value={customColors['border']}
+                                            onChange={(val) => handleColorChange('border', val)}
+                                            description="Dividers and outlines"
+                                        />
+                                        <ColorPicker
+                                            label="Light Border"
+                                            value={customColors['border-light']}
+                                            onChange={(val) => handleColorChange('border-light', val)}
+                                            description="Subtle separators"
+                                        />
+                                    </div>
                                 </div>
+                            </div>
+
+                            {/* Tier 2: Status Colors (Collapsible) */}
+                            <div className="mb-8">
+                                <button
+                                    onClick={() => setStatusColorsExpanded(!statusColorsExpanded)}
+                                    className="w-full flex items-center justify-between p-4 bg-theme-secondary hover:bg-theme-hover rounded-lg border border-theme transition-all mb-4"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <h4 className="text-sm font-bold text-theme-secondary uppercase tracking-wider">
+                                            Status Colors
+                                        </h4>
+                                        <span className="text-xs text-theme-tertiary">(4 colors)</span>
+                                    </div>
+                                    <ChevronDown
+                                        size={18}
+                                        className={`text-theme-tertiary transition-transform ${statusColorsExpanded ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                                {statusColorsExpanded && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pl-4">
+                                        <ColorPicker
+                                            label="Success"
+                                            value={customColors['success']}
+                                            onChange={(val) => handleColorChange('success', val)}
+                                            description="Completed actions"
+                                        />
+                                        <ColorPicker
+                                            label="Warning"
+                                            value={customColors['warning']}
+                                            onChange={(val) => handleColorChange('warning', val)}
+                                            description="Cautions"
+                                        />
+                                        <ColorPicker
+                                            label="Error"
+                                            value={customColors['error']}
+                                            onChange={(val) => handleColorChange('error', val)}
+                                            description="Errors"
+                                        />
+                                        <ColorPicker
+                                            label="Info"
+                                            value={customColors['info']}
+                                            onChange={(val) => handleColorChange('info', val)}
+                                            description="Information"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Tier 3: Advanced (Collapsible) */}
+                            <div className="mb-8">
+                                <button
+                                    onClick={() => setAdvancedExpanded(!advancedExpanded)}
+                                    className="w-full flex items-center justify-between p-4 bg-theme-secondary hover:bg-theme-hover rounded-lg border border-theme transition-all mb-4"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <h4 className="text-sm font-bold text-theme-secondary uppercase tracking-wider">
+                                            Advanced
+                                        </h4>
+                                        <span className="text-xs text-theme-tertiary">(7 colors)</span>
+                                    </div>
+                                    <ChevronDown
+                                        size={18}
+                                        className={`text-theme-tertiary transition-transform ${advancedExpanded ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                                {advancedExpanded && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4">
+                                        {/* Interactive States */}
+                                        <div className="space-y-4">
+                                            <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Interactive States</h5>
+                                            <ColorPicker
+                                                label="Hover Background"
+                                                value={customColors['bg-hover']}
+                                                onChange={(val) => handleColorChange('bg-hover', val)}
+                                                description="Background on hover"
+                                            />
+                                            <ColorPicker
+                                                label="Accent Hover"
+                                                value={customColors['accent-hover']}
+                                                onChange={(val) => handleColorChange('accent-hover', val)}
+                                                description="Accent color on hover"
+                                            />
+                                            <ColorPicker
+                                                label="Accent Light"
+                                                value={customColors['accent-light']}
+                                                onChange={(val) => handleColorChange('accent-light', val)}
+                                                description="Light accent variant"
+                                            />
+                                        </div>
+
+                                        {/* Special Borders */}
+                                        <div className="space-y-4">
+                                            <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Special Borders</h5>
+                                            <ColorPicker
+                                                label="Accent Border"
+                                                value={customColors['border-accent']}
+                                                onChange={(val) => handleColorChange('border-accent', val)}
+                                                description="Highlighted borders"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Action Buttons */}
                             <div className="flex gap-3">
-                                <button
+                                <Button
                                     onClick={handleSaveCustomColors}
                                     disabled={saving}
-                                    className="button-elevated px-6 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                    icon={Save}
                                 >
-                                    <Save size={18} />
                                     {saving ? 'Saving...' : 'Apply Custom Colors'}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={handleResetColors}
-                                    className="button-elevated px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                    variant="secondary"
+                                    icon={RotateCcw}
                                 >
-                                    <RotateCcw size={18} />
-                                    Reset to Default
-                                </button>
+                                    Reset to Preset
+                                </Button>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div
                     style={{
                         opacity: activeSubTab === 'favicon' ? 1 : 0,

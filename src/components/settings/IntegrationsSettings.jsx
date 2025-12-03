@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader } from 'lucide-react';
+import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save } from 'lucide-react';
 import logger from '../../utils/logger';
+import { Input } from '../common/Input';
+import { Button } from '../common/Button';
 
 const IntegrationsSettings = () => {
     const [integrations, setIntegrations] = useState({
@@ -11,6 +13,7 @@ const IntegrationsSettings = () => {
         qbittorrent: { enabled: false, url: '', username: '', password: '' },
         overseerr: { enabled: false, url: '', apiKey: '' }
     });
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [expandedSections, setExpandedSections] = useState({});
@@ -91,7 +94,6 @@ const IntegrationsSettings = () => {
 
     const handleTest = async (service) => {
         setTestStates(prev => ({ ...prev, [service]: { loading: true } }));
-
         try {
             const response = await fetch('/api/integrations/test', {
                 method: 'POST',
@@ -194,30 +196,30 @@ const IntegrationsSettings = () => {
     ];
 
     if (loading) {
-        return <div className="text-center py-16 text-slate-400">Loading integrations...</div>;
+        return <div className="text-center py-16 text-theme-secondary">Loading integrations...</div>;
     }
 
     return (
         <div>
             {/* Header */}
             <div className="mb-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-white">
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-theme-primary">
                     Service Integrations
                 </h2>
-                <p className="text-slate-400 text-sm">
+                <p className="text-theme-secondary text-sm">
                     Configure connections to your homelab services
                 </p>
             </div>
 
             {/* Docker Networking Help Banner */}
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+            <div className="bg-info/10 border border-info/20 rounded-xl p-4 mb-6">
                 <div className="flex gap-3">
-                    <AlertCircle className="text-blue-400 flex-shrink-0 mt-0.5" size={20} />
-                    <div className="text-sm text-blue-100">
+                    <AlertCircle className="text-info flex-shrink-0 mt-0.5" size={20} />
+                    <div className="text-sm text-theme-primary">
                         <p className="font-medium mb-1">Docker Networking Tip</p>
-                        <p className="text-blue-200/80">
+                        <p className="text-theme-secondary">
                             If running in Docker, use container names or host network IPs instead of localhost.
-                            Example: <code className="bg-slate-900/50 px-2 py-0.5 rounded text-blue-300">http://plex:32400</code>
+                            Example: <code className="bg-theme-tertiary px-2 py-0.5 rounded text-info">http://plex:32400</code>
                         </p>
                     </div>
                 </div>
@@ -231,22 +233,21 @@ const IntegrationsSettings = () => {
                     const testState = testStates[config.id];
 
                     return (
-                        <div key={config.id} className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-slate-700/50 card-glow">
+                        <div key={config.id} className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
                             {/* Header */}
                             <div className="p-6 flex items-center justify-between">
                                 <div className="flex items-center gap-4 flex-1">
-                                    <Server className="text-slate-400" size={20} />
+                                    <Server className="text-theme-secondary" size={20} />
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-white">{config.name}</h3>
-                                        <p className="text-sm text-slate-400">{config.description}</p>
+                                        <h3 className="font-semibold text-theme-primary">{config.name}</h3>
+                                        <p className="text-sm text-theme-secondary">{config.description}</p>
                                     </div>
                                 </div>
-
                                 <div className="flex items-center gap-3">
                                     {/* Toggle Switch */}
                                     <button
                                         onClick={() => handleToggle(config.id)}
-                                        className={`relative w-12 h-6 rounded-full transition-colors ${isEnabled ? 'bg-blue-600' : 'bg-slate-600'
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${isEnabled ? 'bg-success' : 'bg-theme-tertiary'
                                             }`}
                                     >
                                         <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'
@@ -257,7 +258,7 @@ const IntegrationsSettings = () => {
                                     {isEnabled && (
                                         <button
                                             onClick={() => toggleSection(config.id)}
-                                            className="text-slate-400 hover:text-white transition-colors"
+                                            className="text-theme-secondary hover:text-theme-primary transition-colors"
                                         >
                                             <ChevronDown size={20} className={`transition-transform ${isExpanded ? 'rotate-180' : ''
                                                 }`} />
@@ -268,46 +269,34 @@ const IntegrationsSettings = () => {
 
                             {/* Configuration Form - Collapsible */}
                             {isEnabled && isExpanded && (
-                                <div className="px-6 pb-6 border-t border-slate-700/50 pt-6">
+                                <div className="px-6 pb-6 border-t border-theme pt-6">
                                     <div className="space-y-4">
                                         {config.fields.map(field => (
-                                            <div key={field.key}>
-                                                <label className="block mb-2 font-medium text-slate-300 text-sm">
-                                                    {field.label}
-                                                </label>
-                                                <input
-                                                    type={field.type}
-                                                    value={integrations[config.id][field.key] || ''}
-                                                    onChange={(e) => handleFieldChange(config.id, field.key, e.target.value)}
-                                                    placeholder={field.placeholder}
-                                                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-accent transition-colors"
-                                                />
-                                            </div>
+                                            <Input
+                                                key={field.key}
+                                                label={field.label}
+                                                type={field.type}
+                                                value={integrations[config.id][field.key] || ''}
+                                                onChange={(e) => handleFieldChange(config.id, field.key, e.target.value)}
+                                                placeholder={field.placeholder}
+                                            />
                                         ))}
 
                                         {/* Test Connection Button */}
                                         <div className="flex items-center gap-3 pt-2">
-                                            <button
+                                            <Button
                                                 onClick={() => handleTest(config.id)}
                                                 disabled={testState?.loading}
-                                                className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 text-white rounded-lg transition-colors font-medium"
+                                                variant="secondary"
+                                                size="sm"
+                                                icon={testState?.loading ? Loader : TestTube}
                                             >
-                                                {testState?.loading ? (
-                                                    <>
-                                                        <Loader size={18} className="animate-spin" />
-                                                        <span>Testing...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <TestTube size={18} />
-                                                        <span>Test Connection</span>
-                                                    </>
-                                                )}
-                                            </button>
+                                                {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                            </Button>
 
                                             {/* Test Result */}
                                             {testState && !testState.loading && (
-                                                <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-green-400' : 'text-red-400'
+                                                <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'
                                                     }`}>
                                                     {testState.success ? (
                                                         <CheckCircle2 size={16} />
@@ -328,20 +317,13 @@ const IntegrationsSettings = () => {
 
             {/* Save Button */}
             <div className="mt-6 flex justify-end">
-                <button
+                <Button
                     onClick={handleSave}
                     disabled={saving}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                    icon={saving ? Loader : Save}
                 >
-                    {saving ? (
-                        <>
-                            <Loader size={18} className="animate-spin" />
-                            <span>Saving...</span>
-                        </>
-                    ) : (
-                        <span>Save All Integrations</span>
-                    )}
-                </button>
+                    {saving ? 'Saving...' : 'Save All Integrations'}
+                </Button>
             </div>
         </div>
     );

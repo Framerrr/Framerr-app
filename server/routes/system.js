@@ -3,7 +3,6 @@ const router = express.Router();
 const { getSystemConfig, updateSystemConfig } = require('../db/systemConfig');
 const { requireAdmin } = require('../middleware/auth');
 const logger = require('../utils/logger');
-
 /**
  * GET /api/system/config
  * Get system configuration (admin only)
@@ -26,7 +25,6 @@ router.get('/config', requireAdmin, async (req, res) => {
         });
     }
 });
-
 /**
  * PUT /api/system/config
  * Update system configuration (admin only)
@@ -35,15 +33,12 @@ router.put('/config', requireAdmin, async (req, res) => {
     try {
         const updates = req.body;
         const newConfig = await updateSystemConfig(updates);
-
         // Refresh in-memory cached config for middleware
         req.app.set('systemConfig', newConfig);
-
         logger.info('System config updated', {
             user: req.user.username,
             updates: Object.keys(updates)
         });
-
         res.json({
             success: true,
             config: newConfig
@@ -59,5 +54,4 @@ router.put('/config', requireAdmin, async (req, res) => {
         });
     }
 });
-
 module.exports = router;

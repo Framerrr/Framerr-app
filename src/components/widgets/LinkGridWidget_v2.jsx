@@ -6,7 +6,6 @@ import axios from 'axios';
 import logger from '../../utils/logger';
 import IconPicker from '../IconPicker';
 
-
 /**
  * LinkGrid Widget v2 - Dynamic Grid System
  * iOS Control Center-style grid layout with inline editing
@@ -18,6 +17,7 @@ import IconPicker from '../IconPicker';
  * - Inline add/edit forms
  * - Drag-to-reorder (sequence-based)
  */
+
 const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled }) => {
     const { links = [] } = config || {};
 
@@ -33,6 +33,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     const [draggedLinkId, setDraggedLinkId] = useState(null); // ID of link being dragged
     const [dragOverLinkId, setDragOverLinkId] = useState(null); // ID of link being dragged over
     const [previewLinks, setPreviewLinks] = useState([]); // Temporary order during drag
+
     const [formData, setFormData] = useState({
         title: '',
         icon: 'Link',
@@ -143,7 +144,6 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                         body: null
                     }
                 });
-
             }
         } else if (!showAddForm) {
             // Reset form when closing
@@ -295,18 +295,16 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             }
 
             const response = await axios(requestConfig);
+
             logger.debug(`Action successful:`, response.status);
 
             setLinkStates(prev => ({ ...prev, [index]: 'success' }));
-
             setTimeout(() => {
                 setLinkStates(prev => ({ ...prev, [index]: 'idle' }));
             }, 2000);
         } catch (error) {
             logger.error(`Action failed:`, error);
-
             setLinkStates(prev => ({ ...prev, [index]: 'error' }));
-
             setTimeout(() => {
                 setLinkStates(prev => ({ ...prev, [index]: 'idle' }));
             }, 2000);
@@ -338,30 +336,52 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                 ? links.map(l => l.id === editingLinkId ? newLink : l)
                 : [...links, newLink];
 
-            // Save to backend (match existing pattern)
+            // Fetch current widgets from backend
             const response = await axios.get('/api/widgets');
             const allWidgets = response.data.widgets || [];
 
-            const updatedWidgets = allWidgets.map(w =>
-                w.id === widgetId ? { ...w, config: { ...w.config, links: updatedLinks } } : w
-            );
-            await axios.put('/api/widgets', { widgets: updatedWidgets });
+            // Check if widget exists in backend (to detect NEW unsaved widgets)
+            const widgetExistsInBackend = allWidgets.some(w => w.id === widgetId);
 
-            logger.debug(`Link ${editingLinkId ? 'updated' : 'added'}`);
+            if (widgetExistsInBackend) {
+                // Widget is saved - update backend and trigger full refresh
+                const updatedWidgets = allWidgets.map(w =>
+                    w.id === widgetId ? { ...w, config: { ...w.config, links: updatedLinks } } : w
+                );
+                await axios.put('/api/widgets', { widgets: updatedWidgets });
 
-            // Close form
-            setShowAddForm(false);
-            setEditingLinkId(null);
+                logger.debug(`Link ${editingLinkId ? 'updated' : 'added'} (saved widget)`);
 
-            // Trigger parent re-render (Dashboard will refresh this widget)
-            window.dispatchEvent(new CustomEvent('widget-config-updated', {
-                detail: { widgetId }
-            }));
+                // Close form
+                setShowAddForm(false);
+                setEditingLinkId(null);
 
-            // Mark Dashboard as having unsaved changes
-            window.dispatchEvent(new CustomEvent('widgets-modified', {
-                detail: { widgets: updatedWidgets }
-            }));
+                // Trigger full refresh from backend
+                window.dispatchEvent(new CustomEvent('widget-config-updated', {
+                    detail: { widgetId }
+                }));
+
+                // Mark Dashboard as having unsaved changes
+                window.dispatchEvent(new CustomEvent('widgets-modified', {
+                    detail: { widgets: updatedWidgets }
+                }));
+            } else {
+                // Widget is NEW (not in backend) - only update Dashboard's local state
+                // Don't save to backend (would remove widget from state)
+                logger.debug(`Link ${editingLinkId ? 'updated' : 'added'} (unsaved widget)`);
+
+                // Close form
+                setShowAddForm(false);
+                setEditingLinkId(null);
+
+                // Dispatch event to update ONLY this widget's config in Dashboard's local state
+                window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                    detail: {
+                        widgetId,
+                        config: { ...config, links: updatedLinks }
+                    }
+                }));
+            }
         } catch (error) {
             logger.error('Failed to save link:', error);
             logger.error('Error details:', error.response?.data);
@@ -381,35 +401,53 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             // Remove from links array
             const updatedLinks = links.filter(l => l.id !== linkId);
 
-            // Save to backend (match existing pattern)
+            // Fetch current widgets from backend
             const response = await axios.get('/api/widgets');
             const allWidgets = response.data.widgets || [];
-            const updatedWidgets = allWidgets.map(w =>
-                w.id === widgetId ? { ...w, config: { ...w.config, links: updatedLinks } } : w
-            );
-            await axios.put('/api/widgets', { widgets: updatedWidgets });
 
-            logger.debug('Link deleted');
+            // Check if widget exists in backend
+            const widgetExistsInBackend = allWidgets.some(w => w.id === widgetId);
 
-            // Widget-only refresh with fade animation
-            const widgetElement = document.querySelector(`[data-widget-id="${widgetId}"]`);
-            if (widgetElement) {
-                widgetElement.style.opacity = '0.5';
-                widgetElement.style.transition = 'opacity 0.3s ease';
-                setTimeout(() => {
-                    widgetElement.style.opacity = '1';
-                }, 100);
+            if (widgetExistsInBackend) {
+                // Widget is saved - update backend
+                const updatedWidgets = allWidgets.map(w =>
+                    w.id === widgetId ? { ...w, config: { ...w.config, links: updatedLinks } } : w
+                );
+                await axios.put('/api/widgets', { widgets: updatedWidgets });
+
+                logger.debug('Link deleted (saved widget)');
+
+                // Widget-only refresh with fade animation
+                const widgetElement = document.querySelector(`[data-widget-id="${widgetId}"]`);
+                if (widgetElement) {
+                    widgetElement.style.opacity = '0.5';
+                    widgetElement.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => {
+                        widgetElement.style.opacity = '1';
+                    }, 100);
+                }
+
+                // Trigger parent re-render
+                window.dispatchEvent(new CustomEvent('widget-config-updated', {
+                    detail: { widgetId }
+                }));
+
+                // Mark Dashboard as having unsaved changes
+                window.dispatchEvent(new CustomEvent('widgets-modified', {
+                    detail: { widgets: updatedWidgets }
+                }));
+            } else {
+                // Widget is NEW (not in backend) - only update local state
+                logger.debug('Link deleted (unsaved widget)');
+
+                // Dispatch event to update ONLY this widget's config
+                window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                    detail: {
+                        widgetId,
+                        config: { ...config, links: updatedLinks }
+                    }
+                }));
             }
-
-            // Trigger parent re-render
-            window.dispatchEvent(new CustomEvent('widget-config-updated', {
-                detail: { widgetId }
-            }));
-
-            // Mark Dashboard as having unsaved changes
-            window.dispatchEvent(new CustomEvent('widgets-modified', {
-                detail: { widgets: updatedWidgets }
-            }));
         } catch (error) {
             logger.error('Failed to delete link:', error);
             alert('Failed to delete link. Please try again.');
@@ -502,7 +540,6 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                 setPreviewLinks([]);
                 setDragOverLinkId(null);
             }, 100);
-
         } catch (error) {
             logger.error('Failed to reorder links:', error);
             alert('Failed to reorder links. Please try again.');
@@ -534,18 +571,17 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         for (let row = 0; row < gridRows; row++) {
             for (let col = 0; col < gridCols; col++) {
                 const isOccupied = occupancyGrid[row][col];
-
                 const style = {
                     position: 'absolute',
                     left: `${col * (cellSize + GRID_GAP)}px`,
                     top: `${row * (cellSize + GRID_GAP)}px`,
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
-                    border: '2px dashed rgba(148, 163, 184, 0.2)', // slate-400 with low opacity
+                    border: '2px dashed rgba(128, 128, 128, 0.5)',
                     borderRadius: '50%',
                     pointerEvents: 'none',
                     transition: 'opacity 0.2s ease',
-                    opacity: isOccupied ? 0 : 1, // Hide outline if cell is occupied
+                    opacity: isOccupied ? 0 : 0.5, // Hide outline if cell is occupied
                 };
 
                 outlines.push(
@@ -569,13 +605,13 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         const isLoading = state === 'loading';
         const isSuccess = state === 'success';
         const isError = state === 'error';
-
         const isCircle = link.size === 'circle';
+
         const width = cellSize * position.gridColSpan;
         const height = cellSize;
 
         // Base classes
-        const baseClasses = 'flex items-center justify-center border bg-gradient-to-br from-slate-800/90 to-slate-900/90 border-slate-700/50 transition-all duration-200 relative overflow-hidden';
+        const baseClasses = 'flex items-center justify-center border bg-theme-tertiary border-theme transition-all duration-200 relative overflow-hidden';
 
         // Shape classes
         const shapeClasses = isCircle
@@ -584,19 +620,20 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
         // State classes
         const stateClasses = isSuccess
-            ? 'border-green-500/70 bg-gradient-to-br from-green-500/30 to-green-600/30'
+            ? 'border-success/70 bg-success/20'
             : isError
-                ? 'border-red-500/70 bg-gradient-to-br from-red-500/30 to-red-600/30'
+                ? 'border-error/70 bg-error/20'
                 : 'hover:border-accent';
 
         const classes = `${baseClasses} ${shapeClasses} ${stateClasses}`;
 
         // Icon rendering - scale with cell size
         const iconSize = Math.max(16, Math.min(32, cellSize * 0.3)); // 30% of cell size, clamped 16-32px
+
         const renderIcon = () => {
             if (isLoading) return <Loader size={iconSize} className="text-accent animate-spin" />;
-            if (isSuccess) return <CheckCircle2 size={iconSize} className="text-green-400" />;
-            if (isError) return <XCircle size={iconSize} className="text-red-400" />;
+            if (isSuccess) return <CheckCircle2 size={iconSize} className="text-success" />;
+            if (isError) return <XCircle size={iconSize} className="text-error" />;
             if (link.style?.showIcon !== false) {
                 return <Icon size={iconSize} className="text-accent" />;
             }
@@ -605,12 +642,13 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
         // Text rendering - scale with cell size
         const fontSize = cellSize < 60 ? 'text-xs' : cellSize < 80 ? 'text-sm' : 'text-sm';
+
         const renderText = () => {
-            if (isSuccess && !isCircle) return <span className={`${fontSize} font-medium text-green-400`}>Success</span>;
-            if (isError && !isCircle) return <span className={`${fontSize} font-medium text-red-400`}>Failed</span>;
+            if (isSuccess && !isCircle) return <span className={`${fontSize} font-medium text-success`}>Success</span>;
+            if (isError && !isCircle) return <span className={`${fontSize} font-medium text-error`}>Failed</span>;
             if (link.style?.showText !== false) {
                 return (
-                    <span className={`${fontSize} font-medium text-slate-200 ${isCircle ? 'mt-1' : ''}`}>
+                    <span className={`${fontSize} font-medium text-theme-primary ${isCircle ? 'mt-1' : ''}`}>
                         {link.title}
                     </span>
                 );
@@ -638,7 +676,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                 <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 rounded-inherit pointer-events-none">
                     {/* Edit button */}
                     <button
-                        className="p-2 bg-blue-600/90 hover:bg-blue-500 rounded-lg transition-colors pointer-events-auto"
+                        className="p-2 bg-info hover:bg-info-hover rounded-lg transition-colors pointer-events-auto"
                         title="Edit link"
                         onClick={(e) => {
                             e.preventDefault();
@@ -649,10 +687,9 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                     >
                         <Edit2 size={16} className="text-white" />
                     </button>
-
                     {/* Delete button */}
                     <button
-                        className="p-2 bg-red-600/90 hover:bg-red-500 rounded-lg transition-colors pointer-events-auto"
+                        className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
                         title="Delete link"
                         onClick={(e) => {
                             e.preventDefault();
@@ -669,7 +706,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         // Visual feedback for drag state
         const isDragging = draggedLinkId === link.id;
         const isDragOver = dragOverLinkId === link.id;
-        const dragClasses = isDragOver ? ' ring-2 ring-accent ring-offset-2 ring-offset-slate-900' : '';
+        const dragClasses = isDragOver ? ' ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary' : '';
 
         // Regular link
         if (link.type === 'link' || !link.type) {
@@ -755,7 +792,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                 <div className="absolute top-2 right-14 flex gap-2 z-30 no-drag">
                     <button
                         onClick={() => setEditModeActive(false)}
-                        className="h-10 px-3 bg-slate-700/50 hover:bg-slate-600 rounded-lg text-slate-300 hover:text-white transition-all shadow-lg flex items-center"
+                        className="h-10 px-3 bg-theme-tertiary hover:bg-theme-hover rounded-lg text-theme-secondary hover:text-theme-primary transition-all shadow-lg flex items-center border border-theme"
                     >
                         <span className="text-xs font-medium">Cancel</span>
                     </button>
@@ -774,7 +811,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             {editMode && !editModeActive && (
                 <button
                     onClick={() => setEditModeActive(true)}
-                    className="absolute top-2 right-14 h-10 px-3 bg-slate-700/50 hover:bg-slate-600 rounded-lg text-slate-300 hover:text-white transition-all no-drag flex items-center gap-1.5 shadow-lg z-20"
+                    className="absolute top-2 right-14 h-10 px-3 bg-theme-tertiary hover:bg-theme-hover rounded-lg text-theme-secondary hover:text-theme-primary transition-all no-drag flex items-center gap-1.5 shadow-lg z-20 border border-theme"
                 >
                     <Edit2 size={14} />
                     <span className="text-xs font-medium">Configure</span>
@@ -784,9 +821,9 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             {/* Empty state */}
             {links.length === 0 && !editModeActive ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                    <p className="text-sm text-slate-400">No links configured</p>
+                    <p className="text-sm text-theme-secondary">No links configured</p>
                     {editMode && (
-                        <p className="text-xs text-slate-500 mt-1">Click Configure to add links</p>
+                        <p className="text-xs text-theme-tertiary mt-1">Click Configure to add links</p>
                     )}
                 </div>
             ) : (
@@ -808,23 +845,41 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                     })}
 
                     {/* Add button (in edit mode, if space available) */}
-                    {editModeActive && remainingCapacity > 0 && !showAddForm && (
-                        <button
-                            onClick={() => {
-                                setShowAddForm(true);
-                                setEditingLinkId(null);
-                            }}
-                            className="absolute p-4 border-2 border-dashed border-slate-600 hover:border-accent rounded-full transition-all hover:scale-105 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700/50 cursor-pointer z-20"
-                            style={{
-                                left: `${(linkPositions.length > 0 ? linkPositions[linkPositions.length - 1].gridCol + linkPositions[linkPositions.length - 1].gridColSpan : 0) * (cellSize + GRID_GAP)}px`,
-                                top: `${(linkPositions.length > 0 ? linkPositions[linkPositions.length - 1].gridRow : 0) * (cellSize + GRID_GAP)}px`,
-                                width: `${cellSize}px`,
-                                height: `${cellSize}px`,
-                            }}
-                        >
-                            <Plus size={32} className="text-slate-400" />
-                        </button>
-                    )}
+                    {editModeActive && remainingCapacity > 0 && !showAddForm && (() => {
+                        // Calculate the next available cell position
+                        let nextCol = 0;
+                        let nextRow = 0;
+
+                        if (linkPositions.length > 0) {
+                            const lastPosition = linkPositions[linkPositions.length - 1];
+                            nextCol = lastPosition.gridCol + lastPosition.gridColSpan;
+                            nextRow = lastPosition.gridRow;
+
+                            // Check if next position would overflow current row
+                            if (nextCol >= cols) {
+                                nextCol = 0;
+                                nextRow++;
+                            }
+                        }
+
+                        return (
+                            <button
+                                onClick={() => {
+                                    setShowAddForm(true);
+                                    setEditingLinkId(null);
+                                }}
+                                className="absolute p-4 border-2 border-dashed border-theme hover:border-accent rounded-full transition-all hover:scale-105 flex items-center justify-center bg-theme-tertiary hover:bg-theme-hover cursor-pointer z-20"
+                                style={{
+                                    left: `${nextCol * (cellSize + GRID_GAP)}px`,
+                                    top: `${nextRow * (cellSize + GRID_GAP)}px`,
+                                    width: `${cellSize}px`,
+                                    height: `${cellSize}px`,
+                                }}
+                            >
+                                <Plus size={32} className="text-theme-secondary" />
+                            </button>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -852,7 +907,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
                     {/* Form Modal */}
                     <div
-                        className="fixed bg-slate-800 border-2 border-slate-600 rounded-xl shadow-2xl p-5 space-y-4 z-[9999]"
+                        className="fixed bg-theme-secondary border border-theme rounded-xl shadow-2xl p-5 space-y-4 z-[9999]"
                         style={{
                             top: '50%',
                             left: '50%',
@@ -865,7 +920,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                     >
                         {/* Header with close button */}
                         <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-base font-semibold text-slate-200">
+                            <h3 className="text-base font-semibold text-theme-primary">
                                 {editingLinkId ? 'Edit Link' : 'Add New Link'}
                             </h3>
                             <button
@@ -873,37 +928,37 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                                     setShowAddForm(false);
                                     setEditingLinkId(null);
                                 }}
-                                className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+                                className="p-1.5 hover:bg-theme-tertiary rounded-lg transition-colors"
                                 title="Close"
                             >
-                                <Icons.X size={16} className="text-slate-400" />
+                                <Icons.X size={16} className="text-theme-secondary" />
                             </button>
                         </div>
 
                         {/* Title */}
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Title</label>
+                            <label className="block text-xs text-theme-secondary mb-1">Title</label>
                             <input
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded text-sm text-slate-200 focus:border-accent focus:outline-none"
+                                className="w-full px-3 py-2 bg-theme-tertiary border border-theme rounded text-sm text-theme-primary focus:border-accent focus:outline-none"
                                 placeholder="Enter link title"
                             />
                         </div>
 
                         {/* Shape selector */}
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Shape</label>
+                            <label className="block text-xs text-theme-secondary mb-1">Shape</label>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setFormData({ ...formData, size: 'circle' })}
                                     className={`flex-1 px-4 py-3 rounded-lg text-sm transition-all flex flex-col items-center gap-2 ${formData.size === 'circle'
-                                        ? 'bg-accent text-white ring-2 ring-accent ring-offset-2 ring-offset-slate-800'
-                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        ? 'bg-accent text-white ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary'
+                                        : 'bg-theme-tertiary text-theme-secondary hover:bg-theme-hover'
                                         }`}
                                 >
-                                    <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center ${formData.size === 'circle' ? 'border-white' : 'border-slate-400'}`}>
+                                    <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center ${formData.size === 'circle' ? 'border-white' : 'border-theme'}`}>
                                         <span className="text-xs font-medium">1×1</span>
                                     </div>
                                     <span className="text-xs font-medium">Circle</span>
@@ -911,11 +966,11 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                                 <button
                                     onClick={() => setFormData({ ...formData, size: 'rectangle' })}
                                     className={`flex-1 px-4 py-3 rounded-lg text-sm transition-all flex flex-col items-center gap-2 ${formData.size === 'rectangle'
-                                        ? 'bg-accent text-white ring-2 ring-accent ring-offset-2 ring-offset-slate-800'
-                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        ? 'bg-accent text-white ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary'
+                                        : 'bg-theme-tertiary text-theme-secondary hover:bg-theme-hover'
                                         }`}
                                 >
-                                    <div className={`w-20 h-12 rounded-full border-2 flex items-center justify-center ${formData.size === 'rectangle' ? 'border-white' : 'border-slate-400'}`}>
+                                    <div className={`w-20 h-12 rounded-full border-2 flex items-center justify-center ${formData.size === 'rectangle' ? 'border-white' : 'border-theme'}`}>
                                         <span className="text-xs font-medium">2×1</span>
                                     </div>
                                     <span className="text-xs font-medium">Rectangle</span>
@@ -925,13 +980,13 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
                         {/* Type selector */}
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Type</label>
+                            <label className="block text-xs text-theme-secondary mb-1">Type</label>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setFormData({ ...formData, type: 'link' })}
                                     className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${formData.type === 'link'
                                         ? 'bg-accent text-white'
-                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        : 'bg-theme-tertiary text-theme-secondary hover:bg-theme-hover'
                                         }`}
                                 >
                                     Open Link
@@ -940,7 +995,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                                     onClick={() => setFormData({ ...formData, type: 'action' })}
                                     className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${formData.type === 'action'
                                         ? 'bg-accent text-white'
-                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        : 'bg-theme-tertiary text-theme-secondary hover:bg-theme-hover'
                                         }`}
                                 >
                                     HTTP Action
@@ -951,26 +1006,26 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                         {/* URL (for links) or Action URL (for actions) */}
                         {formData.type === 'link' ? (
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">URL</label>
+                                <label className="block text-xs text-theme-secondary mb-1">URL</label>
                                 <input
                                     type="url"
                                     value={formData.url}
                                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded text-sm text-slate-200 focus:border-accent focus:outline-none"
+                                    className="w-full px-3 py-2 bg-theme-tertiary border border-theme rounded text-sm text-theme-primary focus:border-accent focus:outline-none"
                                     placeholder="https://example.com"
                                 />
                             </div>
                         ) : (
                             <>
                                 <div>
-                                    <label className="block text-xs text-slate-400 mb-1">Method</label>
+                                    <label className="block text-xs text-theme-secondary mb-1">Method</label>
                                     <select
                                         value={formData.action.method}
                                         onChange={(e) => setFormData({
                                             ...formData,
                                             action: { ...formData.action, method: e.target.value }
                                         })}
-                                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded text-sm text-slate-200 focus:border-accent focus:outline-none"
+                                        className="w-full px-3 py-2 bg-theme-tertiary border border-theme rounded text-sm text-theme-primary focus:border-accent focus:outline-none"
                                     >
                                         <option value="GET">GET</option>
                                         <option value="POST">POST</option>
@@ -980,7 +1035,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs text-slate-400 mb-1">Action URL</label>
+                                    <label className="block text-xs text-theme-secondary mb-1">Action URL</label>
                                     <input
                                         type="url"
                                         value={formData.action.url}
@@ -988,7 +1043,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                                             ...formData,
                                             action: { ...formData.action, url: e.target.value }
                                         })}
-                                        className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded text-sm text-slate-200 focus:border-accent focus:outline-none"
+                                        className="w-full px-3 py-2 bg-theme-tertiary border border-theme rounded text-sm text-theme-primary focus:border-accent focus:outline-none"
                                         placeholder="https://api.example.com/action"
                                     />
                                 </div>
@@ -997,7 +1052,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
                         {/* Icon Picker */}
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Icon</label>
+                            <label className="block text-xs text-theme-secondary mb-1">Icon</label>
                             <IconPicker
                                 value={formData.icon}
                                 onChange={(icon) => setFormData({ ...formData, icon })}
@@ -1006,21 +1061,21 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
                         {/* Display options */}
                         <div className="flex gap-4">
-                            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                            <label className="flex items-center gap-2 text-sm text-theme-secondary cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={formData.showIcon}
                                     onChange={(e) => setFormData({ ...formData, showIcon: e.target.checked })}
-                                    className="rounded border-slate-600 bg-slate-900"
+                                    className="rounded border-theme bg-theme-tertiary"
                                 />
                                 Show Icon
                             </label>
-                            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                            <label className="flex items-center gap-2 text-sm text-theme-secondary cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={formData.showText}
                                     onChange={(e) => setFormData({ ...formData, showText: e.target.checked })}
-                                    className="rounded border-slate-600 bg-slate-900"
+                                    className="rounded border-theme bg-theme-tertiary"
                                 />
                                 Show Text
                             </label>
@@ -1044,7 +1099,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                                         action: { method: 'GET', url: '', headers: {}, body: null }
                                     });
                                 }}
-                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm text-slate-300 hover:text-white transition-colors"
+                                className="px-4 py-2 bg-theme-tertiary hover:bg-theme-hover rounded text-sm text-theme-secondary hover:text-theme-primary transition-colors"
                             >
                                 Cancel
                             </button>
@@ -1062,7 +1117,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
             {/* Debug info (temporary) */}
             {process.env.NODE_ENV === 'development' && (
-                <div className="absolute bottom-2 left-2 text-xs text-slate-500 bg-black/50 px-2 py-1 rounded">
+                <div className="absolute bottom-2 left-2 text-xs text-theme-secondary bg-black/50 px-2 py-1 rounded">
                     {cols}x{rows} grid, {cellSize.toFixed(0)}px cells, {remainingCapacity} remaining
                 </div>
             )}

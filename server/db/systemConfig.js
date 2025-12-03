@@ -1,10 +1,8 @@
 const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../utils/logger');
-
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 const SYSTEM_CONFIG_PATH = path.join(DATA_DIR, 'config.json');
-
 // Default system configuration
 const DEFAULT_CONFIG = {
     server: {
@@ -42,7 +40,6 @@ const DEFAULT_CONFIG = {
         { id: 'system', name: 'System', order: 2 }
     ]
 };
-
 /**
  * Initialize system config if it doesn't exist
  */
@@ -61,7 +58,6 @@ async function initSystemConfig() {
         }
     }
 }
-
 /**
  * Read system configuration
  * @returns {Promise<object>} System configuration
@@ -76,7 +72,6 @@ async function getSystemConfig() {
         throw error;
     }
 }
-
 /**
  * Update system configuration
  * @param {object} updates - Partial updates to apply
@@ -84,12 +79,10 @@ async function getSystemConfig() {
  */
 async function updateSystemConfig(updates) {
     const currentConfig = await getSystemConfig();
-
     // VALIDATION: Prevent modification/deletion of system groups
     if (updates.groups) {
         throw new Error('Permission groups cannot be modified. Groups are locked to: admin, user, guest');
     }
-
     // Build new config explicitly to avoid merge issues
     const newConfig = {
         server: { ...currentConfig.server, ...(updates.server || {}) },
@@ -100,12 +93,10 @@ async function updateSystemConfig(updates) {
         },
         integrations: { ...currentConfig.integrations, ...(updates.integrations || {}) },
         debug: { ...currentConfig.debug, ...(updates.debug || {}) },
-        favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon, // Support favicon updates
         groups: currentConfig.groups,  // Always preserve locked groups
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
         tabGroups: updates.tabGroups || currentConfig.tabGroups
     };
-
     try {
         await fs.writeFile(SYSTEM_CONFIG_PATH, JSON.stringify(newConfig, null, 2));
         logger.info('System configuration updated');
@@ -115,7 +106,6 @@ async function updateSystemConfig(updates) {
         throw error;
     }
 };
-
 module.exports = {
     getSystemConfig,
     updateSystemConfig,

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Save, GripVertical } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, GripVertical, Loader } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import IconPicker from '../IconPicker';
+import { Input } from '../common/Input';
+import { Button } from '../common/Button';
 import {
     DndContext,
     closestCenter,
@@ -41,13 +43,13 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent }) => {
         <div
             ref={setNodeRef}
             style={style}
-            className="glass-subtle rounded-xl shadow-medium p-6 border border-slate-700/50 flex items-center justify-between card-glow"
+            className="glass-subtle rounded-xl shadow-medium p-6 border border-theme flex items-center justify-between card-glow"
         >
             {/* Drag Handle */}
             <button
                 {...attributes}
                 {...listeners}
-                className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300 transition-colors mr-3 touch-none"
+                className="cursor-grab active:cursor-grabbing text-theme-tertiary hover:text-theme-primary transition-colors mr-3 touch-none"
                 title="Drag to reorder"
             >
                 <GripVertical size={20} />
@@ -60,36 +62,40 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
-                        <span className="font-medium text-white">{tab.name}</span>
-                        <span className="text-xs text-slate-500 font-mono">/{tab.slug}</span>
+                        <span className="font-medium text-theme-primary">{tab.name}</span>
+                        <span className="text-xs text-theme-tertiary font-mono">/{tab.slug}</span>
                         {!tab.enabled && (
-                            <span className="text-xs px-2 py-0.5 bg-slate-700 text-slate-400 rounded">
+                            <span className="text-xs px-2 py-0.5 bg-theme-tertiary text-theme-secondary rounded">
                                 Disabled
                             </span>
                         )}
                     </div>
-                    <p className="text-sm text-slate-400 mt-1 truncate">{tab.url}</p>
+                    <p className="text-sm text-theme-secondary mt-1 truncate">{tab.url}</p>
                 </div>
             </div>
 
             {/* Actions */}
             <div className="flex gap-2 flex-shrink-0">
-                <button
+                <Button
                     onClick={() => onEdit(tab)}
-                    className="button-elevated px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg text-sm flex items-center gap-1 transition-all"
+                    variant="ghost"
+                    size="sm"
+                    className="text-accent hover:bg-accent/10"
                     title="Edit tab"
                 >
-                    <Edit size={14} />
+                    <Edit size={14} className="mr-1" />
                     <span className="hidden sm:inline">Edit</span>
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={() => onDelete(tab.id, tab.name)}
-                    className="button-elevated px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm flex items-center gap-1 transition-all"
+                    variant="ghost"
+                    size="sm"
+                    className="text-error hover:bg-error/10"
                     title="Delete tab"
                 >
-                    <Trash2 size={14} />
+                    <Trash2 size={14} className="mr-1" />
                     <span className="hidden sm:inline">Delete</span>
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -102,6 +108,7 @@ const UserTabsSettings = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('create');
     const [selectedTab, setSelectedTab] = useState(null);
+
     const [formData, setFormData] = useState({
         name: '',
         url: '',
@@ -234,12 +241,14 @@ const UserTabsSettings = () => {
 
     const handleDragEnd = async (event) => {
         const { active, over } = event;
+
         if (!over || active.id === over.id) return;
 
         const oldIndex = tabs.findIndex(t => t.id === active.id);
         const newIndex = tabs.findIndex(t => t.id === over.id);
 
         const newTabs = arrayMove(tabs, oldIndex, newIndex);
+
         setTabs(newTabs); // Optimistic update
 
         // Persist to server
@@ -265,7 +274,7 @@ const UserTabsSettings = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-slate-400">Loading tabs...</div>
+                <div className="text-theme-secondary">Loading tabs...</div>
             </div>
         );
     }
@@ -274,24 +283,24 @@ const UserTabsSettings = () => {
         <div className="space-y-6 fade-in">
             {/* Header */}
             <div className="mb-6 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">My Tabs</h2>
-                <p className="text-slate-400 text-sm">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">My Tabs</h2>
+                <p className="text-theme-secondary text-sm">
                     Manage your personal sidebar tabs - only you can see these
                 </p>
             </div>
+
             <div className="mb-6 flex justify-center">
-                <button
+                <Button
                     onClick={handleAdd}
-                    className="button-elevated flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-lg transition-all font-medium"
                     title="Add new tab"
+                    icon={Plus}
                 >
-                    <Plus size={18} />
                     <span className="hidden sm:inline">Add Tab</span>
-                </button>
+                </Button>
             </div>
 
             {/* Info Box */}
-            <div className="mb-6 p-6 bg-accent/10 border border-accent/30 rounded-xl glass-subtle">
+            <div className="mb-6 p-6 bg-accent/10 border border-accent/20 rounded-xl glass-subtle">
                 <p className="text-sm text-accent">
                     Personal tabs are iframe pages that only you can see in your sidebar. Create tabs for services, tools, or dashboards you frequently access.
                 </p>
@@ -299,8 +308,8 @@ const UserTabsSettings = () => {
 
             {/* Tabs List */}
             {tabs.length === 0 ? (
-                <div className="glass-subtle rounded-xl shadow-deep p-8 text-center border border-slate-700">
-                    <p className="text-slate-400">No tabs yet. Add your first tab to get started!</p>
+                <div className="glass-subtle rounded-xl shadow-deep p-8 text-center border border-theme">
+                    <p className="text-theme-secondary">No tabs yet. Add your first tab to get started!</p>
                 </div>
             ) : (
                 <DndContext
@@ -331,15 +340,15 @@ const UserTabsSettings = () => {
             {
                 showModal && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-                        <div className="glass-card rounded-xl shadow-deep max-w-2xl w-full border border-slate-700">
+                        <div className="glass-card rounded-xl shadow-deep max-w-2xl w-full border border-theme">
                             {/* Modal Header */}
-                            <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
-                                <h3 className="text-xl font-bold text-white">
+                            <div className="flex items-center justify-between p-6 border-b border-theme">
+                                <h3 className="text-xl font-bold text-theme-primary">
                                     {modalMode === 'create' ? 'Add New Tab' : 'Edit Tab'}
                                 </h3>
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="text-slate-400 hover:text-white transition-colors"
+                                    className="text-theme-secondary hover:text-theme-primary transition-colors"
                                     title="Close"
                                 >
                                     <X size={24} />
@@ -348,39 +357,26 @@ const UserTabsSettings = () => {
 
                             {/* Modal Form */}
                             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                <div>
-                                    <label className="block mb-2 font-medium text-slate-300 text-sm">
-                                        Tab Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        required
-                                        className="input-glow w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-accent transition-colors"
-                                        placeholder="e.g., Radarr"
-                                    />
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        Appears in sidebar (URL slug auto-generated)
-                                    </p>
-                                </div>
+                                <Input
+                                    label="Tab Name"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
+                                    placeholder="e.g., Radarr"
+                                    helperText="Appears in sidebar (URL slug auto-generated)"
+                                />
+
+                                <Input
+                                    label="URL"
+                                    type="url"
+                                    value={formData.url}
+                                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                                    required
+                                    placeholder="http://example.com"
+                                />
 
                                 <div>
-                                    <label className="block mb-2 font-medium text-slate-300 text-sm">
-                                        URL
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={formData.url}
-                                        onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                        required
-                                        className="input-glow w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-accent transition-colors"
-                                        placeholder="http://example.com"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-medium text-slate-300 text-sm">
+                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
                                         Icon
                                     </label>
                                     <IconPicker
@@ -390,13 +386,13 @@ const UserTabsSettings = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block mb-2 font-medium text-slate-300 text-sm">
+                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
                                         Group (Optional)
                                     </label>
                                     <select
                                         value={formData.groupId}
                                         onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-                                        className="input-glow w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-accent transition-colors"
+                                        className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                                     >
                                         <option value="">No Group</option>
                                         {tabGroups.map(group => (
@@ -405,7 +401,7 @@ const UserTabsSettings = () => {
                                             </option>
                                         ))}
                                     </select>
-                                    <p className="text-xs text-slate-500 mt-1">
+                                    <p className="text-xs text-theme-tertiary mt-1">
                                         Organize tabs into groups in the sidebar
                                     </p>
                                 </div>
@@ -416,29 +412,28 @@ const UserTabsSettings = () => {
                                         id="enabled"
                                         checked={formData.enabled}
                                         onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-                                        className="w-4 h-4 rounded border-slate-600 text-accent focus:ring-accent"
+                                        className="w-4 h-4 rounded border-theme text-accent focus:ring-accent"
                                     />
-                                    <label htmlFor="enabled" className="text-sm text-slate-300">
+                                    <label htmlFor="enabled" className="text-sm text-theme-secondary">
                                         Enabled (tab visible in sidebar)
                                     </label>
                                 </div>
 
                                 {/* Modal Actions */}
                                 <div className="flex justify-end gap-3 pt-4">
-                                    <button
+                                    <Button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
+                                        variant="ghost"
                                     >
                                         Cancel
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         type="submit"
-                                        className="button-elevated px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg flex items-center gap-2 transition-all"
+                                        icon={Save}
                                     >
-                                        <Save size={18} />
                                         {modalMode === 'create' ? 'Create Tab' : 'Save Changes'}
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>

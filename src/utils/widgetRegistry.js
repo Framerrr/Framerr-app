@@ -125,10 +125,10 @@ export const WIDGET_TYPES = {
         name: 'Calendar',
         description: 'Combined Sonarr and Radarr calendar',
         category: 'utility',
-        defaultSize: { w: 6, h: 4 },
-        minSize: { w: 4, h: 3 }, // Calendar grid needs both dimensions
+        defaultSize: { w: 6, h: 5 },
+        minSize: { w: 5, h: 5 }, // Calendar grid needs space for filters + 7-day grid
         maxSize: { h: 8 }, // No width limit
-        requiresIntegration: false // Uses sonarr/radarr but optional
+        requiresIntegrations: ['sonarr', 'radarr'] // Requires both integrations
     },
 
     'upcoming-media': {
@@ -162,7 +162,7 @@ export const WIDGET_TYPES = {
         description: 'Quick access links with icons',
         category: 'utility',
         defaultSize: { w: 4, h: 2 },
-        minSize: { w: 2, h: 1 },
+        minSize: { w: 1, h: 1 }, // Minimum: Single cell for one link
         maxSize: { h: 8 }, // No width limit, allow flexible sizing
         requiresIntegration: false,
         defaultConfig: {
@@ -212,7 +212,6 @@ export function getWidgetMetadata(type) {
 export function getWidgetIconName(type) {
     const metadata = WIDGET_TYPES[type];
     if (!metadata?.icon) return 'Server';
-
     // Get the component name (e.g., Activity, Tv, etc.)
     return metadata.icon.name || 'Server';
 }
@@ -222,7 +221,6 @@ export function getWidgetIconName(type) {
  */
 export function getWidgetsByCategory() {
     const categories = {};
-
     Object.entries(WIDGET_TYPES).forEach(([type, config]) => {
         const category = config.category || 'other';
         if (!categories[category]) {
@@ -230,6 +228,5 @@ export function getWidgetsByCategory() {
         }
         categories[category].push({ type, ...config });
     });
-
     return categories;
 }
