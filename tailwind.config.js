@@ -4,6 +4,13 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
+    safelist: [
+        'glass-card',
+        'glass-subtle',
+        'shadow-deep',
+        'shadow-medium',
+        'shadow-subtle',
+    ],
     theme: {
         extend: {
             colors: {
