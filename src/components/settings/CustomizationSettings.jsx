@@ -100,6 +100,19 @@ const CustomizationSettings = () => {
         };
     };
 
+    // Update color pickers when theme changes (if custom colors are disabled)
+    useEffect(() => {
+        if (!customColorsEnabled && !loading) {
+            // Small delay to ensure CSS variables are applied
+            const timer = setTimeout(() => {
+                const themeColors = getCurrentThemeColors();
+                setCustomColors(themeColors);
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [theme, customColorsEnabled, loading]);
+
     // Load custom colors and application name from backend on mount
     useEffect(() => {
         const loadSettings = async () => {
