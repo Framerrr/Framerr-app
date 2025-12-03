@@ -263,6 +263,10 @@ const CustomizationSettings = () => {
             setCustomColorsEnabled(false);
             setUseCustomColors(false);
 
+
+            // Remove custom colors from DOM FIRST
+            removeColorsFromDOM();
+
             // Change to last selected theme
             changeTheme(lastSelectedTheme);
 
