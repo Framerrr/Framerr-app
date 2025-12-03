@@ -19,8 +19,10 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Parse query parameters for source tracking
-    const searchParams = new URLSearchParams(location.search);
+    // Parse query parameters from hash (e.g., /#settings?tab=profile&source=profile)
+    const hash = window.location.hash.slice(1); // Remove the '#'
+    const hashParts = hash.split('?');
+    const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
     const currentTab = searchParams.get('tab');
     const source = searchParams.get('source');
 
