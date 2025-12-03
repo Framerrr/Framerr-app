@@ -200,6 +200,13 @@ const CustomizationSettings = () => {
         });
     };
 
+    const removeColorsFromDOM = () => {
+        // Remove all custom color CSS variables to let theme CSS take over
+        Object.keys(defaultColors).forEach(key => {
+            document.documentElement.style.removeProperty(`--${key}`);
+        });
+    };
+
 
     const handleColorChange = (key, value) => {
         if (!customColorsEnabled) return; // Only allow changes when enabled
@@ -611,6 +618,9 @@ const CustomizationSettings = () => {
                                     <button
                                         key={t.id}
                                         onClick={() => {
+                                            // Remove any custom colors from DOM first
+                                            removeColorsFromDOM();
+
                                             changeTheme(t.id);
                                             setUseCustomColors(false);
                                             setCustomColorsEnabled(false); // Turn off custom toggle
