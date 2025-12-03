@@ -13,14 +13,14 @@ const WidgetWrapper = ({
     icon: Icon,
     editMode = false,
     flatten = false, // New: flatten mode removes glassmorphism/shadows
-    hideHeader = false, // New: hide header completely
+    showHeader = true, // Show header by default (reversed from hideHeader)
     onDelete,
     children
 }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     // Force hide header for link-grid widgets (they don't support headers)
-    const shouldHideHeader = type === 'link-grid' ? true : hideHeader;
+    const shouldShowHeader = type === 'link-grid' ? false : showHeader;
 
     return (
         <Card
@@ -84,7 +84,7 @@ const WidgetWrapper = ({
             )}
 
             {/* Widget Header - conditionally rendered */}
-            {!shouldHideHeader && (
+            {shouldShowHeader && (
                 <div className="widget-header flex items-center justify-between p-4 border-b border-theme">
                     <div className="flex items-center gap-3">
                         {Icon && (

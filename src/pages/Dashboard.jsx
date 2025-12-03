@@ -84,8 +84,8 @@ const Dashboard = () => {
 
                 // Header-aware sizing: Reduce minH by 1 when header is hidden
                 // Header takes approximately 1 row of vertical space
-                const hideHeader = widget.config?.hideHeader || false;
-                if (hideHeader && minH > 1) {
+                const showHeader = widget.config?.showHeader !== false;
+                if (!showHeader && minH > 1) {
                     minH = minH - 1;
                 }
 
@@ -273,6 +273,18 @@ const Dashboard = () => {
 
             // Migrate old format + generate mobile layouts
             fetchedWidgets = fetchedWidgets.map(w => migrateWidgetToLayouts(w));
+
+            // Migrate hideHeader to showHeader (reverse logic)
+            fetchedWidgets = fetchedWidgets.map(w => ({
+                ...w,
+                config: {
+                    ...w.config,
+                    // Convert hideHeader (true = hidden) to showHeader (true = shown)
+                    // If hideHeader exists and is true, set showHeader to false
+                    // Otherwise default to true (headers shown by default)
+                    showHeader: w.config?.hideHeader ? false : (w.config?.showHeader !== false)
+                }
+            }));
 
             // Strip existing mobile layouts to force regeneration with new algorithm
             fetchedWidgets = fetchedWidgets.map(w => ({
@@ -564,7 +576,7 @@ const Dashboard = () => {
                 editMode={editMode}
                 onDelete={handleDeleteWidget}
                 flatten={widget.config?.flatten || false}
-                hideHeader={widget.config?.hideHeader || false}
+                showHeader={widget.config?.showHeader !== false}
             >
                 <WidgetErrorBoundary>
                     <Suspense fallback={<LoadingSpinner size="md" />}>

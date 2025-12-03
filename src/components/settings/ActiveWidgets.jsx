@@ -265,6 +265,10 @@ const ActiveWidgets = () => {
                                                     setWidgets(updatedWidgets);
                                                     try {
                                                         await axios.put('/api/widgets', { widgets: updatedWidgets });
+                                                        // Dispatch event to refresh widget live
+                                                        window.dispatchEvent(new CustomEvent('widget-config-updated', {
+                                                            detail: { widgetId: widget.id }
+                                                        }));
                                                     } catch (error) {
                                                         logger.error('Failed to update widget flatten setting', { widgetId: widget.id, error: error.message });
                                                         alert('Failed to update widget. Please try again.');
@@ -277,28 +281,32 @@ const ActiveWidgets = () => {
                                         </label>
                                     </div>
 
-                                    {/* Hide Header Toggle - Not available for link-grid */}
+                                    {/* Header Toggle - Not available for link-grid */}
                                     {widget.type !== 'link-grid' && (
                                         <div className="flex items-center justify-between p-3 bg-theme-tertiary/30 rounded-lg border border-theme">
                                             <div>
-                                                <div className="text-sm font-medium text-theme-primary">Hide Header</div>
-                                                <div className="text-xs text-theme-tertiary mt-0.5">Hide icon and name</div>
+                                                <div className="text-sm font-medium text-theme-primary">Header</div>
+                                                <div className="text-xs text-theme-tertiary mt-0.5">Show icon and name</div>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
-                                                    checked={widget.config?.hideHeader || false}
+                                                    checked={widget.config?.showHeader !== false}
                                                     onChange={async (e) => {
                                                         const updatedWidgets = widgets.map(w =>
                                                             w.id === widget.id
-                                                                ? { ...w, config: { ...w.config, hideHeader: e.target.checked } }
+                                                                ? { ...w, config: { ...w.config, showHeader: e.target.checked } }
                                                                 : w
                                                         );
                                                         setWidgets(updatedWidgets);
                                                         try {
                                                             await axios.put('/api/widgets', { widgets: updatedWidgets });
+                                                            // Dispatch event to refresh widget live
+                                                            window.dispatchEvent(new CustomEvent('widget-config-updated', {
+                                                                detail: { widgetId: widget.id }
+                                                            }));
                                                         } catch (error) {
-                                                            logger.error('Failed to update widget hide header setting', { widgetId: widget.id, error: error.message });
+                                                            logger.error('Failed to update widget header setting', { widgetId: widget.id, error: error.message });
                                                             alert('Failed to update widget. Please try again.');
                                                             fetchWidgets();
                                                         }
