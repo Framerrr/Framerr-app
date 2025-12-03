@@ -615,8 +615,7 @@ const CustomizationSettings = () => {
                                             setUseCustomColors(false);
                                             setCustomColorsEnabled(false); // Turn off custom toggle
                                             setLastSelectedTheme(t.id); // Save for future revert
-                                            const themeColors = getCurrentThemeColors();
-                                            setCustomColors(themeColors); // Update pickers display
+                                            // Color pickers will update via useEffect after CSS variables are applied
                                         }}
                                         className={`p-4 rounded-lg border-2 transition-all text-left ${theme === t.id && !useCustomColors
                                             ? 'border-accent bg-accent/10'
