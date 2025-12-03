@@ -577,7 +577,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                     top: `${row * (cellSize + GRID_GAP)}px`,
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
-                    border: '2px dashed rgba(128, 128, 128, 0.5)',
+                    border: '2px dashed #888',
                     borderRadius: '50%',
                     pointerEvents: 'none',
                     transition: 'opacity 0.2s ease',
