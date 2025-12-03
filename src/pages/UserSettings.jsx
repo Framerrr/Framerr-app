@@ -74,7 +74,7 @@ const UserSettings = () => {
                 <h1 className="text-3xl font-bold mb-2 text-white">
                     {hasAdminAccess ? 'Settings & Admin' : 'Settings'}
                 </h1>
-                <p className="text-slate-400">
+                <p className="text-theme-secondary">
                     {hasAdminAccess
                         ? 'Manage your personal preferences and system configuration'
                         : 'Manage your personal preferences'

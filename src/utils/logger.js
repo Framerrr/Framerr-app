@@ -121,7 +121,7 @@ class Logger {
     startup(appName, config = {}) {
         const banner = `
 ╔═══════════════════════════════════════════════════════════╗
-║  ${appName.padEnd(55)}  ║
+║  ${appName.padEnd(55)}                                    ║
 ╚═══════════════════════════════════════════════════════════╝`;
 
         console.log(banner);
