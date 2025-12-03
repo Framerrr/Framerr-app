@@ -82,9 +82,9 @@ const Sidebar = () => {
                 className="flex flex-col transition-all duration-300 ease-in-out fixed z-50"
                 style={{
                     width: isExpanded ? '280px' : '80px',
-                    top: '16px',
-                    bottom: '16px',
-                    left: '16px',
+                    top: '8px',
+                    bottom: '8px',
+                    left: '8px',
                     background: 'linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.98))',
                     backdropFilter: 'blur(12px)',
                     borderRadius: '20px',
@@ -315,7 +315,7 @@ const Sidebar = () => {
     // Mobile Sidebar (Bottom Bar)
     return (
         <>
-            <div className="fixed bottom-4 left-4 right-4 h-16 bg-slate-900/90 backdrop-blur-md border border-slate-700/50 rounded-2xl flex justify-around items-center z-50 px-4 shadow-lg">
+            <div className="fixed bottom-2 left-2 right-2 h-16 bg-slate-900/90 backdrop-blur-md border border-slate-700/50 rounded-2xl flex justify-around items-center z-50 px-4 shadow-lg">
                 <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="flex flex-col items-center gap-1 text-slate-400 hover:text-white">
                     <Menu size={24} />
                     <span className="text-[10px]">Menu</span>
