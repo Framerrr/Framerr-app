@@ -872,6 +872,7 @@ const CustomizationSettings = () => {
                                     onClick={handleResetColors}
                                     variant="secondary"
                                     icon={RotateCcw}
+                                    disabled={!customColorsEnabled}
                                 >
                                     Reset to Preset
                                 </Button>
