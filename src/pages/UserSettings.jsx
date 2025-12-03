@@ -108,7 +108,7 @@ const UserSettings = () => {
                                 transition-all whitespace-nowrap text-sm font-medium
                                 ${isActive
                                     ? 'bg-accent text-white font-semibold'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary'
                                 }
                             `}
                         >

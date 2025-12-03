@@ -610,7 +610,7 @@ const Dashboard = () => {
                     </div>
                     <button
                         onClick={() => setEditMode(true)}
-                        className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/40 rounded-lg transition-all duration-300 flex items-center gap-2"
+                        className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
                     >
                         <Edit size={16} />
                         Edit
@@ -642,7 +642,7 @@ const Dashboard = () => {
                             {/* Add Widget Button */}
                             <button
                                 onClick={handleAddWidget}
-                                className="px-3 sm:px-4 py-2.5 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 text-slate-300 hover:text-white rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated backdrop-blur-md"
+                                className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated backdrop-blur-md"
                                 title="Add Widget"
                             >
                                 <Plus size={18} />
@@ -663,7 +663,7 @@ const Dashboard = () => {
                             {/* Cancel Button */}
                             <button
                                 onClick={handleCancel}
-                                className="px-3 sm:px-4 py-2.5 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 text-slate-300 hover:text-white rounded-lg transition-all duration-300 flex items-center gap-2 backdrop-blur-md"
+                                className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 backdrop-blur-md"
                                 title="Cancel"
                             >
                                 <XIcon size={18} />
@@ -673,7 +673,7 @@ const Dashboard = () => {
                     ) : (
                         <button
                             onClick={handleToggleEdit}
-                            className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/40 rounded-lg transition-all duration-300 flex items-center gap-2"
+                            className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
                         >
                             <Edit size={16} />
                             Edit
