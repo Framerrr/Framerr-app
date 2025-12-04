@@ -1,6 +1,6 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-03 23:16:00  
+**Last Updated:** 2025-12-04 01:45:00  
 **Current Version:** v1.1.6-recovered  
 **Development Branch:** `develop`  
 **Production Docker:** `pickels23/framerr:debug`
@@ -9,9 +9,9 @@
 
 ## 🎯 Current Phase
 
-**Phase 15:** Grid Config Context System (Planning Complete) 📋
+**Phase 16:** Grid Layout & Widget Polish ✅
 
-**Status:** Comprehensive implementation plan created for centralized grid configuration system. Ready for execution in next session.
+**Status:** Grid cells now perfectly square (1:1) across all viewports. Plex widget updated with improved card sizing. Ready for further widget testing and optimization.
 
 ---
 
@@ -31,6 +31,16 @@
 ---
 
 ## 🚀 Recent Accomplishments
+
+### Grid Cells 1:1 & Plex Widget Sizing (Dec 4, 2025 - 01:45) - COMPLETE ✅
+- ✅ **Fixed grid cells to achieve 1:1 aspect ratio across all viewports**
+- ✅ Resolved ResizeObserver race condition (useEffect dependency fix)
+- ✅ Fixed debug overlay to show accurate container and cell measurements
+- ✅ Implemented Plex widget card sizing with 16:9 aspect ratio
+- ✅ Added vertical centering and proper space calculations
+- ✅ Updated Plex widget minimum size to 5×4
+- ✅ User confirmed: Grid cells are now perfectly square!
+- 📝 4 commits, 212 tool calls, 37 minutes
 
 ### Grid Config Context System Planning (Dec 3, 2025 - 23:16) - COMPLETE ✅
 - ✅ Analyzed Plex widget sizing issues (hardcoded values not sustainable)
@@ -140,11 +150,12 @@ Functional but may have minor differences:
 ## 📦 Deployment Status
 
 ### Docker Images
-- **Production:** `pickels23/framerr:debug` (v1.1.6 + stub redesigns)
+- **Production:** `pickels23/framerr:debug` (v1.1.6 + grid fixes)
   - Size: ~286 MB
-  - Status: Deployed and tested
-  - Last pushed: 2025-12-03
-  - Digest: sha256:e89fea5...
+  - Status: Deployed and tested ✅
+  - Last pushed: 2025-12-04
+  - Features: 1:1 grid cells, Plex widget sizing
+  - Digest: sha256:6df6296...
 
 ### Git Status
 - **Branch:** `develop`
