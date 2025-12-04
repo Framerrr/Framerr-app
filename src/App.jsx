@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SystemConfigProvider } from './context/SystemConfigContext';
 import { AppDataProvider } from './context/AppDataContext';
+import { GridConfigProvider } from './context/GridConfigContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import FaviconInjector from './components/FaviconInjector';
@@ -48,38 +49,40 @@ const CustomColorLoader = ({ children }) => {
 
 const App = () => {
     return (
-        <AuthProvider>
-            <FaviconInjector />
-            <AppTitle />
-            <CustomColorLoader>
-                <ThemeProvider>
-                    <SystemConfigProvider>
-                        <AppDataProvider>
-                            <Routes>
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/setup" element={<Setup />} />
+        <GridConfigProvider>
+            <AuthProvider>
+                <FaviconInjector />
+                <AppTitle />
+                <CustomColorLoader>
+                    <ThemeProvider>
+                        <SystemConfigProvider>
+                            <AppDataProvider>
+                                <Routes>
+                                    <Route path="/login" element={<Login />} />
+                                    <Route path="/setup" element={<Setup />} />
 
-                                {/* Protected Routes with Themed Wrapper */}
-                                <Route path="/*" element={
-                                    <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                                        <ProtectedRoute>
-                                            <div className="flex w-full h-screen">
-                                                <Sidebar />
-                                                <main className="flex-1 overflow-y-auto pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
-                                                    <Routes>
-                                                        <Route path="/*" element={<MainContent />} />
-                                                    </Routes>
-                                                </main>
-                                            </div>
-                                        </ProtectedRoute>
-                                    </div>
-                                } />
-                            </Routes>
-                        </AppDataProvider>
-                    </SystemConfigProvider>
-                </ThemeProvider>
-            </CustomColorLoader>
-        </AuthProvider>
+                                    {/* Protected Routes with Themed Wrapper */}
+                                    <Route path="/*" element={
+                                        <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                                            <ProtectedRoute>
+                                                <div className="flex w-full h-screen">
+                                                    <Sidebar />
+                                                    <main className="flex-1 overflow-y-auto pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
+                                                        <Routes>
+                                                            <Route path="/*" element={<MainContent />} />
+                                                        </Routes>
+                                                    </main>
+                                                </div>
+                                            </ProtectedRoute>
+                                        </div>
+                                    } />
+                                </Routes>
+                            </AppDataProvider>
+                        </SystemConfigProvider>
+                    </ThemeProvider>
+                </CustomColorLoader>
+            </AuthProvider>
+        </GridConfigProvider>
     );
 };
 

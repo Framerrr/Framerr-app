@@ -17,6 +17,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import '../styles/GridLayout.css';
 import logger from '../utils/logger';
+import { GRID_CONFIG } from '../utils/gridConfig';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -55,9 +56,9 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 },
-        breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
-        rowHeight: 100,
+        cols: { lg: GRID_CONFIG.cols, md: GRID_CONFIG.cols, sm: GRID_CONFIG.cols, xs: 2, xxs: 2 },
+        breakpoints: GRID_CONFIG.breakpoints,
+        rowHeight: GRID_CONFIG.rowHeight,
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
         preventCollision: false,
         isDraggable: editMode && isGlobalDragEnabled,
@@ -712,9 +713,9 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }}
-                            breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
-                            rowHeight={100}
+                            cols={{ lg: GRID_CONFIG.cols, md: GRID_CONFIG.cols, sm: GRID_CONFIG.cols, xs: 2, xxs: 2 }}
+                            breakpoints={GRID_CONFIG.breakpoints}
+                            rowHeight={GRID_CONFIG.rowHeight}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
