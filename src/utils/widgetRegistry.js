@@ -53,8 +53,8 @@ export const WIDGET_TYPES = {
         description: 'Now playing and recent activity',
         category: 'media',
         defaultSize: { w: 7, h: 4 },  // Optimized for single stream display
-        minSize: { w: 7, h: 4 },      // Perfect fit for one media card
-        maxSize: { h: 6 }, // No width limit, max height only
+        minSize: { w: 1, h: 1 },      // Temporarily removed for testing optimal size
+        maxSize: { h: 10 }, // No width limit, increased max height for testing
         requiresIntegration: 'plex'
     },
 
