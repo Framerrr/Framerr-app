@@ -17,7 +17,6 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import '../styles/GridLayout.css';
 import logger from '../utils/logger';
-import { GRID_CONFIG } from '../utils/gridConfig';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -44,10 +43,6 @@ const Dashboard = () => {
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
-    const [dynamicRowHeight, setDynamicRowHeight] = useState(100); // Dynamic rowHeight for responsive square cells (initial fallback)
-
-    // Ref for grid container to measure actual width
-    const gridContainerRef = React.useRef(null);
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -57,60 +52,20 @@ const Dashboard = () => {
         }));
     };
 
-    // Dynamic rowHeight calculation - ResizeObserver to maintain square cells at any viewport
-    React.useEffect(() => {
-        if (!gridContainerRef.current) return;
-
-        const calculateRowHeight = () => {
-            // Measure ACTUAL container width (not max-width!)
-            const containerWidth = gridContainerRef.current.offsetWidth;
-
-            // Don't calculate if container has no width yet
-            if (containerWidth === 0) {
-                console.log('⚠️ GRID DEBUG: Container width is 0, skipping calculation');
-                return;
-            }
-
-            // Column width = (containerWidth - marginX × (cols - 1)) / cols
-            const calculatedColWidth = (containerWidth - (16 * 11)) / 12;  // 12-column grid, 11 gaps
-
-            // Set rowHeight to 0.75 of colWidth for 4:3 aspect ratio (wider cells, less smooshing)
-            setDynamicRowHeight(calculatedColWidth * 0.75);
-
-            logger.debug('Dynamic rowHeight updated', {
-                containerWidth,
-                calculatedColWidth,
-                formula: `(${containerWidth} - ${16 * 11}) / 12 = ${calculatedColWidth.toFixed(2)}`
-            });
-        };
-
-        // Calculate immediately
-        calculateRowHeight();
-
-        // Recalculate on resize
-        const resizeObserver = new ResizeObserver(() => {
-            calculateRowHeight();
-        });
-
-        resizeObserver.observe(gridContainerRef.current);
-
-        return () => resizeObserver.disconnect();
-    }, [loading]); // Re-run when dashboard finishes loading and DOM is ready
-
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 12, md: 12, sm: 12, xs: 6, xxs: 6 },
-        breakpoints: GRID_CONFIG.breakpoints,
-        rowHeight: dynamicRowHeight, // Use dynamic value instead of static
+        cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 },
+        breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
+        rowHeight: 100,
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
-        preventCollision: true,  // Prevent overlapping widgets, auto-wrap to new rows
+        preventCollision: false,
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
         margin: [16, 16],
         containerPadding: [0, 0],
         onBreakpointChange: (breakpoint) => setCurrentBreakpoint(breakpoint)
-    }), [editMode, currentBreakpoint, isGlobalDragEnabled, dynamicRowHeight]);
+    }), [editMode, currentBreakpoint, isGlobalDragEnabled]);
 
     // Helper: Apply minW/minH/maxH from widget metadata to layout items
     const enrichLayoutWithConstraints = (widget, layoutItem) => {
@@ -234,7 +189,7 @@ const Dashboard = () => {
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 6 : 12; // xs/xxs=6 (full width), md/sm/lg=12
+        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 24; // xs/xxs=2 (full width), md/sm/lg=24
         const breakpoint = currentBreakpoint;
 
         logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
@@ -653,7 +608,7 @@ const Dashboard = () => {
     // Empty state
     if (widgets.length === 0 && !editMode) {
         return (
-            <div className="w-full min-h-screen p-8 max-w-[1800px] mx-auto fade-in">
+            <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
                 <header className="mb-12 flex items-center justify-between">
                     <div>
                         <h1 className="text-5xl font-bold mb-3 gradient-text">
@@ -679,7 +634,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-8 max-w-[1800px] mx-auto fade-in">
+        <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
                 <div>
@@ -741,7 +696,6 @@ const Dashboard = () => {
 
             {/* Grid Layout with Drop Support - Always rendered for drag-and-drop */}
             <div
-                ref={gridContainerRef}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 className="relative min-h-[400px]"
@@ -758,13 +712,13 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 12, md: 12, sm: 12, xs: 6, xxs: 6 }}
-                            breakpoints={GRID_CONFIG.breakpoints}
-                            rowHeight={dynamicRowHeight}
+                            cols={{ lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }}
+                            breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
+                            rowHeight={100}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
-                            preventCollision={true}
+                            preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
-                            isResizable={editMode && isGlobalDragEnabled && (currentBreakpoint !== 'xs' && currentBreakpoint !== 'xxs')}
+                            isResizable={editMode && isGlobalDragEnabled}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
@@ -826,7 +780,6 @@ const Dashboard = () => {
                 layouts={layouts}
                 widgets={widgets}
                 gridConfig={gridConfig}
-                gridContainerRef={gridContainerRef}
             />
 
             {/* Add Widget Modal */}

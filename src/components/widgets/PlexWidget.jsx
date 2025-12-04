@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Film, Network, Info, ExternalLink, StopCircle, X, Loader2 } from 'lucide-react';
-import { useGridConfig } from '../../context/GridConfigContext';
-import { getWidgetMetadata } from '../../utils/widgetRegistry';
 import PlaybackDataModal from './modals/PlaybackDataModal';
 import MediaInfoModal from './modals/MediaInfoModal';
 
@@ -18,24 +16,6 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     const [localHideWhenEmpty, setLocalHideWhenEmpty] = useState(hideWhenEmpty);
     const [stoppingSession, setStoppingSession] = useState(null);
     const previousVisibilityRef = useRef(null);
-
-    // Grid Config Context for dynamic sizing
-    const { calculateAvailableSpace } = useGridConfig();
-
-    // Get widget metadata to find minimum size
-    const metadata = getWidgetMetadata('plex');
-    const minCols = metadata.minSize.w;  // 7
-    const minRows = metadata.minSize.h;  // 4
-
-    // Track header visibility
-    const showHeader = config?.showHeader !== false;
-
-    // Calculate available space at minimum widget size
-    const minAvailableSpace = calculateAvailableSpace(minCols, minRows, showHeader);
-
-    // Use ResizeObserver to detect actual container height
-    const containerRef = useRef(null);
-    const [containerHeight, setContainerHeight] = useState(null);
 
     // Sync local state with config prop
     useEffect(() => {
@@ -67,59 +47,6 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         const interval = setInterval(fetchSessions, 10000);
         return () => clearInterval(interval);
     }, [enabled, url, token]);
-
-    // Debounced ResizeObserver for container height tracking
-    useEffect(() => {
-        if (!containerRef.current) return;
-
-        let rafId = null;
-        let lastHeight = null;
-
-        const observer = new ResizeObserver((entries) => {
-            if (rafId) cancelAnimationFrame(rafId);
-
-            rafId = requestAnimationFrame(() => {
-                const height = entries[0].contentRect.height;
-
-                // Only update if change is significant (> 5px) to reduce re-renders
-                if (!lastHeight || Math.abs(height - lastHeight) > 5) {
-                    lastHeight = height;
-                    setContainerHeight(height);
-                }
-            });
-        });
-
-        observer.observe(containerRef.current);
-
-        return () => {
-            if (rafId) cancelAnimationFrame(rafId);
-            observer.disconnect();
-        };
-    }, []);
-
-    // Calculate card dimensions based on available space
-    // Card structure: 16:9 image + 6px progress bar + ~50px info section
-    const INFO_SECTION_HEIGHT = 50; // Title + subtitle + user info with padding
-    const PROGRESS_BAR_HEIGHT = 6;
-
-    // Get available space at minimum widget size (accounts for header, padding, margins)
-    const availableSpace = minAvailableSpace;
-
-    // Calculate maximum image height that fits in available space
-    const maxImageHeight = availableSpace.height - PROGRESS_BAR_HEIGHT - INFO_SECTION_HEIGHT;
-
-    // Calculate card width from 16:9 aspect ratio
-    const calculatedCardWidth = maxImageHeight * (16 / 9);
-
-    // Ensure card doesn't exceed available width
-    const cardWidth = Math.min(calculatedCardWidth, availableSpace.width);
-
-    // Recalculate image height if width-constrained
-    const imageHeight = cardWidth / (16 / 9);
-
-    // Calculate total card height
-    const cardHeight = imageHeight + PROGRESS_BAR_HEIGHT + INFO_SECTION_HEIGHT;
-
 
     // Fetch Plex machine ID on mount
     useEffect(() => {
@@ -292,18 +219,14 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
 
     return (
         <>
-            <div
-                ref={containerRef}
-                style={{
-                    display: 'flex',
-                    gap: '1rem',
-                    height: '100%',
-                    overflowX: 'auto',
-                    overflowY: 'hidden',
-                    padding: '0.25rem',
-                    alignItems: 'center', // Vertically center cards
-                    scrollbarWidth: 'thin'
-                }}>
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: '1rem',
+                height: '100%',
+                overflowY: 'auto',
+                padding: '0.25rem'
+            }}>
                 {sessions.map(session => {
                     const user = session.user?.title || 'Unknown User';
                     const grandparent = session.grandparentTitle || '';
@@ -333,9 +256,6 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                             onMouseEnter={() => setHoveredSession(session.sessionKey)}
                             onMouseLeave={() => setHoveredSession(null)}
                             style={{
-                                width: `${Math.round(cardWidth)}px`,
-                                height: `${Math.round(cardHeight)}px`,
-                                flexShrink: 0,
                                 background: 'var(--bg-hover)',
                                 borderRadius: '8px',
                                 overflow: 'hidden',
