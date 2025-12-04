@@ -172,7 +172,7 @@
     width: 100% !important;
     left: 0 !important;
     top: 0 !important;
-    height: 16px !important;
+    height: 20px !important;
     cursor: n-resize !important;
     transform: none !important;
 }
@@ -181,7 +181,7 @@
     height: 100% !important;
     top: 0 !important;
     right: 0 !important;
-    width: 16px !important;
+    width: 20px !important;
     cursor: e-resize !important;
     transform: none !important;
 }
@@ -190,7 +190,7 @@
     width: 100% !important;
     left: 0 !important;
     bottom: 0 !important;
-    height: 16px !important;
+    height: 20px !important;
     cursor: s-resize !important;
     transform: none !important;
 }
@@ -199,7 +199,7 @@
     height: 100% !important;
     top: 0 !important;
     left: 0 !important;
-    width: 16px !important;
+    width: 20px !important;
     cursor: w-resize !important;
     transform: none !important;
 }
