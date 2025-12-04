@@ -210,10 +210,15 @@ const CustomizationSettings = () => {
     const resetToThemeColors = async (themeId) => {
         // Smart reset: remove custom colors, switch theme, wait, then read and apply theme colors
         removeColorsFromDOM();
-        changeTheme(themeId);
 
-        // Wait for theme CSS to load
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Await theme change to ensure it completes
+        await changeTheme(themeId);
+
+        // Force a reflow to ensure CSS changes are applied
+        document.documentElement.offsetHeight;
+
+        // Wait for theme CSS to fully load and apply (increased to 500ms)
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Read theme colors from DOM
         const themeColors = getCurrentThemeColors();
