@@ -44,6 +44,10 @@ const Dashboard = () => {
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
+    const [dynamicRowHeight, setDynamicRowHeight] = useState(GRID_CONFIG.rowHeight); // Dynamic rowHeight for responsive square cells
+
+    // Ref for grid container to measure actual width
+    const gridContainerRef = React.useRef(null);
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -53,12 +57,37 @@ const Dashboard = () => {
         }));
     };
 
+    // Dynamic rowHeight calculation - ResizeObserver to maintain square cells at any viewport
+    React.useEffect(() => {
+        if (!gridContainerRef.current) return;
+
+        const calculateRowHeight = () => {
+            const containerWidth = gridContainerRef.current.offsetWidth;
+            // Column width = (containerWidth - marginX × (cols - 1)) / cols
+            const calculatedColWidth = (containerWidth - (16 * (GRID_CONFIG.cols - 1))) / GRID_CONFIG.cols;
+            setDynamicRowHeight(calculatedColWidth);
+            logger.debug('Dynamic rowHeight updated', { containerWidth, calculatedColWidth });
+        };
+
+        // Calculate immediately
+        calculateRowHeight();
+
+        // Recalculate on resize with debounce
+        const resizeObserver = new ResizeObserver(() => {
+            calculateRowHeight();
+        });
+
+        resizeObserver.observe(gridContainerRef.current);
+
+        return () => resizeObserver.disconnect();
+    }, []);
+
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
         cols: { lg: GRID_CONFIG.cols, md: GRID_CONFIG.cols, sm: GRID_CONFIG.cols, xs: 2, xxs: 2 },
         breakpoints: GRID_CONFIG.breakpoints,
-        rowHeight: GRID_CONFIG.rowHeight,
+        rowHeight: dynamicRowHeight, // Use dynamic value instead of static
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
         preventCollision: false,
         isDraggable: editMode && isGlobalDragEnabled,
@@ -66,7 +95,7 @@ const Dashboard = () => {
         margin: [16, 16],
         containerPadding: [0, 0],
         onBreakpointChange: (breakpoint) => setCurrentBreakpoint(breakpoint)
-    }), [editMode, currentBreakpoint, isGlobalDragEnabled]);
+    }), [editMode, currentBreakpoint, isGlobalDragEnabled, dynamicRowHeight]);
 
     // Helper: Apply minW/minH/maxH from widget metadata to layout items
     const enrichLayoutWithConstraints = (widget, layoutItem) => {
@@ -697,6 +726,7 @@ const Dashboard = () => {
 
             {/* Grid Layout with Drop Support - Always rendered for drag-and-drop */}
             <div
+                ref={gridContainerRef}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 className="relative min-h-[400px]"
