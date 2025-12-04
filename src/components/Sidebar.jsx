@@ -281,8 +281,12 @@ const Sidebar = () => {
                     {/* Footer */}
                     <div className="p-3 border-t border-slate-700/50 flex flex-col gap-2">
                         <a
-                            href="/#settings?tab=profile"
-                            className={`flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all relative group ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`}
+                            href="/#settings?tab=profile&source=profile"
+                            className={(() => {
+                                const hash = window.location.hash.slice(1);
+                                const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
+                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all relative group ${isActive ? 'bg-accent/20 text-accent' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                            })()}
                         >
                             <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
                                 {currentUser?.profilePicture ? (
@@ -308,8 +312,9 @@ const Sidebar = () => {
                             href="/#settings"
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
-                                const isActive = hash === 'settings' || hash.startsWith('settings?');
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all ${isActive ? 'bg-accent/20 text-accent' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                                // Highlight Settings when on any settings page EXCEPT when source=profile (then Profile button is highlighted)
+                                const shouldHighlight = hash.startsWith('settings') && source !== 'profile';
+                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all ${shouldHighlight ? 'bg-accent/20 text-accent' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
                             })()}
                         >
                             <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
