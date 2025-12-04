@@ -5,8 +5,8 @@
 
 export const GRID_CONFIG = {
     // Grid dimensions
-    rowHeight: 83.33,         // Must match colWidth for square cells (margins are ADDED between cells)
-    colWidth: 83.33,          // Width of one column (2000px / 24 cols)  
+    rowHeight: 68,            // Must match actual column width for square cells
+    colWidth: 68,             // Actual: (2000px - (16px margin × 23 gaps)) / 24 cols = 1632 / 24 = 68px
     maxWidth: 2000,           // Maximum container width
     cols: 24,                 // Total columns in grid
 
@@ -50,7 +50,7 @@ export const GRID_CONFIG = {
  * Grid presets for different densities (future feature)
  */
 export const GRID_PRESETS = {
-    standard: { cols: 24, colWidth: 83.33, label: 'Standard (24 columns)' },
+    standard: { cols: 24, colWidth: 68, label: 'Standard (24 columns)' },
     compact: { cols: 32, colWidth: 62.5, label: 'Compact (32 columns)' },
     spacious: { cols: 16, colWidth: 125, label: 'Spacious (16 columns)' }
 };
