@@ -26,6 +26,7 @@ const WidgetWrapper = ({
         <Card
             className={`widget-wrapper h-full overflow-hidden flex flex-col relative ${flatten ? 'flatten-mode' : ''}`}
             padding={type === 'link-grid' ? 'none' : 'lg'}
+            data-widget-id={id}
         >
             {/* Delete button - ALWAYS visible in edit mode, positioned absolutely */}
             {editMode && onDelete && (
