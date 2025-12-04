@@ -95,7 +95,7 @@ const Dashboard = () => {
         resizeObserver.observe(gridContainerRef.current);
 
         return () => resizeObserver.disconnect();
-    }, []);
+    }, [loading]); // Re-run when dashboard finishes loading and DOM is ready
 
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
