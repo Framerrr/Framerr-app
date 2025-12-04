@@ -789,8 +789,8 @@ const Dashboard = () => {
                 integrations={integrations}
             />
 
-            {/* Mobile Tab Bar Spacer - Prevents content cutoff on mobile */}
-            <div className="block md:hidden" style={{ height: '100px' }} aria-hidden="true" />
+            {/* Bottom Spacer - Prevents content cutoff */}
+            <div style={{ height: '100px' }} className="md:h-32" aria-hidden="true" />
         </div>
     );
 };
