@@ -280,16 +280,8 @@ const CustomizationSettings = () => {
             setCustomColorsEnabled(false);
             setUseCustomColors(false);
 
-
-            // Remove custom colors from DOM FIRST
-            removeColorsFromDOM();
-
-            // Change to last selected theme
-            changeTheme(lastSelectedTheme);
-
-            // Update color pickers to show theme colors
-            const themeColors = getCurrentThemeColors();
-            setCustomColors(themeColors);
+            // Smart reset to theme (removes custom colors, applies theme, waits, updates pickers)
+            await resetToThemeColors(lastSelectedTheme);
 
             // Save to backend
             try {
@@ -638,15 +630,15 @@ const CustomizationSettings = () => {
                                 {themes.map((t) => (
                                     <button
                                         key={t.id}
-                                        onClick={() => {
-                                            // Remove any custom colors from DOM first
-                                            removeColorsFromDOM();
-
-                                            changeTheme(t.id);
-                                            setUseCustomColors(false);
-                                            setCustomColorsEnabled(false); // Turn off custom toggle
-                                            setLastSelectedTheme(t.id); // Save for future revert
-                                            // Color pickers will update via useEffect after CSS variables are applied
+                                        onClick={async () => {
+                                            // Only reset if coming from custom colors OR switching themes
+                                            if (customColorsEnabled || theme !== t.id) {
+                                                setUseCustomColors(false);
+                                                setCustomColorsEnabled(false);
+                                                setLastSelectedTheme(t.id);
+                                                // Smart reset to theme (removes custom colors, applies theme, waits, updates pickers)
+                                                await resetToThemeColors(t.id);
+                                            }
                                         }}
                                         className={`p-4 rounded-lg border-2 transition-all text-left ${theme === t.id && !useCustomColors
                                             ? 'border-accent bg-accent/10'
