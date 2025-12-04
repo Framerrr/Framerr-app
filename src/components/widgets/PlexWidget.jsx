@@ -257,7 +257,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                             onMouseEnter={() => setHoveredSession(session.sessionKey)}
                             onMouseLeave={() => setHoveredSession(null)}
                             style={{
-                                width: '560px',
+                                width: '280px',
                                 flexShrink: 0,
                                 background: 'var(--bg-hover)',
                                 borderRadius: '8px',
