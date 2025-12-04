@@ -55,7 +55,7 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 16, md: 16, sm: 16, xs: 2, xxs: 2 },
+        cols: { lg: 20, md: 20, sm: 20, xs: 2, xxs: 2 },
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
         rowHeight: 100,
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
@@ -189,7 +189,7 @@ const Dashboard = () => {
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 16; // xs/xxs=2 (full width), md/sm/lg=16
+        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 20; // xs/xxs=2 (full width), md/sm/lg=20
         const breakpoint = currentBreakpoint;
 
         logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
@@ -712,7 +712,7 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 16, md: 16, sm: 16, xs: 2, xxs: 2 }}
+                            cols={{ lg: 20, md: 20, sm: 20, xs: 2, xxs: 2 }}
                             breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
                             rowHeight={100}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
@@ -759,7 +759,7 @@ const Dashboard = () => {
                                                 ...layoutItem,
                                                 h: shouldShrink ? 0.001 : layoutItem.h,        // Try 0.01 for thinnest line
                                                 minH: shouldShrink ? 0.001 : (metadata?.minSize?.h || 1),
-                                                maxW: metadata?.maxSize?.w || 16,
+                                                maxW: metadata?.maxSize?.w || 20,
                                                 maxH: metadata?.maxSize?.h || 10
                                             }}
                                         >
