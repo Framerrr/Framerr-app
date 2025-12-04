@@ -21,7 +21,7 @@ export const GridConfigProvider = ({ children }) => {
             case 'compact': return 80;
             case 'comfortable': return 120;
             case 'normal':
-            default: return GRID_CONFIG.rowHeight;
+            default: return GRID_CONFIG.colWidth; // Default to colWidth for square cells
         }
     }, [gridDensity]);
 

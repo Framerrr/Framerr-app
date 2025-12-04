@@ -44,7 +44,7 @@ const Dashboard = () => {
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
-    const [dynamicRowHeight, setDynamicRowHeight] = useState(GRID_CONFIG.rowHeight); // Dynamic rowHeight for responsive square cells
+    const [dynamicRowHeight, setDynamicRowHeight] = useState(100); // Dynamic rowHeight for responsive square cells (initial fallback)
 
     // Ref for grid container to measure actual width
     const gridContainerRef = React.useRef(null);
@@ -234,7 +234,7 @@ const Dashboard = () => {
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 24; // xs/xxs=2 (full width), md/sm/lg=24
+        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 6 : 12; // xs/xxs=6 (full width), md/sm/lg=12
         const breakpoint = currentBreakpoint;
 
         logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });

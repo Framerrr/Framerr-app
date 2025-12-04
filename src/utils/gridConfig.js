@@ -89,7 +89,7 @@ export const calculateAvailableSpace = (
     options = {}
 ) => {
     // Allow runtime overrides for future features
-    const rowHeight = options.rowHeight || GRID_CONFIG.rowHeight;
+    const rowHeight = options.rowHeight || GRID_CONFIG.colWidth; // Default to colWidth for square cells
     const colWidth = options.colWidth || GRID_CONFIG.colWidth;
     const cardPadding = options.cardPadding || GRID_CONFIG.padding.card.lg;
 
