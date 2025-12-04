@@ -758,13 +758,13 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: GRID_CONFIG.cols, md: GRID_CONFIG.cols, sm: GRID_CONFIG.cols, xs: 2, xxs: 2 }}
+                            cols={{ lg: 12, md: 12, sm: 12, xs: 6, xxs: 6 }}
                             breakpoints={GRID_CONFIG.breakpoints}
                             rowHeight={dynamicRowHeight}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
-                            preventCollision={false}
+                            preventCollision={true}
                             isDraggable={editMode && isGlobalDragEnabled}
-                            isResizable={editMode && isGlobalDragEnabled}
+                            isResizable={editMode && isGlobalDragEnabled && (currentBreakpoint !== 'xs' && currentBreakpoint !== 'xxs')}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
