@@ -719,6 +719,7 @@ const Dashboard = () => {
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
                             isResizable={editMode && isGlobalDragEnabled}
+                            resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
                             containerPadding={[0, 0]}
