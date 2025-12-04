@@ -32,9 +32,11 @@ const DebugOverlay = ({
             const gridItems = document.querySelectorAll('.react-grid-item');
             const dimensions = {};
 
-            gridItems.forEach(item => {
-                const widgetId = item.querySelector('[data-widget-id]')?.getAttribute('data-widget-id');
-                if (widgetId) {
+            // Match grid items to layout by index (they render in same order)
+            const currentLayout = layouts[currentBreakpoint] || [];
+            gridItems.forEach((item, index) => {
+                if (index < currentLayout.length) {
+                    const widgetId = currentLayout[index].i;
                     dimensions[widgetId] = {
                         width: item.offsetWidth,
                         height: item.offsetHeight
