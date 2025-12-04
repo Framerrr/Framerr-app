@@ -20,8 +20,9 @@ description: Initialize a new Framerr development session
    - Read `docs/architecture/PROJECT_SCOPE.md` (optional - for vision/design philosophy context)
    - Skim `docs/tasks/TASK_BACKLOG.md` (awareness - know what's planned)
    - Read `docs/architecture/ARCHITECTURE.md` (if working with files/structure)
-   - **Read `/docs/theming/THEMING_ENGINE.md` (MANDATORY before creating/editing UI components)**
-   - **Reference `/.agent/rules/theming-rules.md` (BLOCKING rules for UI work)**
+   - **Read `docs/dashboard/IMPLEMENTATION_PLAN.md` (MANDATORY if working on dashboard features)**
+   - **Read `docs/theming/THEMING_ENGINE.md` (MANDATORY before creating/editing UI components)**
+   - **Reference `.agent/rules/theming-rules.md` (BLOCKING rules for UI work)**
 
 3. **Initialize checkpoint tracking:**
    - Set tool call counter to 0
