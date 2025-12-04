@@ -653,7 +653,7 @@ const Dashboard = () => {
     // Empty state
     if (widgets.length === 0 && !editMode) {
         return (
-            <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+            <div className="w-full min-h-screen p-8 max-w-[1400px] mx-auto fade-in">
                 <header className="mb-12 flex items-center justify-between">
                     <div>
                         <h1 className="text-5xl font-bold mb-3 gradient-text">
@@ -679,7 +679,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+        <div className="w-full min-h-screen p-8 max-w-[1400px] mx-auto fade-in">
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
                 <div>
