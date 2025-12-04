@@ -754,7 +754,7 @@ const Dashboard = () => {
                             className="layout"
                             cols={{ lg: GRID_CONFIG.cols, md: GRID_CONFIG.cols, sm: GRID_CONFIG.cols, xs: 2, xxs: 2 }}
                             breakpoints={GRID_CONFIG.breakpoints}
-                            rowHeight={GRID_CONFIG.rowHeight}
+                            rowHeight={dynamicRowHeight}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
