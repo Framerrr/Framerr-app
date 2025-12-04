@@ -53,7 +53,7 @@ export const WIDGET_TYPES = {
         description: 'Now playing and recent activity',
         category: 'media',
         defaultSize: { w: 7, h: 4 },  // Optimized for single stream display
-        minSize: { w: 1, h: 1 },      // Temporarily removed for testing optimal size
+        minSize: { w: 5, h: 4 },      // Minimum for 16:9 image + text to fit properly
         maxSize: { h: 10 }, // No width limit, increased max height for testing
         requiresIntegration: 'plex'
     },

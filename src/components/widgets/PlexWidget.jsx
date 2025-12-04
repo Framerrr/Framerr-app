@@ -97,21 +97,28 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         };
     }, []);
 
-    // Calculate card dimensions based on available space and card structure
-    // Card has: Image (70%) + Progress bar (6px) + Info section (~30%)
-    // Image should maintain 16:9 aspect ratio (typical for media thumbnails)
+    // Calculate card dimensions based on available space
+    // Card structure: 16:9 image + 6px progress bar + ~50px info section
+    const INFO_SECTION_HEIGHT = 50; // Title + subtitle + user info with padding
+    const PROGRESS_BAR_HEIGHT = 6;
 
-    // Use available height for the entire card
-    const availableCardHeight = containerHeight || 260; // Use actual height, fallback for initial render
+    // Get available space at minimum widget size (accounts for header, padding, margins)
+    const availableSpace = minAvailableSpace;
 
-    // Image takes 70% of card height
-    const imageHeight = availableCardHeight * 0.70;
+    // Calculate maximum image height that fits in available space
+    const maxImageHeight = availableSpace.height - PROGRESS_BAR_HEIGHT - INFO_SECTION_HEIGHT;
 
-    // Calculate width based on 16:9 aspect ratio for the image
-    const imageWidth = imageHeight * (16 / 9);
+    // Calculate card width from 16:9 aspect ratio
+    const calculatedCardWidth = maxImageHeight * (16 / 9);
 
-    // Card width equals image width (image fills full width of card)
-    const cardWidth = imageWidth; // Use calculated width from aspect ratio
+    // Ensure card doesn't exceed available width
+    const cardWidth = Math.min(calculatedCardWidth, availableSpace.width);
+
+    // Recalculate image height if width-constrained
+    const imageHeight = cardWidth / (16 / 9);
+
+    // Calculate total card height
+    const cardHeight = imageHeight + PROGRESS_BAR_HEIGHT + INFO_SECTION_HEIGHT;
 
 
     // Fetch Plex machine ID on mount
@@ -294,6 +301,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                     overflowX: 'auto',
                     overflowY: 'hidden',
                     padding: '0.25rem',
+                    alignItems: 'center', // Vertically center cards
                     scrollbarWidth: 'thin'
                 }}>
                 {sessions.map(session => {
@@ -326,6 +334,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                             onMouseLeave={() => setHoveredSession(null)}
                             style={{
                                 width: `${Math.round(cardWidth)}px`,
+                                height: `${Math.round(cardHeight)}px`,
                                 flexShrink: 0,
                                 background: 'var(--bg-hover)',
                                 borderRadius: '8px',
