@@ -39,8 +39,8 @@ export const WIDGET_TYPES = {
         name: 'System Status',
         description: 'CPU, memory, and temperature monitoring',
         category: 'system',
-        defaultSize: { w: 4, h: 3 },
-        minSize: { w: 4, h: 3 }, // Needs space for all 4 metrics + bars
+        defaultSize: { w: 3, h: 3 },
+        minSize: { w: 3, h: 3 }, // Needs space for all 4 metrics + bars
         maxSize: { h: 4 }, // No width limit, max height only
         requiresIntegration: 'systemHealth'
     },
@@ -52,8 +52,8 @@ export const WIDGET_TYPES = {
         name: 'Plex',
         description: 'Now playing and recent activity',
         category: 'media',
-        defaultSize: { w: 7, h: 4 },  // Optimized for single stream display
-        minSize: { w: 5, h: 4 },      // Minimum for 16:9 image + text to fit properly
+        defaultSize: { w: 4, h: 4 },  // Optimized for single stream display (12-col grid)
+        minSize: { w: 3, h: 4 },      // Minimum for 16:9 image + text to fit properly
         maxSize: { h: 10 }, // No width limit, increased max height for testing
         requiresIntegration: 'plex'
     },
@@ -64,8 +64,8 @@ export const WIDGET_TYPES = {
         name: 'Sonarr',
         description: 'TV show management and calendar',
         category: 'media',
-        defaultSize: { w: 4, h: 3 },
-        minSize: { w: 3, h: 3 }, // List layout needs vertical space
+        defaultSize: { w: 3, h: 3 },
+        minSize: { w: 2, h: 3 }, // List layout needs vertical space
         maxSize: { h: 6 }, // No width limit, scrolling list
         requiresIntegration: 'sonarr'
     },
@@ -76,8 +76,8 @@ export const WIDGET_TYPES = {
         name: 'Radarr',
         description: 'Movie management and calendar',
         category: 'media',
-        defaultSize: { w: 4, h: 3 },
-        minSize: { w: 3, h: 3 }, // List layout needs vertical space
+        defaultSize: { w: 3, h: 3 },
+        minSize: { w: 2, h: 3 }, // List layout needs vertical space
         maxSize: { h: 6 }, // No width limit, scrolling list
         requiresIntegration: 'radarr'
     },
@@ -88,8 +88,8 @@ export const WIDGET_TYPES = {
         name: 'Overseerr',
         description: 'Media requests and discovery',
         category: 'media',
-        defaultSize: { w: 6, h: 3 }, // Wider for horizontal carousel
-        minSize: { w: 4, h: 4 }, // Fits one 2:3 poster + text
+        defaultSize: { w: 4, h: 3 }, // Wider for horizontal carousel (12-col grid)
+        minSize: { w: 3, h: 4 }, // Fits one 2:3 poster + text
         maxSize: { h: 6 }, // No width limit
         requiresIntegration: 'overseerr'
     },
@@ -100,8 +100,8 @@ export const WIDGET_TYPES = {
         name: 'qBittorrent',
         description: 'Torrent downloads and management',
         category: 'downloads',
-        defaultSize: { w: 6, h: 3 },
-        minSize: { w: 4, h: 3 }, // Stats + torrent list needs space
+        defaultSize: { w: 4, h: 3 },
+        minSize: { w: 3, h: 3 }, // Stats + torrent list needs space
         maxSize: { h: 8 }, // No width limit, scrolling list
         requiresIntegration: 'qbittorrent'
     },
@@ -113,8 +113,8 @@ export const WIDGET_TYPES = {
         name: 'Weather',
         description: 'Current weather and forecast',
         category: 'utility',
-        defaultSize: { w: 3, h: 3 },
-        minSize: { w: 3, h: 2 }, // Responsive: vertical when narrow, horizontal when wide
+        defaultSize: { w: 2, h: 3 },
+        minSize: { w: 2, h: 2 }, // Responsive: vertical when narrow, horizontal when wide
         maxSize: { h: 4 }, // No width limit
         requiresIntegration: false
     },
@@ -125,8 +125,8 @@ export const WIDGET_TYPES = {
         name: 'Calendar',
         description: 'Combined Sonarr and Radarr calendar',
         category: 'utility',
-        defaultSize: { w: 6, h: 5 },
-        minSize: { w: 5, h: 5 }, // Calendar grid needs space for filters + 7-day grid
+        defaultSize: { w: 4, h: 5 },
+        minSize: { w: 3, h: 5 }, // Calendar grid needs space for filters + 7-day grid
         maxSize: { h: 8 }, // No width limit
         requiresIntegrations: ['sonarr', 'radarr'] // Requires both integrations
     },
@@ -137,8 +137,8 @@ export const WIDGET_TYPES = {
         name: 'Upcoming Media',
         description: 'Upcoming TV shows and movies',
         category: 'utility',
-        defaultSize: { w: 4, h: 3 },
-        minSize: { w: 3, h: 2 }, // List needs vertical space
+        defaultSize: { w: 3, h: 3 },
+        minSize: { w: 2, h: 2 }, // List needs vertical space
         maxSize: { h: 6 }, // No width limit
         requiresIntegration: false
     },
@@ -149,7 +149,7 @@ export const WIDGET_TYPES = {
         name: 'Custom HTML',
         description: 'User-defined HTML and CSS content',
         category: 'utility',
-        defaultSize: { w: 4, h: 3 },
+        defaultSize: { w: 3, h: 3 },
         minSize: { w: 2, h: 2 }, // User-defined, flexible
         maxSize: { h: 10 }, // No width limit
         requiresIntegration: false
@@ -161,7 +161,7 @@ export const WIDGET_TYPES = {
         name: 'Link Grid',
         description: 'Quick access links with icons',
         category: 'utility',
-        defaultSize: { w: 4, h: 2 },
+        defaultSize: { w: 3, h: 2 },
         minSize: { w: 1, h: 1 }, // Minimum: Single cell for one link
         maxSize: { h: 8 }, // No width limit, allow flexible sizing
         requiresIntegration: false,
@@ -176,8 +176,8 @@ export const WIDGET_TYPES = {
         name: 'Clock',
         description: 'Time display with timezone support',
         category: 'utility',
-        defaultSize: { w: 3, h: 2 },
-        minSize: { w: 3, h: 2 }, // Responsive: vertical when narrow, horizontal when wide
+        defaultSize: { w: 2, h: 2 },
+        minSize: { w: 2, h: 2 }, // Responsive: vertical when narrow, horizontal when wide
         maxSize: { h: 2 }, // No width limit, shorter max height for inline mode
         requiresIntegration: false
     }

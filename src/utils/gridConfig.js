@@ -5,10 +5,11 @@
 
 export const GRID_CONFIG = {
     // Grid dimensions
-    rowHeight: 68,            // Must match actual column width for square cells
-    colWidth: 68,             // Actual: (2000px - (16px margin × 23 gaps)) / 24 cols = 1632 / 24 = 68px
-    maxWidth: 2000,           // Maximum container width
-    cols: 24,                 // Total columns in grid
+    // Note: rowHeight is now calculated dynamically in Dashboard.jsx based on actual container width
+    // This ensures cells maintain consistent aspect ratio across all viewport sizes
+    colWidth: 100,            // Target: ~100px per column for 12-column grid
+    maxWidth: 1400,           // Maximum container width (allows cells to expand on larger screens)
+    cols: 12,                 // Total columns in grid (industry standard)
 
     // Breakpoints (from react-grid-layout)
     breakpoints: {
@@ -50,19 +51,19 @@ export const GRID_CONFIG = {
  * Grid presets for different densities (future feature)
  */
 export const GRID_PRESETS = {
-    standard: { cols: 24, colWidth: 68, label: 'Standard (24 columns)' },
-    compact: { cols: 32, colWidth: 62.5, label: 'Compact (32 columns)' },
-    spacious: { cols: 16, colWidth: 125, label: 'Spacious (16 columns)' }
+    standard: { cols: 12, colWidth: 100, label: 'Standard (12 columns)' },
+    compact: { cols: 16, colWidth: 75, label: 'Compact (16 columns)' },
+    spacious: { cols: 8, colWidth: 150, label: 'Spacious (8 columns)' }
 };
 
 /**
  * Calculate available space for widget content
  * 
- * @param {number} widgetCols - Widget width in grid columns (1-24)
+ * @param {number} widgetCols - Widget width in grid columns (1-12)
  * @param {number} widgetRows - Widget height in grid rows (1-10)
  * @param {boolean} [hasHeader=true] - Whether widget header is visible
  * @param {Object} [options={}] - Optional configuration overrides
- * @param {number} [options.rowHeight] - Override row height (default: GRID_CONFIG.rowHeight)
+ * @param {number} [options.rowHeight] - Override row height (default: dynamically calculated)
  * @param {number} [options.colWidth] - Override column width (default: GRID_CONFIG.colWidth)
  * @param {number} [options.cardPadding] - Override card padding (default: GRID_CONFIG.padding.card.lg)
  * 
@@ -72,14 +73,14 @@ export const GRID_PRESETS = {
  * @returns {number} return.aspectRatio - Width/height ratio
  * 
  * @example
- * // w:7 h:4 widget with header
- * const space = calculateAvailableSpace(7, 4, true);
- * // => { width: 485, height: 260, aspectRatio: 1.865 }
+ * // w:4 h:4 widget with header (12-column grid)
+ * const space = calculateAvailableSpace(4, 4, true);
+ * // => { width: ~300, height: ~260, aspectRatio: ~1.15 }
  * 
  * @example
- * // w:7 h:4 widget without header
- * const space = calculateAvailableSpace(7, 4, false);
- * // => { width: 485, height: 312, aspectRatio: 1.554 }
+ * // w:4 h:4 widget without header
+ * const space = calculateAvailableSpace(4, 4, false);
+ * // => { width: ~300, height: ~312, aspectRatio: ~0.96 }
  */
 export const calculateAvailableSpace = (
     widgetCols,

@@ -71,8 +71,8 @@ const Dashboard = () => {
                 return;
             }
 
-            // Column width = (actualContainerWidth - marginX × (cols - 1)) / cols
-            const calculatedColWidth = (containerWidth - (16 * (GRID_CONFIG.cols - 1))) / GRID_CONFIG.cols;
+            // Column width = (containerWidth - marginX × (cols - 1)) / cols
+            const calculatedColWidth = (containerWidth - (16 * 11)) / 12;  // 12-column grid, 11 gaps
 
             // Set rowHeight to match column width for square cells
             setDynamicRowHeight(calculatedColWidth);
@@ -80,7 +80,7 @@ const Dashboard = () => {
             logger.debug('Dynamic rowHeight updated', {
                 containerWidth,
                 calculatedColWidth,
-                formula: `(${containerWidth} - ${16 * 23}) / ${GRID_CONFIG.cols} = ${calculatedColWidth.toFixed(2)}`
+                formula: `(${containerWidth} - ${16 * 11}) / 12 = ${calculatedColWidth.toFixed(2)}`
             });
         };
 
@@ -100,11 +100,11 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: GRID_CONFIG.cols, md: GRID_CONFIG.cols, sm: GRID_CONFIG.cols, xs: 2, xxs: 2 },
+        cols: { lg: 12, md: 12, sm: 12, xs: 6, xxs: 6 },
         breakpoints: GRID_CONFIG.breakpoints,
         rowHeight: dynamicRowHeight, // Use dynamic value instead of static
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
-        preventCollision: false,
+        preventCollision: true,  // Prevent overlapping widgets, auto-wrap to new rows
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
         margin: [16, 16],
