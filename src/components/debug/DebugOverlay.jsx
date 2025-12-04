@@ -9,7 +9,8 @@ const DebugOverlay = ({
     currentBreakpoint,
     layouts,
     widgets,
-    gridConfig
+    gridConfig,
+    gridContainerRef
 }) => {
     // Don't render if not enabled
     if (!enabled) return null;
@@ -61,9 +62,11 @@ const DebugOverlay = ({
     const marginY = gridConfig?.margin?.[1] || 16;
     const cols = gridConfig?.cols?.[currentBreakpoint] || 24;
 
-    // For square cells, column width should equal row height
-    const calculatedCellWidth = rowHeight;
-    const calculatedCellHeight = rowHeight;
+    // Calculate ACTUAL column width from measured container
+    // This matches the calculation in Dashboard.jsx
+    const containerWidth = gridContainerRef?.current?.offsetWidth || 2000;
+    const calculatedCellWidth = (containerWidth - (marginX * (cols - 1))) / cols;
+    const calculatedCellHeight = rowHeight; // Row height is set dynamically in Dashboard
 
     // Sort widgets by their Y position to show stacking order
     const sortedWidgets = [...currentLayout]
@@ -105,13 +108,17 @@ const DebugOverlay = ({
                         <span className="text-cyan-400">{screenSize.width}×{screenSize.height}px</span>
                     </div>
                     <div className="flex justify-between">
+                        <span className="text-slate-400">Container:</span>
+                        <span className="text-yellow-400">{containerWidth.toFixed(0)}px</span>
+                    </div>
+                    <div className="flex justify-between">
                         <span className="text-slate-400">Cell Size (calc):</span>
                         <span className="text-yellow-400">{calculatedCellWidth.toFixed(1)}×{calculatedCellHeight.toFixed(1)}px</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-400">Aspect Ratio:</span>
-                        <span className={calculatedCellWidth === calculatedCellHeight ? "text-green-400" : "text-red-400"}>
-                            {calculatedCellWidth === calculatedCellHeight ? "1:1 ✓" : `${(calculatedCellHeight / calculatedCellWidth).toFixed(3)}:1 ✗`}
+                        <span className={Math.abs(calculatedCellWidth - calculatedCellHeight) < 0.5 ? "text-green-400" : "text-red-400"}>
+                            {Math.abs(calculatedCellWidth - calculatedCellHeight) < 0.5 ? "1:1 ✓" : `${(calculatedCellHeight / calculatedCellWidth).toFixed(3)}:1 ✗`}
                         </span>
                     </div>
                 </div>

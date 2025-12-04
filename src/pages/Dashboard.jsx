@@ -820,6 +820,7 @@ const Dashboard = () => {
                 layouts={layouts}
                 widgets={widgets}
                 gridConfig={gridConfig}
+                gridContainerRef={gridContainerRef}
             />
 
             {/* Add Widget Modal */}
