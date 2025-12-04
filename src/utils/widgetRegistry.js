@@ -52,8 +52,8 @@ export const WIDGET_TYPES = {
         name: 'Plex',
         description: 'Now playing and recent activity',
         category: 'media',
-        defaultSize: { w: 6, h: 3 },  // Wider for multi-stream display
-        minSize: { w: 4, h: 4 },      // Needs width for images + text, height for header + content
+        defaultSize: { w: 7, h: 4 },  // Optimized for single stream display
+        minSize: { w: 7, h: 4 },      // Perfect fit for one media card
         maxSize: { h: 6 }, // No width limit, max height only
         requiresIntegration: 'plex'
     },
