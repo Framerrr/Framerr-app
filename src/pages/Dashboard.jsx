@@ -62,17 +62,26 @@ const Dashboard = () => {
         if (!gridContainerRef.current) return;
 
         const calculateRowHeight = () => {
+            // Measure ACTUAL container width (not max-width!)
             const containerWidth = gridContainerRef.current.offsetWidth;
-            // Column width = (containerWidth - marginX × (cols - 1)) / cols
+
+            // Column width = (actualContainerWidth - marginX × (cols - 1)) / cols
             const calculatedColWidth = (containerWidth - (16 * (GRID_CONFIG.cols - 1))) / GRID_CONFIG.cols;
+
+            // Set rowHeight to match column width for square cells
             setDynamicRowHeight(calculatedColWidth);
-            logger.debug('Dynamic rowHeight updated', { containerWidth, calculatedColWidth });
+
+            logger.debug('Dynamic rowHeight updated', {
+                containerWidth,
+                calculatedColWidth,
+                formula: `(${containerWidth} - ${16 * 23}) / ${GRID_CONFIG.cols} = ${calculatedColWidth.toFixed(2)}`
+            });
         };
 
         // Calculate immediately
         calculateRowHeight();
 
-        // Recalculate on resize with debounce
+        // Recalculate on resize
         const resizeObserver = new ResizeObserver(() => {
             calculateRowHeight();
         });
