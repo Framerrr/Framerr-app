@@ -318,9 +318,11 @@ const Sidebar = () => {
                                 const hash = window.location.hash.slice(1);
                                 const hashParts = hash.split('?');
                                 const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                                const currentTab = searchParams.get('tab');
                                 const source = searchParams.get('source');
-                                // Highlight Settings when on any settings page EXCEPT when source=profile (then Profile button is highlighted)
-                                const shouldHighlight = hash.startsWith('settings') && source !== 'profile';
+                                // Highlight Settings when on any settings page EXCEPT when BOTH tab=profile AND source=profile
+                                const isProfilePage = currentTab === 'profile' && source === 'profile';
+                                const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
                                 return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all ${shouldHighlight ? 'bg-accent/20 text-accent' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
                             })()}
                         >
@@ -550,9 +552,11 @@ const Sidebar = () => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
                             const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
                             const source = searchParams.get('source');
-                            // Highlight Settings when on any settings page EXCEPT when source=profile (then Profile button is highlighted)
-                            const shouldHighlight = hash.startsWith('settings') && source !== 'profile';
+                            // Highlight Settings when on any settings page EXCEPT when BOTH tab=profile AND source=profile
+                            const isProfilePage = currentTab === 'profile' && source === 'profile';
+                            const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
                             return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${shouldHighlight ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
                         })()}
                     >
