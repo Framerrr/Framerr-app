@@ -220,12 +220,13 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     return (
         <>
             <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                display: 'flex',
                 gap: '1rem',
                 height: '100%',
-                overflowY: 'auto',
-                padding: '0.25rem'
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                padding: '0.25rem',
+                scrollbarWidth: 'thin'
             }}>
                 {sessions.map(session => {
                     const user = session.user?.title || 'Unknown User';
@@ -256,6 +257,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                             onMouseEnter={() => setHoveredSession(session.sessionKey)}
                             onMouseLeave={() => setHoveredSession(null)}
                             style={{
+                                width: '240px',
+                                flexShrink: 0,
                                 background: 'var(--bg-hover)',
                                 borderRadius: '8px',
                                 overflow: 'hidden',
