@@ -182,13 +182,15 @@ docker run -d \
 
 ## Known Limitations
 
-### Stub Components (May Need Enhancement)
-These were created as basic stubs when originals weren't found:
-- `WidgetErrorBoundary` - Basic error boundary
-- `EmptyDashboard` - Simple placeholder UI
-- `LoadingSpinner` - Basic spinner without animations
-- `ColorPicker` - Simple color input
-- `DeveloperSettings` - Placeholder only
+### Components Needing Enhancement
+- `DeveloperSettings` - Placeholder implementation (only remaining stub)
+
+### Replaced Components (Now Complete)
+These were originally stubs but have been replaced with full implementations:
+- ✅ `WidgetErrorBoundary` - Full error boundary with retry
+- ✅ `EmptyDashboard` - Rich placeholder with guides
+- ✅ `LoadingSpinner` - Animated spinner with theme support
+- ✅ `ColorPicker` - Full color picker with presets and validation
 
 ### Components from v1.0.6
 These work but may have minor API differences:

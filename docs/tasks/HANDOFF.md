@@ -78,13 +78,8 @@ Framerr-app/
 
 ## ⚠️ Known Issues & Limitations
 
-### Stub Components (Low Priority)
-5 components are basic implementations, functional but may need enhancement:
-- `WidgetErrorBoundary.jsx` - Basic error boundary
-- `EmptyDashboard.jsx` - Simple placeholder
-- `LoadingSpinner.jsx` - Basic spinner
-- `ColorPicker.jsx` - Simple color input
-- `DeveloperSettings.jsx` - Placeholder
+### Components Needing Review
+- `DeveloperSettings.jsx` - Placeholder implementation pending
 
 ### v1.0.6 Components
 2 components from older version (functional, monitor for differences):
