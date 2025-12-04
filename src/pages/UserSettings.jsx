@@ -68,7 +68,7 @@ const UserSettings = () => {
     const allTabs = [...userTabs, ...adminTabs];
 
     return (
-        <div className="w-full p-4 md:p-8 max-w-6xl mx-auto">
+        <div className="w-full p-4 md:p-8 max-w-[2000px] mx-auto">
             {/* Page Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-white">
