@@ -53,9 +53,15 @@ const DebugOverlay = ({
 
     const currentLayout = layouts[currentBreakpoint] || [];
 
-    // Calculate cell dimensions based on gridConfig
-    const calculatedCellWidth = gridConfig?.rowHeight || 0; // Column width should equal rowHeight for square cells
-    const calculatedCellHeight = gridConfig?.rowHeight || 0;
+    // Extract grid config values with fallbacks
+    const rowHeight = gridConfig?.rowHeight || 68;
+    const marginX = gridConfig?.margin?.[0] || 16;
+    const marginY = gridConfig?.margin?.[1] || 16;
+    const cols = gridConfig?.cols?.[currentBreakpoint] || 24;
+
+    // For square cells, column width should equal row height
+    const calculatedCellWidth = rowHeight;
+    const calculatedCellHeight = rowHeight;
 
     // Sort widgets by their Y position to show stacking order
     const sortedWidgets = [...currentLayout]
@@ -123,11 +129,11 @@ const DebugOverlay = ({
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-400">Row Height:</span>
-                        <span className="text-orange-400">{gridConfig?.rowHeight?.toFixed(1)}px</span>
+                        <span className="text-orange-400">{rowHeight?.toFixed(1)}px</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-400">Margin:</span>
-                        <span className="text-cyan-400">{gridConfig?.margin?.[0]}px</span>
+                        <span className="text-cyan-400">{marginX}px</span>
                     </div>
                 </div>
             </div>
@@ -139,8 +145,8 @@ const DebugOverlay = ({
                 </div>
                 <div className="space-y-2">
                     {sortedWidgets.map((widget) => {
-                        const expectedWidth = widget.w * calculatedCellWidth + (widget.w - 1) * (gridConfig?.margin?.[0] || 0);
-                        const expectedHeight = widget.h * calculatedCellHeight + (widget.h - 1) * (gridConfig?.margin?.[1] || 0);
+                        const expectedWidth = widget.w * calculatedCellWidth + (widget.w - 1) * marginX;
+                        const expectedHeight = widget.h * calculatedCellHeight + (widget.h - 1) * marginY;
                         const widthMatch = Math.abs(widget.actualWidth - expectedWidth) < 2; // Within 2px tolerance
                         const heightMatch = Math.abs(widget.actualHeight - expectedHeight) < 2;
 
