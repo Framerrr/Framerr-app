@@ -97,11 +97,9 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         };
     }, []);
 
-    // Calculate card width from height and aspect ratio
-    // If container height is available, use it; otherwise use calculated minimum
-    const cardWidth = containerHeight
-        ? containerHeight * minAvailableSpace.aspectRatio
-        : minAvailableSpace.width;
+    // Calculate card width - use available width directly to ensure proper fit
+    // The width is based on widget columns, not container height
+    const cardWidth = minAvailableSpace.width;
 
     // Fetch Plex machine ID on mount
     useEffect(() => {
