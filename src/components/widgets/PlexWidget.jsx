@@ -102,7 +102,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     // Image should maintain 16:9 aspect ratio (typical for media thumbnails)
 
     // Use available height for the entire card
-    const availableCardHeight = minAvailableSpace.height;
+    const availableCardHeight = containerHeight || 260; // Use actual height, fallback for initial render
 
     // Image takes 70% of card height
     const imageHeight = availableCardHeight * 0.70;
@@ -111,7 +111,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     const imageWidth = imageHeight * (16 / 9);
 
     // Card width equals image width (image fills full width of card)
-    const cardWidth = Math.min(imageWidth, minAvailableSpace.width);
+    const cardWidth = imageWidth; // Use calculated width from aspect ratio
 
 
     // Fetch Plex machine ID on mount
