@@ -65,6 +65,12 @@ const Dashboard = () => {
             // Measure ACTUAL container width (not max-width!)
             const containerWidth = gridContainerRef.current.offsetWidth;
 
+            // Don't calculate if container has no width yet
+            if (containerWidth === 0) {
+                console.log('⚠️ GRID DEBUG: Container width is 0, skipping calculation');
+                return;
+            }
+
             // Column width = (actualContainerWidth - marginX × (cols - 1)) / cols
             const calculatedColWidth = (containerWidth - (16 * (GRID_CONFIG.cols - 1))) / GRID_CONFIG.cols;
 
