@@ -5,8 +5,8 @@
 
 export const GRID_CONFIG = {
     // Grid dimensions
-    rowHeight: 83.33,         // Height of one grid row in pixels (matches column width for square cells)
-    colWidth: 83.33,          // Width of one column (2000px / 24 cols)
+    rowHeight: 99.33,         // Height to match visual cell size (83.33 + 16px margin)
+    colWidth: 83.33,          // Width of one column (2000px / 24 cols)  
     maxWidth: 2000,           // Maximum container width
     cols: 24,                 // Total columns in grid
 
