@@ -1,212 +1,219 @@
-# Current Task - Grid Expansion & Resize Handle Improvements
+# Current Task - Gridstack Migration Debugging
 
-**Status:** ✅ COMPLETED  
-**Started:** 2025-12-03 20:27:00  
-**Completed:** 2025-12-03 21:36:00  
-**Duration:** ~69 minutes
-**Tool Calls:** 349
+**Status:** 🟡 IN PROGRESS (Paused)  
+**Started:** 2025-12-05 02:47:00  
+**Last Updated:** 2025-12-05 03:40:00  
+**Tool Calls This Session:** ~500
 
 ---
 
 ## Task Description
 
-Expanded the dashboard grid system from 12 to 24 columns for more flexible widget positioning, adjusted container widths for optimal column sizing, added bottom padding to all pages, and enhanced widget resize handles with full-edge coverage on all 8 directions.
+Investigated and attempted to resolve mobile widget stacking issues after migrating from react-grid-layout to Gridstack. Unable to resolve - widgets not rendering on sm/xs/xxs breakpoints. Pivoted to merging last known working state to main branch for production deployment.
 
 ### Objectives:
-1. ✅ Fix sidebar Profile/Settings highlighting to match mobile tab bar logic
-2. ✅ Expand grid from 12 to 24 columns
-3. ✅ Adjust container width to maintain usable column sizes
-4. ✅ Add bottom padding for desktop breakpoints  
-5. ✅ Enable and style all 8 widget resize handles
+1. ✅ Audit react-grid-layout remnants
+2. ✅ Clean up legacy CSS and comments  
+3. ⏸️ Fix mobile widget stacking (BLOCKED - not rendering)
+4. ✅ Merge working state to main branch
+5. ✅ Prepare main branch for production deployment
 
 ---
 
 ## Work Completed
 
-### 1. Sidebar Highlighting Fix ✅
+### 1. React-Grid-Layout Remnants Cleanup ✅
 
-**Problem:** Desktop sidebar didn't correctly highlight Profile and Settings buttons based on URL parameters.
+**Audit Performed:**
+- Searched codebase for react-grid-layout references
+- Found unused CSS classes, legacy state, outdated comments
+- Created comprehensive audit report
 
-**Solution:**  
-- Updated `Sidebar.jsx` to parse hash parameters fresh inside className functions
-- Profile highlights when `tab=profile AND source=profile`
-- Settings highlights on all settings pages except when both conditions above are met
+**Removed:**
+- 55 lines of unused `.react-grid-*` CSS classes
+- 3 misleading comments referencing react-grid-layout
+- Updated gridConfig comment to reflect Gridstack
 
 **Files Modified:**
-- `src/components/Sidebar.jsx` (lines 283-321, 510-545)
+- `src/styles/GridLayout.css` - Removed legacy CSS
+- `src/pages/Dashboard.jsx` - Updated comment
+- `src/utils/gridConfig.js` - Updated comment
+- `src/components/GridstackWrapper.jsx` - Updated docstring
 
 **Commits:**
-- `fix(sidebar): add Profile/Settings highlighting logic to match mobile tab bar`
-- `fix(sidebar): parse hash params fresh to fix Settings highlighting bug`
-- `fix(sidebar): Settings highlights except when BOTH tab=profile AND source=profile`
+- `chore: remove react-grid-layout remnants from codebase`
+- `fix(debug): update overlay to show correct column counts for sm breakpoint`
 
 ---
 
-### 2. Grid System Expansion (12 → 24) ✅
+### 2. Mobile Stacking Investigation ⏸️ (BLOCKED)
 
-**Implementation:**
+**Problem:** Widgets don't stack full-width on mobile breakpoints (sm/xs/xxs)
 
-**Step A: Column Count Increase**  
-- Tested 16, 20, and settled on 24 columns per user feedback
-- Updated `Dashboard.jsx` grid configuration (lg/md/sm breakpoints)
-- Updated `layoutUtils.js` sorting algorithm to handle 24 columns
-- Mobile (xs/xxs) kept at 2 columns for stacking
+**Investigation Steps:**
+1. ✅ Verified column configs across all files (aligned to lg/md=12, sm/xs/xxs=2)
+2. ✅ Fixed band detection to run only for mobile breakpoints
+3. ✅ Added widgets to effect dependencies
+4. ✅ Researched Gridstack v12 documentation (gridstack-extra.css no longer exists)
+5. ✅ Added debug logging to track layout values
+6. ❌ **BLOCKER:** Widgets gs-w="4" instead of gs-w="2" on mobile
+7. ❌ **BLOCKER:** Widgets don't render at all on sm/xs/xxs after fixes
 
-**Changes:**
-```javascript
-// Dashboard.jsx
-cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }
+**Root Cause (Suspected):**
+- Band detection generates correct w:2 layouts
+- But widgets receive wrong values OR don't render
+- Need console logs to diagnose further
 
-// layoutUtils.js  
-const cols = breakpoint === 'xxs' ? 2 : breakpoint === 'xs' ? 6 : 24;
+**Files Modified:**
+- `src/components/GridstackWrapper.jsx` - Column config, debug logging
+- `src/utils/layoutUtils.js` - Band detection logic
+- `src/pages/Dashboard.jsx` - Band detection trigger, breakpoint filtering
+- `src/components/debug/DebugOverlay.jsx` - Column display values
+
+**Commits:**
+- `fix(grid): align column configurations for proper mobile stacking`
+- `fix(grid): properly apply band detection on mobile breakpoints`
+- `debug: add logging to track widget layout values when adding to Gridstack`
+- Multiple attempted fixes (reverted)
+
+---
+
+### 3. Production Deployment Pivot ✅
+
+**Decision:** Unable to fix Gridstack mobile stacking quickly, need working production state
+
+**Action Taken:**
+- Merged commit `bcc24cf` (Dec 3 session end) to main branch
+- This state uses react-grid-layout (known working)
+- Squashed 170 files into single commit on main
+- Reinstalled dependencies for main branch (react-grid-layout)
+- Built successfully from main branch
+
+**Process:**
+```bash
+git checkout main
+git merge --squash bcc24cf7a5f82dcd0fdd90786b43955383c80c61
+git commit -m "feat: merge working state from develop (Dec 3 session end)"
+git push origin main
+npm ci  # Reinstall packages for main
+npm run build  # SUCCESS (5.45s)
 ```
 
-**Step B: Container Width Adjustments**  
-- Original: `max-w-7xl` (~1280px)
-- Tried: `max-w-[2400px]` (too wide)
-- Final: `max-w-[2000px]` (perfect balance)
-- Result: ~83px per column
-
-**Files Modified:**
-- `src/pages/Dashboard.jsx`
-- `src/utils/layoutUtils.js`
-- `src/pages/UserSettings.jsx`
-
-**Commits:**
-- `feat(grid): expand from 12 to 16 columns for more horizontal space`
-- `feat(grid): expand to 20 columns`
-- `feat(grid): expand to 24 columns`
-- `feat(grid): expand container to 2400px for 24-column layout at proper sizing`
-- `feat(grid): adjust container to 2000px for better balance`
-- `feat(settings): match container width to Dashboard (2000px)`
-
----
-
-### 3. Bottom Padding for All Breakpoints ✅
-
-**Problem:** Content reached bottom edge on desktop, looking cramped.
-
-**Solution:**  
-- Changed mobile-only spacer (`block md:hidden`) to show on all breakpoints
-- Mobile: 100px bottom padding
-- Desktop: 128px bottom padding (via `md:h-32` class)
-
-**Files Modified:**
-- `src/pages/Dashboard.jsx` (line 792-793)
-- `src/pages/UserSettings.jsx` (line 141-142)
-
-**Commit:**
-- `feat(ui): add bottom padding to Dashboard and Settings for all breakpoints`
-
----
-
-### 4. Widget Resize Handles Enhancement ✅
-
-**Problem:** Only bottom-right corner handle visible, handles too small.
-
-**Solution (2-part fix):**
-
-**Part A: CSS Thickness Increase**  
-- Increased handle thickness from 16px to 20px  
-- North/South handles: Full width, 20px tall
-- East/West handles: Full height, 20px wide
-- All transform effects set to `none` (as requested)
-
-**Part B: Enable All Handles in React**  
-- Added `resizeHandles` prop to `ResponsiveGridLayout`
-- Enabled all 8 handles: `['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']`
-
-**Files Modified:**
-- `src/styles/GridLayout.css` (lines 171-205)
-- `src/pages/Dashboard.jsx` (line 722)
-
-**Commits:**
-- `feat(widgets): increase resize handle thickness from 16px to 20px`
-- `fix(widgets): enable all 8 resize handles (n,e,s,w,ne,se,sw,nw)`
+**Result:**
+- ✅ Main branch has working state (react-grid-layout)
+- ✅ Develop branch preserved with all Gridstack work
+- ✅ Zero data loss
+- ✅ Ready for production Docker build
 
 ---
 
 ## Testing Performed
 
-### Sidebar Highlighting
-- ✅ Profile button highlights correctly when `source=profile`
-- ✅ Settings button highlights on all other settings pages
-- ✅ Navigation preserves correct state
+### Cleanup Testing
+- ✅ Build passes after CSS removal (3.98s)
+- ✅ No visual regressions from comment updates
+- ✅ Debug overlay shows correct sm:2 column value
 
-### Grid Expansion
-- ✅ Build passed at 16, 20, and 24 columns
-- ✅ Mobile sorting algorithm handles 24 columns
-- ✅ Widgets can be positioned across full 24-column width
-- ✅ No layout breaking or visual glitches
-- ✅ User tested in browser at each step
+### Mobile Stacking Testing
+- ❌ Widgets show gs-w="4" on mobile (wrong value)
+- ❌ After fixes, widgets don't render on sm/xs/xxs
+- ⏸️ Needs console log analysis (blocked on deployment needs)
 
-### Container Width
-- ✅ Dashboard and Settings both use 2000px
-- ✅ Column width feels comfortable (~83px)
-- ✅ Consistent across all pages
-
-### Resize Handles
-- ✅ All 8 handles visible in edit mode
-- ✅ North/South: Full width, 20px thick
-- ✅ East/West: Full height, 20px thick  
-- ✅ Corners: 24px × 24px
-- ✅ No transform/scaling effects
-- ✅ User confirmed working in browser
+### Main Branch Testing
+- ✅ npm ci completes successfully
+- ✅ Build passes with react-grid-layout (5.45s)
+- ✅ Ready for Docker deployment
 
 ---
 
 ## Files Modified Summary
 
-### Source Files (5)
-1. `src/components/Sidebar.jsx` - Highlighting logic
-2. `src/pages/Dashboard.jsx` - Grid config, container, padding, handles
-3. `src/utils/layoutUtils.js` - Sorting algorithm
-4. `src/pages/UserSettings.jsx` - Container, padding
-5. `src/styles/GridLayout.css` - Handle thickness
+### This Session (14 files)
+1. `src/styles/GridLayout.css` - Removed legacy CSS
+2. `src/pages/Dashboard.jsx` - Comments, band detection
+3. `src/utils/gridConfig.js` - Comments
+4. `src/components/GridstackWrapper.jsx` - Column config, debug logging
+5. `src/utils/layoutUtils.js` - Band detection logic
+6. `src/components/debug/DebugOverlay.jsx` - Column values
+7. `.gemini/antigravity/brain/*/task.md` - Task tracking
+8. `.gemini/antigravity/brain/*/react_grid_audit.md` - Audit report
+9. `.gemini/antigravity/brain/*/gridstack_mobile_plan.md` - Implementation plan
 
-### Commits (12)
-All commits pushed to `develop` branch.
+### Commits This Session (~12)
+All on `develop` branch - Gridstack debugging work preserved
 
 ---
 
 ## Build Status
 
-- ✅ Final build: **PASSING** (4.06s)
-- ✅ No errors or warnings
-- ✅ All changes committed
-- ✅ All changes pushed to remote
+**Develop Branch:**
+- ⚠️ Build passes but widgets don't render on mobile
+
+**Main Branch:**
+- ✅ Build: PASSING (5.45s)
+- ✅ Uses react-grid-layout (working state from Dec 3)
+- ✅ Ready for production deployment
+
+---
+
+## Current Branch Status
+
+**Active Branch:** main  
+**Working Directory:** Clean (last build successful)
+
+**Branch States:**
+- `main`: Dec 3 working state (react-grid-layout) - READY FOR DEPLOY
+- `develop`: Has all Gridstack migration work - PAUSED FOR DEBUGGING
 
 ---
 
 ## Next Steps
 
-### Immediate
-- ✅ Session documentation complete
-- ✅ All commits pushed
-- Ready for next session
+### Immediate (Next Session)
+1. **Deploy from main** - Build Docker from main branch working state
+2. **Debug Gridstack** - Switch back to develop, analyze console logs
+3. **Check widget layouts** - Use debug logging to see what values Gridstack receives
+4. **Identify root cause** - Why widgets don't render on mobile breakpoints
 
-### Future Recommendations
-1. **Update Widget Metadata** - Scale `minSize`, `maxSize`, `defaultSize` in `widgetRegistry.js` for 24-column grid
-2. **Test Each Widget** - Verify all widget types look good at new column widths
-3. **User Documentation** - Update user-facing docs about grid capabilities
+### For Gridstack Debugging
+1. Open browser console logs
+2. Look for "Adding widget to Gridstack" logs
+3. Check if layout.w shows 2 or 4
+4. Check for errors preventing render
+5. Verify band detection is updating widgets array
+
+### For Production
+- Build from main: `docker build -t pickels23/framerr:main .`
+- Deploy: `docker push pickels23/framerr:main`
+
+---
+
+## Blockers
+
+1. **Gridstack Mobile Rendering** - Widgets don't render on sm/xs/xxs breakpoints
+   - Need console log analysis
+   - Suspected issue with widget recreation or layout values
+   - Low priority - working state available on main
 
 ---
 
 ## Session Statistics
 
-- **Tool Calls:** 349
-- **Files Modified:** 5
-- **Commits:** 12  
-- **Average Build Time:** ~4s
-- **Docker Rebuilds:** 5 (for user testing)
-- **Total Duration:** 69 minutes
+- **Tool Calls:** ~500
+- **Checkpoints:** 3
+- **Files Modified:** 14
+- **Commits:** ~12 (develop) + 1 (main merge)
+- **Total Duration:** ~53 minutes
+- **Branches Modified:** 2 (develop, main)
 
 ---
 
 ## Session End Marker
 
 ✅ **SESSION END**
-- Session ended: 2025-12-03 21:36:00
-- Status: Ready for next session
+- Session ended: 2025-12-05 03:40:00
+- Status: Gridstack debugging paused, main branch ready for deployment
+- Current branch: main (working state)
 - All changes committed and pushed
 - Documentation updated
+- Ready for next session

@@ -1,8 +1,9 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-03 18:21:00  
+**Last Updated:** 2025-12-05 03:40:00  
 **Current Version:** v1.1.6-recovered  
-**Development Branch:** `develop`  
+**Development Branch:** `develop` (Gridstack migration paused)
+**Production Branch:** `main` (Dec 3 working state - react-grid-layout)
 **Production Docker:** `pickels23/framerr:debug`
 
 ---
