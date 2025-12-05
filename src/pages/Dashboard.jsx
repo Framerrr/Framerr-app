@@ -40,20 +40,6 @@ const Dashboard = () => {
     const [originalLayout, setOriginalLayout] = useState([]);
     const [greetingEnabled, setGreetingEnabled] = useState(true);
     const [greetingText, setGreetingText] = useState('Your personal dashboard');
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [integrations, setIntegrations] = useState({});
-    const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
-    const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
-    const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
-    const [layoutMode, setLayoutMode] = useState('auto'); // 'auto' = synced layouts, 'manual' = independent per breakpoint
-
-    // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
-    const handleWidgetVisibilityChange = (widgetId, isVisible) => {
-        setWidgetVisibility(prev => ({
-            ...prev,
-            [widgetId]: isVisible
-        }));
-    };
 
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
@@ -387,6 +373,7 @@ const Dashboard = () => {
                     [currentBreakpoint]: newLayout
                 };
                 console.log('✅ MANUAL: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
+                setLayoutVersion(v => v + 1); // Force grid re-render
                 return updated;
             });
             return;
@@ -461,6 +448,7 @@ const Dashboard = () => {
                     [currentBreakpoint]: newLayout
                 };
                 console.log('✅ AUTO: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
+                setLayoutVersion(v => v + 1); // Force grid re-render
                 return updated;
             });
         }
@@ -893,6 +881,7 @@ const Dashboard = () => {
                 {widgets.length > 0 && (
                     <>
                         <ResponsiveGridLayout
+                            key={`grid-${layoutVersion}`}
                             {...gridConfig}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
