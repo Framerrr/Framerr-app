@@ -62,7 +62,7 @@ const Dashboard = () => {
         cols: { lg: 12, md: 12, sm: 12, xs: 2, xxs: 2 },  // Desktop tier: 12 cols, Mobile tier: 2 cols
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
         rowHeight: 100,  // Static for reliability
-        compactType: null,  // Fully controlled - we manage all positioning through recompaction
+        compactType: 'vertical',  // Let library handle vertical compaction
         preventCollision: !editMode,  // Allow widgets to push each other in edit mode, prevent in view mode
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
@@ -241,7 +241,7 @@ const Dashboard = () => {
             ...prev,
             [breakpoint]: compactedLayouts
         }));
-    }, [widgetVisibility, currentBreakpoint, editMode]); // Recompact when visibility, breakpoint, or editMode changes
+    }, [widgetVisibility, currentBreakpoint]); // Only recompact when visibility or breakpoint changes, NOT during drag
 
     const loadUserPreferences = async () => {
         try {
@@ -382,14 +382,11 @@ const Dashboard = () => {
             });
 
             setWidgets(updatedWidgets);
-            setLayouts(prev => {
-                const updated = {
-                    ...prev,
-                    [currentBreakpoint]: newLayout
-                };
-                console.log('✅ MANUAL: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
-                return updated;
-            });
+            // IMMEDIATE state update - library will use this on next render
+            setLayouts(prev => ({
+                ...prev,
+                [currentBreakpoint]: newLayout
+            }));
             return;
         }
 
@@ -456,14 +453,11 @@ const Dashboard = () => {
             });
 
             setWidgets(updatedWidgets);
-            setLayouts(prev => {
-                const updated = {
-                    ...prev,
-                    [currentBreakpoint]: newLayout
-                };
-                console.log('✅ AUTO: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
-                return updated;
-            });
+            // IMMEDIATE state update - library will use this on next render
+            setLayouts(prev => ({
+                ...prev,
+                [currentBreakpoint]: newLayout
+            }));
         }
     };
 
