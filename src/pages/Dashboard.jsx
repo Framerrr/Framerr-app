@@ -52,6 +52,11 @@ const Dashboard = () => {
     };
 
 
+    // Breakpoint change handler for Gridstack
+    const onBreakpointChange = (breakpoint) => {
+        setCurrentBreakpoint(breakpoint);
+    };
+
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
