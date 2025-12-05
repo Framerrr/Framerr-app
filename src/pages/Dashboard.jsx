@@ -501,14 +501,19 @@ const Dashboard = () => {
 
     // Delete widget
     const handleDeleteWidget = (widgetId) => {
+        console.log('🗑️ Deleting widget:', widgetId, 'from all breakpoints');
+
         const updatedWidgets = widgets.filter(w => w.id !== widgetId);
         setWidgets(updatedWidgets);
 
-        // Regenerate layouts after deletion
+        // PHASE 3: Always sync deletion across all breakpoints (in both modes)
+        // This ensures widget list stays consistent
         const withLayouts = generateAllMobileLayouts(updatedWidgets);
         setWidgets(withLayouts);
         setLayouts({
             lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
+            md: withLayouts.map(w => ({ i: w.id, ...w.layouts.md })),
+            sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
             xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
             xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
         });
@@ -574,17 +579,46 @@ const Dashboard = () => {
                 }
             };
 
-            // Migrate new widget and regenerate all layouts
+            // PHASE 3: Respect layout mode when adding widgets
             const migratedWidget = migrateWidgetToLayouts(newWidget);
-            const allWidgets = [...widgets, migratedWidget];
-            const withLayouts = generateAllMobileLayouts(allWidgets);
 
-            setWidgets(withLayouts);
-            setLayouts({
-                lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
-            });
+            if (layoutMode === 'manual') {
+                console.log('➕ MANUAL MODE: Adding widget to', currentBreakpoint, 'only');
+
+                // Add widget to current breakpoint only
+                const allWidgets = [...widgets, migratedWidget];
+                setWidgets(allWidgets);
+
+                // Create layout item for current breakpoint
+                const newLayoutItem = {
+                    i: migratedWidget.id,
+                    x: migratedWidget.x,
+                    y: migratedWidget.y,
+                    w: migratedWidget.w,
+                    h: migratedWidget.h
+                };
+
+                // Add to current breakpoint layout only
+                setLayouts(prev => ({
+                    ...prev,
+                    [currentBreakpoint]: [...prev[currentBreakpoint], newLayoutItem]
+                }));
+            } else {
+                console.log('➕ AUTO MODE: Adding widget to all breakpoints');
+
+                // Add to all breakpoints with proper sizing
+                const allWidgets = [...widgets, migratedWidget];
+                const withLayouts = generateAllMobileLayouts(allWidgets);
+
+                setWidgets(withLayouts);
+                setLayouts({
+                    lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
+                    md: withLayouts.map(w => ({ i: w.id, ...w.layouts.md })),
+                    sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
+                    xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
+                    xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+                });
+            }
 
             setHasUnsavedChanges(true);
             setShowAddModal(false);
