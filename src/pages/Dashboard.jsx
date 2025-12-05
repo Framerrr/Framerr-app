@@ -203,9 +203,6 @@ const Dashboard = () => {
         const isSorted = currentBreakpoint !== 'lg';
         if (!isSorted) return;
 
-        // Don't recompact while editing (user is manually arranging)
-        if (editMode) return;
-
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
@@ -244,7 +241,7 @@ const Dashboard = () => {
             ...prev,
             [breakpoint]: compactedLayouts
         }));
-    }, [widgetVisibility, currentBreakpoint]); // Only recompact when visibility changes, NOT when widgets positions update
+    }, [widgetVisibility, currentBreakpoint, editMode]); // Recompact when visibility, breakpoint, or editMode changes
 
     const loadUserPreferences = async () => {
         try {
