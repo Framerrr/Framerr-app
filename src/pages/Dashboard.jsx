@@ -68,6 +68,19 @@ const Dashboard = () => {
         onBreakpointChange: (breakpoint) => setCurrentBreakpoint(breakpoint)
     }), [editMode, currentBreakpoint, isGlobalDragEnabled]);
 
+    // DEBUG: Log grid config whenever it changes
+    React.useEffect(() => {
+        console.log('⚙️ Grid Config Updated:', {
+            editMode,
+            currentBreakpoint,
+            compactType: gridConfig.compactType,
+            preventCollision: gridConfig.preventCollision,
+            isDraggable: gridConfig.isDraggable,
+            isResizable: gridConfig.isResizable,
+            cols: gridConfig.cols[currentBreakpoint]
+        });
+    }, [editMode, currentBreakpoint, gridConfig]);
+
     // Helper: Apply minW/minH/maxH from widget metadata to layout items
     const enrichLayoutWithConstraints = (widget, layoutItem) => {
         const metadata = getWidgetMetadata(widget.type);
