@@ -27,6 +27,7 @@ const GridstackWrapper = ({
     const gridRef = useRef(null);
     const gridInstanceRef = useRef(null);
     const rootsRef = useRef(new Map());
+    const editModeRef = useRef(editMode); // Track current edit mode for event handlers
 
     // Initialize grid on mount
     useEffect(() => {
@@ -69,9 +70,8 @@ const GridstackWrapper = ({
 
             // Listen to drag stop (user finished dragging)
             gridInstanceRef.current.on('dragstop', (event, el) => {
-                // Only fire if grid is movable (edit mode) and callback exists
-                const isMovable = gridInstanceRef.current.opts.disableDrag === false;
-                if (!isMovable || !onLayoutChange) return;
+                // Only fire if in edit mode (check ref for current value)
+                if (!editModeRef.current || !onLayoutChange) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
@@ -95,9 +95,8 @@ const GridstackWrapper = ({
 
             // Listen to resize stop (user finished resizing)
             gridInstanceRef.current.on('resizestop', (event, el) => {
-                // Only fire if grid is resizable (edit mode) and callback exists
-                const isResizable = gridInstanceRef.current.opts.disableResize === false;
-                if (!isResizable || !onLayoutChange) return;
+                // Only fire if in edit mode (check ref for current value)
+                if (!editModeRef.current || !onLayoutChange) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
@@ -142,6 +141,9 @@ const GridstackWrapper = ({
     // Enable/disable editing based on editMode
     useEffect(() => {
         if (!gridInstanceRef.current) return;
+
+        // Update ref so event handlers can check current edit mode
+        editModeRef.current = editMode;
 
         if (editMode) {
             gridInstanceRef.current.enableMove(true);
