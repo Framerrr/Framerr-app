@@ -56,17 +56,25 @@ const DebugOverlay = ({
 
     const currentLayout = layouts[currentBreakpoint] || [];
 
-    // Extract grid config values with fallbacks
-    const rowHeight = gridConfig?.rowHeight || 68;
-    const marginX = gridConfig?.margin?.[0] || 16;
-    const marginY = gridConfig?.margin?.[1] || 16;
-    const cols = gridConfig?.cols?.[currentBreakpoint] || 24;
+    // Gridstack column configuration (matches GridstackWrapper.jsx)
+    const gridstackCols = {
+        lg: 12,
+        md: 12,
+        sm: 12,
+        xs: 6,
+        xxs: 2
+    };
+
+    // Extract grid config values - fallback to Gridstack defaults
+    const rowHeight = 100; // Gridstack uses fixed 100px cells
+    const marginX = 16; // Gridstack margin
+    const marginY = 16;
+    const cols = gridstackCols[currentBreakpoint] || 12;
 
     // Calculate ACTUAL column width from measured container
-    // This matches the calculation in Dashboard.jsx
     const containerWidth = gridContainerRef?.current?.offsetWidth || 2000;
     const calculatedCellWidth = (containerWidth - (marginX * (cols - 1))) / cols;
-    const calculatedCellHeight = rowHeight; // Row height is set dynamically in Dashboard
+    const calculatedCellHeight = rowHeight;
 
     // Sort widgets by their Y position to show stacking order
     const sortedWidgets = [...currentLayout]
@@ -134,7 +142,7 @@ const DebugOverlay = ({
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-400">Columns:</span>
-                        <span className="text-yellow-400">{gridConfig?.cols?.[currentBreakpoint] || 'N/A'}</span>
+                        <span className="text-yellow-400">{cols}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-400">Row Height:</span>
