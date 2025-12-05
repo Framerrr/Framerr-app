@@ -381,10 +381,14 @@ const Dashboard = () => {
             });
 
             setWidgets(updatedWidgets);
-            setLayouts(prev => ({
-                ...prev,
-                [currentBreakpoint]: newLayout
-            }));
+            setLayouts(prev => {
+                const updated = {
+                    ...prev,
+                    [currentBreakpoint]: newLayout
+                };
+                console.log('✅ MANUAL: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
+                return updated;
+            });
             return;
         }
 
@@ -451,10 +455,14 @@ const Dashboard = () => {
             });
 
             setWidgets(updatedWidgets);
-            setLayouts(prev => ({
-                ...prev,
-                [currentBreakpoint]: newLayout
-            }));
+            setLayouts(prev => {
+                const updated = {
+                    ...prev,
+                    [currentBreakpoint]: newLayout
+                };
+                console.log('✅ AUTO: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
+                return updated;
+            });
         }
     };
 
