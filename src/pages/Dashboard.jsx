@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Responsive, WidthProvider } from 'react-grid-layout';
 import { Edit, Save, X as XIcon, Plus } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -12,13 +11,10 @@ import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/w
 import { generateAllMobileLayouts, generateMobileLayout, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import DebugOverlay from '../components/debug/DebugOverlay';
+import GridstackWrapper from '../components/GridstackWrapper';
 import axios from 'axios';
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
 import '../styles/GridLayout.css';
 import logger from '../utils/logger';
-
-const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -877,56 +873,14 @@ const Dashboard = () => {
                 {/* Show grid when widgets exist */}
                 {widgets.length > 0 && (
                     <>
-                        <ResponsiveGridLayout
-                            key={`grid-${currentBreakpoint}`}
-                            {...gridConfig}
-                            resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
-                            draggableCancel=".no-drag"
-                            layouts={layouts}
+                        <GridstackWrapper
+                            widgets={widgets}
+                            currentBreakpoint={currentBreakpoint}
+                            editMode={editMode}
                             onLayoutChange={handleLayoutChange}
-                        >
-                            {widgets
-                                .map(widget => {
-                                    const metadata = getWidgetMetadata(widget.type);
-                                    const layoutItem = layouts.lg.find(l => l.i === widget.id) || {
-                                        i: widget.id,
-                                        x: widget.layouts?.lg?.x || 0,
-                                        y: widget.layouts?.lg?.y || 0,
-                                        w: widget.layouts?.lg?.w || 4,
-                                        h: widget.layouts?.lg?.h || 2
-                                    };
-
-                                    const renderedWidget = renderWidget(widget);
-
-                                    // Don't render grid cell if widget returns null
-                                    if (!renderedWidget) {
-                                        return null;
-                                    }
-
-                                    // Shrink grid cell when widget should be hidden (but keep it mounted)
-                                    const shouldShrink = widgetVisibility[widget.id] === false && !editMode;
-
-                                    return (
-                                        <div
-                                            key={widget.id}
-                                            className={editMode ? 'edit-mode' : 'locked'}
-                                            style={{
-                                                opacity: shouldShrink ? 0 : 1,
-                                                overflow: 'hidden'
-                                            }}
-                                            data-grid={{
-                                                ...layoutItem,
-                                                h: shouldShrink ? 0.001 : layoutItem.h,
-                                                minH: shouldShrink ? 0.001 : (metadata?.minSize?.h || 1),
-                                                maxW: metadata?.maxSize?.w || 12,  // Updated for 12-col grid
-                                                maxH: metadata?.maxSize?.h || 10
-                                            }}
-                                        >
-                                            {renderedWidget}
-                                        </div>
-                                    );
-                                })}
-                        </ResponsiveGridLayout>
+                            onBreakpointChange={onBreakpointChange}
+                            renderWidget={renderWidget}
+                        />
                     </>
                 )}
             </div>
