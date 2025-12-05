@@ -59,7 +59,7 @@ const Dashboard = () => {
         cols: { lg: 12, md: 12, sm: 12, xs: 2, xxs: 2 },  // Desktop tier: 12 cols, Mobile tier: 2 cols
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
         rowHeight: 100,  // Static for reliability
-        compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
+        compactType: editMode ? 'vertical' : ((currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'),
         preventCollision: true,  // Prevent overlapping widgets
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
