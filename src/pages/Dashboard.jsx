@@ -323,11 +323,20 @@ const Dashboard = () => {
     const handleLayoutChange = (newLayout) => {
         if (!editMode) return;
 
+        // DEBUG: Log layout change event
+        console.log('🔧 Layout changed:', {
+            mode: layoutMode,
+            breakpoint: currentBreakpoint,
+            layoutCount: newLayout.length,
+            widgets: newLayout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h }))
+        });
+
         // Mark as having unsaved changes immediately (for all breakpoints)
         setHasUnsavedChanges(true);
 
         // MANUAL MODE: Save changes to current breakpoint only (no sync)
         if (layoutMode === 'manual') {
+            console.log('📍 MANUAL MODE: Saving to', currentBreakpoint, 'only (no sync)');
             // Update widgets with new positions for current breakpoint
             const updatedWidgets = widgets.map(widget => {
                 const layoutItem = newLayout.find(l => l.i === widget.id);
@@ -366,6 +375,7 @@ const Dashboard = () => {
 
         // AUTO MODE: Desktop edits sync to mobile, mobile edits stay local
         if (currentBreakpoint === 'lg') {
+            console.log('🔄 AUTO MODE: Desktop edit, syncing down to mobile');
             // Desktop edit → sync to all mobile breakpoints
             const updatedWidgets = widgets.map(widget => {
                 const layoutItem = newLayout.find(l => l.i === widget.id);
@@ -404,6 +414,7 @@ const Dashboard = () => {
                 xxs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
             });
         } else {
+            console.log('📱 AUTO MODE: Mobile edit on', currentBreakpoint, ', staying local');
             // Mobile edit → stays on mobile only (no upward sync in Phase 2)
             const updatedWidgets = widgets.map(widget => {
                 const layoutItem = newLayout.find(l => l.i === widget.id);
@@ -717,7 +728,11 @@ const Dashboard = () => {
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-theme-tertiary border border-theme rounded-lg">
                         <span className="text-xs text-theme-secondary font-medium">Layout Mode:</span>
                         <button
-                            onClick={() => setLayoutMode(layoutMode === 'auto' ? 'manual' : 'auto')}
+                            onClick={() => {
+                                const newMode = layoutMode === 'auto' ? 'manual' : 'auto';
+                                console.log('⚙️ Mode toggled:', layoutMode, '→', newMode);
+                                setLayoutMode(newMode);
+                            }}
                             className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${layoutMode === 'auto'
                                 ? 'bg-accent text-white'
                                 : 'text-theme-secondary hover:text-theme-primary'
@@ -727,7 +742,11 @@ const Dashboard = () => {
                             Auto
                         </button>
                         <button
-                            onClick={() => setLayoutMode(layoutMode === 'auto' ? 'manual' : 'auto')}
+                            onClick={() => {
+                                const newMode = layoutMode === 'auto' ? 'manual' : 'auto';
+                                console.log('⚙️ Mode toggled:', layoutMode, '→', newMode);
+                                setLayoutMode(newMode);
+                            }}
                             className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${layoutMode === 'manual'
                                 ? 'bg-accent text-white'
                                 : 'text-theme-secondary hover:text-theme-primary'
