@@ -56,7 +56,7 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 12, md: 12, sm: 12, xs: 6, xxs: 2 },  // Desktop tier: 12 cols, Mobile tier: 6/2 cols
+        cols: { lg: 12, md: 12, sm: 12, xs: 2, xxs: 2 },  // Desktop tier: 12 cols, Mobile tier: 2 cols
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
         rowHeight: 100,  // Static for reliability
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
@@ -190,7 +190,7 @@ const Dashboard = () => {
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' ? 2 : (currentBreakpoint === 'xs' ? 6 : 12); // Desktop tier: 12, Mobile tier: 6/2
+        const cols = currentBreakpoint === 'xxs' ? 2 : (currentBreakpoint === 'xs' ? 2 : 12); // Desktop tier: 12, Mobile tier: 2
         const breakpoint = currentBreakpoint;
 
         logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
@@ -740,7 +740,7 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 12, md: 12, sm: 12, xs: 6, xxs: 2 }}
+                            cols={{ lg: 12, md: 12, sm: 12, xs: 2, xxs: 2 }}
                             breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
                             rowHeight={100}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
