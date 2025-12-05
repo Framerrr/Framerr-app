@@ -244,8 +244,30 @@ const GridstackWrapper = ({
         // Remove all existing widgets from grid
         grid.removeAll(false);
 
-        // Add widgets with layout for current breakpoint
-        widgets.forEach(widget => {
+        // Sort widgets by Y position for current breakpoint (ensures correct display order)
+        // This respects the band detection algorithm's sorted order
+        const sortedWidgets = [...widgets].sort((a, b) => {
+            const layoutA = a.layouts?.[currentBreakpoint];
+            const layoutB = b.layouts?.[currentBreakpoint];
+
+            if (!layoutA || !layoutB) return 0;
+
+            // Primary sort: Y position (top to bottom)
+            if (layoutA.y !== layoutB.y) {
+                return layoutA.y - layoutB.y;
+            }
+
+            // Secondary sort: X position (left to right)
+            return layoutA.x - layoutB.x;
+        });
+
+        logger.debug('Adding widgets in sorted order', {
+            breakpoint: currentBreakpoint,
+            order: sortedWidgets.map(w => ({ type: w.type, y: w.layouts?.[currentBreakpoint]?.y }))
+        });
+
+        // Add widgets with layout for current breakpoint in sorted order
+        sortedWidgets.forEach(widget => {
             const layout = widget.layouts?.[currentBreakpoint];
 
             if (!layout) {

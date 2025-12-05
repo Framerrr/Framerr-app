@@ -209,6 +209,9 @@ const Dashboard = () => {
         // Use proper band detection algorithm from layoutUtils
         const sortedWidgets = generateMobileLayout(widgets, currentBreakpoint);
 
+        // Update widgets array with new sorted order and layouts
+        setWidgets(sortedWidgets);
+
         // Apply visibility (hide/show) to the sorted layouts
         const compactedLayouts = sortedWidgets.map(w => {
             const layout = w.layouts[currentBreakpoint];
