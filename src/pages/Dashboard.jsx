@@ -241,7 +241,7 @@ const Dashboard = () => {
             ...prev,
             [breakpoint]: compactedLayouts
         }));
-    }, [widgetVisibility, currentBreakpoint]); // Only recompact when visibility or breakpoint changes, NOT during drag
+    }, [widgetVisibility, currentBreakpoint, editMode]); // Recompact on visibility, breakpoint, or editMode toggle
 
     const loadUserPreferences = async () => {
         try {
