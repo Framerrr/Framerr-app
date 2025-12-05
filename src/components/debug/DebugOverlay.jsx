@@ -30,14 +30,14 @@ const DebugOverlay = ({
     // Measure actual widget dimensions
     useEffect(() => {
         const measureWidgets = () => {
-            const gridItems = document.querySelectorAll('.react-grid-item');
+            // Gridstack uses .grid-stack-item instead of .react-grid-item
+            const gridItems = document.querySelectorAll('.grid-stack-item');
             const dimensions = {};
 
-            // Match grid items to layout by index (they render in same order)
-            const currentLayout = layouts[currentBreakpoint] || [];
-            gridItems.forEach((item, index) => {
-                if (index < currentLayout.length) {
-                    const widgetId = currentLayout[index].i;
+            // Gridstack has data-widget-id attribute on each item
+            gridItems.forEach((item) => {
+                const widgetId = item.getAttribute('data-widget-id');
+                if (widgetId) {
                     dimensions[widgetId] = {
                         width: item.offsetWidth,
                         height: item.offsetHeight
