@@ -147,6 +147,38 @@ const GridstackWrapper = ({
         onLayoutChangeRef.current = onLayoutChange;
     }, [onLayoutChange]);
 
+    // Detect breakpoint changes based on window width
+    useEffect(() => {
+        if (!onBreakpointChange) return;
+
+        // Map window width to breakpoint names (matching Gridstack config)
+        const getBreakpoint = (width) => {
+            if (width >= 1200) return 'lg';
+            if (width >= 1024) return 'md';
+            if (width >= 768) return 'sm';
+            if (width >= 600) return 'xs';
+            return 'xxs';
+        };
+
+        // Initial breakpoint
+        const initialBreakpoint = getBreakpoint(window.innerWidth);
+        if (initialBreakpoint !== currentBreakpoint) {
+            onBreakpointChange(initialBreakpoint);
+        }
+
+        // Watch for window resize
+        const handleResize = () => {
+            const newBreakpoint = getBreakpoint(window.innerWidth);
+            if (newBreakpoint !== currentBreakpoint) {
+                logger.debug('Breakpoint changed', { from: currentBreakpoint, to: newBreakpoint });
+                onBreakpointChange(newBreakpoint);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [currentBreakpoint, onBreakpointChange]);
+
     // Enable/disable editing based on editMode
     useEffect(() => {
         if (!gridInstanceRef.current) return;
