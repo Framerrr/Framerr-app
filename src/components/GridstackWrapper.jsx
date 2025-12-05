@@ -67,11 +67,14 @@ const GridstackWrapper = ({
                 collision: true
             }, gridRef.current);
 
-            // Listen to layout changes (drag/resize)
-            gridInstanceRef.current.on('change', (event, items) => {
+            // Listen to drag stop (user finished dragging)
+            gridInstanceRef.current.on('dragstop', (event, el) => {
+                if (!editMode || !onLayoutChange) return;
+
+                const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
 
-                logger.debug('Gridstack layout changed', {
+                logger.debug('Gridstack drag stopped', {
                     itemCount: items.length,
                     breakpoint: currentBreakpoint
                 });
@@ -85,34 +88,31 @@ const GridstackWrapper = ({
                     h: item.h
                 }));
 
-                if (onLayoutChange) {
-                    onLayoutChange(updatedLayout, currentBreakpoint);
-                }
+                onLayoutChange(updatedLayout);
             });
 
-            // Listen to breakpoint changes
-            gridInstanceRef.current.on('resizestop', () => {
-                const newColumn = gridInstanceRef.current.getColumn();
-                let newBreakpoint = currentBreakpoint;
+            // Listen to resize stop (user finished resizing)
+            gridInstanceRef.current.on('resizestop', (event, el) => {
+                if (!editMode || !onLayoutChange) return;
 
-                // Determine breakpoint based on column count
-                if (newColumn === 12) {
-                    const width = window.innerWidth;
-                    newBreakpoint = width >= 1200 ? 'lg' : 'md';
-                } else if (newColumn === 6) {
-                    const width = window.innerWidth;
-                    if (width >= 768) newBreakpoint = 'sm';
-                    else if (width >= 600) newBreakpoint = 'xs';
-                    else newBreakpoint = 'xxs';
-                }
+                const items = gridInstanceRef.current.engine.nodes;
+                if (!items || items.length === 0) return;
 
-                if (newBreakpoint !== currentBreakpoint && onBreakpointChange) {
-                    logger.info('Breakpoint changed', {
-                        from: currentBreakpoint,
-                        to: newBreakpoint
-                    });
-                    onBreakpointChange(newBreakpoint);
-                }
+                logger.debug('Gridstack resize stopped', {
+                    itemCount: items.length,
+                    breakpoint: currentBreakpoint
+                });
+
+                // Convert Gridstack format to our format
+                const updatedLayout = items.map(item => ({
+                    i: item.id,
+                    x: item.x,
+                    y: item.y,
+                    w: item.w,
+                    h: item.h
+                }));
+
+                onLayoutChange(updatedLayout);
             });
 
             logger.info('Gridstack initialized successfully');
@@ -158,13 +158,37 @@ const GridstackWrapper = ({
         }
     }, [editMode]);
 
-    // Update widgets when they change
+    // Update widgets when they change (but avoid full recreation if possible)
     useEffect(() => {
         if (!gridInstanceRef.current || !widgets) return;
 
-        logger.debug('Updating Gridstack widgets', {
+        const grid = gridInstanceRef.current;
+        const currentItems = grid.engine.nodes.map(n => n.id);
+        const newItems = widgets.map(w => w.id);
+
+        // Check if widget list actually changed
+        const widgetsAdded = newItems.filter(id => !currentItems.includes(id));
+        const widgetsRemoved = currentItems.filter(id => !newItems.includes(id));
+        const widgetsChanged = widgetsAdded.length > 0 || widgetsRemoved.length > 0;
+
+        if (!widgetsChanged && currentItems.length > 0) {
+            // Just update positions, don't recreate
+            logger.debug('Updating positions only', { count: widgets.length });
+
+            widgets.forEach(widget => {
+                const layout = widget.layouts?.[currentBreakpoint];
+                if (layout) {
+                    grid.update(widget.id, { x: layout.x, y: layout.y, w: layout.w, h: layout.h });
+                }
+            });
+            return;
+        }
+
+        logger.debug('Recreating grid widgets', {
             count: widgets.length,
-            breakpoint: currentBreakpoint
+            breakpoint: currentBreakpoint,
+            added: widgetsAdded.length,
+            removed: widgetsRemoved.length
         });
 
         // Clear all existing React roots before removing widgets
@@ -178,7 +202,7 @@ const GridstackWrapper = ({
         rootsRef.current.clear();
 
         // Remove all existing widgets from grid
-        gridInstanceRef.current.removeAll(false);
+        grid.removeAll(false);
 
         // Add widgets with layout for current breakpoint
         widgets.forEach(widget => {
