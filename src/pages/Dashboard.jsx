@@ -27,6 +27,8 @@ const Dashboard = () => {
     const [widgets, setWidgets] = useState([]);
     const [layouts, setLayouts] = useState({
         lg: [],
+        md: [],
+        sm: [],
         xs: [],
         xxs: []
     });
