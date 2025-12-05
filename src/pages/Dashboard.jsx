@@ -60,7 +60,7 @@ const Dashboard = () => {
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
         rowHeight: 100,  // Static for reliability
         compactType: editMode ? 'vertical' : ((currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'),
-        preventCollision: true,  // Prevent overlapping widgets
+        preventCollision: !editMode,  // Allow widgets to push each other in edit mode, prevent in view mode
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
         margin: [16, 16],
