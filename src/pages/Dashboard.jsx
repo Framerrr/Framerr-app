@@ -46,7 +46,6 @@ const Dashboard = () => {
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
     const [layoutMode, setLayoutMode] = useState('auto'); // 'auto' = synced layouts, 'manual' = independent per breakpoint
-    const [layoutVersion, setLayoutVersion] = useState(0); // Force grid re-render when layouts change
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -203,6 +202,9 @@ const Dashboard = () => {
         // Only run for breakpoints that use sorted stacked layouts (not lg)
         const isSorted = currentBreakpoint !== 'lg';
         if (!isSorted) return;
+
+        // Don't recompact while editing (user is manually arranging)
+        if (editMode) return;
 
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
@@ -389,7 +391,6 @@ const Dashboard = () => {
                     [currentBreakpoint]: newLayout
                 };
                 console.log('✅ MANUAL: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
-                setLayoutVersion(v => v + 1); // Force grid re-render
                 return updated;
             });
             return;
@@ -464,7 +465,6 @@ const Dashboard = () => {
                     [currentBreakpoint]: newLayout
                 };
                 console.log('✅ AUTO: Layout state updated for', currentBreakpoint, ':', newLayout.length, 'widgets');
-                setLayoutVersion(v => v + 1); // Force grid re-render
                 return updated;
             });
         }
@@ -897,7 +897,6 @@ const Dashboard = () => {
                 {widgets.length > 0 && (
                     <>
                         <ResponsiveGridLayout
-                            key={`grid-${layoutVersion}`}
                             {...gridConfig}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
