@@ -883,21 +883,11 @@ const Dashboard = () => {
                 {widgets.length > 0 && (
                     <>
                         <ResponsiveGridLayout
-                            className="layout"
-                            cols={{ lg: 12, md: 12, sm: 12, xs: 2, xxs: 2 }}
-                            breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
-                            rowHeight={100}
-                            compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
-                            preventCollision={true}
-                            isDraggable={editMode && isGlobalDragEnabled}
-                            isResizable={editMode && isGlobalDragEnabled}
+                            {...gridConfig}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
-                            margin={[16, 16]}
-                            containerPadding={[0, 0]}
                             layouts={layouts}
                             onLayoutChange={handleLayoutChange}
-                            onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint)}
                         >
                             {widgets
                                 .map(widget => {
