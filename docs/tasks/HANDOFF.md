@@ -1,10 +1,10 @@
 # HANDOFF DOCUMENT - Framerr v1.1.6
 
-**Last Updated:** 2025-12-04 21:27  
-**Status:** ✅ Phase 1 + 1.5 + 2 Complete  
+**Last Updated:** 2025-12-05 00:16  
+**Status:** ⚠️ react-grid-layout Limitation Identified, Gridstack.js Migration Planned  
 **Current Version:** v1.1.6-recovered  
 **Branch:** `develop`  
-**Docker Image:** `pickels23/framerr:feat` (Phase 1 + 1.5 + 2)
+**Docker Image:** `pickels23/framerr:feat` (Band detection working, but drag broken on mobile)
 
 ---
 
@@ -16,18 +16,37 @@ Modern, self-hosted homelab dashboard with iframe tab system and customizable wi
 ### Current State
 - **Backend:** ✅ Complete (2,081 files from v1.1.6 Docker image)
 - **Frontend:** ✅ 95% recovered + recovered hash navigation
-- **Build:** ✅ Passing (3.20s), ready for deployment
-- **Documentation:** ✅ Fully restructured + Phases 1, 1.5, 2 complete
-- **Status:** Production-ready; Phase 3 ready for implementation
+- **Build:** ✅ Passing (4.11s), ready for deployment
+- **Grid Library:** ⚠️ **react-grid-layout incompatible with requirements**
+- **Next Action:** **Migrate to Gridstack.js**
 
 ### Last Major Work
-**Dashboard Grid System - Phase 2 Complete** (2025-12-04 21:27)
-- ✅ Phase 1: 12-column grid, 2400px max, Manual/Auto toggle UI
-- ✅ Phase 1.5: Mobile layout fixes (xxs + xs both 2 columns, height preservation)
-- ✅ Phase 2: Mobile editing enabled with Manual/Auto mode logic
-- **Testing:** User tested on deployment, found potential issues (documented in `issue_analysis.md`)
-- **Next Step:** Consider compactType fix, then Phase 3 (Widget Addition Sync)
-- **See:** `docs/tasks/TASK_CURRENT.md` for full session summary
+**Dashboard Grid - Library Limitation Discovery** (2025-12-05 00:16, ~110 tool calls)
+
+**Problem Identified:**
+- react-grid-layout is semi-controlled (uses `layouts` as initial state only)
+- Cannot support both custom sort algorithm AND manual drag/drop
+- Exhausted all workarounds (7 different approaches tried)
+
+**What Works:**
+- ✅ Band detection algorithm (sweep line, column-first sorting)
+- ✅ Correct sort order displays in view mode
+- ✅ Desktop drag/drop (lg breakpoint)
+
+**What Doesn't Work:**
+- ❌ Mobile/tablet drag/drop (widgets snap back)
+- ❌ Simultaneous custom sort + manual positioning
+- **Root cause:** Fundamental library architecture limitation
+
+**Decision:**
+- **Switch to Gridstack.js** (truly controlled, modern, active)
+- Band detection algorithm can be reused
+- All layout states/modes can be preserved
+
+**Documentation:**
+- **Session notes:** `.gemini/.../session_grid_debugging.md` (comprehensive)
+- **Current task:** `docs/tasks/TASK_CURRENT.md`
+- **Next step:** Install Gridstack.js and migrate grid component
 
 
 ---
