@@ -894,6 +894,7 @@ const Dashboard = () => {
                 {widgets.length > 0 && (
                     <>
                         <ResponsiveGridLayout
+                            key={`grid-${currentBreakpoint}`}
                             {...gridConfig}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
