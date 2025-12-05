@@ -1,9 +1,11 @@
 /**
- * Grid Layout Styles for react-grid-layout
+ * Grid Layout Styles for Gridstack.js (and legacy react-grid-layout)
  * Custom styling for dashboard grid, widgets, and edit mode
- * 
- * Note: Base react-grid-layout CSS is imported in Dashboard.jsx
  */
+
+/* ========================================
+   REACT-GRID-LAYOUT STYLES (LEGACY)
+   ======================================== */
 
 /* Grid Container */
 .react-grid-layout {
@@ -19,7 +21,6 @@
     overflow: visible;
 }
 
-/* Prevent unwanted text selection while dragging */
 .react-grid-item.react-draggable-dragging {
     transition: none;
     z-index: 100;
@@ -31,7 +32,6 @@
     z-index: 100;
 }
 
-/* Edit Mode Styles */
 .react-grid-item.edit-mode {
     border: 2px dashed rgba(147, 51, 234, 0.4);
 }
@@ -41,32 +41,99 @@
     box-shadow: 0 4px 20px rgba(147, 51, 234, 0.2);
 }
 
-/* Locked Mode - No visual feedback */
 .react-grid-item.locked {
     cursor: default;
 }
 
-/* Resize Handles */
-.react-resizable-handle {
+.react-grid-placeholder {
+    background: rgba(147, 51, 234, 0.2);
+    border: 2px dashed rgba(147, 51, 234, 0.6);
+    border-radius: 0.75rem;
+    opacity: 1;
+    transition-duration: 100ms;
+    z-index: 2;
+}
+
+/* ========================================
+   GRIDSTACK.JS STYLES
+   ======================================== */
+
+/* Grid Container */
+.grid-stack {
+    position: relative;
+}
+
+/* Grid Items */
+.grid-stack-item {
     position: absolute;
-    width: 20px;
-    height: 20px;
-    background: transparent;
 }
 
-/* Only show resize handles in edit mode */
-.react-grid-item:not(.edit-mode) .react-resizable-handle {
-    display: none !important;
+/* Grid Item Content */
+.grid-stack-item-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: visible;
+    border-radius: 0.75rem;
+    transition: all 200ms ease;
 }
 
-/* Bottom-Right Resize Handle */
-.react-resizable-handle-se {
+/* Edit Mode Border */
+.grid-stack-item-content.edit-mode {
+    border: 2px dashed rgba(147, 51, 234, 0.4) !important;
+}
+
+.grid-stack-item-content.edit-mode:hover {
+    border-color: rgba(147, 51, 234, 0.6) !important;
+    box-shadow: 0 4px 20px rgba(147, 51, 234, 0.2) !important;
+}
+
+/* Dragging State */
+.grid-stack-item.ui-draggable-dragging {
+    z-index: 100;
+    transition: none !important;
+}
+
+.grid-stack-item.ui-draggable-dragging .grid-stack-item-content {
+    opacity: 0.8;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Resizing State */
+.grid-stack-item.ui-resizable-resizing {
+    z-index: 100;
+    transition: none !important;
+}
+
+/* Placeholder while dragging */
+.grid-stack-placeholder>.placeholder-content {
+    background: rgba(147, 51, 234, 0.2) !important;
+    border: 2px dashed rgba(147, 51, 234, 0.6) !important;
+    border-radius: 0.75rem !important;
+}
+
+/* Resize Handles - Hide by default */
+.grid-stack-item>.ui-resizable-handle {
+    display: none;
+}
+
+/* Show resize handles only when parent has edit-mode class */
+.grid-stack-item-content.edit-mode~.ui-resizable-handle {
+    display: block !important;
+}
+
+/* Resize Handle Styling */
+.ui-resizable-se {
     bottom: 0;
     right: 0;
     cursor: se-resize;
+    width: 20px;
+    height: 20px;
 }
 
-.react-resizable-handle-se::after {
+.ui-resizable-se::after {
     content: '';
     position: absolute;
     right: 3px;
@@ -78,23 +145,17 @@
     border-radius: 0 0 4px 0;
 }
 
-.edit-mode .react-resizable-handle-se:hover::after {
-    border-color: rgba(147, 51, 234, 1);
-    width: 10px;
-    height: 10px;
+.ui-resizable-handle:hover::after {
+    border-color: rgba(147, 51, 234, 1) !important;
+    width: 10px !important;
+    height: 10px !important;
 }
 
-/* Placeholder while dragging */
-.react-grid-placeholder {
-    background: rgba(147, 51, 234, 0.2);
-    border: 2px dashed rgba(147, 51, 234, 0.6);
-    border-radius: 0.75rem;
-    opacity: 1;
-    transition-duration: 100ms;
-    z-index: 2;
-}
+/* ========================================
+   SHARED WIDGET STYLES
+   ======================================== */
 
-/* Widget Wrapper Styles */
+/* Widget Wrapper */
 .widget-wrapper {
     height: 100%;
     display: flex;
@@ -130,21 +191,7 @@
     background: rgba(147, 51, 234, 0.7);
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .react-grid-item {
-        /* Prevent tiny widgets on mobile */
-    }
-
-    /* Simpler resize handle on mobile */
-    .react-resizable-handle-se::after {
-        width: 12px;
-        height: 12px;
-        border-width: 3px;
-    }
-}
-
-/* Animation when adding/removing widgets */
+/* Widget Animations */
 .widget-enter {
     opacity: 0;
     transform: scale(0.9);
@@ -167,68 +214,11 @@
     transition: opacity 200ms, transform 200ms;
 }
 
-/* Full-edge resize handles */
-.react-grid-item .react-resizable-handle-n {
-    width: 100% !important;
-    left: 0 !important;
-    top: 0 !important;
-    height: 20px !important;
-    cursor: n-resize !important;
-    transform: none !important;
-}
-
-.react-grid-item .react-resizable-handle-e {
-    height: 100% !important;
-    top: 0 !important;
-    right: 0 !important;
-    width: 20px !important;
-    cursor: e-resize !important;
-    transform: none !important;
-}
-
-.react-grid-item .react-resizable-handle-s {
-    width: 100% !important;
-    left: 0 !important;
-    bottom: 0 !important;
-    height: 20px !important;
-    cursor: s-resize !important;
-    transform: none !important;
-}
-
-.react-grid-item .react-resizable-handle-w {
-    height: 100% !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 20px !important;
-    cursor: w-resize !important;
-    transform: none !important;
-}
-
-.react-grid-item .react-resizable-handle-se,
-.react-grid-item .react-resizable-handle-ne,
-.react-grid-item .react-resizable-handle-sw,
-.react-grid-item .react-resizable-handle-nw {
-    width: 24px !important;
-    height: 24px !important;
-    transform: none !important;
-}
-
-/* Remove visual arrow indicators from resize handles */
-.react-grid-item .react-resizable-handle-s::before,
-.react-grid-item .react-resizable-handle-s::after,
-.react-grid-item .react-resizable-handle-n::before,
-.react-grid-item .react-resizable-handle-n::after,
-.react-grid-item .react-resizable-handle-e::before,
-.react-grid-item .react-resizable-handle-e::after,
-.react-grid-item .react-resizable-handle-w::before,
-.react-grid-item .react-resizable-handle-w::after,
-.react-grid-item .react-resizable-handle-se::before,
-.react-grid-item .react-resizable-handle-se::after,
-.react-grid-item .react-resizable-handle-ne::before,
-.react-grid-item .react-resizable-handle-ne::after,
-.react-grid-item .react-resizable-handle-sw::before,
-.react-grid-item .react-resizable-handle-sw::after,
-.react-grid-item .react-resizable-handle-nw::before,
-.react-grid-item .react-resizable-handle-nw::after {
-    display: none !important;
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .ui-resizable-se::after {
+        width: 12px;
+        height: 12px;
+        border-width: 3px;
+    }
 }

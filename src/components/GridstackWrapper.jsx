@@ -55,10 +55,15 @@ const GridstackWrapper = ({
                     ]
                 },
 
-                // Allow dragging/resizing (will be controlled by editMode)
-                staticGrid: !editMode,
+                // Start disabled, will enable in editMode effect
+                // Don't set staticGrid here - use enable()/disable() instead
 
-                // Prevent collisions (widgets can't overlap)
+                // Resize handles
+                resizable: {
+                    handles: 'e, se, s, sw, w'
+                },
+
+                // Prevent collisions
                 collision: true
             }, gridRef.current);
 
@@ -135,11 +140,21 @@ const GridstackWrapper = ({
         if (!gridInstanceRef.current) return;
 
         if (editMode) {
-            gridInstanceRef.current.enable();
+            gridInstanceRef.current.enableMove(true);
+            gridInstanceRef.current.enableResize(true);
             logger.debug('Gridstack editing enabled');
+
+            // Add edit-mode class to all content divs
+            const contentDivs = gridRef.current?.querySelectorAll('.grid-stack-item-content');
+            contentDivs?.forEach(div => div.classList.add('edit-mode'));
         } else {
-            gridInstanceRef.current.disable();
+            gridInstanceRef.current.enableMove(false);
+            gridInstanceRef.current.enableResize(false);
             logger.debug('Gridstack editing disabled');
+
+            // Remove edit-mode class from all content divs
+            const contentDivs = gridRef.current?.querySelectorAll('.grid-stack-item-content');
+            contentDivs?.forEach(div => div.classList.remove('edit-mode'));
         }
     }, [editMode]);
 
