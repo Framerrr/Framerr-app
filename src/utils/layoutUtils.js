@@ -2,7 +2,7 @@ import logger from './logger';
 import { getWidgetMetadata } from './widgetRegistry';
 export const generateMobileLayout = (widgets, breakpoint = 'xs') => {
     // Determine column count based on breakpoint
-    const cols = breakpoint === 'xxs' ? 6 : breakpoint === 'xs' ? 6 : 12; // lg/md/sm=12, xs/xxs=6
+    const cols = breakpoint === 'xxs' ? 2 : breakpoint === 'xs' ? 6 : 12; // lg/md/sm=12, xs=6, xxs=2
     // 1. Extract desktop layout info with Y range
     const desktopWidgets = widgets.map(w => ({
         id: w.id,
@@ -92,17 +92,15 @@ export const generateMobileLayout = (widgets, breakpoint = 'xs') => {
 };
 /**
  * Calculate appropriate widget height for mobile breakpoints
+ * Preserves desktop height to maintain widget proportions
  */
 const calculateMobileHeight = (widget, breakpoint) => {
     const metadata = getWidgetMetadata(widget.type);
     if (metadata?.minSize?.h) {
         return metadata.minSize.h;
     }
-    const desktopHeight = widget.layouts?.lg?.h ?? widget.h ?? 2;
-    const scaled = Math.ceil(desktopHeight * 0.75);
-    const min = 2;
-    const max = breakpoint === 'xxs' ? 4 : 6;
-    return Math.max(min, Math.min(max, scaled));
+    // Preserve desktop height instead of scaling
+    return widget.layouts?.lg?.h ?? widget.h ?? 2;
 };
 /**
  * Generate mobile layouts for all stacking breakpoints: md, sm, xs, xxs
