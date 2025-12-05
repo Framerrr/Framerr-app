@@ -256,6 +256,13 @@ const GridstackWrapper = ({
                 return;
             }
 
+            logger.debug('Adding widget to Gridstack', {
+                widgetId: widget.id,
+                breakpoint: currentBreakpoint,
+                layout: { x: layout.x, y: layout.y, w: layout.w, h: layout.h },
+                availableLayouts: Object.keys(widget.layouts || {})
+            });
+
             try {
                 // Add widget to Gridstack - it returns the grid-stack-item element
                 const gridItemEl = gridInstanceRef.current.addWidget({
