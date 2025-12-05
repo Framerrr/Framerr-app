@@ -69,7 +69,9 @@ const GridstackWrapper = ({
 
             // Listen to drag stop (user finished dragging)
             gridInstanceRef.current.on('dragstop', (event, el) => {
-                if (!onLayoutChange) return;
+                // Only fire if grid is movable (edit mode) and callback exists
+                const isMovable = gridInstanceRef.current.opts.disableDrag === false;
+                if (!isMovable || !onLayoutChange) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
@@ -93,7 +95,9 @@ const GridstackWrapper = ({
 
             // Listen to resize stop (user finished resizing)
             gridInstanceRef.current.on('resizestop', (event, el) => {
-                if (!onLayoutChange) return;
+                // Only fire if grid is resizable (edit mode) and callback exists
+                const isResizable = gridInstanceRef.current.opts.disableResize === false;
+                if (!isResizable || !onLayoutChange) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
