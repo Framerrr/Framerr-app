@@ -327,7 +327,7 @@ const Dashboard = () => {
     };
 
     // Handle layout changes (drag/resize)
-    const handleLayoutChange = (newLayout) => {
+    const handleLayoutChange = React.useCallback((newLayout) => {
         console.log('🔍 handleLayoutChange called', { editMode, layoutCount: newLayout.length });
         if (!editMode) return;
 
@@ -451,7 +451,7 @@ const Dashboard = () => {
                 [currentBreakpoint]: newLayout
             }));
         }
-    };
+    }, [editMode, widgets, layoutMode, currentBreakpoint]); // Deps: editMode for check, widgets for mapping, layoutMode/currentBreakpoint for routing
 
     // Save changes to API
     const handleSave = async () => {

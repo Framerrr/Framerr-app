@@ -28,6 +28,7 @@ const GridstackWrapper = ({
     const gridInstanceRef = useRef(null);
     const rootsRef = useRef(new Map());
     const editModeRef = useRef(editMode); // Track current edit mode for event handlers
+    const onLayoutChangeRef = useRef(onLayoutChange); // Track current callback for event handlers
 
     // Initialize grid on mount
     useEffect(() => {
@@ -70,9 +71,9 @@ const GridstackWrapper = ({
 
             // Listen to drag stop (user finished dragging)
             gridInstanceRef.current.on('dragstop', (event, el) => {
-                console.log('🔍 DRAGSTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChange });
+                console.log('🔍 DRAGSTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChangeRef.current });
                 // Only fire if in edit mode (check ref for current value)
-                if (!editModeRef.current || !onLayoutChange) return;
+                if (!editModeRef.current || !onLayoutChangeRef.current) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
@@ -91,14 +92,14 @@ const GridstackWrapper = ({
                     h: item.h
                 }));
 
-                onLayoutChange(updatedLayout);
+                onLayoutChangeRef.current(updatedLayout); // Call current callback via ref
             });
 
             // Listen to resize stop (user finished resizing)
             gridInstanceRef.current.on('resizestop', (event, el) => {
-                console.log('🔍 RESIZESTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChange });
+                console.log('🔍 RESIZESTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChangeRef.current });
                 // Only fire if in edit mode (check ref for current value)
-                if (!editModeRef.current || !onLayoutChange) return;
+                if (!editModeRef.current || !onLayoutChangeRef.current) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
@@ -117,7 +118,7 @@ const GridstackWrapper = ({
                     h: item.h
                 }));
 
-                onLayoutChange(updatedLayout);
+                onLayoutChangeRef.current(updatedLayout); // Call current callback via ref
             });
 
             logger.info('Gridstack initialized successfully');
@@ -139,6 +140,12 @@ const GridstackWrapper = ({
             }
         };
     }, []); // Only run on mount
+
+
+    // Update callback ref whenever it changes
+    useEffect(() => {
+        onLayoutChangeRef.current = onLayoutChange;
+    }, [onLayoutChange]);
 
     // Enable/disable editing based on editMode
     useEffect(() => {
