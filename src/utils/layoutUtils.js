@@ -2,7 +2,8 @@ import logger from './logger';
 import { getWidgetMetadata } from './widgetRegistry';
 export const generateMobileLayout = (widgets, breakpoint = 'xs') => {
     // Determine column count based on breakpoint
-    const cols = breakpoint === 'xxs' ? 2 : breakpoint === 'xs' ? 2 : 12; // lg/md/sm=12, xs/xxs=2
+    // lg/md = 12 columns (desktop), sm/xs/xxs = 2 columns (stacked)
+    const cols = (breakpoint === 'lg' || breakpoint === 'md') ? 12 : 2;
     // 1. Extract desktop layout info with Y range
     const desktopWidgets = widgets.map(w => ({
         id: w.id,

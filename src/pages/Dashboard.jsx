@@ -60,7 +60,7 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 12, md: 12, sm: 12, xs: 2, xxs: 2 },  // Desktop tier: 12 cols, Mobile tier: 2 cols
+        cols: { lg: 12, md: 12, sm: 2, xs: 2, xxs: 2 },  // Desktop: 12 cols, Mobile: 2 cols (stacked)
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
         rowHeight: 100,  // Static for reliability
         compactType: (currentBreakpoint === 'lg' || currentBreakpoint === 'md') ? 'vertical' : null,  // Desktop+Tablet: vertical compact, Mobile: respect exact positions

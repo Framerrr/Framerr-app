@@ -49,11 +49,11 @@ const GridstackWrapper = ({
                 // Responsive breakpoints
                 columnOpts: {
                     breakpoints: [
-                        { w: 1200, c: 12 }, // lg
-                        { w: 1024, c: 12 }, // md
-                        { w: 768, c: 12 },  // sm
-                        { w: 600, c: 6 },   // xs
-                        { w: 0, c: 2 }      // xxs - 2 cols for mobile stacking
+                        { w: 1200, c: 12 }, // lg - desktop
+                        { w: 1024, c: 12 }, // md - tablet landscape
+                        { w: 768, c: 2 },   // sm - stacked
+                        { w: 600, c: 2 },   // xs - stacked
+                        { w: 0, c: 2 }      // xxs - stacked
                     ]
                 },
 
