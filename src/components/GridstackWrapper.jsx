@@ -6,8 +6,8 @@ import logger from '../utils/logger';
 /**
  * GridstackWrapper - React wrapper for Gridstack.js
  * 
- * Replaces react-grid-layout with fully controlled grid system.
- * Supports mobile drag/drop, custom sort algorithms, and responsive breakpoints.
+ * Fully controlled grid system with responsive breakpoints,
+ * mobile drag/drop, and custom sort algorithm support.
  * 
  * @param {Array} widgets - Array of widget objects with layouts
  * @param {string} currentBreakpoint - Current responsive breakpoint (lg/md/sm/xs/xxs)

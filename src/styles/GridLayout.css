@@ -1,58 +1,7 @@
 /**
- * Grid Layout Styles for Gridstack.js (and legacy react-grid-layout)
+ * Grid Layout Styles for Gridstack.js
  * Custom styling for dashboard grid, widgets, and edit mode
  */
-
-/* ========================================
-   REACT-GRID-LAYOUT STYLES (LEGACY)
-   ======================================== */
-
-/* Grid Container */
-.react-grid-layout {
-    position: relative;
-    transition: height 200ms ease;
-}
-
-/* Grid Items */
-.react-grid-item {
-    transition: all 200ms ease;
-    transition-property: left, top, width, height;
-    border-radius: 0.75rem;
-    overflow: visible;
-}
-
-.react-grid-item.react-draggable-dragging {
-    transition: none;
-    z-index: 100;
-    cursor: move;
-}
-
-.react-grid-item.resizing {
-    transition: none;
-    z-index: 100;
-}
-
-.react-grid-item.edit-mode {
-    border: 2px dashed rgba(147, 51, 234, 0.4);
-}
-
-.react-grid-item.edit-mode:hover {
-    border-color: rgba(147, 51, 234, 0.6);
-    box-shadow: 0 4px 20px rgba(147, 51, 234, 0.2);
-}
-
-.react-grid-item.locked {
-    cursor: default;
-}
-
-.react-grid-placeholder {
-    background: rgba(147, 51, 234, 0.2);
-    border: 2px dashed rgba(147, 51, 234, 0.6);
-    border-radius: 0.75rem;
-    opacity: 1;
-    transition-duration: 100ms;
-    z-index: 2;
-}
 
 /* ========================================
    GRIDSTACK.JS STYLES

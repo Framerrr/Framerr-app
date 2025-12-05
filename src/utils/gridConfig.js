@@ -10,7 +10,7 @@ export const GRID_CONFIG = {
     maxWidth: 2400,           // Maximum container width (20% increase for better large display utilization)
     cols: 12,                 // Total columns in grid (industry standard)
 
-    // Breakpoints (from react-grid-layout)
+    // Breakpoints (Gridstack compatible)
     breakpoints: {
         lg: 1200,
         md: 1024,

@@ -309,7 +309,7 @@ const Dashboard = () => {
 
             setWidgets(fetchedWidgets);
 
-            // Convert to react-grid-layout format for all breakpoints
+            // Convert to layout format for all breakpoints
             const initialLayouts = {
                 lg: fetchedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
                 md: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.md })),
