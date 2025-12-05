@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon } from 'lucide-react';
+import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-
 import { isAdmin } from '../../utils/permissions';
 import ColorPicker from '../common/ColorPicker';
+import { Input } from '../common/Input';
+import { Button } from '../common/Button';
 import FaviconSettings from './FaviconSettings';
 import logger from '../../utils/logger';
 
@@ -15,20 +16,40 @@ const CustomizationSettings = () => {
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
 
-    // Default color values matching dark-pro.css
+    // Default color values matching dark-pro.css - 21 customizable variables
     const defaultColors = {
+        // Tier 1: Essentials (10)
         'bg-primary': '#0a0e1a',
         'bg-secondary': '#151922',
+        'bg-tertiary': '#1f2937',
         'accent': '#3b82f6',
         'accent-secondary': '#06b6d4',
         'text-primary': '#f1f5f9',
         'text-secondary': '#94a3b8',
+        'text-tertiary': '#64748b',
         'border': '#374151',
+        'border-light': '#1f2937',
+
+        // Tier 2: Status Colors (4)
+        'success': '#10b981',
+        'warning': '#f59e0b',
+        'error': '#ef4444',
+        'info': '#3b82f6',
+
+        // Tier 3: Advanced (7)
+        'bg-hover': '#374151',
+        'accent-hover': '#2563eb',
+        'accent-light': '#60a5fa',
+        'border-accent': 'rgba(59, 130, 246, 0.3)',
     };
 
     // Custom colors state - using kebab-case to match CSS variables
     const [customColors, setCustomColors] = useState(defaultColors);
     const [useCustomColors, setUseCustomColors] = useState(false);
+    const [customColorsEnabled, setCustomColorsEnabled] = useState(false); // Toggle state
+    const [lastSelectedTheme, setLastSelectedTheme] = useState('dark-pro'); // For reverting
+    const [autoSaving, setAutoSaving] = useState(false); // Auto-save indicator
+    const saveTimerRef = useRef(null); // Debounce timer
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -45,6 +66,55 @@ const CustomizationSettings = () => {
     const [greetingText, setGreetingText] = useState('Your personal dashboard');
     const [savingGreeting, setSavingGreeting] = useState(false);
 
+    // Collapsible sections state for Custom Colors
+    const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
+    const [advancedExpanded, setAdvancedExpanded] = useState(false);
+
+    // Function to get current theme colors from CSS variables
+    const getCurrentThemeColors = () => {
+        const root = document.documentElement;
+        const computedStyle = getComputedStyle(root);
+
+        return {
+            // Tier 1: Essentials
+            'bg-primary': computedStyle.getPropertyValue('--bg-primary').trim(),
+            'bg-secondary': computedStyle.getPropertyValue('--bg-secondary').trim(),
+            'bg-tertiary': computedStyle.getPropertyValue('--bg-tertiary').trim(),
+            'accent': computedStyle.getPropertyValue('--accent').trim(),
+            'accent-secondary': computedStyle.getPropertyValue('--accent-secondary').trim(),
+            'text-primary': computedStyle.getPropertyValue('--text-primary').trim(),
+            'text-secondary': computedStyle.getPropertyValue('--text-secondary').trim(),
+            'text-tertiary': computedStyle.getPropertyValue('--text-tertiary').trim(),
+            'border': computedStyle.getPropertyValue('--border').trim(),
+            'border-light': computedStyle.getPropertyValue('--border-light').trim(),
+
+            // Tier 2: Status Colors
+            'success': computedStyle.getPropertyValue('--success').trim(),
+            'warning': computedStyle.getPropertyValue('--warning').trim(),
+            'error': computedStyle.getPropertyValue('--error').trim(),
+            'info': computedStyle.getPropertyValue('--info').trim(),
+
+            // Tier 3: Advanced
+            'bg-hover': computedStyle.getPropertyValue('--bg-hover').trim(),
+            'accent-hover': computedStyle.getPropertyValue('--accent-hover').trim(),
+            'accent-light': computedStyle.getPropertyValue('--accent-light').trim(),
+            'border-accent': computedStyle.getPropertyValue('--border-accent').trim(),
+        };
+    };
+
+    // Update color pickers when theme changes (if custom colors are disabled)
+    useEffect(() => {
+        if (!customColorsEnabled && !loading) {
+            // Small delay to ensure CSS variables are applied
+            const timer = setTimeout(() => {
+                const themeColors = getCurrentThemeColors();
+                setCustomColors(themeColors);
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [theme, customColorsEnabled, loading]);
+
     // Load custom colors and application name from backend on mount
     useEffect(() => {
         const loadSettings = async () => {
@@ -55,13 +125,37 @@ const CustomizationSettings = () => {
                 });
 
                 if (userResponse.data?.theme?.customColors) {
-                    setCustomColors(userResponse.data.theme.customColors);
+                    // Merge saved colors with defaults to ensure all 21 variables exist
+                    // This handles migration from old 7-variable structure to new 21-variable structure
+                    const mergedColors = {
+                        ...defaultColors,
+                        ...userResponse.data.theme.customColors
+                    };
 
-                    // If user has custom theme mode set, apply colors
+                    // If user has custom theme mode set, enable toggle and apply colors
                     if (userResponse.data.theme.mode === 'custom') {
+                        setCustomColorsEnabled(true);
+                        setCustomColors(mergedColors);
                         setUseCustomColors(true);
-                        applyColorsToDOM(userResponse.data.theme.customColors);
+                        applyColorsToDOM(mergedColors);
+
+                        // Load last selected theme for revert functionality
+                        if (userResponse.data.theme.lastSelectedTheme) {
+                            setLastSelectedTheme(userResponse.data.theme.lastSelectedTheme);
+                        }
+                    } else {
+                        // Custom colors off - using a theme
+                        setCustomColorsEnabled(false);
+                        setLastSelectedTheme(userResponse.data.theme.mode);
+                        // Load theme colors into pickers for display
+                        const themeColors = getCurrentThemeColors();
+                        setCustomColors(themeColors);
                     }
+                } else {
+                    // No custom colors saved - load current theme colors for display
+                    setCustomColorsEnabled(false);
+                    const themeColors = getCurrentThemeColors();
+                    setCustomColors(themeColors);
                 }
 
                 // Load system config for application name
@@ -77,6 +171,7 @@ const CustomizationSettings = () => {
                 if (userResponse.data?.ui?.flattenUI !== undefined) {
                     const shouldFlatten = userResponse.data.ui.flattenUI;
                     setFlattenUI(shouldFlatten);
+
                     // Apply to document
                     if (shouldFlatten) {
                         document.documentElement.classList.add('flatten-ui');
@@ -105,18 +200,118 @@ const CustomizationSettings = () => {
         });
     };
 
+    const removeColorsFromDOM = () => {
+        // Remove all custom color CSS variables to let theme CSS take over
+        Object.keys(defaultColors).forEach(key => {
+            document.documentElement.style.removeProperty(`--${key}`);
+        });
+    };
+
+    const resetToThemeColors = async (themeId) => {
+        // Smart reset: remove custom colors, switch theme, wait, then read and apply theme colors
+        removeColorsFromDOM();
+
+        // Await theme change to ensure it completes
+        await changeTheme(themeId);
+
+        // Force a reflow to ensure CSS changes are applied
+        document.documentElement.offsetHeight;
+
+        // Wait for theme CSS to fully load and apply (increased to 500ms)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Read theme colors from DOM
+        const themeColors = getCurrentThemeColors();
+
+        // Update state for color pickers
+        setCustomColors(themeColors);
+
+        return themeColors;
+    };
+
+
     const handleColorChange = (key, value) => {
-        setCustomColors(prev => ({ ...prev, [key]: value }));
+        if (!customColorsEnabled) return; // Only allow changes when enabled
+
+        setCustomColors(prev => {
+            const updated = { ...prev, [key]: value };
+
+            // Clear existing timer
+            if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+            }
+
+            // Set auto-saving indicator
+            setAutoSaving(true);
+
+            // Debounce auto-save (500ms after last change)
+            saveTimerRef.current = setTimeout(async () => {
+                try {
+                    // Apply colors to DOM immediately
+                    applyColorsToDOM(updated);
+
+                    // Save to backend
+                    await axios.put('/api/config/user', {
+                        theme: {
+                            mode: 'custom',
+                            customColors: updated,
+                            lastSelectedTheme: lastSelectedTheme
+                        }
+                    }, {
+                        withCredentials: true
+                    });
+
+                    setUseCustomColors(true);
+                } catch (error) {
+                    logger.error('Failed to auto-save custom colors:', error);
+                } finally {
+                    setAutoSaving(false);
+                }
+            }, 500);
+
+            return updated;
+        });
+    };
+
+    const handleToggleCustomColors = async (enabled) => {
+        if (enabled) {
+            // Turn ON custom colors
+            setCustomColorsEnabled(true);
+            setLastSelectedTheme(theme); // Save current theme
+            setUseCustomColors(false); // Deselect theme in preset picker
+            // customColors already contains theme colors from load, user can now edit
+        } else {
+            // Turn OFF custom colors - revert to last selected theme
+            setCustomColorsEnabled(false);
+            setUseCustomColors(false);
+
+            // Smart reset to theme (removes custom colors, applies theme, waits, updates pickers)
+            await resetToThemeColors(lastSelectedTheme);
+
+            // Save to backend
+            try {
+                await axios.put('/api/config/user', {
+                    theme: { mode: lastSelectedTheme }
+                }, {
+                    withCredentials: true
+                });
+            } catch (error) {
+                logger.error('Failed to revert to theme:', error);
+            }
+        }
     };
 
     const handleSaveCustomColors = async () => {
+        if (!customColorsEnabled) return; // Can't save when disabled
+
         setSaving(true);
         try {
             // Save to backend
             await axios.put('/api/config/user', {
                 theme: {
                     mode: 'custom',
-                    customColors: customColors
+                    customColors: customColors,
+                    lastSelectedTheme: lastSelectedTheme // Save for revert
                 }
             }, {
                 withCredentials: true
@@ -236,26 +431,25 @@ const CustomizationSettings = () => {
         setGreetingText('Your personal dashboard');
     };
 
-
     return (
         <div className="space-y-6 fade-in">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold mb-2 text-white">
+                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
                     Customization
                 </h2>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-theme-secondary">
                     Personalize your dashboard appearance with colors and branding
                 </p>
             </div>
 
             {/* Sub-Tabs */}
-            <div className="flex gap-2 border-b border-slate-700">
+            <div className="flex gap-2 border-b border-theme">
                 <button
                     onClick={() => setActiveSubTab('general')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'general'
                         ? 'border-accent text-accent'
-                        : 'border-transparent text-slate-400 hover:text-slate-300'
+                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
                         }`}
                 >
                     <SettingsIcon size={18} className="inline mr-2" />
@@ -265,7 +459,7 @@ const CustomizationSettings = () => {
                     onClick={() => setActiveSubTab('colors')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'colors'
                         ? 'border-accent text-accent'
-                        : 'border-transparent text-slate-400 hover:text-slate-300'
+                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
                         }`}
                 >
                     <Palette size={18} className="inline mr-2" />
@@ -275,7 +469,7 @@ const CustomizationSettings = () => {
                     onClick={() => setActiveSubTab('favicon')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'favicon'
                         ? 'border-accent text-accent'
-                        : 'border-transparent text-slate-400 hover:text-slate-300'
+                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
                         }`}
                 >
                     <ImageIcon size={18} className="inline mr-2" />
@@ -284,7 +478,7 @@ const CustomizationSettings = () => {
             </div>
 
             {/* Content - CrossFade between tabs */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', overflow: 'hidden' }}>
                 <div
                     style={{
                         opacity: activeSubTab === 'general' ? 1 : 0,
@@ -297,71 +491,56 @@ const CustomizationSettings = () => {
                 >
                     <div className="space-y-6">
                         {/* Application Name Section */}
-                        <div className="rounded-xl p-6 border border-slate-700/50 bg-slate-900/30" style={{ transition: 'all 0.3s ease' }}>
-                            <h3 className="text-lg font-semibold text-white mb-4">
+                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Application Name
                             </h3>
-                            <p className="text-sm text-slate-400 mb-4">
+                            <p className="text-sm text-theme-secondary mb-4">
                                 Customize the application name displayed in the sidebar and throughout the dashboard.
                                 {!userIsAdmin && (
-                                    <span className="block mt-2 text-amber-400">
+                                    <span className="block mt-2 text-warning">
                                         ⚠️ This setting requires admin privileges
                                     </span>
                                 )}
                             </p>
-
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                                        Application Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={applicationName}
-                                        onChange={(e) => setApplicationName(e.target.value)}
-                                        disabled={!userIsAdmin}
-                                        maxLength={50}
-                                        placeholder="Homelab Dashboard"
-                                        className={`input-glow w-full px-4 py-3 bg-slate-900 border rounded-lg text-white placeholder-slate-500 transition-all ${userIsAdmin
-                                            ? 'border-slate-700 focus:outline-none focus:border-accent'
-                                            : 'border-slate-800 opacity-50 cursor-not-allowed'
-                                            }`}
-                                    />
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        {applicationName.length}/50 characters
-                                    </p>
-                                </div>
-
+                                <Input
+                                    label="Application Name"
+                                    value={applicationName}
+                                    onChange={(e) => setApplicationName(e.target.value)}
+                                    disabled={!userIsAdmin}
+                                    maxLength={50}
+                                    placeholder="Homelab Dashboard"
+                                    helperText={`${applicationName.length}/50 characters`}
+                                />
                                 {userIsAdmin && (
-                                    <button
+                                    <Button
                                         onClick={handleSaveApplicationName}
                                         disabled={savingAppName}
-                                        className="button-elevated px-6 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                        icon={Save}
                                     >
-                                        <Save size={18} />
                                         {savingAppName ? 'Saving...' : 'Save Application Name'}
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         </div>
 
                         {/* Dashboard Greeting Section */}
-                        <div className="rounded-xl p-6 border border-slate-700/50 bg-slate-900/30" style={{ transition: 'all 0.3s ease' }}>
-                            <h3 className="text-lg font-semibold text-white mb-4">
+                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Dashboard Greeting
                             </h3>
-                            <p className="text-sm text-slate-400 mb-6">
+                            <p className="text-sm text-theme-secondary mb-6">
                                 Customize the welcome message displayed on your dashboard.
                             </p>
-
                             <div className="space-y-6">
                                 {/* Enable/Disable Toggle */}
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <label className="text-sm font-medium text-slate-300">
+                                        <label className="text-sm font-medium text-theme-primary">
                                             Show Welcome Message
                                         </label>
-                                        <p className="text-xs text-slate-500 mt-1">
+                                        <p className="text-xs text-theme-tertiary mt-1">
                                             Display a custom greeting under your dashboard header
                                         </p>
                                     </div>
@@ -372,67 +551,54 @@ const CustomizationSettings = () => {
                                             onChange={(e) => setGreetingEnabled(e.target.checked)}
                                             className="sr-only peer"
                                         />
-                                        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                     </label>
                                 </div>
 
                                 {/* Greeting Text Input */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                                        Custom Greeting Text
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={greetingText}
-                                        onChange={(e) => setGreetingText(e.target.value)}
-                                        disabled={!greetingEnabled}
-                                        maxLength={100}
-                                        placeholder="Your personal dashboard"
-                                        className={`input-glow w-full px-4 py-3 bg-slate-900 border rounded-lg text-white placeholder-slate-500 transition-all ${greetingEnabled
-                                            ? 'border-slate-700 focus:outline-none focus:border-accent'
-                                            : 'border-slate-800 opacity-50 cursor-not-allowed'
-                                            }`}
-                                    />
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        {greetingText.length}/100 characters
-                                    </p>
-                                </div>
+                                <Input
+                                    label="Custom Greeting Text"
+                                    value={greetingText}
+                                    onChange={(e) => setGreetingText(e.target.value)}
+                                    disabled={!greetingEnabled}
+                                    maxLength={100}
+                                    placeholder="Your personal dashboard"
+                                    helperText={`${greetingText.length}/100 characters`}
+                                />
 
                                 {/* Action Buttons */}
                                 <div className="flex gap-3">
-                                    <button
+                                    <Button
                                         onClick={handleSaveGreeting}
                                         disabled={savingGreeting}
-                                        className="button-elevated px-6 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                        icon={Save}
                                     >
-                                        <Save size={18} />
                                         {savingGreeting ? 'Saving...' : 'Save Greeting'}
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         onClick={handleResetGreeting}
-                                        className="button-elevated px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                        variant="secondary"
+                                        icon={RotateCcw}
                                         title="Reset to default"
                                     >
-                                        <RotateCcw size={18} />
                                         <span className="hidden sm:inline">Reset</span>
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </div>
 
                         {/* Flatten UI Section */}
-                        <div className="rounded-xl p-6 border border-slate-700/50 bg-slate-900/30" style={{ transition: 'all 0.3s ease' }}>
-                            <h3 className="text-lg font-semibold text-white mb-4">
+                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Flatten UI Design
                             </h3>
-                            <p className="text-sm text-slate-400 mb-6">
+                            <p className="text-sm text-theme-secondary mb-6">
                                 Remove glassmorphism effects, shadows, and backdrop blur for a minimal flat design aesthetic. This affects all cards and panels throughout the application.
                             </p>
-
-                            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                            <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
                                 <div className="flex-1">
-                                    <div className="text-sm font-medium text-white mb-1">Flatten UI Design</div>
-                                    <div className="text-xs text-slate-400">
+                                    <div className="text-sm font-medium text-theme-primary mb-1">Flatten UI Design</div>
+                                    <div className="text-xs text-theme-tertiary">
                                         {flattenUI ? 'Flat design enabled' : '3D glassmorphism enabled'}
                                     </div>
                                 </div>
@@ -444,12 +610,13 @@ const CustomizationSettings = () => {
                                         disabled={savingFlattenUI}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                 </label>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div
                     style={{
                         opacity: activeSubTab === 'colors' ? 1 : 0,
@@ -463,24 +630,30 @@ const CustomizationSettings = () => {
                     <div className="space-y-8">
                         {/* Preset Themes Section */}
                         <div>
-                            <h3 className="text-lg font-semibold text-white mb-4">Preset Themes</h3>
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">Preset Themes</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {themes.map((t) => (
                                     <button
                                         key={t.id}
-                                        onClick={() => {
-                                            changeTheme(t.id);
-                                            setUseCustomColors(false);
+                                        onClick={async () => {
+                                            // Only reset if coming from custom colors OR switching themes
+                                            if (customColorsEnabled || theme !== t.id) {
+                                                setUseCustomColors(false);
+                                                setCustomColorsEnabled(false);
+                                                setLastSelectedTheme(t.id);
+                                                // Smart reset to theme (removes custom colors, applies theme, waits, updates pickers)
+                                                await resetToThemeColors(t.id);
+                                            }
                                         }}
                                         className={`p-4 rounded-lg border-2 transition-all text-left ${theme === t.id && !useCustomColors
                                             ? 'border-accent bg-accent/10'
-                                            : 'border-slate-700 hover:border-slate-600 bg-slate-900/30 hover:bg-slate-900/50 transition-all'
+                                            : 'border-theme hover:border-theme-light bg-theme-secondary hover:bg-theme-hover transition-all'
                                             }`}
                                     >
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                                <Palette size={20} className={theme === t.id && !useCustomColors ? 'text-accent' : 'text-slate-400'} />
-                                                <span className="font-semibold text-white">
+                                                <Palette size={20} className={theme === t.id && !useCustomColors ? 'text-accent' : 'text-theme-secondary'} />
+                                                <span className="font-semibold text-theme-primary">
                                                     {t.name}
                                                 </span>
                                             </div>
@@ -490,14 +663,13 @@ const CustomizationSettings = () => {
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-sm text-slate-400">
+                                        <p className="text-sm text-theme-secondary">
                                             {t.description}
                                         </p>
-
                                         {/* Color Preview */}
                                         <div className="flex gap-2 mt-3">
                                             {/* Background Color */}
-                                            <div className="w-8 h-8 rounded border border-slate-600" style={{
+                                            <div className="w-8 h-8 rounded border border-theme" style={{
                                                 backgroundColor:
                                                     t.id === 'light' ? '#ffffff' :
                                                         t.id === 'dracula' ? '#282a36' :
@@ -527,104 +699,262 @@ const CustomizationSettings = () => {
                         </div>
 
                         {/* Custom Colors Section */}
-                        <div className="border-t border-slate-700 pt-8">
-                            <div className="flex items-center justify-between mb-4">
+                        <div className="border-t border-theme pt-8">
+                            <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-white">Custom Colors</h3>
-                                    <p className="text-sm text-slate-400 mt-1">Create your own color scheme</p>
+                                    <h3 className="text-lg font-semibold text-theme-primary">Custom Colors</h3>
+                                    <p className="text-sm text-theme-secondary mt-1">Create your own color scheme</p>
                                 </div>
                                 {useCustomColors && (
-                                    <span className="text-xs px-3 py-1.5 rounded bg-accent text-white">
+                                    <span className="text-xs px-3 py-1.5 rounded bg-accent text-white font-medium">
                                         Custom Theme Active
                                     </span>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                {/* Background Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Background</h4>
-                                    <ColorPicker
-                                        label="Primary Background"
-                                        value={customColors['bg-primary']}
-                                        onChange={(val) => handleColorChange('bg-primary', val)}
-                                        description="Main background color"
-                                    />
-                                    <ColorPicker
-                                        label="Secondary Background"
-                                        value={customColors['bg-secondary']}
-                                        onChange={(val) => handleColorChange('bg-secondary', val)}
-                                        description="Cards and panels"
-                                    />
+                            {/* Enable Custom Colors Toggle */}
+                            <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme mb-6">
+                                <div className="flex-1">
+                                    <div className="text-sm font-medium text-theme-primary mb-1">
+                                        Enable Custom Colors
+                                    </div>
+                                    <div className="text-xs text-theme-tertiary">
+                                        {customColorsEnabled
+                                            ? 'Custom colors active - changes save automatically'
+                                            : 'Using theme colors - toggle to customize'}
+                                    </div>
                                 </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={customColorsEnabled}
+                                        onChange={(e) => handleToggleCustomColors(e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
 
-                                {/* Accent Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Accent</h4>
-                                    <ColorPicker
-                                        label="Primary Accent"
-                                        value={customColors['accent']}
-                                        onChange={(val) => handleColorChange('accent', val)}
-                                        description="Buttons and highlights"
-                                    />
-                                    <ColorPicker
-                                        label="Secondary Accent"
-                                        value={customColors['accent-secondary']}
-                                        onChange={(val) => handleColorChange('accent-secondary', val)}
-                                        description="Links and secondary actions"
-                                    />
-                                </div>
+                            {/* Tier 1: Essentials (Always Visible) */}
+                            <div className="mb-8">
+                                <h4 className="text-sm font-bold text-theme-secondary uppercase tracking-wider mb-4">
+                                    Essentials
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Backgrounds Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Backgrounds</h5>
+                                        <ColorPicker
+                                            label="Primary Background"
+                                            value={customColors['bg-primary']}
+                                            onChange={(val) => handleColorChange('bg-primary', val)}
+                                            description="Main page background"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Card Background"
+                                            value={customColors['bg-secondary']}
+                                            onChange={(val) => handleColorChange('bg-secondary', val)}
+                                            description="Cards and panels"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Button Background"
+                                            value={customColors['bg-tertiary']}
+                                            onChange={(val) => handleColorChange('bg-tertiary', val)}
+                                            description="Buttons and inputs"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                    </div>
 
-                                {/* Text Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Text</h4>
-                                    <ColorPicker
-                                        label="Primary Text"
-                                        value={customColors['text-primary']}
-                                        onChange={(val) => handleColorChange('text-primary', val)}
-                                        description="Main text color"
-                                    />
-                                    <ColorPicker
-                                        label="Secondary Text"
-                                        value={customColors['text-secondary']}
-                                        onChange={(val) => handleColorChange('text-secondary', val)}
-                                        description="Muted text and labels"
-                                    />
-                                </div>
+                                    {/* Accents Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Accents</h5>
+                                        <ColorPicker
+                                            label="Primary Accent"
+                                            value={customColors['accent']}
+                                            onChange={(val) => handleColorChange('accent', val)}
+                                            description="Buttons and highlights"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Secondary Accent"
+                                            value={customColors['accent-secondary']}
+                                            onChange={(val) => handleColorChange('accent-secondary', val)}
+                                            description="Links and secondary actions"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                    </div>
 
-                                {/* Border Colors */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Borders</h4>
-                                    <ColorPicker
-                                        label="Border Color"
-                                        value={customColors['border']}
-                                        onChange={(val) => handleColorChange('border', val)}
-                                        description="Dividers and outlines"
-                                    />
+                                    {/* Text Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Text</h5>
+                                        <ColorPicker
+                                            label="Primary Text"
+                                            value={customColors['text-primary']}
+                                            onChange={(val) => handleColorChange('text-primary', val)}
+                                            description="Main text color"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Secondary Text"
+                                            value={customColors['text-secondary']}
+                                            onChange={(val) => handleColorChange('text-secondary', val)}
+                                            description="Labels and descriptions"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Muted Text"
+                                            value={customColors['text-tertiary']}
+                                            onChange={(val) => handleColorChange('text-tertiary', val)}
+                                            description="Hints and timestamps"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                    </div>
+
+                                    {/* Borders Column */}
+                                    <div className="space-y-4">
+                                        <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Borders</h5>
+                                        <ColorPicker
+                                            label="Primary Border"
+                                            value={customColors['border']}
+                                            onChange={(val) => handleColorChange('border', val)}
+                                            description="Dividers and outlines"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Light Border"
+                                            value={customColors['border-light']}
+                                            onChange={(val) => handleColorChange('border-light', val)}
+                                            description="Subtle separators"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex gap-3">
+                            {/* Tier 2: Status Colors (Collapsible) */}
+                            <div className="mb-8">
                                 <button
-                                    onClick={handleSaveCustomColors}
-                                    disabled={saving}
-                                    className="button-elevated px-6 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
+                                    onClick={() => setStatusColorsExpanded(!statusColorsExpanded)}
+                                    className="w-full flex items-center justify-between p-4 bg-theme-secondary hover:bg-theme-hover rounded-lg border border-theme transition-all mb-4"
                                 >
-                                    <Save size={18} />
-                                    {saving ? 'Saving...' : 'Apply Custom Colors'}
+                                    <div className="flex items-center gap-3">
+                                        <h4 className="text-sm font-bold text-theme-secondary uppercase tracking-wider">
+                                            Status Colors
+                                        </h4>
+                                        <span className="text-xs text-theme-tertiary">(4 colors)</span>
+                                    </div>
+                                    <ChevronDown
+                                        size={18}
+                                        className={`text-theme-tertiary transition-transform ${statusColorsExpanded ? 'rotate-180' : ''}`}
+                                    />
                                 </button>
-                                <button
-                                    onClick={handleResetColors}
-                                    className="button-elevated px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-all font-medium"
-                                >
-                                    <RotateCcw size={18} />
-                                    Reset to Default
-                                </button>
+                                {statusColorsExpanded && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pl-4">
+                                        <ColorPicker
+                                            label="Success"
+                                            value={customColors['success']}
+                                            onChange={(val) => handleColorChange('success', val)}
+                                            description="Completed actions"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Warning"
+                                            value={customColors['warning']}
+                                            onChange={(val) => handleColorChange('warning', val)}
+                                            description="Cautions"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Error"
+                                            value={customColors['error']}
+                                            onChange={(val) => handleColorChange('error', val)}
+                                            description="Errors"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                        <ColorPicker
+                                            label="Info"
+                                            value={customColors['info']}
+                                            onChange={(val) => handleColorChange('info', val)}
+                                            description="Information"
+                                            disabled={!customColorsEnabled}
+                                        />
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Tier 3: Advanced (Collapsible) */}
+                            <div className="mb-8">
+                                <button
+                                    onClick={() => setAdvancedExpanded(!advancedExpanded)}
+                                    className="w-full flex items-center justify-between p-4 bg-theme-secondary hover:bg-theme-hover rounded-lg border border-theme transition-all mb-4"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <h4 className="text-sm font-bold text-theme-secondary uppercase tracking-wider">
+                                            Advanced
+                                        </h4>
+                                        <span className="text-xs text-theme-tertiary">(7 colors)</span>
+                                    </div>
+                                    <ChevronDown
+                                        size={18}
+                                        className={`text-theme-tertiary transition-transform ${advancedExpanded ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                                {advancedExpanded && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4">
+                                        {/* Interactive States */}
+                                        <div className="space-y-4">
+                                            <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Interactive States</h5>
+                                            <ColorPicker
+                                                label="Hover Background"
+                                                value={customColors['bg-hover']}
+                                                onChange={(val) => handleColorChange('bg-hover', val)}
+                                                description="Background on hover"
+                                                disabled={!customColorsEnabled}
+                                            />
+                                            <ColorPicker
+                                                label="Accent Hover"
+                                                value={customColors['accent-hover']}
+                                                onChange={(val) => handleColorChange('accent-hover', val)}
+                                                description="Accent color on hover"
+                                                disabled={!customColorsEnabled}
+                                            />
+                                            <ColorPicker
+                                                label="Light Accent"
+                                                value={customColors['accent-light']}
+                                                onChange={(val) => handleColorChange('accent-light', val)}
+                                                description="Light accent variant"
+                                                disabled={!customColorsEnabled}
+                                            />
+                                        </div>
+
+                                        {/* Special Borders */}
+                                        <div className="space-y-4">
+                                            <h5 className="text-xs font-semibold text-theme-tertiary uppercase tracking-wider">Special Borders</h5>
+                                            <ColorPicker
+                                                label="Accent Border"
+                                                value={customColors['border-accent']}
+                                                onChange={(val) => handleColorChange('border-accent', val)}
+                                                description="Highlighted borders"
+                                                disabled={!customColorsEnabled}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Auto-save Indicator */}
+                            {autoSaving && (
+                                <div className="text-xs text-theme-tertiary flex items-center gap-2 mt-3">
+                                    <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                                    Saving...
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
+
                 <div
                     style={{
                         opacity: activeSubTab === 'favicon' ? 1 : 0,
@@ -643,3 +973,4 @@ const CustomizationSettings = () => {
 };
 
 export default CustomizationSettings;
+

@@ -13,10 +13,7 @@ import AppTitle from './components/AppTitle';
 
 import Login from './pages/Login';
 import Setup from './pages/Setup';
-import Dashboard from './pages/Dashboard';
-import UserSettings from './pages/UserSettings';
-import TabView from './pages/TabView';
-import TailwindTest from './pages/TailwindTest';
+import MainContent from './pages/MainContent';
 
 // Component to load and apply custom colors after user authentication
 const CustomColorLoader = ({ children }) => {
@@ -68,15 +65,9 @@ const App = () => {
                                         <ProtectedRoute>
                                             <div className="flex w-full h-screen">
                                                 <Sidebar />
-                                                <main className="flex-1 overflow-y-auto pb-16 md:pb-0 md:pl-24">
+                                                <main className="flex-1 overflow-y-auto pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
                                                     <Routes>
-                                                        <Route path="/" element={<Dashboard />} />
-                                                        <Route path="/test" element={<TailwindTest />} />
-                                                        <Route path="/tab/:slug" element={<TabView />} />
-
-                                                        {/* User-specific settings for ALL users */}
-                                                        <Route path="/settings" element={<UserSettings />} />
-                                                        <Route path="*" element={<Navigate to="/" replace />} />
+                                                        <Route path="/*" element={<MainContent />} />
                                                     </Routes>
                                                 </main>
                                             </div>

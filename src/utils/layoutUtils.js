@@ -1,10 +1,8 @@
 import logger from './logger';
 import { getWidgetMetadata } from './widgetRegistry';
-
 export const generateMobileLayout = (widgets, breakpoint = 'xs') => {
     // Determine column count based on breakpoint
-    const cols = breakpoint === 'xxs' ? 2 : breakpoint === 'xs' ? 6 : 12; // md/sm=12, xs=6, xxs=2
-
+    const cols = breakpoint === 'xxs' ? 2 : breakpoint === 'xs' ? 6 : 24; // md/sm/lg=24, xs=6, xxs=2
     // 1. Extract desktop layout info with Y range
     const desktopWidgets = widgets.map(w => ({
         id: w.id,
@@ -18,69 +16,71 @@ export const generateMobileLayout = (widgets, breakpoint = 'xs') => {
         widget: w
     }));
 
-
-    // 2. Group widgets into rows based on overlapping Y ranges
-    const rows = [];
-    const processed = new Set();
-
-    console.log('🐛 [SORT DEBUG] Desktop widgets:', desktopWidgets.map(w => ({
-        id: w.id,
-        type: w.type,
-        x: w.x,
-        y: w.y,
-        yStart: w.yStart,
-        yEnd: w.yEnd
-    })));
-
-    desktopWidgets.forEach(widget => {
-        if (processed.has(widget.id)) return;
-
-        // Find all widgets that overlap with this widget's Y range (including edge-touching)
-        const overlapping = desktopWidgets.filter(w =>
-            !processed.has(w.id) &&
-            !(w.yEnd < widget.yStart || w.yStart > widget.yEnd) // Changed <= to < for edge-touching
-        );
-
-        logger.debug(`Processing widget: ${widget.type}`, { overlapping: overlapping.map(w => w.type) });
-
-        overlapping.forEach(w => processed.add(w.id));
-        rows.push(overlapping);
+    // 2. Apply band detection directly to all widgets (no row grouping needed)
+    // Sort by Y to prepare for sweep line algorithm
+    const ySorted = desktopWidgets.sort((a, b) => {
+        if (a.y !== b.y) return a.y - b.y;
+        return a.x - b.x;
     });
 
-    logger.debug('Rows grouped', { rows: rows.map(row => row.map(w => w.type)) });
+    const bands = [];
+    let currentBand = [];
+    let currentBandMaxY = -1;
 
-    // 3. Sort rows by minimum Y position
-    rows.sort((a, b) => Math.min(...a.map(w => w.y)) - Math.min(...b.map(w => w.y)));
+    // Sweep line: Separate into horizontal bands
+    ySorted.forEach((widget) => {
+        // Initialize first band
+        if (currentBand.length === 0) {
+            currentBand.push(widget);
+            currentBandMaxY = widget.yEnd;
+            return;
+        }
 
-    // 4. Within each row: leftmost column (X=0) first sorted by Y, then other columns by X then Y
-    const sorted = rows.flatMap(row => {
-        const leftmost = row.filter(w => w.x === 0).sort((a, b) => a.y - b.y);
-        const others = row.filter(w => w.x !== 0).sort((a, b) => {
+        // Check for hard cut: widget starts at or after current band's bottom
+        if (widget.y >= currentBandMaxY) {
+            bands.push(currentBand);
+            currentBand = [widget];
+            currentBandMaxY = widget.yEnd;
+        } else {
+            // No cut: widget overlaps with current band
+            currentBand.push(widget);
+            currentBandMaxY = Math.max(currentBandMaxY, widget.yEnd);
+        }
+    });
+
+    // Push final band
+    if (currentBand.length > 0) {
+        bands.push(currentBand);
+    }
+
+    logger.debug('Band detection', {
+        bandCount: bands.length,
+        bands: bands.map(band => ({
+            widgets: band.map(w => w.type),
+            yRange: `${Math.min(...band.map(w => w.y))}-${Math.max(...band.map(w => w.yEnd))}`
+        }))
+    });
+
+    // 3. Sort each band by X (column), then Y (row within column)
+    const sorted = bands.flatMap(band => {
+        return band.sort((a, b) => {
             if (a.x !== b.x) return a.x - b.x;
             return a.y - b.y;
         });
 
-        logger.debug('Row sorting', { leftmost: leftmost.map(w => w.type), others: others.map(w => w.type) });
-
-        return [...leftmost, ...others];
     });
-
     logger.debug('Final sorted order', { order: sorted.map(w => w.type) });
-
     // 5. Create stacked mobile layout
     let currentY = 0;
     return sorted.map((item) => {
         const mobileHeight = calculateMobileHeight(item.widget, breakpoint);
-
         const mobileLayoutItem = {
             x: 0,
             y: currentY,
             w: cols,
             h: mobileHeight
         };
-
         currentY += mobileHeight;
-
         return {
             ...item.widget,
             layouts: {
@@ -90,25 +90,20 @@ export const generateMobileLayout = (widgets, breakpoint = 'xs') => {
         };
     });
 };
-
 /**
  * Calculate appropriate widget height for mobile breakpoints
  */
 const calculateMobileHeight = (widget, breakpoint) => {
     const metadata = getWidgetMetadata(widget.type);
-
     if (metadata?.minSize?.h) {
         return metadata.minSize.h;
     }
-
     const desktopHeight = widget.layouts?.lg?.h ?? widget.h ?? 2;
     const scaled = Math.ceil(desktopHeight * 0.75);
-
     const min = 2;
     const max = breakpoint === 'xxs' ? 4 : 6;
     return Math.max(min, Math.min(max, scaled));
 };
-
 /**
  * Generate mobile layouts for all stacking breakpoints: md, sm, xs, xxs
  */
@@ -119,7 +114,6 @@ export const generateAllMobileLayouts = (widgets) => {
     const withXxs = generateMobileLayout(withXs, 'xxs');
     return withXxs;
 };
-
 /**
  * Convert old widget format to new layouts format
  */
@@ -127,7 +121,6 @@ export const migrateWidgetToLayouts = (widget) => {
     if (widget.layouts?.lg) {
         return widget;
     }
-
     return {
         ...widget,
         layouts: {

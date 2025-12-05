@@ -13,14 +13,14 @@ const WidgetWrapper = ({
     icon: Icon,
     editMode = false,
     flatten = false, // New: flatten mode removes glassmorphism/shadows
-    hideHeader = false, // New: hide header completely
+    showHeader = true, // Show header by default (reversed from hideHeader)
     onDelete,
     children
 }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     // Force hide header for link-grid widgets (they don't support headers)
-    const shouldHideHeader = type === 'link-grid' ? true : hideHeader;
+    const shouldShowHeader = type === 'link-grid' ? false : showHeader;
 
     return (
         <Card
@@ -57,7 +57,7 @@ const WidgetWrapper = ({
                                     e.preventDefault();
                                     setShowDeleteConfirm(false);
                                 }}
-                                className="px-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium
+                                className="px-3 py-2 rounded-lg bg-theme-tertiary hover:bg-theme-hover text-theme-primary text-sm font-medium
                                            flex items-center gap-1 transition-all duration-200"
                                 style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                             >
@@ -71,7 +71,7 @@ const WidgetWrapper = ({
                                     e.preventDefault();
                                     onDelete(id);
                                 }}
-                                className="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium
+                                className="px-3 py-2 rounded-lg bg-error hover:bg-error/80 text-white text-sm font-medium
                                            flex items-center gap-1 transition-all duration-200"
                                 style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                             >
@@ -84,15 +84,15 @@ const WidgetWrapper = ({
             )}
 
             {/* Widget Header - conditionally rendered */}
-            {!shouldHideHeader && (
-                <div className="widget-header flex items-center justify-between p-4 border-b border-slate-700">
+            {shouldShowHeader && (
+                <div className="widget-header flex items-center justify-between p-4 border-b border-theme">
                     <div className="flex items-center gap-3">
                         {Icon && (
                             <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
                                 <Icon size={18} className="text-accent" />
                             </div>
                         )}
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-lg font-semibold text-theme-primary">
                             {title || 'Widget'}
                         </h3>
                     </div>

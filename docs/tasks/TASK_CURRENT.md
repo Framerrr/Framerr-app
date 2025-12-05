@@ -1,201 +1,212 @@
-# Current Task - Documentation System Integration
+# Current Task - Grid Expansion & Resize Handle Improvements
 
-**Status:** In Progress  
-**Started:** 2025-12-02 15:51:00  
-**Checkpoint:** Tool call #35 (approx)  
-**Tool Calls:** 35+
+**Status:** ✅ COMPLETED  
+**Started:** 2025-12-03 20:27:00  
+**Completed:** 2025-12-03 21:36:00  
+**Duration:** ~69 minutes
+**Tool Calls:** 349
 
 ---
 
 ## Task Description
 
-Implementing comprehensive documentation system restructuring (v2.0) for Framerr. This involves:
-- Reorganizing all documentation into logical `docs/` structure
-- Creating dual Docker build system (production + debug)
-- Establishing workflow automation system
-- Building robust task tracking for agent continuity
+Expanded the dashboard grid system from 12 to 24 columns for more flexible widget positioning, adjusted container widths for optimal column sizing, added bottom padding to all pages, and enhanced widget resize handles with full-edge coverage on all 8 directions.
+
+### Objectives:
+1. ✅ Fix sidebar Profile/Settings highlighting to match mobile tab bar logic
+2. ✅ Expand grid from 12 to 24 columns
+3. ✅ Adjust container width to maintain usable column sizes
+4. ✅ Add bottom padding for desktop breakpoints  
+5. ✅ Enable and style all 8 widget resize handles
 
 ---
 
-## Subtasks
+## Work Completed
 
-### Phase 1: Directory Structure ✅
-- [x] Create `docs/` subdirectories (tasks, architecture, development, theming, recovery, versions)
-- [x] Create README files for each subdirectory
-- [x] Update `.dockerignore` to exclude docs from images
-- [x] Verify `.gitignore` tracks docs correctly
-- [x] Commit: "chore: create documentation structure"
+### 1. Sidebar Highlighting Fix ✅
 
-### Phase 2: Recovery Docs Archive ✅
-- [x] Create `docs/recovery/README.md` explaining recovery process
-- [x] Move 15 recovery .md files to `docs/recovery/`
-- [x] Move 2 .csv inventory files to `docs/recovery/`
-- [x] Commit: "docs: archive recovery documentation"
+**Problem:** Desktop sidebar didn't correctly highlight Profile and Settings buttons based on URL parameters.
 
-### Phase 3: Rules Migration ✅
-- [x] Create `.agent/rules/development-rules.md` (from OLDDOCS, adapted paths)
-- [x] Copy `.agent/rules/theming-rules.md` (from OLDDOCS, update paths)
-- [x] Create unified `.agent/rules.md` (quick reference)
-- [x] Git-rules.md already exists from previous session
-- [x] Commit: "docs: consolidate rules system"
+**Solution:**  
+- Updated `Sidebar.jsx` to parse hash parameters fresh inside className functions
+- Profile highlights when `tab=profile AND source=profile`
+- Settings highlights on all settings pages except when both conditions above are met
 
-### Phase 4: Workflow Migration ✅
-- [x] Create `.agent/workflows/start-session.md` (adapted from OLDDOCS)
-- [x] Create `.agent/workflows/end-session.md` (adapted from OLDDOCS)
-- [x] Create `.agent/workflows/checkpoint.md` (adapted from OLDDOCS)
-- [x] Create `.agent/workflows/code-audit.md` (NEW - from spec)
-- [x] Verify `.agent/workflows/git-workflow.md` exists
-- [x] Create placeholder `.agent/workflows/build-develop.md`
-- [x] Create placeholder `.agent/workflows/build-production.md`
-- [x] Create placeholder `.agent/workflows/recover-session.md`
-- [x] Commit: "docs: migrate and create workflows"
+**Files Modified:**
+- `src/components/Sidebar.jsx` (lines 283-321, 510-545)
 
-### Phase 5: Docker Build Files ✅
-- [x] Create `Dockerfile.dev` (debug build with source maps)
-- [x] Update `vite.config.js` (add source map config, minify control)
-- [x] Create `docs/development/DOCKER_BUILDS.md` (explain builds)
-- [x] Test build: `npm run build` (PASSED)
-- [x] Commit: "build: add development Docker build with source maps"
-
-### Phase 6-7: Architecture & Development Docs ✅
-- [x] Move `ARCHITECTURE.md` → `docs/architecture/`
-- [x] Move `HANDOFF.md` → `docs/tasks/` (for reorganization)
-- [x] Move `CHATFLOW.md` → `docs/` (temporary, needs updates)
-- [x] Move `PROJECT_SCOPE.md` → `docs/architecture/`
-- [x] Move `WIDGET_DEVELOPMENT_GUIDE.md` → `docs/development/`
-- [x] Move `LOGGING_REFERENCE.md` → `docs/development/`
-- [x] Move `1.1.6.md` → `docs/versions/1.1.6-recovered.md`
-- [x] Move `TASK_COMPLETED.md` → `docs/tasks/`
-- [x] Commit: "docs: organize architecture and development documentation"
-
-### Phase 8: Task System Foundation 🟡
-- [x] Move files to proper locations
-- [x] Create `docs/tasks/STATUS.md` (overall progress dashboard)
-- [ ] Update `docs/tasks/HANDOFF.md` (restructure for current state)
-- [ ] Create `docs/tasks/TASK_CURRENT.md` (this file - mark as template after)
-- [ ] Create `docs/tasks/TASK_BACKLOG.md` (future work queue)
-- [ ] Create cross-references between task docs
-- [ ] Commit: "docs: create task tracking system"
-
-### Phase 9: Primary Documentation ⏸️
-- [ ] Update `docs/CHATFLOW.md` (update all paths, workflow list)
-- [ ] Create `docs/README.md` (documentation index)
-- [ ] Rewrite root `README.md` (project overview, installation)
-- [ ] Create `CHANGELOG.md` (start with v1.1.6-recovered)
-- [ ] Update all cross-references
-- [ ] Verify all links work
-- [ ] Commit: "docs: finalize primary documentation"
-
-### Phase 10: Cleanup ⏸️
-- [ ] Delete `build-errors.log`
-- [ ] Delete `build-output.log`
-- [ ] Move any remaining unused root MD files to `.olddocs/`
-- [ ] Commit: "chore: cleanup root directory"
-
-### Phase 11-12: User Collaboration & Verification ⏸️
-- [ ] Work with user to define `/build-develop` workflow
-- [ ] Work with user to define `/build-production` workflow
-- [ ] Work with user to define `/recover-session` workflow
-- [ ] Test `/start-session` workflow
-- [ ] Test `/checkpoint` workflow
-- [ ] Test `/end-session` workflow
-- [ ] Verify all documentation cross-references
-- [ ] Final commit
+**Commits:**
+- `fix(sidebar): add Profile/Settings highlighting logic to match mobile tab bar`
+- `fix(sidebar): parse hash params fresh to fix Settings highlighting bug`
+- `fix(sidebar): Settings highlights except when BOTH tab=profile AND source=profile`
 
 ---
 
-## Progress Log
+### 2. Grid System Expansion (12 → 24) ✅
 
-### 2025-12-02 15:51 - Started Session
-- Read system_implementation_plan.md ✅
-- Analyzed current state and documentation ✅
-- Initialized implementation
+**Implementation:**
 
-### 2025-12-02 15:52-16:00 - Phases 1-5
-- Created complete docs/ structure
-- Archived all recovery documentation
-- Consolidated rules system (3 files created)
-- Created 7 workflows
-- Created Dockerfile.dev and Docker builds documentation
-- Build verified passing
+**Step A: Column Count Increase**  
+- Tested 16, 20, and settled on 24 columns per user feedback
+- Updated `Dashboard.jsx` grid configuration (lg/md/sm breakpoints)
+- Updated `layoutUtils.js` sorting algorithm to handle 24 columns
+- Mobile (xs/xxs) kept at 2 columns for stacking
 
-### 2025-12-02 16:00-16:05 - Phases 6-7
-- Organized architecture docs
-- Moved development guides to proper locations  
-- Moved task files for reorganization
+**Changes:**
+```javascript
+// Dashboard.jsx
+cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }
 
-### 2025-12-02 16:05-Current - Phase 8
-- Created STATUS.md dashboard
-- Creating task tracking files
-- In progress...
+// layoutUtils.js  
+const cols = breakpoint === 'xxs' ? 2 : breakpoint === 'xs' ? 6 : 24;
+```
 
----
+**Step B: Container Width Adjustments**  
+- Original: `max-w-7xl` (~1280px)
+- Tried: `max-w-[2400px]` (too wide)
+- Final: `max-w-[2000px]` (perfect balance)
+- Result: ~83px per column
 
-## Files Modified
+**Files Modified:**
+- `src/pages/Dashboard.jsx`
+- `src/utils/layoutUtils.js`
+- `src/pages/UserSettings.jsx`
 
-**Created:**
-- `docs/` structure (6 subdirectories + READMEs)
-- `.agent/rules.md`, `development-rules.md`, `theming-rules.md`
-- 7 workflow files in `.agent/workflows/`
-- `Dockerfile.dev`
-- `docs/development/DOCKER_BUILDS.md`
-- `docs/tasks/STATUS.md`
-- This file (TASK_CURRENT.md)
-
-**Modified:**
-- `.dockerignore` (added docs exclusions)
-- `vite.config.js` (added build config for source maps)
-
-**Moved:**
-- 15 recovery docs + 2 CSVs → `docs/recovery/`
-- Architecture docs → `docs/architecture/`
-- Development guides → `docs/development/`
-- Task files → `docs/tasks/`
+**Commits:**
+- `feat(grid): expand from 12 to 16 columns for more horizontal space`
+- `feat(grid): expand to 20 columns`
+- `feat(grid): expand to 24 columns`
+- `feat(grid): expand container to 2400px for 24-column layout at proper sizing`
+- `feat(grid): adjust container to 2000px for better balance`
+- `feat(settings): match container width to Dashboard (2000px)`
 
 ---
 
-## Decisions Made
+### 3. Bottom Padding for All Breakpoints ✅
 
-1. **Used PowerShell for file creation** when write_to_file tool encountered gitignore blocks
-2. **Moved HANDOFF.md and CHATFLOW.md** for restructuring rather than updating in place
-3. **Created STATUS.md** before completing HANDOFF update for better organization
-4. **Vite build config** enables source maps only in development mode for optimal production size
+**Problem:** Content reached bottom edge on desktop, looking cramped.
+
+**Solution:**  
+- Changed mobile-only spacer (`block md:hidden`) to show on all breakpoints
+- Mobile: 100px bottom padding
+- Desktop: 128px bottom padding (via `md:h-32` class)
+
+**Files Modified:**
+- `src/pages/Dashboard.jsx` (line 792-793)
+- `src/pages/UserSettings.jsx` (line 141-142)
+
+**Commit:**
+- `feat(ui): add bottom padding to Dashboard and Settings for all breakpoints`
 
 ---
 
-## Blockers / Issues
+### 4. Widget Resize Handles Enhancement ✅
 
-None currently - implementation proceeding smoothly
+**Problem:** Only bottom-right corner handle visible, handles too small.
+
+**Solution (2-part fix):**
+
+**Part A: CSS Thickness Increase**  
+- Increased handle thickness from 16px to 20px  
+- North/South handles: Full width, 20px tall
+- East/West handles: Full height, 20px wide
+- All transform effects set to `none` (as requested)
+
+**Part B: Enable All Handles in React**  
+- Added `resizeHandles` prop to `ResponsiveGridLayout`
+- Enabled all 8 handles: `['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']`
+
+**Files Modified:**
+- `src/styles/GridLayout.css` (lines 171-205)
+- `src/pages/Dashboard.jsx` (line 722)
+
+**Commits:**
+- `feat(widgets): increase resize handle thickness from 16px to 20px`
+- `fix(widgets): enable all 8 resize handles (n,e,s,w,ne,se,sw,nw)`
 
 ---
 
 ## Testing Performed
 
-- [x] Build passes after vite.config.js changes
-- [ ] Light theme tested (N/A - no UI changes)
-- [ ] Docker build tested (pending)
+### Sidebar Highlighting
+- ✅ Profile button highlights correctly when `source=profile`
+- ✅ Settings button highlights on all other settings pages
+- ✅ Navigation preserves correct state
+
+### Grid Expansion
+- ✅ Build passed at 16, 20, and 24 columns
+- ✅ Mobile sorting algorithm handles 24 columns
+- ✅ Widgets can be positioned across full 24-column width
+- ✅ No layout breaking or visual glitches
+- ✅ User tested in browser at each step
+
+### Container Width
+- ✅ Dashboard and Settings both use 2000px
+- ✅ Column width feels comfortable (~83px)
+- ✅ Consistent across all pages
+
+### Resize Handles
+- ✅ All 8 handles visible in edit mode
+- ✅ North/South: Full width, 20px thick
+- ✅ East/West: Full height, 20px thick  
+- ✅ Corners: 24px × 24px
+- ✅ No transform/scaling effects
+- ✅ User confirmed working in browser
+
+---
+
+## Files Modified Summary
+
+### Source Files (5)
+1. `src/components/Sidebar.jsx` - Highlighting logic
+2. `src/pages/Dashboard.jsx` - Grid config, container, padding, handles
+3. `src/utils/layoutUtils.js` - Sorting algorithm
+4. `src/pages/UserSettings.jsx` - Container, padding
+5. `src/styles/GridLayout.css` - Handle thickness
+
+### Commits (12)
+All commits pushed to `develop` branch.
+
+---
+
+## Build Status
+
+- ✅ Final build: **PASSING** (4.06s)
+- ✅ No errors or warnings
+- ✅ All changes committed
+- ✅ All changes pushed to remote
 
 ---
 
 ## Next Steps
 
-1. ~~Create TASK_BACKLOG.md~~ ✅
-2. ~~Update HANDOFF.md with current state~~ ✅ (via end-session)
-3. ~~Update CHATFLOW.md with new paths~~ ⏸️ (Minor, not blocking)
-4. ~~Create root README.md~~ ✅
-5. ~~Create CHANGELOG.md~~ ✅
-6. ~~Clean up root directory~~ ✅
-7. ~~Verify all cross-references~~ ✅
-8. Test workflows (Future session)
+### Immediate
+- ✅ Session documentation complete
+- ✅ All commits pushed
+- Ready for next session
+
+### Future Recommendations
+1. **Update Widget Metadata** - Scale `minSize`, `maxSize`, `defaultSize` in `widgetRegistry.js` for 24-column grid
+2. **Test Each Widget** - Verify all widget types look good at new column widths
+3. **User Documentation** - Update user-facing docs about grid capabilities
+
+---
+
+## Session Statistics
+
+- **Tool Calls:** 349
+- **Files Modified:** 5
+- **Commits:** 12  
+- **Average Build Time:** ~4s
+- **Docker Rebuilds:** 5 (for user testing)
+- **Total Duration:** 69 minutes
 
 ---
 
 ## Session End Marker
 
 ✅ **SESSION END**
-- Session ended: 2025-12-02 16:33:00
-- Tool calls: ~52
+- Session ended: 2025-12-03 21:36:00
 - Status: Ready for next session
-- Summary: Documentation System v2.0 successfully implemented - all 10 phases completed, 8 commits pushed to develop branch
-
-*This file will become a template after session ends - future sessions will copy structure*
+- All changes committed and pushed
+- Documentation updated

@@ -96,4 +96,6 @@ Ready to commit?
 
 ## Reference
 
-See `docs/development/LOGGING_REFERENCE.md` for detailed logging standards.
+- `docs/development/LOGGING_REFERENCE.md` - Logging standards
+- `docs/theming/THEMING_ENGINE.md` - Theming system architecture
+- `/.agent/rules/theming-rules.md` - Theming rules (check for hardcoded colors)

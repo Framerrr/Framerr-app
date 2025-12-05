@@ -1,17 +1,17 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-02 16:33:00  
+**Last Updated:** 2025-12-03 18:21:00  
 **Current Version:** v1.1.6-recovered  
 **Development Branch:** `develop`  
-**Production Docker:** `pickels23/framerr:reconstructed`
+**Production Docker:** `pickels23/framerr:debug`
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 8:** Documentation System Integration - IN PROGRESS
+**Phase 14:** Custom Colors Toggle & Auto-Save (In Progress) 🟡
 
-**Status:** Implementing comprehensive documentation restructuring with dual Docker builds, workflow automation, and task tracking system.
+**Status:** Custom colors toggle and auto-save implemented. Color reversion blocked on manual file edits needed.
 
 ---
 
@@ -20,32 +20,58 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
-| **Frontend** | ✅ Operational | Built and deployed, 5 stub components |
-| **Docker Production** | ✅ Live | `pickels23/framerr:reconstructed` |
-| **Docker Debug** | 🟡 Ready | `Dockerfile.dev` created, not yet built |
-| **Documentation** | 🟡 In Progress | Restructuring to new system |
-| **Workflows** | 🟡 Partial | 7 workflows created, 3 placeholders |
+| **Frontend** | ✅ Operational | All stubs redesigned, mobile UI refined |
+| **Docker Production** | ✅ Live | `pickels23/framerr:debug` (custom colors WIP) |
+| **Docker Debug** | ✅ Deployed | Same as production |
+| **Documentation** | ✅ Complete | Full v2.0 system in place |
+| **Workflows** | ✅ Active | 8 workflows created |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
+| **Setup Flow** | ✅ Fixed | Users can create admin accounts |
+| **Admin Settings** | ✅ Fixed | Admin users see all settings tabs |
+| **Hash Navigation** | ✅ Complete | Proper state-preserving routing restored |
+| **Stub Components** | ✅ Complete | 4/4 active stubs redesigned |
+| **Mobile Tab Bar** | ✅ Complete | Clear padding on non-iframe pages |
+| **Mobile Logout** | ✅ Complete | Fixed above tab bar, always visible |
+| **Custom Colors** | 🟡 Partial | Toggle & auto-save done, reversion blocked |
 
 ---
 
 ## 🚀 Recent Accomplishments
 
-### v1.1.6 Recovery (Dec 2, 2025)
-- ✅ Complete source code recovery from corrupted repository
-- ✅ 51 build errors systematically resolved
-- ✅ Fully operational Docker image deployed
-- ✅ 95% frontend recovery (5 stubs created)
+### Custom Colors Toggle & Auto-Save (Dec 3, 2025 - 18:21) - PARTIAL ✅🟡
+- ✅ Custom colors toggle with proper state management
+- ✅ Auto-save with 500ms debounce (removed Save/Reset buttons)
+- ✅ All 18 ColorPickers and buttons grey out when disabled
+- ✅ Theme color synchronization with useEffect
+- ✅ `resetToThemeColors()` function created with 200ms delay
+- 🟡 **BLOCKER:** Handlers don't call reset function (file edit tool failed)
+- 🟡 Colors only revert after page refresh
+- 📝 13 commits, ~573 tool calls
 
-### Documentation System v2.0 (Dec 2, 2025 - In Progress)
+### Hash Navigation System Migration (Dec 2, 2025 - 20:20) - COMPLETE ✅
+- ✅ Migrated to recovered 3-layer architecture
+- ✅ MainContent component splits Settings vs Dashboard/Tabs
+- ✅ DashboardOrTabs splits Dashboard vs TabContainer
+- ✅ TabContainer manages iframe persistence with lazy loading
+- ✅ Sidebar uses recovered version with plain `<a href="#">` tags
+- ✅ UserSettings parses hash params manually (#settings?tab=profile)
+- ✅ All components use display toggling for state persistence
+- ✅ Build passing, deployed to Docker
+
+### Production Bug Fixes (Dec 2, 2025 - Evening)
+- ✅ Fixed setup redirect loop preventing admin account creation
+- ✅ Fixed setup not redirecting after account creation
+- ✅ Restored admin settings visibility
+- ✅ Fixed settings page crashes
+- ✅ Removed loading delay (simplified admin check)
+
+### Documentation System v2.0 (Dec 2, 2025 - Afternoon)
 - ✅ Created `docs/` structure with 6 subdirectories
 - ✅ Archived 15 recovery documentation files
-- ✅ Consolidated rules system (git, development, theming)
-- ✅ Created 7 workflows (start-session, end-session, checkpoint, code-audit, git-workflow, + 3 placeholders)
+- ✅ Consol idated rules system (git, development, theming)
+- ✅ Created 8 workflows (start-session, end-session, checkpoint, code-audit, git-workflow, + 3 placeholders)
 - ✅ Created `Dockerfile.dev` for debug builds
 - ✅ Organized architecture and development guides
-- 🟡 Building task tracking system
-- ⏸️ Primary documentation updates pending
 
 ---
 
@@ -68,7 +94,12 @@ docs/
 │   ├── WIDGET_DEVELOPMENT_GUIDE.md
 │   ├── LOGGING_REFERENCE.md
 │   └── DOCKER_BUILDS.md
-├── recovery/                      # Recovery archive
+├── theming/                       # Theming documentation
+│   ├── THEMING_ENGINE.md
+│   ├── CSS_VARIABLES.md
+│   ├── DEVELOPER_GUIDE.md
+│   └── COMPONENT_PATTERNS.md
+├── archived/                      # Recovery archive
 │   └── [15 recovery docs + inventories]
 └── versions/
     └── 1.1.6-recovered.md
@@ -78,27 +109,21 @@ docs/
 
 ## 🔄 Active Work
 
-**Current Task:** Documentation system integration  
+**Current Task:** All stub components redesigned  
 **Next Steps:**
-1. Complete task tracking system files
-2. Update CHATFLOW.md with new paths
-3. Rewrite root README.md  
-4. Create CHANGELOG.md
-5. Clean up root directory
-6. Verify all cross-references
-7. Test workflows
+1. Test enhanced stub components
+2. Continue widget development
+3. Consider additional theming options
+4. Monitor component performance
 
 ---
 
 ## 🐛 Known Issues
 
-### Stub Components (Low Priority)
-These work but may need enhancement:
-- `WidgetErrorBoundary` - Basic error boundary
-- `EmptyDashboard` - Simple placeholder UI
-- `LoadingSpinner` - Basic spinner
-- `ColorPicker` - Simple color input
-- `DeveloperSettings` - Placeholder only
+### Minor Enhancements Possible
+- Additional color presets for ColorPicker
+- More detailed error messages in ErrorBoundary
+- Additional loading states
 
 ### v1.0.6 Components (Monitor)
 Functional but may have minor differences:
@@ -110,21 +135,16 @@ Functional but may have minor differences:
 ## 📦 Deployment Status
 
 ### Docker Images
-- **Production:** `pickels23/framerr:reconstructed` (v1.1.6)
-  - Size: 286 MB
+- **Production:** `pickels23/framerr:debug` (v1.1.6 + stub redesigns)
+  - Size: ~286 MB
   - Status: Deployed and tested
-  - Last pushed: 2025-12-02
-
-- **Development:** `pickels23/framerr:develop`
-  - Status: Not yet created with new build
-  
-- **Debug:** `pickels23/framerr:develop-debug`
-  - Status: Ready to build (Dockerfile.dev created)
+  - Last pushed: 2025-12-03
+  - Digest: sha256:e89fea5...
 
 ### Git Status
 - **Branch:** `develop`
-- **Status:** Clean, up to date with origin
-- **Last tag:** None (v1.1.6-recovered pending)
+- **Status:** Clean, 7 commits ahead
+- **Latest commit:** f21cf0c (WidgetErrorBoundary enhancement)
 
 ---
 
@@ -133,19 +153,19 @@ Functional but may have minor differences:
 See `TASK_BACKLOG.md` for details.
 
 **High Priority:**
-- Complete documentation system integration
-- Build and test debug Docker image
-- Define build workflows with user
+- Test all enhanced stub components
+- Widget development and testing
+- Production release planning
 
 **Medium Priority:**
-- Replace stub components with full implementations
-- Test all widgets thoroughly
 - Bundle size optimization
+- Performance profiling
+- Extended widget library
 
 **Low Priority:**
 - Additional theming documentation
-- Performance profiling
-- Extended widget library
+- More color preset options
+- Extra loading states
 
 ---
 
@@ -154,7 +174,7 @@ See `TASK_BACKLOG.md` for details.
 1. **Start here:** Read `docs/CHATFLOW.md`
 2. **Critical context:** Read `docs/tasks/HANDOFF.md`
 3. **Current work:** Check `docs/tasks/TASK_CURRENT.md`
-4. **Rules:** Review `.agent/rules.md`
+4. **Rules:** Review `.agent/rules.md` and `.agent/rules/*.md`
 5. **Workflows:** Available in `.agent/workflows/`
 
 ---
@@ -162,10 +182,11 @@ See `TASK_BACKLOG.md` for details.
 ## 📊 Metrics
 
 **Lines of Code:** ~50,000+ (estimated)  
-**Components:** 46 files (39 recovered, 2 from v1.0.6, 5 stubs)  
+**Components:** 46 files (43 complete, 3 from earlier versions)  
 **Build Size:** 1.20 MB (15 files)  
 **Backend Files:** 2,081  
-**Documentation Files:** 35+ (and growing)
+**Documentation Files:** 40+ (comprehensive)  
+**Stub Components:** 4/4 redesigned (DeveloperSettings intentional placeholder)
 
 ---
 

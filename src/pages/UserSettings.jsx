@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
 import { isAdmin } from '../utils/permissions';
 import { Card } from '../components/common/Card';
 
@@ -17,10 +16,35 @@ import TabGroupsSettings from '../components/settings/TabGroupsSettings';
 import AuthSettings from '../components/settings/AuthSettings';
 import AdvancedSettings from '../components/settings/AdvancedSettings';
 
-
 const UserSettings = () => {
     const [activeTab, setActiveTab] = useState('tabs');
     const { user } = useAuth();
+
+    // Parse query params from hash manually 
+    // (useSearchParams doesn't work with hash-based routing!)
+    const getHashParams = () => {
+        const hash = window.location.hash.slice(1); // Remove '#'
+        const questionMarkIndex = hash.indexOf('?');
+        if (questionMarkIndex === -1) return new URLSearchParams();
+        const queryString = hash.slice(questionMarkIndex + 1);
+        return new URLSearchParams(queryString);
+    };
+
+    // Read tab from hash query parameter on mount and when hash changes
+    useEffect(() => {
+        const updateTabFromHash = () => {
+            const params = getHashParams();
+            const tabFromUrl = params.get('tab');
+            if (tabFromUrl) {
+                setActiveTab(tabFromUrl);
+            }
+        };
+
+        updateTabFromHash();
+        window.addEventListener('hashchange', updateTabFromHash);
+        return () => window.removeEventListener('hashchange', updateTabFromHash);
+    }, []);
+
     // Check if user is admin
     const hasAdminAccess = isAdmin(user);
 
@@ -44,13 +68,13 @@ const UserSettings = () => {
     const allTabs = [...userTabs, ...adminTabs];
 
     return (
-        <div className="w-full p-4 md:p-8 max-w-6xl mx-auto">
+        <div className="w-full p-4 md:p-8 max-w-[2000px] mx-auto">
             {/* Page Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-white">
                     {hasAdminAccess ? 'Settings & Admin' : 'Settings'}
                 </h1>
-                <p className="text-slate-400">
+                <p className="text-theme-secondary">
                     {hasAdminAccess
                         ? 'Manage your personal preferences and system configuration'
                         : 'Manage your personal preferences'
@@ -67,13 +91,24 @@ const UserSettings = () => {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => {
+                                setActiveTab(tab.id);
+                                // Preserve hash-based navigation with query params
+                                const params = new URLSearchParams({ tab: tab.id });
+                                // Check if there's a source param to preserve
+                                const currentParams = getHashParams();
+                                const currentSource = currentParams.get('source');
+                                if (currentSource) {
+                                    params.set('source', currentSource);
+                                }
+                                window.location.hash = `settings?${params.toString()}`;
+                            }}
                             className={`
                                 flex items-center gap-2 px-4 py-2 rounded-lg 
                                 transition-all whitespace-nowrap text-sm font-medium
                                 ${isActive
                                     ? 'bg-accent text-white font-semibold'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary'
                                 }
                             `}
                         >
@@ -102,6 +137,9 @@ const UserSettings = () => {
                     </>
                 )}
             </Card>
+
+            {/* Bottom Spacer - Prevents content cutoff */}
+            <div style={{ height: '100px' }} className="md:h-32" aria-hidden="true" />
         </div>
     );
 };

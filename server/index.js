@@ -33,7 +33,7 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false  // Disable COEP warnings on HTTP
 }));
 app.use(cors({
-    origin: NODE_ENV === 'production' ? true : 'http://localhost:5173',
+    origin: true,  // Allow all origins (recommended for reverse proxy setups)
     credentials: true
 }));
 

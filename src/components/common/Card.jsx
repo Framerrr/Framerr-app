@@ -16,8 +16,8 @@ export const Card = ({
         xl: 'p-8'
     }[padding];
 
-    const baseClasses = `${paddingClass} bg-slate-800 border border-slate-700 rounded-xl shadow-lg transition-all duration-200`;
-    const hoverClasses = hover ? 'hover:shadow-xl hover:shadow-blue-500/20 hover:-translate-y-1 hover:border-blue-500/50 cursor-pointer' : '';
+    const baseClasses = `${paddingClass} glass-card rounded-xl transition-all duration-200 relative`;
+    const hoverClasses = hover ? 'hover:shadow-xl hover:shadow-accent/20 hover:-translate-y-1 hover:border-accent/50 cursor-pointer' : '';
     const allClasses = `${baseClasses} ${hoverClasses} ${className}`.trim();
 
     return (
@@ -37,14 +37,14 @@ export const CardHeader = ({
     divider = true
 }) => {
     return (
-        <div className={`mb-6 ${divider ? 'pb-4 border-b border-slate-700' : ''}`}>
+        <div className={`mb-6 ${divider ? 'pb-4 border-b border-theme' : ''}`}>
             <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                    <h3 className={`text-xl font-semibold text-white ${description ? 'mb-1' : ''}`}>
+                    <h3 className={`text-xl font-semibold text-theme-primary ${description ? 'mb-1' : ''}`}>
                         {title}
                     </h3>
                     {description && (
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-theme-secondary">
                             {description}
                         </p>
                     )}

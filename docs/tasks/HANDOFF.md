@@ -1,10 +1,10 @@
 # HANDOFF DOCUMENT - Framerr v1.1.6
 
-**Last Updated:** 2025-12-02 16:33:00  
-**Status:** ✅ Operational - Documentation System v2.0 Complete  
+**Last Updated:** 2025-12-02 20:20:00  
+**Status:** ✅ Operational - Hash Navigation System Migrated  
 **Current Version:** v1.1.6-recovered  
 **Branch:** `develop`  
-**Docker Image:** `pickels23/framerr:reconstructed`
+**Docker Image:** `pickels23/framerr:debug`
 
 ---
 
@@ -15,17 +15,18 @@ Modern, self-hosted homelab dashboard with iframe tab system and customizable wi
 
 ### Current State
 - **Backend:** ✅ Complete (2,081 files from v1.1.6 Docker image)
-- **Frontend:** ✅ 95% recovered + 5 stub components
+- **Frontend:** ✅ 95% recovered + recovered hash navigation
 - **Build:** ✅ Passing, deployed to Docker
 - **Documentation:** ✅ Fully restructured (v2.0 system)
-- **Status:** Production-ready, fully operational
+- **Status:** Production-ready, operational with proper hash routing
 
 ### Last Major Work
-**Documentation System v2.0 Implementation** (2025-12-02)
-- Created organized `docs/` structure
-- Consolidated rules and workflows
-- Added Docker debug build capability
-- Established comprehensive task tracking
+**Hash Navigation System Migration** (2025-12-02 20:20)
+- Migrated from buggy custom implementation to recovered original system
+- Restored 3-layer component architecture (MainContent → DashboardOrTabs → TabContainer)
+- Fixed Settings hash parameter parsing (#settings?tab=profile)
+- Restored iframe persistence using display toggling
+- All navigation uses native hash events and plain `<a href="#">` tags
 
 ---
 
@@ -77,13 +78,8 @@ Framerr-app/
 
 ## ⚠️ Known Issues & Limitations
 
-### Stub Components (Low Priority)
-5 components are basic implementations, functional but may need enhancement:
-- `WidgetErrorBoundary.jsx` - Basic error boundary
-- `EmptyDashboard.jsx` - Simple placeholder
-- `LoadingSpinner.jsx` - Basic spinner
-- `ColorPicker.jsx` - Simple color input
-- `DeveloperSettings.jsx` - Placeholder
+### Components Needing Review
+- `DeveloperSettings.jsx` - Placeholder implementation pending
 
 ### v1.0.6 Components
 2 components from older version (functional, monitor for differences):
