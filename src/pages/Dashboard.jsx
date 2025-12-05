@@ -649,49 +649,76 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3">
-                    {editMode ? (
-                        <div className="flex items-center gap-2 sm:gap-3">
-                            {/* Add Widget Button */}
-                            <button
-                                onClick={handleAddWidget}
-                                className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated backdrop-blur-md"
-                                title="Add Widget"
-                            >
-                                <Plus size={18} />
-                                <span className="hidden sm:inline">Widget</span>
-                            </button>
-
-                            {/* Save Button */}
-                            <button
-                                onClick={handleSave}
-                                disabled={!hasUnsavedChanges || saving}
-                                className="px-3 sm:px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-blue-600/50 disabled:to-cyan-600/50 text-white rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated shadow-lg shadow-blue-500/20 disabled:shadow-none disabled:cursor-not-allowed"
-                                title="Save Changes"
-                            >
-                                <Save size={18} />
-                                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
-                            </button>
-
-                            {/* Cancel Button */}
-                            <button
-                                onClick={handleCancel}
-                                className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 backdrop-blur-md"
-                                title="Cancel"
-                            >
-                                <XIcon size={18} />
-                                <span className="hidden sm:inline">Cancel</span>
-                            </button>
-                        </div>
-                    ) : (
+                {/* Manual/Auto Mode Toggle - Phase 1: State only */}
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-theme-tertiary border border-theme rounded-lg">
+                        <span className="text-xs text-theme-secondary font-medium">Layout Mode:</span>
                         <button
-                            onClick={handleToggleEdit}
-                            className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
+                            onClick={() => setLayoutMode(layoutMode === 'auto' ? 'manual' : 'auto')}
+                            className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${layoutMode === 'auto'
+                                ? 'bg-accent text-white'
+                                : 'text-theme-secondary hover:text-theme-primary'
+                                }`}
+                            title="Auto mode: Layouts sync between breakpoints"
                         >
-                            <Edit size={16} />
-                            Edit
+                            Auto
                         </button>
-                    )}
+                        <button
+                            onClick={() => setLayoutMode(layoutMode === 'auto' ? 'manual' : 'auto')}
+                            className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${layoutMode === 'manual'
+                                ? 'bg-accent text-white'
+                                : 'text-theme-secondary hover:text-theme-primary'
+                                }`}
+                            title="Manual mode: Independent layouts per breakpoint"
+                        >
+                            Manual
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        {editMode ? (
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                {/* Add Widget Button */}
+                                <button
+                                    onClick={handleAddWidget}
+                                    className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated backdrop-blur-md"
+                                    title="Add Widget"
+                                >
+                                    <Plus size={18} />
+                                    <span className="hidden sm:inline">Widget</span>
+                                </button>
+
+                                {/* Save Button */}
+                                <button
+                                    onClick={handleSave}
+                                    disabled={!hasUnsavedChanges || saving}
+                                    className="px-3 sm:px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-blue-600/50 disabled:to-cyan-600/50 text-white rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated shadow-lg shadow-blue-500/20 disabled:shadow-none disabled:cursor-not-allowed"
+                                    title="Save Changes"
+                                >
+                                    <Save size={18} />
+                                    <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
+                                </button>
+
+                                {/* Cancel Button */}
+                                <button
+                                    onClick={handleCancel}
+                                    className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 backdrop-blur-md"
+                                    title="Cancel"
+                                >
+                                    <XIcon size={18} />
+                                    <span className="hidden sm:inline">Cancel</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleToggleEdit}
+                                className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
+                            >
+                                <Edit size={16} />
+                                Edit
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
 
