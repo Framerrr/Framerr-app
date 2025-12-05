@@ -152,7 +152,17 @@ const GridstackWrapper = ({
             breakpoint: currentBreakpoint
         });
 
-        // Remove all existing widgets
+        // Clear all existing React roots before removing widgets
+        rootsRef.current.forEach((root, widgetId) => {
+            try {
+                root.unmount();
+            } catch (e) {
+                logger.warn('Failed to unmount root', { widgetId });
+            }
+        });
+        rootsRef.current.clear();
+
+        // Remove all existing widgets from grid
         gridInstanceRef.current.removeAll(false);
 
         // Add widgets with layout for current breakpoint
@@ -168,22 +178,19 @@ const GridstackWrapper = ({
             }
 
             try {
-                // Add widget to Gridstack - let it create the structure
-                const gridItem = gridInstanceRef.current.addWidget({
+                // Add widget to Gridstack - it returns the grid-stack-item element
+                const gridItemEl = gridInstanceRef.current.addWidget({
                     id: widget.id,
                     x: layout.x,
                     y: layout.y,
                     w: layout.w,
                     h: layout.h
-                    // Don't pass content - Gridstack will create grid-stack-item-content div
                 });
 
-                // Find the content container Gridstack created
-                if (gridItem) {
-                    const contentDiv = gridItem.querySelector('.grid-stack-item-content');
-                    if (contentDiv) {
-                        contentDiv.setAttribute('data-widget-id', widget.id);
-                    }
+                // Mark the grid item for easy lookup
+                if (gridItemEl) {
+                    gridItemEl.setAttribute('data-widget-id', widget.id);
+                    logger.debug('Added grid item', { widgetId: widget.id });
                 }
             } catch (error) {
                 logger.error('Failed to add widget to grid', {
@@ -205,27 +212,35 @@ const GridstackWrapper = ({
             // Use dynamic import for React DOM
             import('react-dom/client').then(({ createRoot }) => {
                 widgets.forEach(widget => {
-                    const gridItem = gridRef.current?.querySelector(`[data-widget-id="${widget.id}"]`);
+                    // Find the grid-stack-item wrapper
+                    const gridItemEl = gridRef.current?.querySelector(`.grid-stack-item[data-widget-id="${widget.id}"]`);
 
-                    if (gridItem) {
-                        // Get or create root for this grid item
-                        let root = rootsRef.current.get(widget.id);
+                    if (gridItemEl) {
+                        // Find the content div inside
+                        const contentDiv = gridItemEl.querySelector('.grid-stack-item-content');
 
-                        if (!root) {
-                            root = createRoot(gridItem);
-                            rootsRef.current.set(widget.id, root);
-                        }
+                        if (contentDiv) {
+                            // Get or create root for this content div
+                            let root = rootsRef.current.get(widget.id);
 
-                        // Render the React widget component
-                        try {
-                            const widgetElement = renderWidget(widget);
-                            root.render(widgetElement);
-                            logger.debug('Widget rendered', { widgetId: widget.id });
-                        } catch (error) {
-                            logger.error('Failed to render widget', {
-                                widgetId: widget.id,
-                                error: error.message
-                            });
+                            if (!root) {
+                                root = createRoot(contentDiv);
+                                rootsRef.current.set(widget.id, root);
+                            }
+
+                            // Render the React widget component
+                            try {
+                                const widgetElement = renderWidget(widget);
+                                root.render(widgetElement);
+                                logger.debug('Widget rendered', { widgetId: widget.id });
+                            } catch (error) {
+                                logger.error('Failed to render widget', {
+                                    widgetId: widget.id,
+                                    error: error.message
+                                });
+                            }
+                        } else {
+                            logger.warn('Content div not found in grid item', { widgetId: widget.id });
                         }
                     } else {
                         logger.warn('Grid item not found for widget', { widgetId: widget.id });
@@ -236,16 +251,9 @@ const GridstackWrapper = ({
             });
         }, 100); // Small delay to ensure Gridstack DOM is ready
 
-        // Cleanup: unmount roots for widgets that no longer exist
+        // Cleanup timer on unmount
         return () => {
             clearTimeout(timer);
-            const currentWidgetIds = new Set(widgets.map(w => w.id));
-            rootsRef.current.forEach((root, widgetId) => {
-                if (!currentWidgetIds.has(widgetId)) {
-                    root.unmount();
-                    rootsRef.current.delete(widgetId);
-                }
-            });
         };
     }, [widgets, currentBreakpoint, renderWidget]);
 
