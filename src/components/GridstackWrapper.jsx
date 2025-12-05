@@ -69,7 +69,7 @@ const GridstackWrapper = ({
 
             // Listen to drag stop (user finished dragging)
             gridInstanceRef.current.on('dragstop', (event, el) => {
-                if (!editMode || !onLayoutChange) return;
+                if (!onLayoutChange) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
@@ -93,7 +93,7 @@ const GridstackWrapper = ({
 
             // Listen to resize stop (user finished resizing)
             gridInstanceRef.current.on('resizestop', (event, el) => {
-                if (!editMode || !onLayoutChange) return;
+                if (!onLayoutChange) return;
 
                 const items = gridInstanceRef.current.engine.nodes;
                 if (!items || items.length === 0) return;
