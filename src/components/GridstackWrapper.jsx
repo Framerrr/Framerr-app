@@ -193,32 +193,50 @@ const GridstackWrapper = ({
 
     }, [widgets, currentBreakpoint]);
 
+
     // Render React widget content into grid items using createRoot
     useEffect(() => {
         if (!gridInstanceRef.current || !widgets || !renderWidget) return;
 
-        // Import React DOM for createRoot (React 19)
-        import('react-dom/client').then(({ createRoot }) => {
-            widgets.forEach(widget => {
-                const gridItem = gridRef.current?.querySelector(`[data-widget-id="${widget.id}"]`);
-                if (gridItem && renderWidget) {
-                    // Get or create root for this grid item
-                    let root = rootsRef.current.get(widget.id);
+        // Small delay to ensure Gridstack has created the DOM elements
+        const timer = setTimeout(() => {
+            // Use dynamic import for React DOM
+            import('react-dom/client').then(({ createRoot }) => {
+                widgets.forEach(widget => {
+                    const gridItem = gridRef.current?.querySelector(`[data-widget-id="${widget.id}"]`);
 
-                    if (!root) {
-                        root = createRoot(gridItem);
-                        rootsRef.current.set(widget.id, root);
+                    if (gridItem) {
+                        // Get or create root for this grid item
+                        let root = rootsRef.current.get(widget.id);
+
+                        if (!root) {
+                            root = createRoot(gridItem);
+                            rootsRef.current.set(widget.id, root);
+                        }
+
+                        // Render the React widget component
+                        try {
+                            const widgetElement = renderWidget(widget);
+                            root.render(widgetElement);
+                            logger.debug('Widget rendered', { widgetId: widget.id });
+                        } catch (error) {
+                            logger.error('Failed to render widget', {
+                                widgetId: widget.id,
+                                error: error.message
+                            });
+                        }
+                    } else {
+                        logger.warn('Grid item not found for widget', { widgetId: widget.id });
                     }
-
-                    // Render the React widget component
-                    const widgetElement = renderWidget(widget);
-                    root.render(widgetElement);
-                }
+                });
+            }).catch(error => {
+                logger.error('Failed to import react-dom/client', { error: error.message });
             });
-        });
+        }, 100); // Small delay to ensure Gridstack DOM is ready
 
         // Cleanup: unmount roots for widgets that no longer exist
         return () => {
+            clearTimeout(timer);
             const currentWidgetIds = new Set(widgets.map(w => w.id));
             rootsRef.current.forEach((root, widgetId) => {
                 if (!currentWidgetIds.has(widgetId)) {
