@@ -9,7 +9,7 @@ import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyDashboard from '../components/dashboard/EmptyDashboard';
 import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/widgetRegistry';
-import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
+import { generateAllMobileLayouts, generateMobileLayout, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import DebugOverlay from '../components/debug/DebugOverlay';
 import axios from 'axios';
@@ -205,41 +205,31 @@ const Dashboard = () => {
 
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
-        // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' ? 2 : (currentBreakpoint === 'xs' ? 2 : 12); // Desktop tier: 12, Mobile tier: 2
-        const breakpoint = currentBreakpoint;
+        // Use proper band detection algorithm from layoutUtils
+        const sortedWidgets = generateMobileLayout(widgets, currentBreakpoint);
 
-        logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
+        // Apply visibility (hide/show) to the sorted layouts
+        const compactedLayouts = sortedWidgets.map(w => {
+            const layout = w.layouts[currentBreakpoint];
+            const isHidden = widgetVisibility[w.id] === false;
+            return {
+                i: w.id,
+                x: layout.x,
+                y: layout.y,
+                w: layout.w,
+                h: isHidden ? 0.001 : layout.h
+            };
+        });
 
-        // Get widgets in sorted order with current layouts
-        // Sort by mobile layout Y position (already has correct column-first order from generateMobileLayout)
-        let currentY = 0;
-        const compactedLayouts = widgets
-            .map(w => ({
-                widget: w,
-                layout: w.layouts?.[breakpoint] || layouts[breakpoint]?.find(l => l.i === w.id),
-                isHidden: widgetVisibility[w.id] === false
-            }))
-            .filter(item => item.layout)
-            .sort((a, b) => a.layout.y - b.layout.y) // Use mobile layout Y (maintains column-first order)
-            .map(({ widget, layout, isHidden }) => {
-                const height = isHidden ? 0.001 : layout.h;
-                logger.debug(`Widget recompaction: ${widget.type}`, { hidden: isHidden, originalY: layout.y, newY: currentY, height });
-
-                const compacted = { i: widget.id, x: 0, y: currentY, w: cols, h: height };
-                currentY += height;
-                return compacted;
-            });
-
-        logger.debug('Layouts compacted', {
-            breakpoint,
+        logger.debug('Layouts compacted with band detection', {
+            breakpoint: currentBreakpoint,
             order: compactedLayouts.map(l => widgets.find(w => w.id === l.i)?.type),
             count: compactedLayouts.length
         });
 
         setLayouts(prev => ({
             ...prev,
-            [breakpoint]: compactedLayouts
+            [currentBreakpoint]: compactedLayouts
         }));
     }, [widgetVisibility, currentBreakpoint, editMode]); // Recompact on visibility, breakpoint, or editMode toggle
 
