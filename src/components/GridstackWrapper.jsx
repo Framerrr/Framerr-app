@@ -203,32 +203,10 @@ const GridstackWrapper = ({
         if (!gridInstanceRef.current || !widgets) return;
 
         const grid = gridInstanceRef.current;
-        const currentItems = grid.engine.nodes.map(n => n.id);
-        const newItems = widgets.map(w => w.id);
-
-        // Check if widget list actually changed
-        const widgetsAdded = newItems.filter(id => !currentItems.includes(id));
-        const widgetsRemoved = currentItems.filter(id => !newItems.includes(id));
-        const widgetsChanged = widgetsAdded.length > 0 || widgetsRemoved.length > 0;
-
-        if (!widgetsChanged && currentItems.length > 0) {
-            // Just update positions, don't recreate
-            logger.debug('Updating positions only', { count: widgets.length });
-
-            widgets.forEach(widget => {
-                const layout = widget.layouts?.[currentBreakpoint];
-                if (layout) {
-                    grid.update(widget.id, { x: layout.x, y: layout.y, w: layout.w, h: layout.h });
-                }
-            });
-            return;
-        }
 
         logger.debug('Recreating grid widgets', {
             count: widgets.length,
-            breakpoint: currentBreakpoint,
-            added: widgetsAdded.length,
-            removed: widgetsRemoved.length
+            breakpoint: currentBreakpoint
         });
 
         // Clear all existing React roots before removing widgets
@@ -301,7 +279,7 @@ const GridstackWrapper = ({
             }
         });
 
-    }, [widgets, currentBreakpoint]);
+    }, [widgets, currentBreakpoint]); // Recreate when widgets OR breakpoint changes
 
 
     // Render React widget content into grid items using createRoot
