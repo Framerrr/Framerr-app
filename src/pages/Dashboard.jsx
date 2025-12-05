@@ -326,47 +326,110 @@ const Dashboard = () => {
         // Mark as having unsaved changes immediately (for all breakpoints)
         setHasUnsavedChanges(true);
 
-        // Only process layout changes for lg (desktop) breakpoint
-        // md/sm/xs/xxs layouts are auto-generated and managed by visibility useEffect
-        if (currentBreakpoint !== 'lg') {
-            return;
-        }
-
-        // Update widgets with new desktop (lg) positions
-        const updatedWidgets = widgets.map(widget => {
-            const layoutItem = newLayout.find(l => l.i === widget.id);
-            if (layoutItem) {
-                return {
-                    ...widget,
-                    // Old format (for backward compatibility)
-                    x: layoutItem.x,
-                    y: layoutItem.y,
-                    w: layoutItem.w,
-                    h: layoutItem.h,
-                    // New format (for multi-breakpoint)
-                    layouts: {
-                        ...widget.layouts,
-                        lg: {
+        // MANUAL MODE: Save changes to current breakpoint only (no sync)
+        if (layoutMode === 'manual') {
+            // Update widgets with new positions for current breakpoint
+            const updatedWidgets = widgets.map(widget => {
+                const layoutItem = newLayout.find(l => l.i === widget.id);
+                if (layoutItem) {
+                    return {
+                        ...widget,
+                        // Update old format only if editing desktop
+                        ...(currentBreakpoint === 'lg' && {
                             x: layoutItem.x,
                             y: layoutItem.y,
                             w: layoutItem.w,
                             h: layoutItem.h
+                        }),
+                        // Update current breakpoint layout
+                        layouts: {
+                            ...widget.layouts,
+                            [currentBreakpoint]: {
+                                x: layoutItem.x,
+                                y: layoutItem.y,
+                                w: layoutItem.w,
+                                h: layoutItem.h
+                            }
                         }
-                    }
-                };
-            }
-            return widget;
-        });
+                    };
+                }
+                return widget;
+            });
 
-        // Auto-generate mobile layouts from updated desktop layout
-        const withMobileLayouts = generateAllMobileLayouts(updatedWidgets);
+            setWidgets(updatedWidgets);
+            setLayouts(prev => ({
+                ...prev,
+                [currentBreakpoint]: newLayout
+            }));
+            return;
+        }
 
-        setWidgets(withMobileLayouts);
-        setLayouts({
-            lg: newLayout,
-            xs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-            xxs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
-        });
+        // AUTO MODE: Desktop edits sync to mobile, mobile edits stay local
+        if (currentBreakpoint === 'lg') {
+            // Desktop edit → sync to all mobile breakpoints
+            const updatedWidgets = widgets.map(widget => {
+                const layoutItem = newLayout.find(l => l.i === widget.id);
+                if (layoutItem) {
+                    return {
+                        ...widget,
+                        // Old format (for backward compatibility)
+                        x: layoutItem.x,
+                        y: layoutItem.y,
+                        w: layoutItem.w,
+                        h: layoutItem.h,
+                        // New format (for multi-breakpoint)
+                        layouts: {
+                            ...widget.layouts,
+                            lg: {
+                                x: layoutItem.x,
+                                y: layoutItem.y,
+                                w: layoutItem.w,
+                                h: layoutItem.h
+                            }
+                        }
+                    };
+                }
+                return widget;
+            });
+
+            // Auto-generate mobile layouts from updated desktop layout
+            const withMobileLayouts = generateAllMobileLayouts(updatedWidgets);
+
+            setWidgets(withMobileLayouts);
+            setLayouts({
+                lg: newLayout,
+                md: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.md })),
+                sm: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
+                xs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
+                xxs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            });
+        } else {
+            // Mobile edit → stays on mobile only (no upward sync in Phase 2)
+            const updatedWidgets = widgets.map(widget => {
+                const layoutItem = newLayout.find(l => l.i === widget.id);
+                if (layoutItem) {
+                    return {
+                        ...widget,
+                        layouts: {
+                            ...widget.layouts,
+                            [currentBreakpoint]: {
+                                x: layoutItem.x,
+                                y: layoutItem.y,
+                                w: layoutItem.w,
+                                h: layoutItem.h
+                            }
+                        }
+                    };
+                }
+                return widget;
+            });
+
+            setWidgets(updatedWidgets);
+            setLayouts(prev => ({
+                ...prev,
+                [currentBreakpoint]: newLayout
+            }));
+        }
     };
 
     // Save changes to API
