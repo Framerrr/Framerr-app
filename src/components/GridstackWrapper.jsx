@@ -335,7 +335,7 @@ const GridstackWrapper = ({
             }).catch(error => {
                 logger.error('Failed to import react-dom/client', { error: error.message });
             });
-        }, 100); // Small delay to ensure Gridstack DOM is ready
+        }, 10); // Minimum delay for Gridstack DOM
 
         // Cleanup timer on unmount
         return () => {

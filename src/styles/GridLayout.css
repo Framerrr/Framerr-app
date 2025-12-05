@@ -77,7 +77,8 @@
     bottom: 0;
     overflow: visible;
     border-radius: 0.75rem;
-    transition: all 200ms ease;
+    /* Transition everything EXCEPT border (instant border changes prevent flash) */
+    transition: box-shadow 200ms ease;
 }
 
 /* Edit Mode Border */
