@@ -589,14 +589,29 @@ const Dashboard = () => {
                 const allWidgets = [...widgets, migratedWidget];
                 setWidgets(allWidgets);
 
+                // Get column count for current breakpoint
+                const cols = gridConfig.cols[currentBreakpoint] || 12;
+
+                // Calculate Y position: find the bottom-most widget and place below it
+                const currentLayouts = layouts[currentBreakpoint] || [];
+                let maxY = 0;
+                currentLayouts.forEach(item => {
+                    const bottomY = item.y + item.h;
+                    if (bottomY > maxY) maxY = bottomY;
+                });
+
                 // Create layout item for current breakpoint
+                // Mobile (xs/xxs): Full width, proper Y position
+                // Desktop (lg/md/sm): Use default size, proper Y position
                 const newLayoutItem = {
                     i: migratedWidget.id,
-                    x: migratedWidget.x,
-                    y: migratedWidget.y,
-                    w: migratedWidget.w,
-                    h: migratedWidget.h
+                    x: 0,  // Always start at left
+                    y: maxY,  // Place at bottom
+                    w: cols === 2 ? 2 : migratedWidget.w,  // Full width on mobile, default on desktop
+                    h: migratedWidget.h  // Keep default height
                 };
+
+                console.log('📍 Widget placement:', { breakpoint: currentBreakpoint, cols, x: 0, y: maxY, w: newLayoutItem.w, h: newLayoutItem.h });
 
                 // Add to current breakpoint layout only
                 setLayouts(prev => ({
