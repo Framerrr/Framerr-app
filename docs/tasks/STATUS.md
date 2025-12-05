@@ -1,9 +1,9 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-04 20:40  
+**Last Updated:** 2025-12-05 01:54  
 **Current Version:** v1.1.6-recovered  
 **Development Branch:** `develop`  
-**Production Docker:** `pickels23/framerr:feat` (Phase 1, pre-layoutUtils fix)
+**Production Docker:** `pickels23/framerr:feat` (Gridstack save button fixed)
 
 ---
 
@@ -32,6 +32,16 @@
 ---
 
 ## 🚀 Recent Accomplishments
+
+### Gridstack Save Button Fix (Dec 5, 2025 - 01:54) - COMPLETE ✅
+- ✅ **Fixed save button not activating** on drag/resize in edit mode
+- ✅ **Root cause identified:** Double closure bug (editMode + handleLayoutChange)
+- ✅ **Solution implemented:** Ref pattern at 3 layers (editModeRef, onLayoutChangeRef, useCallback)
+- ✅ **Event handlers now call latest callbacks** via refs instead of closures
+- ✅ **Dashboard handleLayoutChange wrapped** in React.useCallback with dependencies
+- ⚠️ **Remaining:** Border flashing (minor), mobile stacking (needs investigation)
+- 📝 6 commits (bd485a6, 75d3e0a, 2263609, 32c67c9, c512cc4, ec3f72d), ~100 tool calls, 47min session
+- **Next:** Fix border flashing + mobile stacking, then continue dashboard redesign
 
 ### Dashboard Grid System - Phase 1 Complete (Dec 4, 2025 - 20:40) - COMPLETE ✅
 - ✅ **12-column grid implemented** (lg/md/sm: 12 cols, xs: 6, xxs: 2)
