@@ -168,21 +168,23 @@ const GridstackWrapper = ({
             }
 
             try {
-                // Create widget content (render the actual widget component)
-                const contentEl = document.createElement('div');
-                contentEl.className = 'grid-stack-item-content';
-
-                // Create placeholder that will be hydrated with React
-                contentEl.setAttribute('data-widget-id', widget.id);
-
-                gridInstanceRef.current.addWidget({
+                // Add widget to Gridstack - let it create the structure
+                const gridItem = gridInstanceRef.current.addWidget({
                     id: widget.id,
                     x: layout.x,
                     y: layout.y,
                     w: layout.w,
-                    h: layout.h,
-                    content: contentEl
+                    h: layout.h
+                    // Don't pass content - Gridstack will create grid-stack-item-content div
                 });
+
+                // Find the content container Gridstack created
+                if (gridItem) {
+                    const contentDiv = gridItem.querySelector('.grid-stack-item-content');
+                    if (contentDiv) {
+                        contentDiv.setAttribute('data-widget-id', widget.id);
+                    }
+                }
             } catch (error) {
                 logger.error('Failed to add widget to grid', {
                     widgetId: widget.id,
