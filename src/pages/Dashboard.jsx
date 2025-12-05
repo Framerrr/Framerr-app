@@ -62,7 +62,7 @@ const Dashboard = () => {
         cols: { lg: 12, md: 12, sm: 12, xs: 2, xxs: 2 },  // Desktop tier: 12 cols, Mobile tier: 2 cols
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
         rowHeight: 100,  // Static for reliability
-        compactType: (currentBreakpoint === 'lg') ? 'vertical' : null,  // Desktop: let library compact, Mobile: respect our exact positions
+        compactType: (currentBreakpoint === 'lg' || currentBreakpoint === 'md') ? 'vertical' : null,  // Desktop+Tablet: vertical compact, Mobile: respect exact positions
         preventCollision: !editMode,  // Allow widgets to push each other in edit mode, prevent in view mode
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
