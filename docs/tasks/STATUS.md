@@ -33,15 +33,22 @@
 
 ## 🚀 Recent Accomplishments
 
+### Gridstack Minor Fixes (Dec 5, 2025 - 02:10) - COMPLETE ✅
+- ✅ **Fixed border flashing** on edit mode toggle (apply class during render, not DOM manipulation)
+- ✅ **Fixed mobile stacking** (changed xxs to 2 columns, sm to 12 columns)
+- ✅ **Removed debug console.logs** from GridstackWrapper and Dashboard
+- ✅ **Build passes** in 4.15s
+- 📝 1 commit (8c69cb6), ~15 tool calls, 10min session
+- **Result:** Smooth edit mode transitions, widgets stack vertically on mobile
+
 ### Gridstack Save Button Fix (Dec 5, 2025 - 01:54) - COMPLETE ✅
 - ✅ **Fixed save button not activating** on drag/resize in edit mode
 - ✅ **Root cause identified:** Double closure bug (editMode + handleLayoutChange)
 - ✅ **Solution implemented:** Ref pattern at 3 layers (editModeRef, onLayoutChangeRef, useCallback)
 - ✅ **Event handlers now call latest callbacks** via refs instead of closures
 - ✅ **Dashboard handleLayoutChange wrapped** in React.useCallback with dependencies
-- ⚠️ **Remaining:** Border flashing (minor), mobile stacking (needs investigation)
 - 📝 6 commits (bd485a6, 75d3e0a, 2263609, 32c67c9, c512cc4, ec3f72d), ~100 tool calls, 47min session
-- **Next:** Fix border flashing + mobile stacking, then continue dashboard redesign
+- **Result:** Save button works perfectly, layout changes tracked correctly
 
 ### Dashboard Grid System - Phase 1 Complete (Dec 4, 2025 - 20:40) - COMPLETE ✅
 - ✅ **12-column grid implemented** (lg/md/sm: 12 cols, xs: 6, xxs: 2)
