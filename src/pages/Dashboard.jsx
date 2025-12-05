@@ -328,7 +328,6 @@ const Dashboard = () => {
 
     // Handle layout changes (drag/resize)
     const handleLayoutChange = React.useCallback((newLayout) => {
-        console.log('🔍 handleLayoutChange called', { editMode, layoutCount: newLayout.length });
         if (!editMode) return;
 
         // DEBUG: Log layout change event

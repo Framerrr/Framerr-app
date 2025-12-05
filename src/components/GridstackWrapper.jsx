@@ -51,9 +51,9 @@ const GridstackWrapper = ({
                     breakpoints: [
                         { w: 1200, c: 12 }, // lg
                         { w: 1024, c: 12 }, // md
-                        { w: 768, c: 6 },   // sm
+                        { w: 768, c: 12 },  // sm
                         { w: 600, c: 6 },   // xs
-                        { w: 0, c: 6 }      // xxs
+                        { w: 0, c: 2 }      // xxs - 2 cols for mobile stacking
                     ]
                 },
 
@@ -71,7 +71,7 @@ const GridstackWrapper = ({
 
             // Listen to drag stop (user finished dragging)
             gridInstanceRef.current.on('dragstop', (event, el) => {
-                console.log('🔍 DRAGSTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChangeRef.current });
+
                 // Only fire if in edit mode (check ref for current value)
                 if (!editModeRef.current || !onLayoutChangeRef.current) return;
 
@@ -97,7 +97,7 @@ const GridstackWrapper = ({
 
             // Listen to resize stop (user finished resizing)
             gridInstanceRef.current.on('resizestop', (event, el) => {
-                console.log('🔍 RESIZESTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChangeRef.current });
+
                 // Only fire if in edit mode (check ref for current value)
                 if (!editModeRef.current || !onLayoutChangeRef.current) return;
 
@@ -153,24 +153,16 @@ const GridstackWrapper = ({
 
         // Update ref so event handlers can check current edit mode
         editModeRef.current = editMode;
-        console.log('🔍 Edit mode changed', { editMode, editModeRef: editModeRef.current });
+
 
         if (editMode) {
             gridInstanceRef.current.enableMove(true);
             gridInstanceRef.current.enableResize(true);
             logger.debug('Gridstack editing enabled');
-
-            // Add edit-mode class to all content divs
-            const contentDivs = gridRef.current?.querySelectorAll('.grid-stack-item-content');
-            contentDivs?.forEach(div => div.classList.add('edit-mode'));
         } else {
             gridInstanceRef.current.enableMove(false);
             gridInstanceRef.current.enableResize(false);
             logger.debug('Gridstack editing disabled');
-
-            // Remove edit-mode class from all content divs
-            const contentDivs = gridRef.current?.querySelectorAll('.grid-stack-item-content');
-            contentDivs?.forEach(div => div.classList.remove('edit-mode'));
         }
     }, [editMode]);
 
@@ -275,6 +267,13 @@ const GridstackWrapper = ({
                         const contentDiv = gridItemEl.querySelector('.grid-stack-item-content');
 
                         if (contentDiv) {
+                            // Apply edit-mode class based on current edit mode (no flashing!)
+                            if (editModeRef.current) {
+                                contentDiv.classList.add('edit-mode');
+                            } else {
+                                contentDiv.classList.remove('edit-mode');
+                            }
+
                             // Get or create root for this content div
                             let root = rootsRef.current.get(widget.id);
 
@@ -310,7 +309,7 @@ const GridstackWrapper = ({
         return () => {
             clearTimeout(timer);
         };
-    }, [widgets, currentBreakpoint, renderWidget]);
+    }, [widgets, currentBreakpoint, renderWidget, editMode]);
 
     return (
         <div
