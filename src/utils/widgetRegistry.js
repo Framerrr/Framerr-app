@@ -39,8 +39,8 @@ export const WIDGET_TYPES = {
         name: 'System Status',
         description: 'CPU, memory, and temperature monitoring',
         category: 'system',
-        defaultSize: { w: 3, h: 3 },
-        minSize: { w: 3, h: 3 }, // Needs space for all 4 metrics + bars
+        defaultSize: { w: 2, h: 3 },  // Was 3×3 (12-col grid)
+        minSize: { w: 2, h: 3 }, // Needs space for all 4 metrics + bars
         maxSize: { h: 4 }, // No width limit, max height only
         requiresIntegration: 'systemHealth'
     },
@@ -125,7 +125,7 @@ export const WIDGET_TYPES = {
         name: 'Calendar',
         description: 'Combined Sonarr and Radarr calendar',
         category: 'utility',
-        defaultSize: { w: 4, h: 5 },
+        defaultSize: { w: 5, h: 5 },  // Was 8×5 (12-col grid conversion)
         minSize: { w: 3, h: 5 }, // Calendar grid needs space for filters + 7-day grid
         maxSize: { h: 8 }, // No width limit
         requiresIntegrations: ['sonarr', 'radarr'] // Requires both integrations

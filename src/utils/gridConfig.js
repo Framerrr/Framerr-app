@@ -5,10 +5,9 @@
 
 export const GRID_CONFIG = {
     // Grid dimensions
-    // Note: rowHeight is now calculated dynamically in Dashboard.jsx based on actual container width
-    // This ensures cells maintain consistent aspect ratio across all viewport sizes
+    // Note: rowHeight is static at 100px for reliable, consistent sizing across all viewports
     colWidth: 100,            // Target: ~100px per column for 12-column grid
-    maxWidth: 1400,           // Maximum container width (allows cells to expand on larger screens)
+    maxWidth: 2400,           // Maximum container width (20% increase for better large display utilization)
     cols: 12,                 // Total columns in grid (industry standard)
 
     // Breakpoints (from react-grid-layout)

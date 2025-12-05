@@ -43,6 +43,7 @@ const Dashboard = () => {
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
+    const [layoutMode, setLayoutMode] = useState('auto'); // 'auto' = synced layouts, 'manual' = independent per breakpoint
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -55,11 +56,11 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 },
+        cols: { lg: 12, md: 12, sm: 6, xs: 6, xxs: 6 },  // 12-col grid, 6-col on mobile (2× scaling)
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
-        rowHeight: 100,
+        rowHeight: 100,  // Static for reliability
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
-        preventCollision: false,
+        preventCollision: true,  // Prevent overlapping widgets
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
         margin: [16, 16],
@@ -189,7 +190,7 @@ const Dashboard = () => {
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 24; // xs/xxs=2 (full width), md/sm/lg=24
+        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 6 : (currentBreakpoint === 'sm' ? 6 : 12); // xs/xxs/sm=6 (full width), md/lg=12
         const breakpoint = currentBreakpoint;
 
         logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
@@ -608,7 +609,7 @@ const Dashboard = () => {
     // Empty state
     if (widgets.length === 0 && !editMode) {
         return (
-            <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+            <div className="w-full min-h-screen p-8 max-w-[2400px] mx-auto fade-in">
                 <header className="mb-12 flex items-center justify-between">
                     <div>
                         <h1 className="text-5xl font-bold mb-3 gradient-text">
@@ -634,7 +635,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+        <div className="w-full min-h-screen p-8 max-w-[2400px] mx-auto fade-in">
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
                 <div>
@@ -712,11 +713,11 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }}
+                            cols={{ lg: 12, md: 12, sm: 6, xs: 6, xxs: 6 }}
                             breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
                             rowHeight={100}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
-                            preventCollision={false}
+                            preventCollision={true}
                             isDraggable={editMode && isGlobalDragEnabled}
                             isResizable={editMode && isGlobalDragEnabled}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
@@ -758,9 +759,9 @@ const Dashboard = () => {
                                             }}
                                             data-grid={{
                                                 ...layoutItem,
-                                                h: shouldShrink ? 0.001 : layoutItem.h,        // Try 0.01 for thinnest line
+                                                h: shouldShrink ? 0.001 : layoutItem.h,
                                                 minH: shouldShrink ? 0.001 : (metadata?.minSize?.h || 1),
-                                                maxW: metadata?.maxSize?.w || 24,
+                                                maxW: metadata?.maxSize?.w || 12,  // Updated for 12-col grid
                                                 maxH: metadata?.maxSize?.h || 10
                                             }}
                                         >
