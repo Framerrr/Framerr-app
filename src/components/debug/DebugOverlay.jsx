@@ -60,9 +60,9 @@ const DebugOverlay = ({
     const gridstackCols = {
         lg: 12,
         md: 12,
-        sm: 12,
-        xs: 6,
-        xxs: 2
+        sm: 2,   // Stacked
+        xs: 2,   // Stacked
+        xxs: 2   // Stacked
     };
 
     // Extract grid config values - fallback to Gridstack defaults
