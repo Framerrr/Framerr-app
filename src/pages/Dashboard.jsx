@@ -200,10 +200,9 @@ const Dashboard = () => {
     useEffect(() => {
         if (!widgets.length) return;
 
-        // Only run for mobile breakpoints that use sorted stacked layouts
-        // lg/md use desktop grid, sm/xs/xxs use stacking
-        const isMobile = ['sm', 'xs', 'xxs'].includes(currentBreakpoint);
-        if (!isMobile) return;
+        // Only run for breakpoints that use sorted stacked layouts (not lg)
+        const isSorted = currentBreakpoint !== 'lg';
+        if (!isSorted) return;
 
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
@@ -236,7 +235,7 @@ const Dashboard = () => {
             ...prev,
             [currentBreakpoint]: compactedLayouts
         }));
-    }, [widgetVisibility, currentBreakpoint, editMode, widgets]); // Added widgets to dependencies
+    }, [widgetVisibility, currentBreakpoint, editMode]); // Recompact on visibility, breakpoint, or editMode toggle
 
     const loadUserPreferences = async () => {
         try {
