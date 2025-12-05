@@ -240,7 +240,7 @@ const Dashboard = () => {
             ...prev,
             [breakpoint]: compactedLayouts
         }));
-    }, [widgetVisibility, currentBreakpoint, widgets]);
+    }, [widgetVisibility, currentBreakpoint]); // Only recompact when visibility changes, NOT when widgets positions update
 
     const loadUserPreferences = async () => {
         try {
