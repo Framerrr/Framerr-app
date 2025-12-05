@@ -70,6 +70,7 @@ const GridstackWrapper = ({
 
             // Listen to drag stop (user finished dragging)
             gridInstanceRef.current.on('dragstop', (event, el) => {
+                console.log('🔍 DRAGSTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChange });
                 // Only fire if in edit mode (check ref for current value)
                 if (!editModeRef.current || !onLayoutChange) return;
 
@@ -95,6 +96,7 @@ const GridstackWrapper = ({
 
             // Listen to resize stop (user finished resizing)
             gridInstanceRef.current.on('resizestop', (event, el) => {
+                console.log('🔍 RESIZESTOP fired', { editModeRef: editModeRef.current, hasCallback: !!onLayoutChange });
                 // Only fire if in edit mode (check ref for current value)
                 if (!editModeRef.current || !onLayoutChange) return;
 
@@ -144,6 +146,7 @@ const GridstackWrapper = ({
 
         // Update ref so event handlers can check current edit mode
         editModeRef.current = editMode;
+        console.log('🔍 Edit mode changed', { editMode, editModeRef: editModeRef.current });
 
         if (editMode) {
             gridInstanceRef.current.enableMove(true);
