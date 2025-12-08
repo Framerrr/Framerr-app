@@ -36,6 +36,7 @@ const SortableGroupItem = ({ group, onEdit, onDelete }) => {
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
+        willChange: isDragging ? 'transform' : 'auto'
     };
 
     return (
@@ -48,7 +49,15 @@ const SortableGroupItem = ({ group, onEdit, onDelete }) => {
             <button
                 {...attributes}
                 {...listeners}
-                className="cursor-grab active:cursor-grabbing text-theme-tertiary hover:text-theme-primary transition-colors touch-none"
+                className="cursor-grab active:cursor-grabbing text-theme-tertiary hover:text-theme-primary transition-colors"
+                style={{
+                    touchAction: 'none',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    WebkitTouchCallout: 'none'
+                }}
                 title="Drag to reorder"
             >
                 <GripVertical size={20} />
@@ -100,8 +109,8 @@ const TabGroupsSettings = () => {
         useSensor(PointerSensor),
         useSensor(TouchSensor, {
             activationConstraint: {
-                delay: 200,       // 200ms hold before drag starts
-                tolerance: 8      // 8px movement tolerance during delay
+                delay: 150,       // 150ms hold for smoother response
+                tolerance: 5      // Tighter tolerance for less jitter
             }
         }),
         useSensor(KeyboardSensor, {

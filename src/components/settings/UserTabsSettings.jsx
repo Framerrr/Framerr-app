@@ -38,6 +38,7 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent }) => {
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
+        willChange: isDragging ? 'transform' : 'auto'
     };
 
     return (
@@ -50,7 +51,15 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent }) => {
             <button
                 {...attributes}
                 {...listeners}
-                className="cursor-grab active:cursor-grabbing text-theme-tertiary hover:text-theme-primary transition-colors mr-3 touch-none"
+                className="cursor-grab active:cursor-grabbing text-theme-tertiary hover:text-theme-primary transition-colors mr-3"
+                style={{
+                    touchAction: 'none',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    WebkitTouchCallout: 'none'
+                }}
                 title="Drag to reorder"
             >
                 <GripVertical size={20} />
@@ -123,8 +132,8 @@ const UserTabsSettings = () => {
         useSensor(PointerSensor),
         useSensor(TouchSensor, {
             activationConstraint: {
-                delay: 200,       // 200ms hold before drag starts
-                tolerance: 8      // 8px movement tolerance during delay
+                delay: 150,       // 150ms hold for smoother response
+                tolerance: 5      // Tighter tolerance for less jitter
             }
         }),
         useSensor(KeyboardSensor, {
