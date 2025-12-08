@@ -9,6 +9,7 @@ import {
     closestCenter,
     KeyboardSensor,
     PointerSensor,
+    TouchSensor,
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
@@ -120,6 +121,12 @@ const UserTabsSettings = () => {
     // Drag and drop sensors
     const sensors = useSensors(
         useSensor(PointerSensor),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200,       // 200ms hold before drag starts
+                tolerance: 8      // 8px movement tolerance during delay
+            }
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
