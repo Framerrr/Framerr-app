@@ -435,16 +435,16 @@ const Sidebar = () => {
                         overflow: 'hidden',
                     }}
                 >
-                    {/* Scrollable Nav Section */}
-                    <div className="overflow-y-auto px-6 pt-6 pb-4" style={{ flex: 1, minHeight: 0 }}>
-                        {/* Menu Header */}
-                        <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50">
-                            <div className="flex items-center gap-3 text-accent font-bold text-xl">
-                                {renderIcon(userSettings?.serverIcon, 24)}
-                                <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
-                            </div>
+                    {/* FIXED: Menu Header - stays at top, doesn't scroll */}
+                    <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-700/50">
+                        <div className="flex items-center gap-3 text-accent font-bold text-xl">
+                            {renderIcon(userSettings?.serverIcon, 24)}
+                            <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
                         </div>
+                    </div>
 
+                    {/* SCROLLABLE: Nav Section - only this part scrolls */}
+                    <div className="overflow-y-auto px-6 pt-4 pb-4" style={{ flex: 1, minHeight: 0 }}>
                         {/* Navigation */}
                         <nav className="space-y-4">
                             {/* Tabs Section */}
@@ -486,7 +486,7 @@ const Sidebar = () => {
                         </nav>
                     </div>
 
-                    {/* Fixed Logout Section (above tab bar) */}
+                    {/* FIXED: Logout Section - stays at bottom, doesn't scroll */}
                     <div className="px-6 pt-4 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
                         <button
                             onClick={handleLogout}
