@@ -34,7 +34,7 @@ const SortableGroupItem = ({ group, onEdit, onDelete }) => {
 
     const style = {
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: isDragging ? 'none' : transition,  // No transition while dragging
         opacity: isDragging ? 0.5 : 1,
         willChange: isDragging ? 'transform' : 'auto'
     };
