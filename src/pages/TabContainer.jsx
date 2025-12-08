@@ -101,6 +101,13 @@ const TabContainer = () => {
 
     const handleAuthComplete = (slug) => {
         logger.info(`Auth window closed for ${slug}, reloading iframe`);
+
+        // Close the auth window if still open and refocus Framerr
+        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
+            authWindowRefs.current[slug].close();
+        }
+        window.focus();
+
         setIsReloading(prev => ({ ...prev, [slug]: true }));
         setNeedsAuth(prev => ({ ...prev, [slug]: false }));
 
