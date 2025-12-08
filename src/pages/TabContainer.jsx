@@ -66,7 +66,7 @@ const TabContainer = () => {
 
                 try {
                     const currentSrc = iframe.src;
-                    if (currentSrc && currentSrc !== tab.url) {
+                    if (currentSrc) {
                         const detection = detectAuthNeed(currentSrc, tab.url, userPatterns, sensitivity);
                         if (detection.needsAuth) {
                             logger.info(`Auth detected for ${slug}:`, detection);
