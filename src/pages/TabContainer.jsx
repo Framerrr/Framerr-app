@@ -47,6 +47,48 @@ const TabContainer = () => {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [tabs]);
 
+    // Auto-detect authentication requirements by monitoring iframe URLs
+    useEffect(() => {
+        if (!systemConfig || !isAuthDetectionEnabled(systemConfig)) {
+            return;
+        }
+
+        const sensitivity = getSensitivity(systemConfig);
+        const userPatterns = getUserAuthPatterns(systemConfig);
+
+        // Monitor all loaded tabs
+        Array.from(loadedTabs).forEach(slug => {
+            const interval = setInterval(() => {
+                const iframe = iframeRefs.current[slug];
+                const tab = tabs.find(t => t.slug === slug);
+
+                if (!iframe || !tab || needsAuth[slug]) return;
+
+                try {
+                    const currentSrc = iframe.src;
+                    if (currentSrc && currentSrc !== tab.url) {
+                        const detection = detectAuthNeed(currentSrc, tab.url, userPatterns, sensitivity);
+                        if (detection.needsAuth) {
+                            logger.info(`Auth detected for ${slug}:`, detection);
+                            setNeedsAuth(prev => ({ ...prev, [slug]: true }));
+                            setAuthDetectionInfo(prev => ({ ...prev, [slug]: detection }));
+                        }
+                    }
+                } catch (e) {
+                    // Cross-origin restriction - expected
+                }
+            }, 1000); // Check every second
+
+            detectionIntervalRefs.current[slug] = interval;
+        });
+
+        // Cleanup intervals
+        return () => {
+            Object.values(detectionIntervalRefs.current).forEach(clearInterval);
+            detectionIntervalRefs.current = {};
+        };
+    }, [tabs, loadedTabs, systemConfig, needsAuth]);
+
     const fetchTabs = async () => {
         try {
             setLoading(true);
