@@ -376,6 +376,9 @@ const CustomizationSettings = () => {
                 detail: { appName: applicationName }
             }));
 
+            // Dispatch event to refresh sidebar/mobile menu with new icon
+            window.dispatchEvent(new Event('systemConfigUpdated'));
+
             logger.info('Application name and icon saved successfully');
         } catch (error) {
             logger.error('Failed to save application name:', error);

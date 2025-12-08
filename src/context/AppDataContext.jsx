@@ -28,10 +28,10 @@ export const AppDataProvider = ({ children }) => {
             const systemConfigRes = await axios.get('/api/config/system');
             const systemConfig = systemConfigRes.data;
 
-            // Set user settings
+            // Set user settings with server name/icon from system config
             setUserSettings({
-                serverName: 'Homelab',
-                serverIcon: 'Server',
+                serverName: systemConfig?.server?.name || 'Homelab Dashboard',
+                serverIcon: systemConfig?.server?.icon || 'Server',
                 ...userConfig.preferences
             });
 
@@ -52,6 +52,17 @@ export const AppDataProvider = ({ children }) => {
 
     useEffect(() => {
         fetchData();
+
+        // Listen for system config updates (app name/icon changes)
+        const handleSystemConfigUpdated = () => {
+            fetchData();
+        };
+
+        window.addEventListener('systemConfigUpdated', handleSystemConfigUpdated);
+
+        return () => {
+            window.removeEventListener('systemConfigUpdated', handleSystemConfigUpdated);
+        };
     }, [isAuthenticated]);
 
     const updateWidgetLayout = async (newLayout) => {
