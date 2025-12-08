@@ -8,6 +8,7 @@ import ColorPicker from '../common/ColorPicker';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import FaviconSettings from './FaviconSettings';
+import IconPicker from '../IconPicker';
 import logger from '../../utils/logger';
 
 const CustomizationSettings = () => {
@@ -55,6 +56,7 @@ const CustomizationSettings = () => {
 
     // Application name state
     const [applicationName, setApplicationName] = useState('Homelab Dashboard');
+    const [applicationIcon, setApplicationIcon] = useState('Server');
     const [savingAppName, setSavingAppName] = useState(false);
 
     // Flatten UI state
@@ -158,13 +160,17 @@ const CustomizationSettings = () => {
                     setCustomColors(themeColors);
                 }
 
-                // Load system config for application name
+                // Load system config for application name and icon
                 const systemResponse = await axios.get('/api/config/system', {
                     withCredentials: true
                 });
 
                 if (systemResponse.data?.server?.name) {
                     setApplicationName(systemResponse.data.server.name);
+                }
+
+                if (systemResponse.data?.server?.icon) {
+                    setApplicationIcon(systemResponse.data.server.icon);
                 }
 
                 // Load flatten UI preference
@@ -358,7 +364,8 @@ const CustomizationSettings = () => {
         try {
             await axios.put('/api/config/system', {
                 server: {
-                    name: applicationName
+                    name: applicationName,
+                    icon: applicationIcon
                 }
             }, {
                 withCredentials: true
@@ -369,7 +376,7 @@ const CustomizationSettings = () => {
                 detail: { appName: applicationName }
             }));
 
-            logger.info('Application name saved successfully');
+            logger.info('Application name and icon saved successfully');
         } catch (error) {
             logger.error('Failed to save application name:', error);
             alert('Failed to save application name. Please try again.');
@@ -520,6 +527,42 @@ const CustomizationSettings = () => {
                                         icon={Save}
                                     >
                                         {savingAppName ? 'Saving...' : 'Save Application Name'}
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Application Icon Section */}
+                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
+                                Application Icon
+                            </h3>
+                            <p className="text-sm text-theme-secondary mb-4">
+                                Customize the icon displayed in the sidebar header and mobile menu.
+                                {!userIsAdmin && (
+                                    <span className="block mt-2 text-warning">
+                                        ⚠️ This setting requires admin privileges
+                                    </span>
+                                )}
+                            </p>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
+                                        Select Icon
+                                    </label>
+                                    <IconPicker
+                                        value={applicationIcon}
+                                        onChange={(icon) => setApplicationIcon(icon)}
+                                        disabled={!userIsAdmin}
+                                    />
+                                </div>
+                                {userIsAdmin && (
+                                    <Button
+                                        onClick={handleSaveApplicationName}
+                                        disabled={savingAppName}
+                                        icon={Save}
+                                    >
+                                        {savingAppName ? 'Saving...' : 'Save Application Name & Icon'}
                                     </Button>
                                 )}
                             </div>
