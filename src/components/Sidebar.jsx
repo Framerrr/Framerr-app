@@ -41,7 +41,19 @@ const Sidebar = () => {
                 logger.error('Error fetching tabs:', error);
             }
         };
-        fetchTabs();
+
+        fetchTabs(); // Initial fetch
+
+        // Listen for tab update events from settings pages
+        const handleTabsUpdated = () => {
+            fetchTabs();
+        };
+
+        window.addEventListener('tabsUpdated', handleTabsUpdated);
+
+        return () => {
+            window.removeEventListener('tabsUpdated', handleTabsUpdated);
+        };
     }, []);
 
     // Fetch current user profile

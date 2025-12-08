@@ -206,6 +206,8 @@ const UserTabsSettings = () => {
             if (response.ok) {
                 setShowModal(false);
                 fetchTabs();
+                // Notify sidebar to update
+                window.dispatchEvent(new Event('tabsUpdated'));
             } else {
                 const error = await response.json();
                 alert(error.error || 'Failed to save tab');
@@ -229,6 +231,8 @@ const UserTabsSettings = () => {
 
             if (response.ok) {
                 fetchTabs();
+                // Notify sidebar to update
+                window.dispatchEvent(new Event('tabsUpdated'));
             } else {
                 const error = await response.json();
                 alert(error.error || 'Failed to delete tab');
@@ -254,12 +258,17 @@ const UserTabsSettings = () => {
         // Persist to server
         try {
             const orderedIds = newTabs.map(t => t.id);
-            await fetch('/api/tabs/reorder', {
+            const response = await fetch('/api/tabs/reorder', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ orderedIds })
             });
+
+            if (response.ok) {
+                // Notify sidebar to update
+                window.dispatchEvent(new Event('tabsUpdated'));
+            }
         } catch (error) {
             logger.error('Error reordering tabs:', error);
             fetchTabs(); // Revert on error
