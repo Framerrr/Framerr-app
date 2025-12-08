@@ -1,18 +1,18 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-05 03:40:00  
-**Current Version:** v1.1.6-recovered  
-**Development Branch:** `develop` (Gridstack migration paused)
-**Production Branch:** `main` (Dec 3 working state - react-grid-layout)
-**Production Docker:** `pickels23/framerr:debug`
+**Last Updated:** 2025-12-08 14:40:00  
+**Current Version:** v1.1.7  
+**Development Branch:** `develop` (Gridstack work paused)
+**Production Branch:** `main`  
+**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 14:** Custom Colors Toggle & Auto-Save (In Progress) 🟡
+**Phase 15:** Mobile Responsiveness & v1.1.7 Release (Complete) ✅
 
-**Status:** Custom colors toggle and auto-save implemented. Color reversion blocked on manual file edits needed.
+**Status:** Production release v1.1.7 deployed with mobile improvements and security updates.
 
 ---
 
@@ -21,131 +21,76 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
-| **Frontend** | ✅ Operational | All stubs redesigned, mobile UI refined |
-| **Docker Production** | ✅ Live | `pickels23/framerr:debug` (custom colors WIP) |
-| **Docker Debug** | ✅ Deployed | Same as production |
+| **Frontend** | ✅ Operational | All mobile UX improvements deployed |
+| **Docker Production** | ✅ Live | `pickels23/framerr:1.1.7` and `:latest` |
+| **Docker Debug** | ✅ Available | Use `:1.1.7` for debugging |
 | **Documentation** | ✅ Complete | Full v2.0 system in place |
-| **Workflows** | ✅ Active | 8 workflows created |
+| **Workflows** | ✅ Active | 8 workflows operational |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
-| **Setup Flow** | ✅ Fixed | Users can create admin accounts |
-| **Admin Settings** | ✅ Fixed | Admin users see all settings tabs |
-| **Hash Navigation** | ✅ Complete | Proper state-preserving routing restored |
-| **Stub Components** | ✅ Complete | 4/4 active stubs redesigned |
-| **Mobile Tab Bar** | ✅ Complete | Clear padding on non-iframe pages |
-| **Mobile Logout** | ✅ Complete | Fixed above tab bar, always visible |
-| **Custom Colors** | 🟡 Partial | Toggle & auto-save done, reversion blocked |
+| **Mobile UX** | ✅ Enhanced | Touch drag, auto-updates, fixed header |
+| **React Security** | ✅ Patched | React 19.2.1 (CVE-2025-12-03) |
 
 ---
 
 ## 🚀 Recent Accomplishments
 
-### Custom Colors Toggle & Auto-Save (Dec 3, 2025 - 18:21) - PARTIAL ✅🟡
-- ✅ Custom colors toggle with proper state management
-- ✅ Auto-save with 500ms debounce (removed Save/Reset buttons)
-- ✅ All 18 ColorPickers and buttons grey out when disabled
-- ✅ Theme color synchronization with useEffect
-- ✅ `resetToThemeColors()` function created with 200ms delay
-- 🟡 **BLOCKER:** Handlers don't call reset function (file edit tool failed)
-- 🟡 Colors only revert after page refresh
-- 📝 13 commits, ~573 tool calls
+### v1.1.7 Production Release (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Mobile Bug Fixes:**
+  - Customizable app icon in sidebar/mobile menu
+  - Real-time tab updates (no page refresh)
+  - Touch drag-and-drop for tab/group reordering
+  - Fixed mobile menu header (stays at top)
+- ✅ **UX Improvements:**
+  - No text selection during drag
+  - Smooth drag performance (no jitter)
+  - Optimized touch timing (150ms delay, 5px tolerance)
+  - Auto-refresh on icon/name changes
+- ✅ **Security:** React 19.2.1 update
+- ✅ **Cleanup:** Removed deprecated TabsSettings.jsx
+- 📝 11 commits, ~356 tool calls
+- 🐳 Docker images pushed to Hub
+- 🏷️ Git tag `v1.1.7` created and pushed
 
-### Hash Navigation System Migration (Dec 2, 2025 - 20:20) - COMPLETE ✅
-- ✅ Migrated to recovered 3-layer architecture
-- ✅ MainContent component splits Settings vs Dashboard/Tabs
-- ✅ DashboardOrTabs splits Dashboard vs TabContainer
-- ✅ TabContainer manages iframe persistence with lazy loading
-- ✅ Sidebar uses recovered version with plain `<a href="#">` tags
-- ✅ UserSettings parses hash params manually (#settings?tab=profile)
-- ✅ All components use display toggling for state persistence
-- ✅ Build passing, deployed to Docker
-
-### Production Bug Fixes (Dec 2, 2025 - Evening)
-- ✅ Fixed setup redirect loop preventing admin account creation
-- ✅ Fixed setup not redirecting after account creation
-- ✅ Restored admin settings visibility
-- ✅ Fixed settings page crashes
-- ✅ Removed loading delay (simplified admin check)
-
-### Documentation System v2.0 (Dec 2, 2025 - Afternoon)
+### Documentation System v2.0 (Dec 2, 2025) - COMPLETE ✅
 - ✅ Created `docs/` structure with 6 subdirectories
 - ✅ Archived 15 recovery documentation files
-- ✅ Consol idated rules system (git, development, theming)
-- ✅ Created 8 workflows (start-session, end-session, checkpoint, code-audit, git-workflow, + 3 placeholders)
-- ✅ Created `Dockerfile.dev` for debug builds
-- ✅ Organized architecture and development guides
-
----
-
-## 📁 Documentation Structure
-
-```
-docs/
-├── CHATFLOW.md                    # Quick start guide
-├── README.md                      # Documentation index
-├── tasks/                         # Task tracking
-│   ├── HANDOFF.md                 # Current state & context
-│   ├── TASK_CURRENT.md            # Active session work
-│   ├── STATUS.md                  # This file
-│   ├── TASK_BACKLOG.md            # Future work
-│   └── TASK_COMPLETED.md          # Historical log
-├── architecture/                  # System design
-│   ├── ARCHITECTURE.md
-│   └── PROJECT_SCOPE.md
-├── development/                   # Developer guides
-│   ├── WIDGET_DEVELOPMENT_GUIDE.md
-│   ├── LOGGING_REFERENCE.md
-│   └── DOCKER_BUILDS.md
-├── theming/                       # Theming documentation
-│   ├── THEMING_ENGINE.md
-│   ├── CSS_VARIABLES.md
-│   ├── DEVELOPER_GUIDE.md
-│   └── COMPONENT_PATTERNS.md
-├── archived/                      # Recovery archive
-│   └── [15 recovery docs + inventories]
-└── versions/
-    └── 1.1.6-recovered.md
-```
+- ✅ Consolidated rules system (git, development, theming)
+- ✅ Created 8 workflows
+- ✅ `Dockerfile.dev` for debug builds
 
 ---
 
 ## 🔄 Active Work
 
-**Current Task:** All stub components redesigned  
+**Current Task:** v1.1.7 deployed to production  
 **Next Steps:**
-1. Test enhanced stub components
-2. Continue widget development
-3. Consider additional theming options
-4. Monitor component performance
+1. Monitor v1.1.7 in production
+2. Gather user feedback on mobile improvements
+3. Consider resuming gridstack work on develop branch
+4. Plan next feature development
 
 ---
 
 ## 🐛 Known Issues
 
-### Minor Enhancements Possible
-- Additional color presets for ColorPicker
-- More detailed error messages in ErrorBoundary
-- Additional loading states
-
-### v1.0.6 Components (Monitor)
-Functional but may have minor differences:
-- `SystemStatusWidget`
-- `CalendarWidget`
+None reported for v1.1.7
 
 ---
 
 ## 📦 Deployment Status
 
 ### Docker Images
-- **Production:** `pickels23/framerr:debug` (v1.1.6 + stub redesigns)
+- **Production:** `pickels23/framerr:1.1.7` and `:latest`
   - Size: ~286 MB
-  - Status: Deployed and tested
-  - Last pushed: 2025-12-03
-  - Digest: sha256:e89fea5...
+  - Status: Deployed and live
+  - Last pushed: 2025-12-08
+  - Features: Mobile UX improvements, React 19.2.1
 
 ### Git Status
-- **Branch:** `develop`
-- **Status:** Clean, 7 commits ahead
-- **Latest commit:** f21cf0c (WidgetErrorBoundary enhancement)
+- **Branch:** `main`
+- **Tag:** `v1.1.7`
+- **Status:** Clean, all changes committed and pushed
+- **Latest commit:** 1e41fc0 (chore: bump version to 1.1.7)
 
 ---
 
@@ -154,9 +99,9 @@ Functional but may have minor differences:
 See `TASK_BACKLOG.md` for details.
 
 **High Priority:**
-- Test all enhanced stub components
-- Widget development and testing
-- Production release planning
+- Test v1.1.7 mobile improvements in production
+- User feedback collection
+- Resume gridstack work (on develop branch)
 
 **Medium Priority:**
 - Bundle size optimization
@@ -164,9 +109,8 @@ See `TASK_BACKLOG.md` for details.
 - Extended widget library
 
 **Low Priority:**
-- Additional theming documentation
-- More color preset options
-- Extra loading states
+- Additional theming options
+- More mobile UX refinements
 
 ---
 
@@ -182,12 +126,13 @@ See `TASK_BACKLOG.md` for details.
 
 ## 📊 Metrics
 
+**Version:** v1.1.7  
 **Lines of Code:** ~50,000+ (estimated)  
-**Components:** 46 files (43 complete, 3 from earlier versions)  
+**Components:** 46 files  
 **Build Size:** 1.20 MB (15 files)  
 **Backend Files:** 2,081  
-**Documentation Files:** 40+ (comprehensive)  
-**Stub Components:** 4/4 redesigned (DeveloperSettings intentional placeholder)
+**Documentation Files:** 40+  
+**Production Releases:** 2 (v1.1.6-recovered, v1.1.7)
 
 ---
 
