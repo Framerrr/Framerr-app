@@ -158,13 +158,21 @@ const TabContainer = () => {
     const handleOpenAuth = (slug, authUrl) => {
         logger.info(`Opening auth in new tab for ${slug}:`, authUrl);
 
-        // Construct redirect URL to our login-complete page
+        // Construct OAuth authorize URL for Authentik
+        const clientId = 'RFved8RMgr1c4fERztGfzLLm2mu9zyy9DKXFn7Z7';
         const redirectUri = `${window.location.origin}/login-complete`;
-        const authUrlWithRedirect = `${authUrl}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+        const authDomain = 'https://auth.server-nebula.com';
 
-        logger.debug('Auth URL with redirect:', authUrlWithRedirect);
+        // Build proper OAuth authorize URL
+        const oauthUrl = `${authDomain}/application/o/authorize/` +
+            `?client_id=${encodeURIComponent(clientId)}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+            `&response_type=code` +
+            `&scope=openid%20profile%20email`;
 
-        const authWindow = window.open(authUrlWithRedirect, '_blank');
+        logger.debug('OAuth authorize URL:', oauthUrl);
+
+        const authWindow = window.open(oauthUrl, '_blank');
         authWindowRefs.current[slug] = authWindow;
 
         if (!authWindow) {
