@@ -192,9 +192,9 @@ const Sidebar = () => {
                     />
 
                     {/* Header */}
-                    <div className={`h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10`}>
-                        {/* Icon - absolutely centered */}
-                        <div className="absolute left-[26px] text-accent flex items-center justify-center drop-shadow-lg">
+                    <div className="h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
+                        {/* Icon - locked in 80px container */}
+                        <div className="w-20 flex items-center justify-center flex-shrink-0 text-accent drop-shadow-lg">
                             {renderIcon(userSettings?.serverIcon, 28)}
                         </div>
                         {/* Text - appears when expanded */}
@@ -205,7 +205,7 @@ const Sidebar = () => {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.1 }}
-                                    className="absolute left-[62px] gradient-text font-bold"
+                                    className="gradient-text font-bold"
                                 >
                                     {userSettings?.serverName || 'Dashboard'}
                                 </motion.div>
@@ -237,10 +237,12 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            {/* Icon - absolutely positioned to never move */}
-                            <span className={`absolute left-[29px] flex items-center justify-center z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}>
-                                <LayoutDashboard size={22} />
-                            </span>
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className={`flex items-center justify-center ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}>
+                                    <LayoutDashboard size={22} />
+                                </span>
+                            </div>
                             {/* Text - appears when expanded */}
                             <AnimatePresence mode="wait">
                                 {isExpanded && (
@@ -249,7 +251,7 @@ const Sidebar = () => {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.1 }}
-                                        className={`absolute left-[58px] whitespace-nowrap z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
+                                        className={`whitespace-nowrap relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
                                     >
                                         Dashboard
                                     </motion.span>
@@ -439,18 +441,20 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            {/* Icon - absolutely positioned */}
-                            <span className={`absolute left-[29px] flex items-center justify-center z-10 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}>
-                                {currentUser?.profilePicture ? (
-                                    <img
-                                        src={currentUser.profilePicture}
-                                        alt="Profile"
-                                        className="w-[22px] h-[22px] rounded-full object-cover border border-slate-600"
-                                    />
-                                ) : (
-                                    <UserCircle size={22} />
-                                )}
-                            </span>
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className={`flex items-center justify-center ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}>
+                                    {currentUser?.profilePicture ? (
+                                        <img
+                                            src={currentUser.profilePicture}
+                                            alt="Profile"
+                                            className="w-[22px] h-[22px] rounded-full object-cover border border-slate-600"
+                                        />
+                                    ) : (
+                                        <UserCircle size={22} />
+                                    )}
+                                </span>
+                            </div>
                             {/* Text - appears when expanded */}
                             <AnimatePresence mode="wait">
                                 {isExpanded && (
@@ -459,7 +463,7 @@ const Sidebar = () => {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.1 }}
-                                        className={`absolute left-[58px] whitespace-nowrap z-10 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}
+                                        className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}
                                     >
                                         Profile
                                     </motion.span>
@@ -496,10 +500,12 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            {/* Icon - absolutely positioned */}
-                            <span className={`absolute left-[29px] flex items-center justify-center z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}>
-                                <SettingsIcon size={20} />
-                            </span>
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className={`flex items-center justify-center ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}>
+                                    <SettingsIcon size={20} />
+                                </span>
+                            </div>
                             {/* Text - appears when expanded */}
                             <AnimatePresence mode="wait">
                                 {isExpanded && (
@@ -508,7 +514,7 @@ const Sidebar = () => {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.1 }}
-                                        className={`absolute left-[58px] whitespace-nowrap z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}
+                                        className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}
                                     >
                                         Settings
                                     </motion.span>
@@ -530,10 +536,12 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            {/* Icon - absolutely positioned */}
-                            <span className="absolute left-[29px] flex items-center justify-center z-10">
-                                <LogOut size={20} />
-                            </span>
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className="flex items-center justify-center">
+                                    <LogOut size={20} />
+                                </span>
+                            </div>
                             {/* Text - appears when expanded */}
                             <AnimatePresence mode="wait">
                                 {isExpanded && (
@@ -542,7 +550,7 @@ const Sidebar = () => {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.1 }}
-                                        className="absolute left-[58px] whitespace-nowrap z-10"
+                                        className="whitespace-nowrap relative z-10"
                                     >
                                         Logout
                                     </motion.span>
