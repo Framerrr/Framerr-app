@@ -15,6 +15,7 @@ const Sidebar = () => {
     const [tabs, setTabs] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
     const [hoveredItem, setHoveredItem] = useState(null);
+    const hoverTimeoutRef = React.useRef(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
     const navigate = useNavigate();
@@ -113,11 +114,22 @@ const Sidebar = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const toggleGroup = (groupId) => {
-        setExpandedGroups(prev => ({
-            ...prev,
-            [groupId]: !prev[groupId]
-        }));
+    // Delayed hover handlers to prevent snap-back when mouse crosses empty space
+    const handleMouseEnter = (item) => {
+        // Clear any pending timeout
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+        setHoveredItem(item);
+    };
+
+    const handleMouseLeave = () => {
+        // Add small delay before clearing hover (150ms)
+        hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredItem(null);
+            hoverTimeoutRef.current = null;
+        }, 150);
     };
 
     const renderIcon = (iconValue, size = 20) => {
@@ -134,6 +146,13 @@ const Sidebar = () => {
 
         const IconComponent = Icons[iconValue] || Icons.Server;
         return <IconComponent size={size} />;
+    };
+
+    const toggleGroup = (groupId) => {
+        setExpandedGroups(prev => ({
+            ...prev,
+            [groupId]: !prev[groupId]
+        }));
     };
 
     // Desktop Sidebar with animated hover indicator
@@ -175,6 +194,11 @@ const Sidebar = () => {
                     onMouseEnter={() => setIsExpanded(true)}
                     onMouseLeave={() => {
                         setIsExpanded(false);
+                        // Clear any pending hover timeout when leaving sidebar
+                        if (hoverTimeoutRef.current) {
+                            clearTimeout(hoverTimeoutRef.current);
+                            hoverTimeoutRef.current = null;
+                        }
                         setHoveredItem(null);
                     }}
                 >
@@ -218,8 +242,8 @@ const Sidebar = () => {
                         {/* Dashboard Link */}
                         <a
                             href="/#dashboard"
-                            onMouseEnter={() => setHoveredItem('dashboard')}
-                            onMouseLeave={() => setHoveredItem(null)}
+                            onMouseEnter={() => handleMouseEnter('dashboard')}
+                            onMouseLeave={handleMouseLeave}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const shouldBeActive = !hash || hash === 'dashboard';
@@ -285,8 +309,8 @@ const Sidebar = () => {
                                     <a
                                         key={tab.id}
                                         href={`/#${tab.slug}`}
-                                        onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
-                                        onMouseLeave={() => setHoveredItem(null)}
+                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                        onMouseLeave={handleMouseLeave}
                                         className={`flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
                                     >
                                         {/* Animated hover/active indicator */}
@@ -339,8 +363,8 @@ const Sidebar = () => {
                                                 <>
                                                     <button
                                                         onClick={() => toggleGroup(group.id)}
-                                                        onMouseEnter={() => setHoveredItem(`group-${group.id}`)}
-                                                        onMouseLeave={() => setHoveredItem(null)}
+                                                        onMouseEnter={() => handleMouseEnter(`group-${group.id}`)}
+                                                        onMouseLeave={handleMouseLeave}
                                                         className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg relative"
                                                     >
                                                         {/* Hover indicator for group header */}
@@ -373,8 +397,8 @@ const Sidebar = () => {
                                                                     <a
                                                                         key={tab.id}
                                                                         href={`/#${tab.slug}`}
-                                                                        onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
-                                                                        onMouseLeave={() => setHoveredItem(null)}
+                                                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                                                        onMouseLeave={handleMouseLeave}
                                                                         className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-slate-400 hover:text-white transition-colors rounded-xl relative"
                                                                     >
                                                                         {/* Animated hover/active indicator */}
@@ -406,8 +430,8 @@ const Sidebar = () => {
                                                     <a
                                                         key={tab.id}
                                                         href={`/#${tab.slug}`}
-                                                        onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
-                                                        onMouseLeave={() => setHoveredItem(null)}
+                                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                                        onMouseLeave={handleMouseLeave}
                                                         className="flex items-center justify-center py-3.5 text-slate-300 hover:text-white transition-colors rounded-xl relative group"
                                                     >
                                                         {/* Animated hover/active indicator */}
@@ -444,8 +468,8 @@ const Sidebar = () => {
                         {/* Profile Link */}
                         <a
                             href="/#settings?tab=profile&source=profile"
-                            onMouseEnter={() => setHoveredItem('profile')}
-                            onMouseLeave={() => setHoveredItem(null)}
+                            onMouseEnter={() => handleMouseEnter('profile')}
+                            onMouseLeave={handleMouseLeave}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const hashParts = hash.split('?');
@@ -502,8 +526,8 @@ const Sidebar = () => {
                         {/* Settings Link */}
                         <a
                             href="/#settings"
-                            onMouseEnter={() => setHoveredItem('settings')}
-                            onMouseLeave={() => setHoveredItem(null)}
+                            onMouseEnter={() => handleMouseEnter('settings')}
+                            onMouseLeave={handleMouseLeave}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const hashParts = hash.split('?');
@@ -548,8 +572,8 @@ const Sidebar = () => {
                         {/* Logout Button */}
                         <button
                             onClick={handleLogout}
-                            onMouseEnter={() => setHoveredItem('logout')}
-                            onMouseLeave={() => setHoveredItem(null)}
+                            onMouseEnter={() => handleMouseEnter('logout')}
+                            onMouseLeave={handleMouseLeave}
                             className="flex items-center py-3 text-sm font-medium text-slate-300 hover:text-red-400 transition-colors rounded-xl relative"
                         >
                             {hoveredItem === 'logout' && (
