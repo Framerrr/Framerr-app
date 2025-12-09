@@ -223,7 +223,7 @@ const Sidebar = () => {
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const shouldBeActive = !hash || hash === 'dashboard';
-                                return `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                                return `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4' : 'px-0'}`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -430,7 +430,7 @@ const Sidebar = () => {
                                 const currentTab = searchParams.get('tab');
                                 const source = searchParams.get('source');
                                 const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative group ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative group ${isExpanded ? 'px-4' : 'px-0'}`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -489,7 +489,7 @@ const Sidebar = () => {
                                 const source = searchParams.get('source');
                                 const isProfilePage = currentTab === 'profile' && source === 'profile';
                                 const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4' : 'px-0'}`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -527,7 +527,7 @@ const Sidebar = () => {
                             onClick={handleLogout}
                             onMouseEnter={() => setHoveredItem('logout')}
                             onMouseLeave={() => setHoveredItem(null)}
-                            className={`flex items-center py-3 text-sm font-medium text-slate-300 hover:text-red-400 transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`}
+                            className={`flex items-center py-3 text-sm font-medium text-slate-300 hover:text-red-400 transition-colors rounded-xl relative ${isExpanded ? 'px-4' : 'px-0'}`}
                         >
                             {hoveredItem === 'logout' && (
                                 <motion.div
