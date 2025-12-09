@@ -85,7 +85,7 @@ const FaviconInjector = () => {
                     const link = document.createElement('link');
                     link.rel = 'icon';
                     link.type = 'image/svg+xml';
-                    link.href = `/vite.svg${cacheBuster}`;
+                    link.href = `/favicon-default/favicon.svg${cacheBuster}`;
                     link.setAttribute('data-favicon-authorized', 'true');
                     document.head.appendChild(link);
                     logger.debug('Applied default favicon');

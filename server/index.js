@@ -121,10 +121,8 @@ if (NODE_ENV !== 'production') {
 const path = require('path');
 
 // Default Framerr favicons (always available, never deleted)
-// In production, serve from dist (bundled), in dev serve from server/public
-const defaultFaviconPath = NODE_ENV === 'production'
-    ? path.join(__dirname, '../dist/favicon-default')
-    : path.join(__dirname, 'public/favicon-default');
+// Always serve from server's public folder (these are bundled with the server, not the frontend)
+const defaultFaviconPath = path.join(__dirname, 'public/favicon-default');
 app.use('/favicon-default', cors(), express.static(defaultFaviconPath));
 
 // Custom user favicons (uploaded via Settings UI)
