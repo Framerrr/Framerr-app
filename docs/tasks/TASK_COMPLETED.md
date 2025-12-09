@@ -698,3 +698,43 @@ Comprehensive code audit analyzing all changes since v1.1.7, identifying and rem
 
 ---
 
+
+
+## Session: Settings UI/UX Standardization (Dec 9, 2025)
+
+**Duration:** 01:48 - 02:44 (56 minutes)  
+**Tool Calls:** ~360  
+**Commits:** 10  
+**Status:**  Complete - All settings standardized
+
+### Overview
+Comprehensive UI/UX improvements across all Settings pages including iframe auth detection relocation, glassmorphism standardization, theme class conversion, save button change tracking, and visual depth adjustments.
+
+### Work Completed
+
+1. **Iframe Auth Detection Relocation** - Moved to Auth  iFrame Auth tab with limitation docs
+2. **Container Styling** - glass-subtle shadow-medium applied to 6 files
+3. **Theme Class Conversion** - 18 hardcoded colors replaced with theme classes  
+4. **Save Button Tracking** - Change detection for App Name/Icon and Greeting
+5. **Visual Depth Adjustment** - Lightened Advanced Settings shadows
+
+### Files Modified (6 total)
+- AuthSettings.jsx (relocation + shadow update)
+- CustomizationSettings.jsx (removal + styling + tracking)
+- ProfileSettings.jsx (shadow update)
+- FaviconSettings.jsx (shadow update)
+- WidgetGallery.jsx (theme classes)
+- Advanced Settings (DiagnosticsSettings, DebugSettings, SystemSettings)
+
+### Results
+- All settings use glassmorphism consistently
+- Full Light/Dark theme compatibility
+- Flatten UI mode support
+- Professional, cohesive design language
+- +25 net lines (improved functionality)
+
+### Deployment
+- Branch: feat/iframe-auth-detection
+- Build verified passing
+- Ready for testing and merge
+

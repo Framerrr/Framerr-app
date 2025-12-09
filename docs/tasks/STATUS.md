@@ -1,6 +1,6 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-08 22:44:56  
+**Last Updated:** 2025-12-09 02:44:00  
 **Current Version:** v1.1.7  
 **Development Branch:** `feat/iframe-auth-detection`  
 **Production Branch:** `main`  
@@ -11,9 +11,9 @@
 
 ## 🎯 Current Phase
 
-**Phase:** Code Quality Maintenance
+**Phase:** UI/UX Refinement Complete
 
-**Status:**  All routine maintenance complete
+**Status:** ✅ All Settings UI/UX improvements implemented and committed
 
 ---
 
@@ -23,7 +23,7 @@
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
 | **Frontend** | ✅ Operational | All features working |
-| **Iframe Auth** | ✅ Working | Manual Lock button workflow functional |
+| **Iframe Auth** | ✅ Working | Manual Lock button + relocated settings |
 | **Docker Production** | ✅ Live | `pickels23/framerr:1.1.7` and `:latest` |
 | **Docker Development** | ✅ Available | `pickels23/framerr:develop` |
 | **Documentation** | ✅ Complete | Full v2.0 system |
@@ -31,10 +31,36 @@
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
 | **Code Quality** | ✅ Clean | Recent audit completed |
 | **React Security** | ✅ Patched | React 19.2.1 (CVE-2025-12-03) |
+| **Settings UX** | ✅ Standardized | Theme-compliant glassmorphism |
 
 ---
 
 ## 🚀 Recent Accomplishments
+
+### Settings UI/UX Standardization (Dec 9, 2025) - COMPLETE ✅
+- ✅ **Iframe Auth Relocation:**
+  - Moved from Customization to Auth → iFrame Auth tab
+  - Added browser limitation documentation
+  - Integrated with OAuth settings
+  - Removed 188 lines from CustomizationSettings
+- ✅ **Container Styling:**
+  - Standardized all settings to glass-subtle
+  - Applied shadow-medium consistently
+  - Matches UserTabsSettings reference design
+  - 6 files updated
+- ✅ **Theme Class Conversion:**
+  - Replaced hardcoded slate colors in WidgetGallery (12 instances)
+  - Replaced hardcoded colors in DiagnosticsSettings (6 instances)
+  - Ensures Light/Dark theme compatibility
+- ✅ **Save Button Tracking:**
+  - Implemented change detection for Application Name/Icon
+  - Implemented change detection for Dashboard Greeting
+  - Buttons disabled when no changes made
+- ✅ **Visual Depth Adjustment:**
+  - Changed Advanced Settings from glass-card to glass-subtle
+  - Reduced shadow intensity for consistency
+- 📝 10 commits, ~360 tool calls
+- 🐳 Ready for deployment testing
 
 ### Code Audit and Cleanup (Dec 8, 2025) - COMPLETE ✅
 - ✅ **Comprehensive Audit:**
