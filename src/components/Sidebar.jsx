@@ -417,7 +417,7 @@ const Sidebar = () => {
                     </nav>
 
                     {/* Footer */}
-                    <div className="border-t border-slate-700/50 flex flex-col gap-2 relative">
+                    <div className="py-3 border-t border-slate-700/50 flex flex-col gap-2 relative">
                         {/* Profile Link */}
                         <a
                             href="/#settings?tab=profile&source=profile"
