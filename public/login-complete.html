@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -109,6 +110,7 @@
                 transform: scale(0.8);
                 opacity: 0;
             }
+
             to {
                 transform: scale(1);
                 opacity: 1;
@@ -128,11 +130,12 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="icon">
             <svg class="checkmark" viewBox="0 0 52 52">
-                <path d="M14 27l7 7 16-16"/>
+                <path d="M14 27l7 7 16-16" />
             </svg>
         </div>
         <h1>Authentication Complete!</h1>
@@ -157,36 +160,50 @@
     </div>
 
     <script>
-        (function() {
+        (function () {
             console.log('[Framerr Auth] Login complete page loaded');
 
-            // Get return URL from query params (optional, for fallback)
+            // Get parameters from query string
             const params = new URLSearchParams(window.location.search);
             const returnUrl = params.get('return');
+            const stateParam = params.get('state');
+
+            // Parse state to get tab slug
+            let tab = null;
+            if (stateParam) {
+                try {
+                    const state = JSON.parse(decodeURIComponent(stateParam));
+                    tab = state.tab;
+                    console.log('[Framerr Auth] Parsed state, tab:', tab);
+                } catch (e) {
+                    console.warn('[Framerr Auth] Could not parse state:', e);
+                }
+            }
 
             // Check if this window was opened from Framerr
             if (window.opener && !window.opener.closed) {
                 console.log('[Framerr Auth] Opener detected, sending postMessage');
 
                 try {
-                    // Send message to parent window (Framerr)
+                    // Send message to parent window (Framerr) with tab info
                     window.opener.postMessage(
                         {
                             type: 'auth-complete',
+                            tab: tab,
                             timestamp: Date.now()
                         },
                         window.location.origin
                     );
 
-                    console.log('[Framerr Auth] postMessage sent successfully');
+                    console.log('[Framerr Auth] postMessage sent successfully with tab:', tab);
 
                     // Auto-close this tab after brief delay
-                    setTimeout(function() {
+                    setTimeout(function () {
                         console.log('[Framerr Auth] Closing window');
                         window.close();
 
                         // If close() didn't work (some browsers block it), show manual close button
-                        setTimeout(function() {
+                        setTimeout(function () {
                             document.getElementById('fallback').style.display = 'block';
                         }, 1000);
                     }, 500);
@@ -199,18 +216,26 @@
             } else if (returnUrl) {
                 // No opener, but we have a return URL - redirect there
                 console.log('[Framerr Auth] No opener, redirecting to:', returnUrl);
-                setTimeout(function() {
+                setTimeout(function () {
                     window.location.href = returnUrl;
+                }, 1500);
+
+            } else if (tab) {
+                // No opener, but we have a tab from state - go to that tab
+                console.log('[Framerr Auth] No opener, going to tab:', tab);
+                setTimeout(function () {
+                    window.location.href = '/#' + tab;
                 }, 1500);
 
             } else {
                 // No opener and no return URL - go to dashboard
                 console.log('[Framerr Auth] No opener or return URL, going to dashboard');
-                setTimeout(function() {
+                setTimeout(function () {
                     window.location.href = '/#dashboard';
                 }, 1500);
             }
         })();
     </script>
 </body>
+
 </html>

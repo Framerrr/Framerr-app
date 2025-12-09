@@ -40,15 +40,25 @@ const TabContainer = () => {
 
             // Check for auth-complete message
             if (event.data?.type === 'auth-complete') {
-                logger.info('Auth complete message received via postMessage');
+                logger.info('Auth complete message received via postMessage', event.data);
 
-                // Find the tab that has an open auth window
-                Object.keys(authWindowRefs.current).forEach(slug => {
-                    if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
-                        logger.info(`Handling auth completion for tab: ${slug}`);
-                        handleAuthComplete(slug);
-                    }
-                });
+                // Get tab from state if provided
+                const tab = event.data?.tab;
+
+                if (tab) {
+                    // Restore the specific tab
+                    logger.info(`Restoring tab: ${tab}`);
+                    window.location.hash = `#${tab}`;
+                    handleAuthComplete(tab);
+                } else {
+                    // Fallback: find the tab that has an open auth window
+                    Object.keys(authWindowRefs.current).forEach(slug => {
+                        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
+                            logger.info(`Handling auth completion for tab: ${slug}`);
+                            handleAuthComplete(slug);
+                        }
+                    });
+                }
             }
         };
 
@@ -163,12 +173,16 @@ const TabContainer = () => {
         const redirectUri = `${window.location.origin}/login-complete`;
         const authDomain = 'https://auth.server-nebula.com';
 
+        // Include tab slug in state so we can restore it after auth
+        const state = JSON.stringify({ tab: slug });
+
         // Build proper OAuth authorize URL
         const oauthUrl = `${authDomain}/application/o/authorize/` +
             `?client_id=${encodeURIComponent(clientId)}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&response_type=code` +
-            `&scope=openid%20profile%20email`;
+            `&scope=openid%20profile%20email` +
+            `&state=${encodeURIComponent(state)}`;
 
         logger.debug('OAuth authorize URL:', oauthUrl);
 
