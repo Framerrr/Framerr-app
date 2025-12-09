@@ -28,6 +28,14 @@ const FaviconInjector = () => {
                     const defaultFavicons = document.querySelectorAll('link[href^="/favicon-default/"]');
                     defaultFavicons.forEach(el => el.remove());
 
+                    // Remove ANY other favicon links that might have been added by iframes/other sources
+                    const allFavicons = document.querySelectorAll('link[rel*="icon"]');
+                    allFavicons.forEach(el => {
+                        if (!el.hasAttribute('data-favicon-injected')) {
+                            el.remove();
+                        }
+                    });
+
                     // Create a temporary container to parse HTML
                     const temp = document.createElement('div');
                     // Add cache-busting to all favicon URLs
@@ -71,7 +79,35 @@ const FaviconInjector = () => {
         const handleFaviconUpdate = () => setTriggerReload(prev => prev + 1);
         window.addEventListener('faviconUpdated', handleFaviconUpdate);
 
-        return () => window.removeEventListener('faviconUpdated', handleFaviconUpdate);
+        // Re-apply favicon when tab becomes visible (in case iframe overwrote it)
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                logger.debug('Tab visible - re-checking favicon');
+                setTriggerReload(prev => prev + 1);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Periodically check and re-apply favicon to combat iframe interference
+        const faviconGuardInterval = setInterval(() => {
+            // Only guard if the page is visible
+            if (!document.hidden) {
+                const customFavicons = document.querySelectorAll('[data-favicon-injected]');
+                const otherFavicons = document.querySelectorAll('link[rel*="icon"]:not([data-favicon-injected])');
+
+                // If other favicons appeared, re-apply ours
+                if (otherFavicons.length > 0) {
+                    logger.debug('Detected foreign favicon, re-applying custom favicon');
+                    setTriggerReload(prev => prev + 1);
+                }
+            }
+        }, 5000); // Check every 5 seconds
+
+        return () => {
+            window.removeEventListener('faviconUpdated', handleFaviconUpdate);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            clearInterval(faviconGuardInterval);
+        };
     }, [triggerReload]);
 
     // This component doesn't render anything

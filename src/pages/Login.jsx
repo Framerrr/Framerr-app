@@ -9,7 +9,7 @@ const Login = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login, isAuthenticated } = useAuth();
+    const { login, isAuthenticated, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -40,6 +40,19 @@ const Login = () => {
             setLoading(false);
         }
     };
+
+    // Show loading state while checking authentication
+    // This prevents the login form from flashing for proxy-authenticated users
+    if (authLoading) {
+        return (
+            <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 p-4">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-slate-700 border-t-accent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-400">Checking authentication...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 p-4">
