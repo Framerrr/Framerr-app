@@ -180,6 +180,11 @@ if (NODE_ENV === 'production') {
     // Serve static files
     app.use(express.static(distPath));
 
+    // OAuth callback route - serve login-complete.html directly
+    app.get('/login-complete', (req, res) => {
+        res.sendFile(path.join(distPath, 'login-complete.html'));
+    });
+
     // SPA fallback - send index.html for all non-API routes
     app.get('*', (req, res, next) => {
         // Skip API routes
