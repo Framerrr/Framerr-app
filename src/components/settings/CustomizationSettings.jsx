@@ -509,7 +509,7 @@ const CustomizationSettings = () => {
                 >
                     <div className="space-y-6">
                         {/* Application Name Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Application Name
                             </h3>
@@ -544,7 +544,7 @@ const CustomizationSettings = () => {
                         </div>
 
                         {/* Application Icon Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Application Icon
                             </h3>
@@ -580,7 +580,7 @@ const CustomizationSettings = () => {
                         </div>
 
                         {/* Dashboard Greeting Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Dashboard Greeting
                             </h3>
@@ -642,7 +642,7 @@ const CustomizationSettings = () => {
                         </div>
 
                         {/* Flatten UI Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Flatten UI Design
                             </h3>
