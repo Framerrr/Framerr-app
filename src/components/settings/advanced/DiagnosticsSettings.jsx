@@ -13,7 +13,7 @@ const DiagnosticsSettings = () => {
             </div>
 
             {/* Placeholder */}
-            <div className="glass-card rounded-xl p-12 text-center">
+            <div className="glass-subtle rounded-xl p-12 text-center">
                 <Activity size={64} className="mx-auto mb-4 text-theme-tertiary" />
                 <h4 className="text-theme-primary font-medium mb-2">Diagnostic Tools</h4>
                 <p className="text-theme-secondary mb-6">
