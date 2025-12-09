@@ -27,6 +27,13 @@ const Sidebar = () => {
         damping: 30,
     };
 
+    // Faster spring for text to avoid icon pushing
+    const textSpring = {
+        type: 'spring',
+        stiffness: 400,
+        damping: 35,
+    };
+
     // Parse query parameters from hash
     const hash = window.location.hash.slice(1);
     const hashParts = hash.split('?');
@@ -189,13 +196,16 @@ const Sidebar = () => {
                         <div className={`text-accent flex items-center justify-center drop-shadow-lg ${isExpanded ? 'min-w-[28px]' : 'w-full'}`}>
                             {renderIcon(userSettings?.serverIcon, 28)}
                         </div>
-                        <AnimatePresence>
+                        <AnimatePresence mode="wait">
                             {isExpanded && (
                                 <motion.span
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -10 }}
-                                    transition={sidebarSpring}
+                                    transition={{
+                                        ...textSpring,
+                                        exit: { duration: 0.1 }, // Instant exit to prevent icon push
+                                    }}
                                     className="ml-4 gradient-text font-bold"
                                 >
                                     {userSettings?.serverName || 'Dashboard'}
@@ -220,20 +230,26 @@ const Sidebar = () => {
                             {(hoveredItem === 'dashboard' || (!window.location.hash || window.location.hash === '#dashboard')) && (
                                 <motion.div
                                     layoutId="sidebarIndicator"
-                                    className={`absolute inset-0 rounded-xl ${!window.location.hash || window.location.hash === '#dashboard' ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className={`absolute inset-0 rounded-xl ${(!window.location.hash || window.location.hash === '#dashboard')
+                                        ? 'bg-accent/20 shadow-lg'
+                                        : 'bg-slate-800/60'
+                                        }`}
                                     transition={sidebarSpring}
                                 />
                             )}
                             <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
                                 <LayoutDashboard size={22} />
                             </span>
-                            <AnimatePresence>
+                            <AnimatePresence mode="wait">
                                 {isExpanded && (
                                     <motion.span
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -10 }}
-                                        transition={sidebarSpring}
+                                        exit={{ opacity: 0 }}
+                                        transition={{
+                                            ...textSpring,
+                                            exit: { duration: 0.1 },
+                                        }}
                                         className={`whitespace-nowrap relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
                                     >
                                         Dashboard
@@ -246,13 +262,13 @@ const Sidebar = () => {
                         {tabs && tabs.length > 0 && (
                             <>
                                 {/* Header for expanded state */}
-                                <AnimatePresence>
+                                <AnimatePresence mode="wait">
                                     {isExpanded && (
                                         <motion.div
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
-                                            transition={sidebarSpring}
+                                            transition={{ duration: 0.1 }}
                                             className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 pt-4 pb-2"
                                         >
                                             Tabs
@@ -282,13 +298,16 @@ const Sidebar = () => {
                                         <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
                                             {renderIcon(tab.icon, 22)}
                                         </span>
-                                        <AnimatePresence>
+                                        <AnimatePresence mode="wait">
                                             {isExpanded && (
                                                 <motion.span
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
-                                                    exit={{ opacity: 0, x: -10 }}
-                                                    transition={sidebarSpring}
+                                                    exit={{ opacity: 0 }}
+                                                    transition={{
+                                                        ...textSpring,
+                                                        exit: { duration: 0.1 },
+                                                    }}
                                                     className={`whitespace-nowrap relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
                                                 >
                                                     {tab.name}
@@ -428,13 +447,16 @@ const Sidebar = () => {
                                     <UserCircle size={22} />
                                 )}
                             </span>
-                            <AnimatePresence>
+                            <AnimatePresence mode="wait">
                                 {isExpanded && (
                                     <motion.span
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -10 }}
-                                        transition={sidebarSpring}
+                                        exit={{ opacity: 0 }}
+                                        transition={{
+                                            ...textSpring,
+                                            exit: { duration: 0.1 },
+                                        }}
                                         className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}
                                     >
                                         Profile
@@ -474,13 +496,16 @@ const Sidebar = () => {
                             <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
                                 <SettingsIcon size={20} />
                             </span>
-                            <AnimatePresence>
+                            <AnimatePresence mode="wait">
                                 {isExpanded && (
                                     <motion.span
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -10 }}
-                                        transition={sidebarSpring}
+                                        exit={{ opacity: 0 }}
+                                        transition={{
+                                            ...textSpring,
+                                            exit: { duration: 0.1 },
+                                        }}
                                         className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}
                                     >
                                         Settings
@@ -505,13 +530,16 @@ const Sidebar = () => {
                             <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${isExpanded ? 'mr-3' : ''}`}>
                                 <LogOut size={20} />
                             </span>
-                            <AnimatePresence>
+                            <AnimatePresence mode="wait">
                                 {isExpanded && (
                                     <motion.span
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -10 }}
-                                        transition={sidebarSpring}
+                                        exit={{ opacity: 0 }}
+                                        transition={{
+                                            ...textSpring,
+                                            exit: { duration: 0.1 },
+                                        }}
                                         className="whitespace-nowrap relative z-10"
                                     >
                                         Logout
