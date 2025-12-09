@@ -14,6 +14,7 @@ import AppTitle from './components/AppTitle';
 import Login from './pages/Login';
 import Setup from './pages/Setup';
 import MainContent from './pages/MainContent';
+import AnimationTest from './pages/AnimationTest';
 
 // Component to load and apply custom colors after user authentication
 const CustomColorLoader = ({ children }) => {
@@ -58,6 +59,7 @@ const App = () => {
                             <Routes>
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/setup" element={<Setup />} />
+                                <Route path="/animation-test" element={<AnimationTest />} />
 
                                 {/* Protected Routes with Themed Wrapper */}
                                 <Route path="/*" element={
