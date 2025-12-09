@@ -72,6 +72,13 @@ const CustomizationSettings = () => {
     const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
+    // Change tracking for save buttons
+    const [originalAppName, setOriginalAppName] = useState('Homelab Dashboard');
+    const [originalAppIcon, setOriginalAppIcon] = useState('Server');
+    const [originalGreeting, setOriginalGreeting] = useState({ enabled: true, text: 'Your personal dashboard' });
+    const [hasAppNameChanges, setHasAppNameChanges] = useState(false);
+    const [hasGreetingChanges, setHasGreetingChanges] = useState(false);
+
     // Function to get current theme colors from CSS variables
     const getCurrentThemeColors = () => {
         const root = document.documentElement;
@@ -166,11 +173,15 @@ const CustomizationSettings = () => {
                 });
 
                 if (systemResponse.data?.server?.name) {
-                    setApplicationName(systemResponse.data.server.name);
+                    const name = systemResponse.data.server.name;
+                    setApplicationName(name);
+                    setOriginalAppName(name);
                 }
 
                 if (systemResponse.data?.server?.icon) {
-                    setApplicationIcon(systemResponse.data.server.icon);
+                    const icon = systemResponse.data.server.icon;
+                    setApplicationIcon(icon);
+                    setOriginalAppIcon(icon);
                 }
 
                 // Load flatten UI preference
@@ -195,8 +206,11 @@ const CustomizationSettings = () => {
                 // Load greeting preferences
                 if (userResponse.data?.preferences?.dashboardGreeting) {
                     const greeting = userResponse.data.preferences.dashboardGreeting;
-                    setGreetingEnabled(greeting.enabled ?? true);
-                    setGreetingText(greeting.text || 'Your personal dashboard');
+                    const enabled = greeting.enabled ?? true;
+                    const text = greeting.text || 'Your personal dashboard';
+                    setGreetingEnabled(enabled);
+                    setGreetingText(text);
+                    setOriginalGreeting({ enabled, text });
                 }
             } catch (error) {
                 logger.error('Failed to load settings:', error);
@@ -207,6 +221,22 @@ const CustomizationSettings = () => {
 
         loadSettings();
     }, []);
+
+    // Track changes for Application Name & Icon
+    useEffect(() => {
+        setHasAppNameChanges(
+            applicationName !== originalAppName ||
+            applicationIcon !== originalAppIcon
+        );
+    }, [applicationName, applicationIcon, originalAppName, originalAppIcon]);
+
+    // Track changes for Greeting
+    useEffect(() => {
+        setHasGreetingChanges(
+            greetingEnabled !== originalGreeting.enabled ||
+            greetingText !== originalGreeting.text
+        );
+    }, [greetingEnabled, greetingText, originalGreeting]);
 
     const applyColorsToDOM = (colors) => {
         Object.entries(colors).forEach(([key, value]) => {
@@ -387,6 +417,10 @@ const CustomizationSettings = () => {
             // Dispatch event to refresh sidebar/mobile menu with new icon
             window.dispatchEvent(new Event('systemConfigUpdated'));
 
+            // Update original values after successful save
+            setOriginalAppName(applicationName);
+            setOriginalAppIcon(applicationIcon);
+
             logger.info('Application name and icon saved successfully');
         } catch (error) {
             logger.error('Failed to save application name:', error);
@@ -434,6 +468,9 @@ const CustomizationSettings = () => {
             }, {
                 withCredentials: true
             });
+
+            // Update original values after successful save
+            setOriginalGreeting({ enabled: greetingEnabled, text: greetingText });
 
             logger.info('Greeting saved successfully');
         } catch (error) {
@@ -534,7 +571,7 @@ const CustomizationSettings = () => {
                                 {userIsAdmin && (
                                     <Button
                                         onClick={handleSaveApplicationName}
-                                        disabled={savingAppName}
+                                        disabled={!hasAppNameChanges || savingAppName}
                                         icon={Save}
                                     >
                                         {savingAppName ? 'Saving...' : 'Save Application Name'}
@@ -570,7 +607,7 @@ const CustomizationSettings = () => {
                                 {userIsAdmin && (
                                     <Button
                                         onClick={handleSaveApplicationName}
-                                        disabled={savingAppName}
+                                        disabled={!hasAppNameChanges || savingAppName}
                                         icon={Save}
                                     >
                                         {savingAppName ? 'Saving...' : 'Save Application Name & Icon'}
@@ -624,7 +661,7 @@ const CustomizationSettings = () => {
                                 <div className="flex gap-3">
                                     <Button
                                         onClick={handleSaveGreeting}
-                                        disabled={savingGreeting}
+                                        disabled={!hasGreetingChanges || savingGreeting}
                                         icon={Save}
                                     >
                                         {savingGreeting ? 'Saving...' : 'Save Greeting'}
