@@ -274,7 +274,7 @@ const AuthSettings = () => {
 
             {/* Auth Proxy Tab */}
             {activeTab === 'proxy' && (
-                <div className="glass-subtle rounded-xl shadow-deep border border-theme p-6 space-y-6">
+                <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6 space-y-6">
                     {/* Proxy Toggle */}
                     <div className="flex items-center justify-between">
                         <div>
@@ -467,7 +467,7 @@ const AuthSettings = () => {
                     </div>
 
                     {/* Main Configuration Card */}
-                    <div className="glass-subtle rounded-xl shadow-deep border border-theme p-6 space-y-6">
+                    <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6 space-y-6">
                         {/* iFrame Auth Toggle */}
                         <div className="flex items-center justify-between">
                             <div>
