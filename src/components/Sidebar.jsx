@@ -223,7 +223,7 @@ const Sidebar = () => {
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const shouldBeActive = !hash || hash === 'dashboard';
-                                return `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative`;
+                                return `flex items-center py-3.5 px-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -287,7 +287,7 @@ const Sidebar = () => {
                                         href={`/#${tab.slug}`}
                                         onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
                                         onMouseLeave={() => setHoveredItem(null)}
-                                        className={`flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
+                                        className={`flex items-center py-3.5 px-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'justify-start' : 'justify-center'} group`}
                                     >
                                         {/* Animated hover/active indicator */}
                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
@@ -335,10 +335,21 @@ const Sidebar = () => {
                                                 <>
                                                     <button
                                                         onClick={() => toggleGroup(group.id)}
-                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-800/40"
+                                                        onMouseEnter={() => setHoveredItem(`group-${group.id}`)}
+                                                        onMouseLeave={() => setHoveredItem(null)}
+                                                        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg relative"
                                                     >
-                                                        <span>{group.name}</span>
+                                                        {/* Animated hover indicator */}
+                                                        {hoveredItem === `group-${group.id}` && (
+                                                            <motion.div
+                                                                layoutId="sidebarIndicator"
+                                                                className="absolute inset-0 rounded-lg bg-slate-800/60"
+                                                                transition={sidebarSpring}
+                                                            />
+                                                        )}
+                                                        <span className="relative z-10">{group.name}</span>
                                                         <motion.div
+                                                            className="relative z-10"
                                                             animate={{ rotate: expandedGroups[group.id] ? 0 : 180 }}
                                                             transition={sidebarSpring}
                                                         >
@@ -360,7 +371,7 @@ const Sidebar = () => {
                                                                         href={`/#${tab.slug}`}
                                                                         onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
                                                                         onMouseLeave={() => setHoveredItem(null)}
-                                                                        className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-slate-400 hover:text-white transition-colors rounded-xl relative"
+                                                                        className="flex items-center py-3 px-3 pl-8 text-sm font-medium text-slate-400 hover:text-white transition-colors rounded-xl relative"
                                                                     >
                                                                         {/* Animated hover/active indicator */}
                                                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
@@ -430,7 +441,7 @@ const Sidebar = () => {
                                 const currentTab = searchParams.get('tab');
                                 const source = searchParams.get('source');
                                 const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative group`;
+                                return `flex items-center py-3 px-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative group`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -489,7 +500,7 @@ const Sidebar = () => {
                                 const source = searchParams.get('source');
                                 const isProfilePage = currentTab === 'profile' && source === 'profile';
                                 const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative`;
+                                return `flex items-center py-3 px-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -527,7 +538,7 @@ const Sidebar = () => {
                             onClick={handleLogout}
                             onMouseEnter={() => setHoveredItem('logout')}
                             onMouseLeave={() => setHoveredItem(null)}
-                            className="flex items-center py-3 text-sm font-medium text-slate-300 hover:text-red-400 transition-colors rounded-xl relative"
+                            className="flex items-center py-3 px-3 text-sm font-medium text-slate-300 hover:text-red-400 transition-colors rounded-xl relative"
                         >
                             {hoveredItem === 'logout' && (
                                 <motion.div
