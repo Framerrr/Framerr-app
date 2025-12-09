@@ -297,9 +297,13 @@ const Sidebar = () => {
                                                 transition={sidebarSpring}
                                             />
                                         )}
-                                        <span className={`flex items-center justify-center min-w-[20px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
+                                        <motion.span
+                                            className={`flex items-center justify-center min-w-[20px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}
+                                            animate={{ x: isExpanded ? 0 : 0 }}
+                                            transition={sidebarSpring}
+                                        >
                                             {renderIcon(tab.icon, 20)}
-                                        </span>
+                                        </motion.span>
                                         <AnimatePresence mode="wait">
                                             {isExpanded && (
                                                 <motion.span
@@ -335,12 +339,22 @@ const Sidebar = () => {
                                                 <>
                                                     <button
                                                         onClick={() => toggleGroup(group.id)}
-                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-800/40"
+                                                        onMouseEnter={() => setHoveredItem(`group-${group.id}`)}
+                                                        onMouseLeave={() => setHoveredItem(null)}
+                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg relative"
                                                     >
-                                                        <span>{group.name}</span>
+                                                        {/* Hover indicator for group header */}
+                                                        {hoveredItem === `group-${group.id}` && (
+                                                            <motion.div
+                                                                layoutId="sidebarIndicator"
+                                                                className="absolute inset-y-1 inset-x-2 bg-slate-800/60 rounded-xl"
+                                                                transition={sidebarSpring}
+                                                            />
+                                                        )}
+                                                        <span className="relative z-10">{group.name}</span>
                                                         <ChevronRight
                                                             size={16}
-                                                            className="transition-transform duration-300"
+                                                            className="transition-transform duration-300 relative z-10"
                                                             style={{
                                                                 transform: expandedGroups[group.id] ? 'rotate(90deg)' : 'rotate(0deg)'
                                                             }}
@@ -371,9 +385,13 @@ const Sidebar = () => {
                                                                                 transition={sidebarSpring}
                                                                             />
                                                                         )}
-                                                                        <span className={`mr-3 flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
+                                                                        <motion.span
+                                                                            className={`mr-3 flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                                            animate={{ x: 0 }}
+                                                                            transition={sidebarSpring}
+                                                                        >
                                                                             {renderIcon(tab.icon, 20)}
-                                                                        </span>
+                                                                        </motion.span>
                                                                         <span className={`truncate relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
                                                                             {tab.name}
                                                                         </span>
@@ -400,9 +418,13 @@ const Sidebar = () => {
                                                                 transition={sidebarSpring}
                                                             />
                                                         )}
-                                                        <span className={`flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
+                                                        <motion.span
+                                                            className={`flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                            animate={{ x: 0 }}
+                                                            transition={sidebarSpring}
+                                                        >
                                                             {renderIcon(tab.icon, 20)}
-                                                        </span>
+                                                        </motion.span>
                                                         <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
                                                             {tab.name}
                                                             <span className="text-xs text-slate-400 block">{group.name}</span>
