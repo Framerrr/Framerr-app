@@ -29,6 +29,33 @@ const TabContainer = () => {
         fetchTabs();
     }, []);
 
+    // Listen for auth-complete messages from login-complete page
+    useEffect(() => {
+        const handleAuthMessage = (event) => {
+            // Security: verify origin matches Framerr's origin
+            if (event.origin !== window.location.origin) {
+                logger.warn('Ignored auth message from untrusted origin:', event.origin);
+                return;
+            }
+
+            // Check for auth-complete message
+            if (event.data?.type === 'auth-complete') {
+                logger.info('Auth complete message received via postMessage');
+
+                // Find the tab that has an open auth window
+                Object.keys(authWindowRefs.current).forEach(slug => {
+                    if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
+                        logger.info(`Handling auth completion for tab: ${slug}`);
+                        handleAuthComplete(slug);
+                    }
+                });
+            }
+        };
+
+        window.addEventListener('message', handleAuthMessage);
+        return () => window.removeEventListener('message', handleAuthMessage);
+    }, []);
+
     // Handle hash changes
     useEffect(() => {
         const handleHashChange = () => {
@@ -130,13 +157,31 @@ const TabContainer = () => {
     // Auth detection handlers
     const handleOpenAuth = (slug, authUrl) => {
         logger.info(`Opening auth in new tab for ${slug}:`, authUrl);
-        const authWindow = window.open(authUrl, '_blank');
+
+        // Construct redirect URL to our login-complete page
+        const redirectUri = `${window.location.origin}/login-complete`;
+        const authUrlWithRedirect = `${authUrl}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+        logger.debug('Auth URL with redirect:', authUrlWithRedirect);
+
+        const authWindow = window.open(authUrlWithRedirect, '_blank');
         authWindowRefs.current[slug] = authWindow;
 
+        if (!authWindow) {
+            logger.error('Failed to open auth window - popup blocked?');
+            alert('Please allow popups for Framerr to enable automatic authentication.');
+            return;
+        }
+
+        // Keep polling as backup in case postMessage fails
         const pollInterval = setInterval(() => {
             if (authWindowRefs.current[slug]?.closed) {
                 clearInterval(pollInterval);
-                handleAuthComplete(slug);
+                // Only handle if not already handled by postMessage
+                if (needsAuth[slug]) {
+                    logger.info('Auth window closed (detected via polling)');
+                    handleAuthComplete(slug);
+                }
             }
         }, 500);
     };
