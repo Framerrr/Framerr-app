@@ -4,6 +4,7 @@ import logger from '../utils/logger';
 
 const FaviconInjector = () => {
     const [authorizedFavicon, setAuthorizedFavicon] = useState(null);
+    const [isLoaded, setIsLoaded] = useState(false); // Track if we've loaded from API
     const observerRef = useRef(null);
     const isApplyingRef = useRef(false); // Prevent infinite loops
 
@@ -24,9 +25,11 @@ const FaviconInjector = () => {
                     setAuthorizedFavicon(null);
                     logger.info('Using default Framerr favicon');
                 }
+                setIsLoaded(true); // Mark as loaded regardless of custom/default
             } catch (error) {
                 logger.error('Failed to load favicon config:', error);
                 setAuthorizedFavicon(null);
+                setIsLoaded(true); // Still mark as loaded, use default
             }
         };
 
@@ -35,6 +38,7 @@ const FaviconInjector = () => {
         // Listen for favicon update events from settings
         const handleFaviconUpdate = () => {
             logger.info('Favicon updated, reloading...');
+            setIsLoaded(false); // Reset to trigger reload
             loadFavicon();
         };
         window.addEventListener('faviconUpdated', handleFaviconUpdate);
@@ -45,8 +49,8 @@ const FaviconInjector = () => {
     }, []);
 
     useEffect(() => {
-        if (authorizedFavicon === null && !document.querySelector('[data-favicon-loaded]')) {
-            // Still loading, don't start observer yet
+        if (!isLoaded) {
+            // Still loading from API, don't apply anything yet
             return;
         }
 
@@ -73,6 +77,7 @@ const FaviconInjector = () => {
                         child.setAttribute('data-favicon-authorized', 'true');
                         document.head.appendChild(child);
                     });
+                    logger.debug('Applied custom favicon');
                 } else {
                     // Apply default Framerr favicon - create simple favicon link
                     const link = document.createElement('link');
@@ -81,16 +86,17 @@ const FaviconInjector = () => {
                     link.href = `/vite.svg${cacheBuster}`;
                     link.setAttribute('data-favicon-authorized', 'true');
                     document.head.appendChild(link);
+                    logger.debug('Applied default favicon');
                 }
 
-                // Mark that we've loaded
+                // Mark that favicon has been applied
                 document.documentElement.setAttribute('data-favicon-loaded', 'true');
             } finally {
                 isApplyingRef.current = false;
             }
         };
 
-        // Apply favicon immediately
+        // Apply favicon immediately when loaded
         applyAuthorizedFavicon();
 
         // Set up MutationObserver to enforce favicon authority
@@ -105,6 +111,7 @@ const FaviconInjector = () => {
                             node.getAttribute('rel')?.includes('icon') &&
                             !node.hasAttribute('data-favicon-authorized')) {
                             // Unauthorized favicon added!
+                            logger.warn('Unauthorized favicon detected, blocking');
                             needsReapply = true;
                         }
                     });
@@ -114,6 +121,7 @@ const FaviconInjector = () => {
                             node.getAttribute('rel')?.includes('icon') &&
                             node.hasAttribute('data-favicon-authorized')) {
                             // Our authorized favicon was removed!
+                            logger.warn('Authorized favicon was removed, reapplying');
                             needsReapply = true;
                         }
                     });
@@ -123,12 +131,12 @@ const FaviconInjector = () => {
                 if (mutation.type === 'attributes' &&
                     mutation.target.tagName === 'LINK' &&
                     mutation.target.hasAttribute('data-favicon-authorized')) {
+                    logger.warn('Authorized favicon modified, reapplying');
                     needsReapply = true;
                 }
             }
 
             if (needsReapply) {
-                logger.debug('Unauthorized favicon change detected, enforcing authority');
                 applyAuthorizedFavicon();
             }
         });
@@ -148,10 +156,11 @@ const FaviconInjector = () => {
                 observerRef.current.disconnect();
             }
         };
-    }, [authorizedFavicon]);
+    }, [authorizedFavicon, isLoaded]);
 
     // This component doesn't render anything
     return null;
 };
 
 export default FaviconInjector;
+
