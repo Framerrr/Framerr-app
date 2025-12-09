@@ -214,7 +214,7 @@ const Sidebar = () => {
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 px-3 relative">
+                    <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 relative">
                         {/* Dashboard Link */}
                         <a
                             href="/#dashboard"
