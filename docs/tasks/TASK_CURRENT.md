@@ -1,188 +1,190 @@
-# Current Task - Iframe Authentication Implementation
+# Current Task - OAuth Auto-Close Auth Tab Implementation
 
-**Status:** ⚠️ PARTIAL - Manual flow working, auto-detection blocked  
-**Started:** 2025-12-08 17:50:00  
-**Ended:** 2025-12-08 19:12:00  
-**Last Updated:** 2025-12-08 19:12:00  
-**Tool Calls This Session:** ~350+  
-**Last Checkpoint:** #3
+**Status:** 🔄 IN PROGRESS - OAuth flow working, tab restoration needs fix  
+**Started:** 2025-12-08 19:30:00  
+**Last Updated:** 2025-12-08 20:06:00  
+**Tool Calls This Session:** ~90  
+**Last Checkpoint:** #1
 
 ---
 
 ## Task Description
 
-Implemented iframe authentication detection and handling mechanism for Framerr, enabling seamless authentication for iframed applications through Authentik SSO.
+Implementing auto-close authentication tab functionality using OAuth callback and postMessage. This builds on the existing manual auth flow to provide seamless auto-close and tab restoration after authentication.
 
 ### Objectives:
-1. ✅ Manual authentication flow with Lock button
-2. ⚠️ Automatic authentication detection (blocked by browser security)
-3. ✅ Settings UI for configuration
-4. ✅ Auto-close and refocus after authentication
+1. ✅ Create OAuth provider in Authentik for callback
+2. ✅ Create `/login-complete` callback page
+3. ✅ Implement postMessage communication
+4. ✅ Auto-close auth tab after login
+5. ⚠️ **BLOCKED:** Restore correct iframe tab after auth (currently goes to dashboard)
 
 ---
 
-## Work Completed
+## Work Completed This Session
 
-### 1. Manual Authentication Flow ✅
+### 1. OAuth Provider Setup ✅
 
-**Implementation:**
-- Added Lock button (🔒) to tab toolbar
-- Opens auth page in new top-level tab (bypasses iframe restrictions)
-- Detects tab closure via polling (500ms intervals)
-- Auto-reloads iframe after auth tab closes
-- Auto-refocuses Framerr window
-- Supports passkeys, OAuth, SAML, all auth methods
+**Authentik Configuration:**
+- Created OAuth2/OpenID Provider: "Framerr Callback"
+- **Client ID:** `RFved8RMgr1c4fERztGfzLLm2mu9zyy9DKXFn7Z7`
+- **Client Type:** Public (correct for frontend apps)
+- **Redirect URI:** `https://server-nebula.com/login-complete`
+- **Scopes:** `openid profile email`
 
-**Files Created/Modified:**
-- `src/utils/authDetection.js` - Core detection logic
-- `src/pages/TabContainer.jsx` - Auth flow integration
-- `src/components/settings/CustomizationSettings.jsx` - Settings UI
-
-**Result:** ✅ Fully functional 2-click authentication flow
+**Result:** ✅ OAuth provider configured and tested
 
 ---
 
-### 2. Auto-Detection Attempt ⚠️
+### 2. Login Complete Callback Page ✅
 
-**Implementation:**
-- URL pattern matching (`/login`, `/auth`, `/oauth`, etc.)
-- Sensitivity levels (conservative/balanced/aggressive)
-- Custom user-defined patterns
-- useEffect monitoring iframe URLs every 1 second
+**File:** `public/login-complete.html`
 
-**Blocker:**
-- ❌ **Same-Origin Policy (SOP)** prevents reading iframe navigation
-- `iframe.src` only shows initial URL, not redirects
-- `iframe.contentWindow.location.href` blocked by browser security
-- Cannot detect when iframe redirects to `auth.server-nebula.com/login`
+**Features:**
+- Beautiful success animation with checkmark
+- Parses `state` parameter to get tab slug
+- Sends `postMessage` to Framerr with tab info
+- Auto-closes tab after 500ms
+- Fallback redirects to correct tab if no opener
+- Manual close button if auto-close fails
 
-**Files Modified:**
-- `src/pages/TabContainer.jsx` - Added monitoring useEffect
-- Deleted: `src/pages/TabView.jsx` (unused orphaned code)
-
-**Result:** ⚠️ Auto-detection blocked by fundamental browser security
+**Result:** ✅ Callback page created and tested
 
 ---
 
-### 3. Settings UI ✅
+### 3. OAuth Flow Implementation ✅
 
-**Implementation:**
-- Enable/disable iframe auth detection
-- Sensitivity configuration dropdown
-- Custom URL patterns management
-- Add/remove pattern functionality
-- Located in Settings → Customization → Iframe Authentication
+**File:** `src/pages/TabContainer.jsx`
 
-**Files Modified:**
-- `src/components/settings/CustomizationSettings.jsx`
+**Changes:**
+- Updated `handleOpenAuth` to use proper Authentik OAuth endpoint
+- Added `state` parameter with tab slug (`{"tab":"radarr"}`)
+- Full OAuth authorize URL with all required parameters
+- postMessage listener to receive auth-complete events
+- Tab restoration logic from state parameter
 
-**Result:** ✅ Complete settings interface
+**OAuth URL Format:**
+```
+https://auth.server-nebula.com/application/o/authorize/
+  ?client_id=RFved8RMgr1c4fERztGfzLLm2mu9zyy9DKXFn7Z7
+  &redirect_uri=https://server-nebula.com/login-complete
+  &response_type=code
+  &scope=openid%20profile%20email
+  &state={"tab":"radarr"}
+```
 
----
-
-### 4. Documentation ✅
-
-**Created:**
-- `iframe_auth_summary.md` - Complete technical writeup
-  - What works vs what doesn't
-  - Browser security constraints
-  - Attempted solutions
-  - Questions for second opinion
+**Result:** ✅ OAuth flow working, redirects to callback
 
 ---
 
 ## Current State
 
 **What Works:**
-- Manual authentication trigger (🔒 button)
-- New tab authentication flow
-- Auto-reload after tab closure
-- Auto-refocus to Framerr
-- iOS passkey support
+- ✅ OAuth provider configured in Authentik
+- ✅ Auth flow redirects to `/login-complete` with state parameter
+- ✅ Callback page receives and parses state (`{"tab":"radarr"}`)
+- ✅ postMessage communication implemented
+- ✅ Tab auto-closes (via postMessage + polling backup)
 
 **What Doesn't Work:**
-- Automatic detection of auth requirement
-- Auto-close auth tab after login complete
-- Reading cross-origin iframe navigation
+- ❌ **Tab restoration is broken** - always goes to dashboard instead of correct tab
+- ❌ Hash navigation (`window.location.hash = '#radarr'`) not working as expected
+- ❌ The `handleAuthComplete` might be interfering with hash change
 
-**Branch:** `feat/iframe-auth-detection`  
-**Docker Image:** `pickels23/framerr:develop`  
-**Digest:** `sha256:a33fa5ac9356bd57db28e7481f69cd9084719b27a4e53846f893261440909d62`
+**Testing Evidence:**
+- URL: `https://server-nebula.com/login-complete?code=...&state=%7B%22tab%22%3A%22radarr%22%7D`
+- State decodes to: `{"tab":"radarr"}`
+- Expected: Navigate to `/#radarr`
+- Actual: Goes to `/#dashboard`
 
 ---
 
-## Technical Blocker: Same-Origin Policy
+## Technical Issue: Tab Restoration
 
 **The Problem:**
+```javascript
+// In TabContainer.jsx postMessage handler
+if (tab) {
+    window.location.hash = `#${tab}`;  // Sets hash
+    setTimeout(() => {
+        handleAuthComplete(tab);  // Reloads iframe
+    }, 100);
+}
 ```
-Framerr:     https://server-nebula.com
-Authentik:   https://auth.server-nebula.com  ← Different origin
-Apps:        https://sonarr.server-nebula.com  ← Different origin
-```
 
-**Browser Restriction:**
-- Different subdomains = different origins
-- Same-Origin Policy blocks reading cross-origin iframe state
-- Cannot access `iframe.contentWindow.location`
-- Cannot detect iframe navigation/redirects
+**Why it's not working:**
+1. `window.location.hash` is being set correctly
+2. But `handleAuthComplete` might be causing issues
+3. Or the hash change event isn't firing in time
+4. Or there's a redirect happening that overwrites the hash
 
-**Attempted Workarounds:**
-1. ❌ Monitor `iframe.src` - only shows initial URL
-2. ❌ Access `iframe.contentWindow.location` - SecurityError
-3. ❌ Reverse proxy - breaks app functionality
-4. ❌ postMessage API - requires modifying Authentik
-
-**Conclusion:** Auto-detection impossible without same-origin setup or Authentik modifications.
+**Attempted Fixes (reverted):**
+- Added setTimeout delay before handleAuthComplete
+- Added debug logging (never merged)
+- These were experimental and reverted
 
 ---
 
 ## Next Immediate Steps
 
-**Options for User:**
+**For Next Session:**
 
-1. **Accept manual flow** - Works perfectly, just 2 clicks
-2. **Get second opinion** - Share `iframe_auth_summary.md` 
-3. **Configure same-origin** - Requires reverse proxy (breaks apps)
-4. **Add domain detection** - Configure `auth.server-nebula.com` as trigger
+1. **Debug tab restoration issue**
+   - Add console logging to see what's happening
+   - Check if hash is actually being set
+   - Verify handleAuthComplete isn't redirecting
+   - Test if postMessage is being received
 
-**Awaiting user decision on direction.**
+2. **Possible Solutions:**
+   - Use `window.location.replace` instead of hash assignment
+   - Store tab in sessionStorage and read on page load
+   - Ensure handleAuthComplete doesn't interfere with hash
+   - Check if there's a React routing issue
 
----
-
-## Blockers
-
-**Primary Blocker:**
-- Browser Same-Origin Policy prevents automatic detection of cross-origin iframe navigation
-- No workaround available without architectural changes
-
-**Documented in:** `iframe_auth_summary.md`
+3. **Test Scenarios:**
+   - Direct access to `/login-complete?state={"tab":"radarr"}`
+   - Popup flow from Lock button
+   - Different browsers (Chrome, Firefox, Safari)
 
 ---
 
 ## Files Modified This Session
 
 **Created:**
-1. `src/utils/authDetection.js` - Detection logic and helpers
-2. `iframe_auth_summary.md` - Technical documentation
+1. `public/login-complete.html` - OAuth callback page
+2. `auth_autoclose_test_guide.md` - Testing documentation (artifact)
 
 **Modified:**
-3. `src/pages/TabContainer.jsx` - Auth flow, Lock button, overlay UI
-4. `src/components/settings/CustomizationSettings.jsx` - Settings UI
+3. `src/pages/TabContainer.jsx` - OAuth flow, postMessage listener, state parameter
 
-**Deleted:**
-5. `src/pages/TabView.jsx` - Orphaned unused component
+**Commits:**
+- `feat(auth): implement auto-close auth tab with postMessage callback`
+- `fix(auth): use proper Authentik OAuth endpoint for auto-close`
+- `fix(auth): restore correct tab after OAuth login via state parameter`
 
-**Commits:** 5 commits  
 **Build Status:** ✅ All builds passed  
-**Docker Build:** ✅ Successful (develop tag)  
-**Docker Push:** ✅ Complete
+**Docker Image:** `pickels23/framerr:develop`  
+**Digest:** `sha256:2dfdd1b008c103e3134f6c8f3621f1d9dd91d9a14d32f5d5752c390e50f51e09`
+
+---
+
+## Blockers
+
+**Primary Blocker:**
+- Tab restoration after OAuth callback not working
+- Hash navigation to correct tab (`/#radarr`) goes to dashboard instead
+- Need to debug why `window.location.hash = '#radarr'` isn't restoring the tab
+
+**No blocking dependencies** - just a logic/timing issue to debug
 
 ---
 
 ## Session End Marker
 
-⚠️ **SESSION END**
-- Session ended: 2025-12-08 19:12:00
-- Status: Manual auth flow working, auto-detection blocked by browser security
-- Next: Awaiting user decision on direction forward
-- Documentation: Complete technical summary in `iframe_auth_summary.md`
+🔄 **SESSION END**
+- Session ended: 2025-12-08 20:06:00
+- Status: OAuth flow working, auto-close working, tab restoration broken
+- Next: Debug why hash navigation isn't restoring correct tab after OAuth
+- Ready for next session: Yes
+- Clean state: Uncommitted experimental changes reverted
+- Last working commit: `fix(auth): restore correct tab after OAuth login via state parameter`

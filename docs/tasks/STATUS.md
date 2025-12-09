@@ -1,6 +1,6 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-08 19:12:00  
+**Last Updated:** 2025-12-08 20:06:00  
 **Current Version:** v1.1.7  
 **Development Branch:** `feat/iframe-auth-detection`  
 **Production Branch:** `main`  
@@ -11,9 +11,9 @@
 
 ## 🎯 Current Phase
 
-**Phase 16:** Iframe Authentication Implementation (Partial) ⚠️
+**Phase 17:** OAuth Auto-Close Auth Tab (In Progress) 🔄
 
-**Status:** Manual authentication flow working, automatic detection blocked by browser security constraints.
+**Status:** OAuth flow working, auto-close working, tab restoration broken
 
 ---
 
@@ -35,6 +35,27 @@
 ---
 
 ## 🚀 Recent Accomplishments
+
+### OAuth Auto-Close Auth Tab (Dec 8, 2025) - IN PROGRESS 🔄
+- ✅ **OAuth Provider Setup:**
+  - Created Authentik OAuth2/OpenID provider
+  - Client ID configured
+  - Redirect URI: `https://server-nebula.com/login-complete`
+- ✅ **Callback Page:**
+  - Created `/login-complete.html` with postMessage
+  - Beautiful success animation
+  - Auto-close tab functionality
+  - State parameter parsing for tab restoration
+- ✅ **OAuth Flow:**
+  - Proper OAuth authorize URL with state parameter
+  - postMessage communication working
+  - Tab auto-closes after login
+- ⚠️ **Tab Restoration (BLOCKED):**
+  - Hash navigation not working
+  - Always goes to dashboard instead of correct tab
+  - Need to debug `window.location.hash` issue
+- 📝 3 commits, ~90 tool calls
+- 🐳 Docker image: `pickels23/framerr:develop` (digest: sha256:2dfdd1b...)
 
 ### Iframe Authentication (Dec 8, 2025) - PARTIAL ⚠️
 - ✅ **Manual Auth Flow:**
@@ -82,18 +103,17 @@
 
 ## 🔄 Active Work
 
-**Current Task:** Iframe authentication - awaiting user decision  
+**Current Task:** OAuth auto-close auth tab - debugging tab restoration  
 **Branch:** `feat/iframe-auth-detection`  
-**Status:** Manual flow working, auto-detection blocked  
+**Status:** OAuth flow working, tab restoration broken  
 
 **Next Steps:**
-1. User review of `iframe_auth_summary.md`
-2. Decision on auto-detection approach (or accept manual flow)
-3. Possible options:
-   - Accept manual 2-click flow (recommended)
-   - Get second opinion on browser constraints
-   - Configure domain-based triggers
-   - Architectural changes (reverse proxy)
+1. Debug why `window.location.hash = '#radarr'` goes to dashboard
+2. Check if handleAuthComplete is interfering
+3. Test different navigation approaches
+4. Verify postMessage is being received with correct tab data
+
+**Clean State:** ✅ Uncommitted changes reverted, ready for next session
 
 ---
 
