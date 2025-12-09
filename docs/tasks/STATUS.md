@@ -1,6 +1,6 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-08 20:06:00  
+**Last Updated:** 2025-12-08 22:44:56  
 **Current Version:** v1.1.7  
 **Development Branch:** `feat/iframe-auth-detection`  
 **Production Branch:** `main`  
@@ -11,9 +11,9 @@
 
 ## 🎯 Current Phase
 
-**Phase 17:** OAuth Auto-Close Auth Tab (In Progress) 🔄
+**Phase:** Code Quality Maintenance
 
-**Status:** OAuth flow working, auto-close working, tab restoration broken
+**Status:**  All routine maintenance complete
 
 ---
 
@@ -22,40 +22,62 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
-| **Frontend** | ✅ Operational | All mobile UX improvements deployed |
-| **Iframe Auth** | ⚠️ Partial | Manual flow working, auto-detect blocked |
+| **Frontend** | ✅ Operational | All features working |
+| **Iframe Auth** | ✅ Working | Manual Lock button workflow functional |
 | **Docker Production** | ✅ Live | `pickels23/framerr:1.1.7` and `:latest` |
 | **Docker Development** | ✅ Available | `pickels23/framerr:develop` |
-| **Documentation** | ✅ Complete | Full v2.0 system + iframe auth summary |
+| **Documentation** | ✅ Complete | Full v2.0 system |
 | **Workflows** | ✅ Active | 8 workflows operational |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
-| **Mobile UX** | ✅ Enhanced | Touch drag, auto-updates, fixed header |
+| **Code Quality** | ✅ Clean | Recent audit completed |
 | **React Security** | ✅ Patched | React 19.2.1 (CVE-2025-12-03) |
 
 ---
 
 ## 🚀 Recent Accomplishments
 
-### OAuth Auto-Close Auth Tab (Dec 8, 2025) - IN PROGRESS 🔄
-- ✅ **OAuth Provider Setup:**
-  - Created Authentik OAuth2/OpenID provider
-  - Client ID configured
-  - Redirect URI: `https://server-nebula.com/login-complete`
-- ✅ **Callback Page:**
-  - Created `/login-complete.html` with postMessage
-  - Beautiful success animation
-  - Auto-close tab functionality
-  - State parameter parsing for tab restoration
-- ✅ **OAuth Flow:**
-  - Proper OAuth authorize URL with state parameter
-  - postMessage communication working
-  - Tab auto-closes after login
-- ⚠️ **Tab Restoration (BLOCKED):**
-  - Hash navigation not working
-  - Always goes to dashboard instead of correct tab
-  - Need to debug `window.location.hash` issue
-- 📝 3 commits, ~90 tool calls
-- 🐳 Docker image: `pickels23/framerr:develop` (digest: sha256:2dfdd1b...)
+### Code Audit and Cleanup (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Comprehensive Audit:**
+  - Analyzed 10 files since v1.1.7
+  - Identified 1 dead code block (24 lines)
+  - Found 6 console statements needing conversion
+  - Created detailed audit report with safety ratings
+- ✅ **Dead Code Removal:**
+  - Removed non-functional Authentik listener (TabContainer.jsx)
+  - Feature never worked without Nginx injection
+  - Manual Lock button is working alternative
+- ✅ **Logger Conversions:**
+  - Converted 6 console.error to structured logger.error
+  - AppDataContext.jsx: 2 conversions
+  - PlexWidget.jsx: 3 conversions
+  - AddWidgetModal.jsx: 1 conversion
+- ✅ **Results:**
+  - -18 net lines (cleaner codebase)
+  - Build passing (5.93s)
+  - All changes committed
+- 📝 1 commit, ~65 tool calls
+- 🐳 No Docker update needed (code cleanup only)
+
+### iFrame OAuth Settings UI (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Settings Implementation:**
+  - Created AuthSettings.jsx with OAuth configuration
+  - Sub-tab navigation (Auth Proxy / iFrame Auth)
+  - OAuth endpoint, client ID, redirect URI fields
+  - HTTPS validation for security
+  - Authentik preset template
+  - Test OAuth button
+  - Collapsible setup instructions
+- ✅ **Backend Integration:**
+  - systemConfig.js schema for iframe auth
+  - config.js HTTPS validation
+  - Auto-population of redirect URI
+- ✅ **User Experience:**
+  - Theme-compliant UI
+  - Clear error messages
+  - Helpful tooltips
+  - Dynamic redirect URI display
+- 📝 3 commits, ~120 tool calls
+- 🐳 Docker image: `pickels23/framerr:develop`
 
 ### Iframe Authentication (Dec 8, 2025) - PARTIAL ⚠️
 - ✅ **Manual Auth Flow:**
@@ -71,7 +93,8 @@
 - ⚠️ **Auto-Detection:**
   - Blocked by Same-Origin Policy
   - Cannot read cross-origin iframe navigation
-  - Documented in `iframe_auth_summary.md`
+  - Settings exist but limited effectiveness
+  - Documented in artifacts
 - 📝 5 commits, ~350 tool calls
 - 🐳 Docker image: `pickels23/framerr:develop`
 
@@ -92,28 +115,20 @@
 - 🐳 Docker images pushed to Hub
 - 🏷️ Git tag `v1.1.7` created and pushed
 
-### Documentation System v2.0 (Dec 2, 2025) - COMPLETE ✅
-- ✅ Created `docs/` structure with 6 subdirectories
-- ✅ Archived 15 recovery documentation files
-- ✅ Consolidated rules system (git, development, theming)
-- ✅ Created 8 workflows
-- ✅ `Dockerfile.dev` for debug builds
-
 ---
 
 ## 🔄 Active Work
 
-**Current Task:** OAuth auto-close auth tab - debugging tab restoration  
+**Current Task:** None - code audit complete  
 **Branch:** `feat/iframe-auth-detection`  
-**Status:** OAuth flow working, tab restoration broken  
+**Status:** Clean state, ready for new work  
 
 **Next Steps:**
-1. Debug why `window.location.hash = '#radarr'` goes to dashboard
-2. Check if handleAuthComplete is interfering
-3. Test different navigation approaches
-4. Verify postMessage is being received with correct tab data
+- User to decide next feature/improvement
+- Consider merging iframe auth branch to main
+- Continue with backlog items as needed
 
-**Clean State:** ✅ Uncommitted changes reverted, ready for next session
+**Clean State:** ✅ All changes committed, build passing
 
 ---
 
@@ -133,10 +148,10 @@ None reported for v1.1.7
   - Features: Mobile UX improvements, React 19.2.1
 
 ### Git Status
-- **Branch:** `main`
+- **Branch:** `feat/iframe-auth-detection`
 - **Tag:** `v1.1.7`
-- **Status:** Clean, all changes committed and pushed
-- **Latest commit:** 1e41fc0 (chore: bump version to 1.1.7)
+- **Status:** Clean, all changes committed
+- **Latest commit:** Code audit cleanup
 
 ---
 
@@ -147,7 +162,7 @@ See `TASK_BACKLOG.md` for details.
 **High Priority:**
 - Test v1.1.7 mobile improvements in production
 - User feedback collection
-- Resume gridstack work (on develop branch)
+- Decide on iframe auth branch merge
 
 **Medium Priority:**
 - Bundle size optimization

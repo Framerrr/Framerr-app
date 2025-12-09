@@ -1,190 +1,185 @@
-# Current Task - OAuth Auto-Close Auth Tab Implementation
+# Current Task - Code Audit and Cleanup
 
-**Status:** 🔄 IN PROGRESS - OAuth flow working, tab restoration needs fix  
-**Started:** 2025-12-08 19:30:00  
-**Last Updated:** 2025-12-08 20:06:00  
-**Tool Calls This Session:** ~90  
-**Last Checkpoint:** #1
+**Status:** ✅ COMPLETE  
+**Started:** 2025-12-08 22:17:34  
+**Completed:** 2025-12-08 22:44:56  
+**Tool Calls This Session:** ~65  
+**Checkpoints:** 3
 
 ---
 
 ## Task Description
 
-Implementing auto-close authentication tab functionality using OAuth callback and postMessage. This builds on the existing manual auth flow to provide seamless auto-close and tab restoration after authentication.
+Comprehensive code audit analyzing all changes since v1.1.7 baseline, identifying dead code, unused code paths, console statements requiring logger conversion, and performing cleanup to maintain code quality.
 
 ### Objectives:
-1. ✅ Create OAuth provider in Authentik for callback
-2. ✅ Create `/login-complete` callback page
-3. ✅ Implement postMessage communication
-4. ✅ Auto-close auth tab after login
-5. ⚠️ **BLOCKED:** Restore correct iframe tab after auth (currently goes to dashboard)
+1. ✅ Analyze all files changed since v1.1.7
+2. ✅ Identify dead/unused code
+3. ✅ Find console.* statements needing conversion
+4. ✅ Create detailed audit report with safety ratings
+5. ✅ Execute cleanup (remove dead code, convert logger)
+6. ✅ Verify build after cleanup
+7. ✅ Commit changes
 
 ---
 
 ## Work Completed This Session
 
-### 1. OAuth Provider Setup ✅
+### 1. Comprehensive Code Audit ✅
 
-**Authentik Configuration:**
-- Created OAuth2/OpenID Provider: "Framerr Callback"
-- **Client ID:** `RFved8RMgr1c4fERztGfzLLm2mu9zyy9DKXFn7Z7`
-- **Client Type:** Public (correct for frontend apps)
-- **Redirect URI:** `https://server-nebula.com/login-complete`
-- **Scopes:** `openid profile email`
+**Scope:**
+- Baseline: v1.1.7
+- Files analyzed: 10 (src + server)
+- Commits analyzed: 3 (OAuth implementation work)
 
-**Result:** ✅ OAuth provider configured and tested
+**Findings:**
+- 🔴 1 dead code block (Authentik postMessage listener - 24 lines)
+- 🟡 6 console.error statements needing conversion
+- 🟢 0 unused imports
+- 🟢 0 commented code blocks
+- ✅ All other files clean
 
----
-
-### 2. Login Complete Callback Page ✅
-
-**File:** `public/login-complete.html`
-
-**Features:**
-- Beautiful success animation with checkmark
-- Parses `state` parameter to get tab slug
-- Sends `postMessage` to Framerr with tab info
-- Auto-closes tab after 500ms
-- Fallback redirects to correct tab if no opener
-- Manual close button if auto-close fails
-
-**Result:** ✅ Callback page created and tested
+**Audit Report:** Created `code-audit-report.md` with detailed analysis and safety ratings
 
 ---
 
-### 3. OAuth Flow Implementation ✅
+### 2. Dead Code Removal ✅
 
-**File:** `src/pages/TabContainer.jsx`
+**File:** `src/pages/TabContainer.jsx`  
+**Lines Removed:** 64-87 (24 lines total)
 
-**Changes:**
-- Updated `handleOpenAuth` to use proper Authentik OAuth endpoint
-- Added `state` parameter with tab slug (`{"tab":"radarr"}`)
-- Full OAuth authorize URL with all required parameters
-- postMessage listener to receive auth-complete events
-- Tab restoration logic from state parameter
-
-**OAuth URL Format:**
-```
-https://auth.server-nebula.com/application/o/authorize/
-  ?client_id=RFved8RMgr1c4fERztGfzLLm2mu9zyy9DKXFn7Z7
-  &redirect_uri=https://server-nebula.com/login-complete
-  &response_type=code
-  &scope=openid%20profile%20email
-  &state={"tab":"radarr"}
+**What was removed:**
+```javascript
+// Authentik auth needed message listener
+if (event.data?.type === 'authentik-auth-needed') {
+    // ... auto-detection logic
+}
 ```
 
-**Result:** ✅ OAuth flow working, redirects to callback
+**Why it was dead:**
+- Never receives messages (no JavaScript injection in Authentik)
+- Requires Nginx `sub_filter` to work
+- Manual Lock button is working alternative
+- User confirmed removal acceptable
+
+---
+
+### 3. Logger Conversions ✅
+
+Converted 6 `console.error` statements to structured `logger.error`:
+
+**AppDataContext.jsx** (2 locations):
+- Line 47: Fetch app data error
+- Line 80: Save widget layout error
+
+**PlexWidget.jsx** (3 locations):
+- Line 64: Fetch Plex machine ID error
+- Line 114: Stop playback error
+- Line 159: Update hideWhenEmpty error
+
+**AddWidgetModal.jsx** (1 location):
+- Line 40: Add widget error
+
+**Format:**
+```javascript
+// Before:
+console.error('Failed to X:', error);
+
+// After:
+logger.error('Failed to X', { error: error.message, context: 'details' });
+```
+
+---
+
+### 4. Items Kept (User Decision) ✅
+
+**authDetection.js:**
+- Status: Kept
+- Reason: Actively used for URL pattern detection
+- Note: Limited effectiveness in user's setup but not dead code
+
+**CustomizationSettings.jsx:**
+- Status: Kept
+- Reason: Provides UI for auth detection settings
+- Note: Functional, may help in some scenarios
 
 ---
 
 ## Current State
 
-**What Works:**
-- ✅ OAuth provider configured in Authentik
-- ✅ Auth flow redirects to `/login-complete` with state parameter
-- ✅ Callback page receives and parses state (`{"tab":"radarr"}`)
-- ✅ postMessage communication implemented
-- ✅ Tab auto-closes (via postMessage + polling backup)
+**Cleanup Complete:**
+- ✅ Dead code removed (24 lines)
+- ✅ Console statements converted (6 locations)
+- ✅ Build verified passing (5.93s)
+- ✅ All changes committed
 
-**What Doesn't Work:**
-- ❌ **Tab restoration is broken** - always goes to dashboard instead of correct tab
-- ❌ Hash navigation (`window.location.hash = '#radarr'`) not working as expected
-- ❌ The `handleAuthComplete` might be interfering with hash change
-
-**Testing Evidence:**
-- URL: `https://server-nebula.com/login-complete?code=...&state=%7B%22tab%22%3A%22radarr%22%7D`
-- State decodes to: `{"tab":"radarr"}`
-- Expected: Navigate to `/#radarr`
-- Actual: Goes to `/#dashboard`
-
----
-
-## Technical Issue: Tab Restoration
-
-**The Problem:**
-```javascript
-// In TabContainer.jsx postMessage handler
-if (tab) {
-    window.location.hash = `#${tab}`;  // Sets hash
-    setTimeout(() => {
-        handleAuthComplete(tab);  // Reloads iframe
-    }, 100);
-}
-```
-
-**Why it's not working:**
-1. `window.location.hash` is being set correctly
-2. But `handleAuthComplete` might be causing issues
-3. Or the hash change event isn't firing in time
-4. Or there's a redirect happening that overwrites the hash
-
-**Attempted Fixes (reverted):**
-- Added setTimeout delay before handleAuthComplete
-- Added debug logging (never merged)
-- These were experimental and reverted
-
----
-
-## Next Immediate Steps
-
-**For Next Session:**
-
-1. **Debug tab restoration issue**
-   - Add console logging to see what's happening
-   - Check if hash is actually being set
-   - Verify handleAuthComplete isn't redirecting
-   - Test if postMessage is being received
-
-2. **Possible Solutions:**
-   - Use `window.location.replace` instead of hash assignment
-   - Store tab in sessionStorage and read on page load
-   - Ensure handleAuthComplete doesn't interfere with hash
-   - Check if there's a React routing issue
-
-3. **Test Scenarios:**
-   - Direct access to `/login-complete?state={"tab":"radarr"}`
-   - Popup flow from Lock button
-   - Different browsers (Chrome, Firefox, Safari)
+**Code Quality:**
+- ✅ -18 net lines (cleaner codebase)
+- ✅ Better error tracking with structured logs
+- ✅ No build warnings
+- ✅ All functionality preserved
 
 ---
 
 ## Files Modified This Session
 
-**Created:**
-1. `public/login-complete.html` - OAuth callback page
-2. `auth_autoclose_test_guide.md` - Testing documentation (artifact)
-
 **Modified:**
-3. `src/pages/TabContainer.jsx` - OAuth flow, postMessage listener, state parameter
+1. `src/pages/TabContainer.jsx` - Removed Authentik listener
+2. `src/context/AppDataContext.jsx` - 2 logger conversions
+3. `src/components/widgets/PlexWidget.jsx` - 3 logger conversions
+4. `src/components/dashboard/AddWidgetModal.jsx` - 1 logger conversion
+
+**Artifacts Created:**
+1. `code-audit-report.md` - Comprehensive audit analysis
+2. `cleanup-summary.md` - Final cleanup summary
 
 **Commits:**
-- `feat(auth): implement auto-close auth tab with postMessage callback`
-- `fix(auth): use proper Authentik OAuth endpoint for auto-close`
-- `fix(auth): restore correct tab after OAuth login via state parameter`
+- `chore: code audit cleanup - remove dead code and convert console statements`
 
-**Build Status:** ✅ All builds passed  
-**Docker Image:** `pickels23/framerr:develop`  
-**Digest:** `sha256:2dfdd1b008c103e3134f6c8f3621f1d9dd91d9a14d32f5d5752c390e50f51e09`
+**Build Status:** ✅ Passing  
+**Branch:** `feat/iframe-auth-detection`
 
 ---
 
-## Blockers
+## Next Steps
 
-**Primary Blocker:**
-- Tab restoration after OAuth callback not working
-- Hash navigation to correct tab (`/#radarr`) goes to dashboard instead
-- Need to debug why `window.location.hash = '#radarr'` isn't restoring the tab
+**For Next Session:**
 
-**No blocking dependencies** - just a logic/timing issue to debug
+No immediate follow-up needed. Code audit complete and committed.
+
+**Optional Future Work:**
+- Run periodic audits (monthly) per `/code-audit` workflow
+- Monitor for new console statements in PRs
+- Continue with other backlog items
+
+---
+
+## Session Notes
+
+**Context:**
+- User requested comprehensive audit of recent changes
+- Focus on removing dead code and standardizing logging
+- Authentik auto-detection feature was identified as non-functional
+- Manual Lock button workflow is working alternative
+
+**Decisions Made:**
+- Removed Authentik listener unanimously (100% safe)
+- Kept authDetection.js (still used for pattern matching)
+- Kept CustomizationSettings auth section (functional in some setups)
+
+**Build Verification:**
+- Build passed in 5.93s
+- No warnings related to changes
+- All imports resolved correctly
 
 ---
 
 ## Session End Marker
 
-🔄 **SESSION END**
-- Session ended: 2025-12-08 20:06:00
-- Status: OAuth flow working, auto-close working, tab restoration broken
-- Next: Debug why hash navigation isn't restoring correct tab after OAuth
+✅ **SESSION END**
+- Session ended: 2025-12-08 22:44:56
+- Status: Code audit complete, all cleanup committed
+- Next: Ready for new work or continue other features
 - Ready for next session: Yes
-- Clean state: Uncommitted experimental changes reverted
-- Last working commit: `fix(auth): restore correct tab after OAuth login via state parameter`
+- Clean state: All changes committed, build passing
+- Last commit: `chore: code audit cleanup - remove dead code and convert console statements`
