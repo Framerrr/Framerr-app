@@ -372,9 +372,16 @@ const AuthSettings = () => {
                             <h3 className="text-lg font-semibold text-theme-primary mb-2">
                                 iFrame Auth Detection
                             </h3>
-                            <p className="text-sm text-theme-secondary">
+                            <p className="text-sm text-theme-secondary mb-3">
                                 Automatically detect when embedded pages need authentication. Works best when your services are protected by the same OAuth provider configured below.
                             </p>
+                            <div className="p-3 bg-theme-tertiary rounded-lg border border-theme">
+                                <p className="text-xs text-theme-secondary">
+                                    <strong className="text-theme-primary">⚠️ Limitations:</strong> Due to browser security restrictions, Framerr cannot read content inside iframes. Detection relies on monitoring URL changes and redirect patterns.
+                                    <br /><br />
+                                    <strong className="text-theme-primary">URL Requirements:</strong> Your OAuth provider must use the same base domain with <code className="px-1 bg-theme-primary rounded text-accent">/app</code> prefix (e.g., <code className="px-1 bg-theme-primary rounded text-accent">yourdomain.com/app/...</code>). Subdomains (e.g., <code className="px-1 bg-theme-primary rounded text-accent">auth.yourdomain.com</code>) will not work for automatic detection.
+                                </p>
+                            </div>
                         </div>
 
                         {/* Detection Sensitivity */}
