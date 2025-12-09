@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
@@ -23,6 +23,11 @@ const AuthSettings = () => {
     const [clientId, setClientId] = useState('');
     const [redirectUri, setRedirectUri] = useState('');
     const [scopes, setScopes] = useState('openid profile email');
+
+    // iFrame auth detection state
+    const [authDetectionSensitivity, setAuthDetectionSensitivity] = useState('balanced');
+    const [customAuthPatterns, setCustomAuthPatterns] = useState([]);
+    const [newAuthPattern, setNewAuthPattern] = useState('');
 
     // UI state
     const [loading, setLoading] = useState(true);
@@ -55,11 +60,14 @@ const AuthSettings = () => {
             oauthEndpoint,
             clientId,
             redirectUri,
-            scopes
+            scopes,
+            authDetectionSensitivity,
+            customAuthPatterns
         };
         setHasChanges(JSON.stringify(current) !== JSON.stringify(originalSettings));
     }, [proxyEnabled, headerName, emailHeaderName, whitelist, overrideLogout, logoutUrl,
-        iframeEnabled, oauthEndpoint, clientId, redirectUri, scopes, originalSettings]);
+        iframeEnabled, oauthEndpoint, clientId, redirectUri, scopes,
+        authDetectionSensitivity, customAuthPatterns, originalSettings]);
 
     // Auto-toggle logout override based on proxy state
     useEffect(() => {
@@ -88,6 +96,12 @@ const AuthSettings = () => {
             setRedirectUri(iframe?.redirectUri || `${window.location.origin}/login-complete`);
             setScopes(iframe?.scopes || 'openid profile email');
 
+            // Load auth detection settings from system config
+            const systemResponse = await axios.get('/api/config/system');
+            const iframeAuth = systemResponse.data.iframeAuth || {};
+            setAuthDetectionSensitivity(iframeAuth.sensitivity || 'balanced');
+            setCustomAuthPatterns(iframeAuth.customPatterns || []);
+
             setOriginalSettings({
                 proxyEnabled: proxy?.enabled || false,
                 headerName: proxy?.headerName || '',
@@ -99,7 +113,9 @@ const AuthSettings = () => {
                 oauthEndpoint: iframe?.endpoint || '',
                 clientId: iframe?.clientId || '',
                 redirectUri: iframe?.redirectUri || `${window.location.origin}/login-complete`,
-                scopes: iframe?.scopes || 'openid profile email'
+                scopes: iframe?.scopes || 'openid profile email',
+                authDetectionSensitivity: iframeAuth.sensitivity || 'balanced',
+                customAuthPatterns: iframeAuth.customPatterns || []
             });
         } catch (error) {
             logger.error('Failed to fetch auth settings', { error: error.message });
@@ -134,6 +150,15 @@ const AuthSettings = () => {
                 }
             });
 
+            // Save auth detection settings to system config
+            await axios.put('/api/config/system', {
+                iframeAuth: {
+                    enabled: iframeEnabled,
+                    sensitivity: authDetectionSensitivity,
+                    customPatterns: customAuthPatterns
+                }
+            });
+
             setOriginalSettings({
                 proxyEnabled,
                 headerName,
@@ -145,7 +170,9 @@ const AuthSettings = () => {
                 oauthEndpoint,
                 clientId,
                 redirectUri,
-                scopes
+                scopes,
+                authDetectionSensitivity,
+                customAuthPatterns
             });
 
             logger.info('Auth settings saved successfully');
@@ -181,6 +208,17 @@ const AuthSettings = () => {
                 setTestingOAuth(false);
             }
         }, 500);
+    };
+
+    const handleAddAuthPattern = () => {
+        if (newAuthPattern.trim() && !customAuthPatterns.includes(newAuthPattern.trim())) {
+            setCustomAuthPatterns([...customAuthPatterns, newAuthPattern.trim()]);
+            setNewAuthPattern('');
+        }
+    };
+
+    const handleRemoveAuthPattern = (pattern) => {
+        setCustomAuthPatterns(customAuthPatterns.filter(p => p !== pattern));
     };
 
     if (loading) {
@@ -328,6 +366,99 @@ const AuthSettings = () => {
             {/* iFrame Auth Tab */}
             {activeTab === 'iframe' && (
                 <div className="space-y-6">
+                    {/* iFrame Auth Detection Card */}
+                    <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6 space-y-6">
+                        <div>
+                            <h3 className="text-lg font-semibold text-theme-primary mb-2">
+                                iFrame Auth Detection
+                            </h3>
+                            <p className="text-sm text-theme-secondary">
+                                Automatically detect when embedded pages need authentication. Works best when your services are protected by the same OAuth provider configured below.
+                            </p>
+                        </div>
+
+                        {/* Detection Sensitivity */}
+                        <div>
+                            <label className="block text-sm font-medium text-theme-primary mb-3">
+                                Detection Sensitivity
+                            </label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {['conservative', 'balanced', 'aggressive'].map((level) => (
+                                    <button
+                                        key={level}
+                                        onClick={() => setAuthDetectionSensitivity(level)}
+                                        className={`p-3 rounded-lg border-2 transition-all text-center ${authDetectionSensitivity === level
+                                            ? 'border-accent bg-accent/10 text-accent'
+                                            : 'border-theme hover:border-theme-light bg-theme-tertiary text-theme-secondary'
+                                            } cursor-pointer`}
+                                    >
+                                        <div className="font-medium text-sm capitalize">{level}</div>
+                                        <div className="text-xs mt-1 opacity-75">
+                                            {level === 'conservative' && 'High confidence only'}
+                                            {level === 'balanced' && 'Recommended'}
+                                            {level === 'aggressive' && 'Any redirect'}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-xs text-theme-tertiary mt-2">
+                                • <strong>Conservative:</strong> Only shows auth prompt for user-defined patterns or very high confidence
+                                <br />• <strong>Balanced:</strong> Shows prompt for common auth patterns (login, oauth, etc.)
+                                <br />• <strong>Aggressive:</strong> Shows prompt on any significant redirect
+                            </p>
+                        </div>
+
+                        {/* Custom Auth Patterns */}
+                        <div>
+                            <label className="block text-sm font-medium text-theme-primary mb-3">
+                                Custom Auth URL Patterns (Optional)
+                            </label>
+                            <p className="text-xs text-theme-secondary mb-3">
+                                Add domains or URL patterns that should always trigger authentication. Example: auth.yourdomain.com
+                            </p>
+
+                            {/* Add Pattern Input */}
+                            <div className="flex gap-2 mb-3">
+                                <input
+                                    type="text"
+                                    value={newAuthPattern}
+                                    onChange={(e) => setNewAuthPattern(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAddAuthPattern()}
+                                    placeholder="auth.yourdomain.com"
+                                    className="flex-1 px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
+                                />
+                                <button
+                                    onClick={handleAddAuthPattern}
+                                    disabled={!newAuthPattern.trim()}
+                                    className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    Add
+                                </button>
+                            </div>
+
+                            {/* Pattern List */}
+                            {customAuthPatterns.length > 0 && (
+                                <div className="space-y-2">
+                                    {customAuthPatterns.map((pattern, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex items-center justify-between p-3 bg-theme-tertiary rounded-lg border border-theme"
+                                        >
+                                            <span className="text-sm text-theme-primary font-mono">{pattern}</span>
+                                            <button
+                                                onClick={() => handleRemoveAuthPattern(pattern)}
+                                                className="text-error hover:text-error/80 transition-colors"
+                                                title="Remove pattern"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Main Configuration Card */}
                     <div className="glass-subtle rounded-xl shadow-deep border border-theme p-6 space-y-6">
                         {/* iFrame Auth Toggle */}

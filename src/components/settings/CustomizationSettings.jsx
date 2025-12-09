@@ -72,13 +72,6 @@ const CustomizationSettings = () => {
     const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
-    // Iframe auth state
-    const [iframeAuthEnabled, setIframeAuthEnabled] = useState(true);
-    const [authSensitivity, setAuthSensitivity] = useState('balanced');
-    const [customAuthPatterns, setCustomAuthPatterns] = useState([]);
-    const [newAuthPattern, setNewAuthPattern] = useState('');
-    const [savingAuthSettings, setSavingAuthSettings] = useState(false);
-
     // Function to get current theme colors from CSS variables
     const getCurrentThemeColors = () => {
         const root = document.documentElement;
@@ -456,42 +449,6 @@ const CustomizationSettings = () => {
         setGreetingText('Your personal dashboard');
     };
 
-    const handleSaveAuthSettings = async () => {
-        if (!userIsAdmin) {
-            alert('This setting requires admin privileges');
-            return;
-        }
-
-        setSavingAuthSettings(true);
-        try {
-            await axios.put('/api/config/system', {
-                iframeAuth: {
-                    enabled: iframeAuthEnabled,
-                    sensitivity: authSensitivity,
-                    customPatterns: customAuthPatterns
-                }
-            }, { withCredentials: true });
-
-            logger.info('Iframe auth settings saved successfully');
-        } catch (error) {
-            logger.error('Failed to save iframe auth settings:', error);
-            alert('Failed to save iframe auth settings. Please try again.');
-        } finally {
-            setSavingAuthSettings(false);
-        }
-    };
-
-    const handleAddAuthPattern = () => {
-        if (newAuthPattern.trim() && !customAuthPatterns.includes(newAuthPattern.trim())) {
-            setCustomAuthPatterns([...customAuthPatterns, newAuthPattern.trim()]);
-            setNewAuthPattern('');
-        }
-    };
-
-    const handleRemoveAuthPattern = (pattern) => {
-        setCustomAuthPatterns(customAuthPatterns.filter(p => p !== pattern));
-    };
-
     return (
         <div className="space-y-6 fade-in">
             {/* Header */}
@@ -709,146 +666,6 @@ const CustomizationSettings = () => {
                                     />
                                     <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                 </label>
-                            </div>
-                        </div>
-
-                        {/* Iframe Authentication Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
-                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
-                                Iframe Authentication
-                            </h3>
-                            <p className="text-sm text-theme-secondary mb-6">
-                                Automatically detect when embedded pages need authentication and help users login on iOS devices where cookies may be blocked.
-                                {!userIsAdmin && (
-                                    <span className="block mt-2 text-warning">
-                                        ⚠️ This setting requires admin privileges
-                                    </span>
-                                )}
-                            </p>
-
-                            <div className="space-y-6">
-                                {/* Enable/Disable Toggle */}
-                                <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-theme-primary mb-1">
-                                            Enable Auth Detection
-                                        </div>
-                                        <div className="text-xs text-theme-tertiary">
-                                            {iframeAuthEnabled
-                                                ? 'Automatic authentication detection active'
-                                                : 'Authentication detection disabled'}
-                                        </div>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={iframeAuthEnabled}
-                                            onChange={(e) => setIframeAuthEnabled(e.target.checked)}
-                                            disabled={!userIsAdmin}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                    </label>
-                                </div>
-
-                                {/* Detection Sensitivity */}
-                                {iframeAuthEnabled && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-theme-primary mb-3">
-                                            Detection Sensitivity
-                                        </label>
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {['conservative', 'balanced', 'aggressive'].map((level) => (
-                                                <button
-                                                    key={level}
-                                                    onClick={() => setAuthSensitivity(level)}
-                                                    disabled={!userIsAdmin}
-                                                    className={`p-3 rounded-lg border-2 transition-all text-center ${authSensitivity === level
-                                                            ? 'border-accent bg-accent/10 text-accent'
-                                                            : 'border-theme hover:border-theme-light bg-theme-tertiary text-theme-secondary'
-                                                        } ${!userIsAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                                >
-                                                    <div className="font-medium text-sm capitalize">{level}</div>
-                                                    <div className="text-xs mt-1 opacity-75">
-                                                        {level === 'conservative' && 'High confidence only'}
-                                                        {level === 'balanced' && 'Recommended'}
-                                                        {level === 'aggressive' && 'Any redirect'}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <p className="text-xs text-theme-tertiary mt-2">
-                                            • <strong>Conservative:</strong> Only shows auth prompt for user-defined patterns or very high confidence
-                                            <br />• <strong>Balanced:</strong> Shows prompt for common auth patterns (login, oauth, etc.)
-                                            <br />• <strong>Aggressive:</strong> Shows prompt on any significant redirect
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Custom Auth Patterns */}
-                                {iframeAuthEnabled && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-theme-primary mb-3">
-                                            Custom Auth URL Patterns (Optional)
-                                        </label>
-                                        <p className="text-xs text-theme-secondary mb-3">
-                                            Add domains or URL patterns that should always trigger authentication. Example: auth.yourdomain.com
-                                        </p>
-
-                                        {/* Add Pattern Input */}
-                                        <div className="flex gap-2 mb-3">
-                                            <input
-                                                type="text"
-                                                value={newAuthPattern}
-                                                onChange={(e) => setNewAuthPattern(e.target.value)}
-                                                onKeyPress={(e) => e.key === 'Enter' && handleAddAuthPattern()}
-                                                placeholder="auth.yourdomain.com"
-                                                disabled={!userIsAdmin}
-                                                className="flex-1 px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all disabled:opacity-50"
-                                            />
-                                            <button
-                                                onClick={handleAddAuthPattern}
-                                                disabled={!userIsAdmin || !newAuthPattern.trim()}
-                                                className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                                            >
-                                                Add
-                                            </button>
-                                        </div>
-
-                                        {/* Pattern List */}
-                                        {customAuthPatterns.length > 0 && (
-                                            <div className="space-y-2">
-                                                {customAuthPatterns.map((pattern, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex items-center justify-between p-3 bg-theme-tertiary rounded-lg border border-theme"
-                                                    >
-                                                        <span className="text-sm text-theme-primary font-mono">{pattern}</span>
-                                                        <button
-                                                            onClick={() => handleRemoveAuthPattern(pattern)}
-                                                            disabled={!userIsAdmin}
-                                                            className="text-error hover:text-error/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            title="Remove pattern"
-                                                        >
-                                                            <X size={18} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Save Button */}
-                                {userIsAdmin && (
-                                    <Button
-                                        onClick={handleSaveAuthSettings}
-                                        disabled={savingAuthSettings}
-                                        icon={Save}
-                                    >
-                                        {savingAuthSettings ? 'Saving...' : 'Save Auth Settings'}
-                                    </Button>
-                                )}
                             </div>
                         </div>
                     </div>
