@@ -192,24 +192,21 @@ const Sidebar = () => {
                     />
 
                     {/* Header */}
-                    <div className={`h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10 transition-all ${isExpanded ? 'justify-start px-6' : 'justify-center px-0'}`}>
-                        <div className={`text-accent flex items-center justify-center drop-shadow-lg ${isExpanded ? 'min-w-[28px]' : 'w-full'}`}>
+                    <div className={`h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10 ${isExpanded ? 'justify-start px-6' : 'justify-center px-0'}`}>
+                        <div className={`text-accent flex items-center justify-center drop-shadow-lg transition-all ${isExpanded ? 'min-w-[28px]' : 'w-full'}`}>
                             {renderIcon(userSettings?.serverIcon, 28)}
                         </div>
                         <AnimatePresence mode="wait">
                             {isExpanded && (
-                                <motion.span
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -10 }}
-                                    transition={{
-                                        ...textSpring,
-                                        exit: { duration: 0.1 }, // Instant exit to prevent icon push
-                                    }}
-                                    className="ml-4 gradient-text font-bold"
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.1 }}
+                                    className="ml-4 gradient-text font-bold overflow-hidden"
                                 >
                                     {userSettings?.serverName || 'Dashboard'}
-                                </motion.span>
+                                </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
@@ -220,6 +217,7 @@ const Sidebar = () => {
                         <a
                             href="/#dashboard"
                             onMouseEnter={() => setHoveredItem('dashboard')}
+                            onMouseLeave={() => setHoveredItem(null)}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const shouldBeActive = !hash || hash === 'dashboard';
@@ -285,6 +283,7 @@ const Sidebar = () => {
                                         key={tab.id}
                                         href={`/#${tab.slug}`}
                                         onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
+                                        onMouseLeave={() => setHoveredItem(null)}
                                         className={`flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
                                     >
                                         {/* Animated hover/active indicator */}
@@ -357,6 +356,7 @@ const Sidebar = () => {
                                                                         key={tab.id}
                                                                         href={`/#${tab.slug}`}
                                                                         onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
+                                                                        onMouseLeave={() => setHoveredItem(null)}
                                                                         className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-slate-400 hover:text-white transition-colors rounded-xl relative"
                                                                     >
                                                                         {/* Animated hover/active indicator */}
@@ -385,6 +385,7 @@ const Sidebar = () => {
                                                         key={tab.id}
                                                         href={`/#${tab.slug}`}
                                                         onMouseEnter={() => setHoveredItem(`tab-${tab.id}`)}
+                                                        onMouseLeave={() => setHoveredItem(null)}
                                                         className="flex items-center justify-center py-3.5 text-slate-300 hover:text-white transition-colors rounded-xl relative group"
                                                     >
                                                         {/* Animated hover/active indicator */}
@@ -418,6 +419,7 @@ const Sidebar = () => {
                         <a
                             href="/#settings?tab=profile&source=profile"
                             onMouseEnter={() => setHoveredItem('profile')}
+                            onMouseLeave={() => setHoveredItem(null)}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const hashParts = hash.split('?');
@@ -474,6 +476,7 @@ const Sidebar = () => {
                         <a
                             href="/#settings"
                             onMouseEnter={() => setHoveredItem('settings')}
+                            onMouseLeave={() => setHoveredItem(null)}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const hashParts = hash.split('?');
@@ -518,6 +521,7 @@ const Sidebar = () => {
                         <button
                             onClick={handleLogout}
                             onMouseEnter={() => setHoveredItem('logout')}
+                            onMouseLeave={() => setHoveredItem(null)}
                             className={`flex items-center py-3 text-sm font-medium text-slate-300 hover:text-red-400 transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`}
                         >
                             {hoveredItem === 'logout' && (
