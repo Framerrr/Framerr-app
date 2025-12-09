@@ -79,6 +79,13 @@ const FaviconInjector = () => {
         const handleFaviconUpdate = () => setTriggerReload(prev => prev + 1);
         window.addEventListener('faviconUpdated', handleFaviconUpdate);
 
+        // Re-apply favicon when route changes (hashchange)
+        const handleHashChange = () => {
+            logger.debug('Route changed - re-checking favicon');
+            setTimeout(() => setTriggerReload(prev => prev + 1), 100);
+        };
+        window.addEventListener('hashchange', handleHashChange);
+
         // Re-apply favicon when tab becomes visible (in case iframe overwrote it)
         const handleVisibilityChange = () => {
             if (!document.hidden) {
@@ -101,10 +108,11 @@ const FaviconInjector = () => {
                     setTriggerReload(prev => prev + 1);
                 }
             }
-        }, 5000); // Check every 5 seconds
+        }, 2000); // Check every 2 seconds (faster response)
 
         return () => {
             window.removeEventListener('faviconUpdated', handleFaviconUpdate);
+            window.removeEventListener('hashchange', handleHashChange);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             clearInterval(faviconGuardInterval);
         };
