@@ -235,25 +235,24 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
-                                <LayoutDashboard size={22} />
-                            </span>
-                            <AnimatePresence mode="wait">
-                                {isExpanded && (
-                                    <motion.span
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{
-                                            ...textSpring,
-                                            exit: { duration: 0.1 },
-                                        }}
-                                        className={`whitespace-nowrap relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
-                                    >
-                                        Dashboard
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
+                            <div className="flex items-center gap-3 relative z-10 w-full">
+                                <span className={`flex items-center justify-center min-w-[22px] flex-shrink-0 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}>
+                                    <LayoutDashboard size={22} />
+                                </span>
+                                <AnimatePresence mode="wait">
+                                    {isExpanded && (
+                                        <motion.span
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.1 }}
+                                            className={`whitespace-nowrap overflow-hidden ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
+                                        >
+                                            Dashboard
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </a>
 
                         {/* Tabs Section */}
@@ -438,33 +437,32 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
-                                {currentUser?.profilePicture ? (
-                                    <img
-                                        src={currentUser.profilePicture}
-                                        alt="Profile"
-                                        className="w-[22px] h-[22px] rounded-full object-cover border border-slate-600"
-                                    />
-                                ) : (
-                                    <UserCircle size={22} />
-                                )}
-                            </span>
-                            <AnimatePresence mode="wait">
-                                {isExpanded && (
-                                    <motion.span
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{
-                                            ...textSpring,
-                                            exit: { duration: 0.1 },
-                                        }}
-                                        className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}
-                                    >
-                                        Profile
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
+                            <div className="flex items-center gap-3 relative z-10 w-full">
+                                <span className={`flex items-center justify-center min-w-[22px] flex-shrink-0 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}>
+                                    {currentUser?.profilePicture ? (
+                                        <img
+                                            src={currentUser.profilePicture}
+                                            alt="Profile"
+                                            className="w-[22px] h-[22px] rounded-full object-cover border border-slate-600"
+                                        />
+                                    ) : (
+                                        <UserCircle size={22} />
+                                    )}
+                                </span>
+                                <AnimatePresence mode="wait">
+                                    {isExpanded && (
+                                        <motion.span
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.1 }}
+                                            className={`whitespace-nowrap overflow-hidden ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}
+                                        >
+                                            Profile
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                             {!isExpanded && (
                                 <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
                                     {currentUser?.username || 'Profile'}
@@ -496,25 +494,24 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
-                                <SettingsIcon size={20} />
-                            </span>
-                            <AnimatePresence mode="wait">
-                                {isExpanded && (
-                                    <motion.span
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{
-                                            ...textSpring,
-                                            exit: { duration: 0.1 },
-                                        }}
-                                        className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}
-                                    >
-                                        Settings
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
+                            <div className="flex items-center gap-3 relative z-10 w-full">
+                                <span className={`flex items-center justify-center min-w-[22px] flex-shrink-0 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}>
+                                    <SettingsIcon size={20} />
+                                </span>
+                                <AnimatePresence mode="wait">
+                                    {isExpanded && (
+                                        <motion.span
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.1 }}
+                                            className={`whitespace-nowrap overflow-hidden ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}
+                                        >
+                                            Settings
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </a>
 
                         {/* Logout Button */}
@@ -531,25 +528,24 @@ const Sidebar = () => {
                                     transition={sidebarSpring}
                                 />
                             )}
-                            <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${isExpanded ? 'mr-3' : ''}`}>
-                                <LogOut size={20} />
-                            </span>
-                            <AnimatePresence mode="wait">
-                                {isExpanded && (
-                                    <motion.span
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{
-                                            ...textSpring,
-                                            exit: { duration: 0.1 },
-                                        }}
-                                        className="whitespace-nowrap relative z-10"
-                                    >
-                                        Logout
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
+                            <div className="flex items-center gap-3 relative z-10 w-full">
+                                <span className="flex items-center justify-center min-w-[22px] flex-shrink-0">
+                                    <LogOut size={20} />
+                                </span>
+                                <AnimatePresence mode="wait">
+                                    {isExpanded && (
+                                        <motion.span
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.1 }}
+                                            className="whitespace-nowrap overflow-hidden"
+                                        >
+                                            Logout
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </button>
                     </div>
                 </motion.aside>
