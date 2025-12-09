@@ -44,7 +44,7 @@ export const AppDataProvider = ({ children }) => {
             setServices([]);
 
         } catch (error) {
-            console.error('Failed to fetch app data:', error);
+            logger.error('Failed to fetch app data', { error: error.message });
         } finally {
             setLoading(false);
         }
@@ -77,7 +77,7 @@ export const AppDataProvider = ({ children }) => {
 
             logger.debug('Widget layout saved', { widgetCount: newLayout.length });
         } catch (error) {
-            console.error('Failed to save widget layout:', error);
+            logger.error('Failed to save widget layout', { error: error.message });
             // Revert on error
             fetchData();
         }

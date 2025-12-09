@@ -60,31 +60,6 @@ const TabContainer = () => {
                     });
                 }
             }
-
-            // Check for Authentik auth needed message (from injected JS in proxied apps)
-            if (event.data?.type === 'authentik-auth-needed') {
-                logger.info('Authentik auth page detected via postMessage', event.data);
-
-                // Find which tab's iframe sent this message
-                const sourceIframe = Array.from(document.querySelectorAll('iframe')).find(
-                    iframe => iframe.contentWindow === event.source
-                );
-
-                if (sourceIframe) {
-                    // Find the tab slug for this iframe
-                    const slug = Object.keys(iframeRefs.current).find(
-                        key => iframeRefs.current[key] === sourceIframe
-                    );
-
-                    if (slug && systemConfig?.auth?.iframe?.enabled) {
-                        logger.info(`Auto-opening OAuth for tab: ${slug}`);
-                        // Auto-trigger OAuth flow
-                        handleOpenAuth(slug, event.data.url);
-                    } else if (!systemConfig?.auth?.iframe?.enabled) {
-                        logger.warn('Authentik auth detected but iFrame auth is disabled in settings');
-                    }
-                }
-            }
         };
 
         window.addEventListener('message', handleAuthMessage);

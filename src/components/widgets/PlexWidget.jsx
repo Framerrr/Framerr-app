@@ -61,7 +61,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                     if (match) setPlexMachineId(match[1]);
                 }
             } catch (err) {
-                console.error('Error fetching Plex machine ID:', err);
+                logger.error('Error fetching Plex machine ID', { error: err.message, widget: 'Plex' });
             }
         };
 
@@ -111,7 +111,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                 setData(result);
             }
         } catch (err) {
-            console.error('Error stopping playback:', err);
+            logger.error('Error stopping playback', { error: err.message, widget: 'Plex' });
             setError('Failed to stop playback: ' + err.message);
             setConfirmStop(null);
         } finally {
@@ -156,7 +156,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
             if (!saveResponse.ok) throw new Error('Failed to save widget config');
         } catch (err) {
             setLocalHideWhenEmpty(!newValue);
-            console.error('Error updating hideWhenEmpty:', err);
+            logger.error('Error updating hideWhenEmpty', { error: err.message, widget: 'Plex' });
             setError('Failed to update hide when empty setting');
         }
     };
