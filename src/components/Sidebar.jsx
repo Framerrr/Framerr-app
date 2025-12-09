@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronUp, LogOut, UserCircle } from 'lucide-react';
+import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronRight, ChevronUp, LogOut, UserCircle } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../context/AppDataContext';
@@ -20,11 +20,11 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Spring configuration for sidebar animations (user refined)
+    // Spring configuration for sidebar animations (animate-ui inspired)
     const sidebarSpring = {
         type: 'spring',
-        stiffness: 240,
-        damping: 30,
+        stiffness: 350,
+        damping: 35,
     };
 
     // Faster spring for text to avoid icon pushing
@@ -230,7 +230,7 @@ const Sidebar = () => {
                             {(hoveredItem === 'dashboard' || (!window.location.hash || window.location.hash === '#dashboard')) && (
                                 <motion.div
                                     layoutId="sidebarIndicator"
-                                    className={`absolute inset-0 rounded-xl ${(!window.location.hash || window.location.hash === '#dashboard')
+                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${(!window.location.hash || window.location.hash === '#dashboard')
                                         ? 'bg-accent/20 shadow-lg'
                                         : 'bg-slate-800/60'
                                         }`}
@@ -240,7 +240,7 @@ const Sidebar = () => {
                             {/* Icon - locked in 80px container */}
                             <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
                                 <span className={`flex items-center justify-center ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}>
-                                    <LayoutDashboard size={22} />
+                                    <LayoutDashboard size={20} />
                                 </span>
                             </div>
                             {/* Text - appears when expanded */}
@@ -293,12 +293,12 @@ const Sidebar = () => {
                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
                                             <motion.div
                                                 layoutId="sidebarIndicator"
-                                                className={`absolute inset-0 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
                                                 transition={sidebarSpring}
                                             />
                                         )}
-                                        <span className={`flex items-center justify-center min-w-[22px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
-                                            {renderIcon(tab.icon, 22)}
+                                        <span className={`flex items-center justify-center min-w-[20px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}>
+                                            {renderIcon(tab.icon, 20)}
                                         </span>
                                         <AnimatePresence mode="wait">
                                             {isExpanded && (
@@ -338,12 +338,13 @@ const Sidebar = () => {
                                                         className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-800/40"
                                                     >
                                                         <span>{group.name}</span>
-                                                        <motion.div
-                                                            animate={{ rotate: expandedGroups[group.id] ? 0 : 180 }}
-                                                            transition={sidebarSpring}
-                                                        >
-                                                            <ChevronDown size={14} />
-                                                        </motion.div>
+                                                        <ChevronRight
+                                                            size={16}
+                                                            className="transition-transform duration-300"
+                                                            style={{
+                                                                transform: expandedGroups[group.id] ? 'rotate(90deg)' : 'rotate(0deg)'
+                                                            }}
+                                                        />
                                                     </button>
                                                     <AnimatePresence>
                                                         {expandedGroups[group.id] && (
@@ -366,12 +367,12 @@ const Sidebar = () => {
                                                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
                                                                             <motion.div
                                                                                 layoutId="sidebarIndicator"
-                                                                                className={`absolute inset-0 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
                                                                                 transition={sidebarSpring}
                                                                             />
                                                                         )}
                                                                         <span className={`mr-3 flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
-                                                                            {renderIcon(tab.icon, 18)}
+                                                                            {renderIcon(tab.icon, 20)}
                                                                         </span>
                                                                         <span className={`truncate relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
                                                                             {tab.name}
@@ -395,7 +396,7 @@ const Sidebar = () => {
                                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
                                                             <motion.div
                                                                 layoutId="sidebarIndicator"
-                                                                className={`absolute inset-0 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
                                                                 transition={sidebarSpring}
                                                             />
                                                         )}
@@ -437,7 +438,7 @@ const Sidebar = () => {
                             {(hoveredItem === 'profile' || (hash.startsWith('settings') && currentTab === 'profile' && source === 'profile')) && (
                                 <motion.div
                                     layoutId="sidebarIndicator"
-                                    className={`absolute inset-0 rounded-xl ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
                                     transition={sidebarSpring}
                                 />
                             )}
@@ -448,10 +449,10 @@ const Sidebar = () => {
                                         <img
                                             src={currentUser.profilePicture}
                                             alt="Profile"
-                                            className="w-[22px] h-[22px] rounded-full object-cover border border-slate-600"
+                                            className="w-[20px] h-[20px] rounded-full object-cover border border-slate-600"
                                         />
                                     ) : (
-                                        <UserCircle size={22} />
+                                        <UserCircle size={20} />
                                     )}
                                 </span>
                             </div>
@@ -496,7 +497,7 @@ const Sidebar = () => {
                             {(hoveredItem === 'settings' || (hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile'))) && (
                                 <motion.div
                                     layoutId="sidebarIndicator"
-                                    className={`absolute inset-0 rounded-xl ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
                                     transition={sidebarSpring}
                                 />
                             )}
@@ -532,7 +533,7 @@ const Sidebar = () => {
                             {hoveredItem === 'logout' && (
                                 <motion.div
                                     layoutId="sidebarIndicator"
-                                    className="absolute inset-0 bg-red-500/10 rounded-xl"
+                                    className="absolute inset-y-1 inset-x-2 bg-red-500/10 rounded-xl"
                                     transition={sidebarSpring}
                                 />
                             )}
