@@ -1,18 +1,19 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-08 14:40:00  
+**Last Updated:** 2025-12-08 19:12:00  
 **Current Version:** v1.1.7  
-**Development Branch:** `develop` (Gridstack work paused)
+**Development Branch:** `feat/iframe-auth-detection`  
 **Production Branch:** `main`  
-**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`
+**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`  
+**Development Docker:** `pickels23/framerr:develop`
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 15:** Mobile Responsiveness & v1.1.7 Release (Complete) ✅
+**Phase 16:** Iframe Authentication Implementation (Partial) ⚠️
 
-**Status:** Production release v1.1.7 deployed with mobile improvements and security updates.
+**Status:** Manual authentication flow working, automatic detection blocked by browser security constraints.
 
 ---
 
@@ -22,9 +23,10 @@
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
 | **Frontend** | ✅ Operational | All mobile UX improvements deployed |
+| **Iframe Auth** | ⚠️ Partial | Manual flow working, auto-detect blocked |
 | **Docker Production** | ✅ Live | `pickels23/framerr:1.1.7` and `:latest` |
-| **Docker Debug** | ✅ Available | Use `:1.1.7` for debugging |
-| **Documentation** | ✅ Complete | Full v2.0 system in place |
+| **Docker Development** | ✅ Available | `pickels23/framerr:develop` |
+| **Documentation** | ✅ Complete | Full v2.0 system + iframe auth summary |
 | **Workflows** | ✅ Active | 8 workflows operational |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
 | **Mobile UX** | ✅ Enhanced | Touch drag, auto-updates, fixed header |
@@ -33,6 +35,24 @@
 ---
 
 ## 🚀 Recent Accomplishments
+
+### Iframe Authentication (Dec 8, 2025) - PARTIAL ⚠️
+- ✅ **Manual Auth Flow:**
+  - Lock button (🔒) in tab toolbar
+  - Opens auth in new tab (bypass iframe restrictions)
+  - Auto-reload after tab closure
+  - Auto-refocus to Framerr
+  - Supports passkeys, OAuth, SAML
+- ✅ **Settings UI:**
+  - Enable/disable configuration
+  - Sensitivity levels
+  - Custom URL patterns
+- ⚠️ **Auto-Detection:**
+  - Blocked by Same-Origin Policy
+  - Cannot read cross-origin iframe navigation
+  - Documented in `iframe_auth_summary.md`
+- 📝 5 commits, ~350 tool calls
+- 🐳 Docker image: `pickels23/framerr:develop`
 
 ### v1.1.7 Production Release (Dec 8, 2025) - COMPLETE ✅
 - ✅ **Mobile Bug Fixes:**
@@ -62,12 +82,18 @@
 
 ## 🔄 Active Work
 
-**Current Task:** v1.1.7 deployed to production  
+**Current Task:** Iframe authentication - awaiting user decision  
+**Branch:** `feat/iframe-auth-detection`  
+**Status:** Manual flow working, auto-detection blocked  
+
 **Next Steps:**
-1. Monitor v1.1.7 in production
-2. Gather user feedback on mobile improvements
-3. Consider resuming gridstack work on develop branch
-4. Plan next feature development
+1. User review of `iframe_auth_summary.md`
+2. Decision on auto-detection approach (or accept manual flow)
+3. Possible options:
+   - Accept manual 2-click flow (recommended)
+   - Get second opinion on browser constraints
+   - Configure domain-based triggers
+   - Architectural changes (reverse proxy)
 
 ---
 
