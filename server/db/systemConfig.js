@@ -101,6 +101,7 @@ async function updateSystemConfig(updates) {
         },
         integrations: { ...currentConfig.integrations, ...(updates.integrations || {}) },
         debug: { ...currentConfig.debug, ...(updates.debug || {}) },
+        favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon, // Support null to delete
         groups: currentConfig.groups,  // Always preserve locked groups
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
         tabGroups: updates.tabGroups || currentConfig.tabGroups
