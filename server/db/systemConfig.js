@@ -19,6 +19,13 @@ const DEFAULT_CONFIG = {
             overrideLogout: false,
             logoutUrl: ''  // Empty by default - user must configure
         },
+        iframe: {
+            enabled: false,
+            endpoint: '',  // OAuth authorize endpoint
+            clientId: '',  // OAuth client ID
+            redirectUri: '',  // OAuth redirect URI (defaults to current origin + /login-complete)
+            scopes: 'openid profile email'  // OAuth scopes
+        },
         session: { timeout: 86400000 } // 24 hours
     },
     integrations: {
@@ -89,7 +96,8 @@ async function updateSystemConfig(updates) {
         auth: {
             local: { ...currentConfig.auth?.local, ...(updates.auth?.local || {}) },
             session: { ...currentConfig.auth?.session, ...(updates.auth?.session || {}) },
-            proxy: { ...currentConfig.auth?.proxy, ...(updates.auth?.proxy || {}) }
+            proxy: { ...currentConfig.auth?.proxy, ...(updates.auth?.proxy || {}) },
+            iframe: { ...currentConfig.auth?.iframe, ...(updates.auth?.iframe || {}) }
         },
         integrations: { ...currentConfig.integrations, ...(updates.integrations || {}) },
         debug: { ...currentConfig.debug, ...(updates.debug || {}) },

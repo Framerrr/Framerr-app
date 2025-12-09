@@ -120,6 +120,22 @@ router.get('/auth', requireAdmin, async (req, res) => {
  */
 router.put('/auth', requireAdmin, async (req, res) => {
     try {
+        // Validate iframe OAuth endpoint must be HTTPS
+        if (req.body.iframe?.enabled && req.body.iframe?.endpoint) {
+            try {
+                const endpointUrl = new URL(req.body.iframe.endpoint);
+                if (endpointUrl.protocol !== 'https:') {
+                    return res.status(400).json({
+                        error: 'OAuth endpoint must use HTTPS for security'
+                    });
+                }
+            } catch (error) {
+                return res.status(400).json({
+                    error: 'Invalid OAuth endpoint URL format'
+                });
+            }
+        }
+
         await updateSystemConfig({ auth: req.body });
         const config = await getSystemConfig();
 

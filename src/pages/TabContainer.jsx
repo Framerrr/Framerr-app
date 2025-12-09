@@ -168,21 +168,27 @@ const TabContainer = () => {
     const handleOpenAuth = (slug, authUrl) => {
         logger.info(`Opening auth in new tab for ${slug}:`, authUrl);
 
-        // Construct OAuth authorize URL for Authentik
-        const clientId = 'RFved8RMgr1c4fERztGfzLLm2mu9zyy9DKXFn7Z7';
-        const redirectUri = `${window.location.origin}/login-complete`;
-        const authDomain = 'https://auth.server-nebula.com';
+        // Get OAuth configuration from systemConfig
+        const clientId = systemConfig?.auth?.iframe?.clientId || '';
+        const redirectUri = systemConfig?.auth?.iframe?.redirectUri || `${window.location.origin}/login-complete`;
+        const oauthEndpoint = systemConfig?.auth?.iframe?.endpoint || '';
+        const scopes = systemConfig?.auth?.iframe?.scopes || 'openid profile email';
+
+        // Validate configuration
+        if (!clientId || !oauthEndpoint) {
+            logger.error('iFrame auth not configured', { clientId: !!clientId, endpoint: !!oauthEndpoint });
+            alert(
+                'iFrame authentication is not configured.\n\n' +
+                'Please go to Settings → Authentication → iFrame Auth to set up OAuth.'
+            );
+            return;
+        }
 
         // Include tab slug in state so we can restore it after auth
         const state = JSON.stringify({ tab: slug });
 
-        // Build proper OAuth authorize URL
-        const oauthUrl = `${authDomain}/application/o/authorize/` +
-            `?client_id=${encodeURIComponent(clientId)}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&response_type=code` +
-            `&scope=openid%20profile%20email` +
-            `&state=${encodeURIComponent(state)}`;
+        // Build proper OAuth authorize URL from configured endpoint
+        const oauthUrl = `${oauthEndpoint}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`;
 
         logger.debug('OAuth authorize URL:', oauthUrl);
 
