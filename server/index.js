@@ -40,7 +40,9 @@ app.use(cors({
 // Global session middleware - proxy auth takes precedence over local session
 app.use(async (req, res, next) => {
     try {
-        const systemConfig = req.app.get('systemConfig');
+        // Load fresh config from DB to respect runtime toggle changes
+        const { getSystemConfig } = require('./db/systemConfig');
+        const systemConfig = await getSystemConfig();
 
         // Try proxy auth first (if enabled and headers present)
         if (systemConfig?.auth?.proxy?.enabled) {
