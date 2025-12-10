@@ -42,7 +42,7 @@ const EventPopover = ({ event }) => {
                                 exit={{ opacity: 0, scale: 0.96 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
-                                style={{ minWidth: 'max-content', maxWidth: '300px' }}
+                                style={{ minWidth: '180px', maxWidth: '200px' }}
                             >
                                 <Popover.Arrow className="fill-current text-theme-secondary" />
 
