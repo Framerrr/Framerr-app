@@ -632,12 +632,12 @@ router.get('/systemstatus/glances/status', async (req, res) => {
             headers['Authorization'] = `Basic ${auth}`;
         }
 
-        // Fetch multiple Glances endpoints in parallel
+        // Fetch multiple Glances endpoints in parallel (API v4)
         const [cpuRes, memRes, sensorsRes, uptimeRes] = await Promise.all([
-            axios.get(`${translatedUrl}/api/3/cpu`, { headers, httpsAgent, timeout: 5000 }),
-            axios.get(`${translatedUrl}/api/3/mem`, { headers, httpsAgent, timeout: 5000 }),
-            axios.get(`${translatedUrl}/api/3/sensors`, { headers, httpsAgent, timeout: 5000 }).catch(() => ({ data: [] })),
-            axios.get(`${translatedUrl}/api/3/uptime`, { headers, httpsAgent, timeout: 5000 })
+            axios.get(`${translatedUrl}/api/4/cpu`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/mem`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/sensors`, { headers, httpsAgent, timeout: 5000 }).catch(() => ({ data: [] })),
+            axios.get(`${translatedUrl}/api/4/uptime`, { headers, httpsAgent, timeout: 5000 })
         ]);
 
         // Extract CPU percentage (overall usage)
@@ -728,14 +728,14 @@ router.get('/systemstatus/glances/history', async (req, res) => {
         // Instead, we need to use the stats history endpoints for each metric
         // Note: This requires Glances to be running with --export flag or using local cache
 
-        // Fetch current stats as a fallback (Glances v3 API doesn't expose full history via REST easily)
+        // Fetch current stats as a fallback (Glances v4 API doesn't expose full history via REST easily)
         // For proper historical data, Glances needs to export to InfluxDB/Prometheus
         // We'll return current data point in array format for now
 
         const [cpuRes, memRes, sensorsRes] = await Promise.all([
-            axios.get(`${translatedUrl}/api/3/cpu`, { headers, httpsAgent, timeout: 5000 }),
-            axios.get(`${translatedUrl}/api/3/mem`, { headers, httpsAgent, timeout: 5000 }),
-            axios.get(`${translatedUrl}/api/3/sensors`, { headers, httpsAgent, timeout: 5000 }).catch(() => ({ data: [] }))
+            axios.get(`${translatedUrl}/api/4/cpu`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/mem`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/sensors`, { headers, httpsAgent, timeout: 5000 }).catch(() => ({ data: [] }))
         ]);
 
         // Extract values
