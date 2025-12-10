@@ -85,8 +85,8 @@ const IconPicker = ({ value, onChange }) => {
         if (isOpen && triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
             setModalPosition({
-                top: rect.bottom + 8, // 8px gap below button
-                left: rect.left,
+                top: rect.bottom + window.scrollY + 8, // Add scroll offset for absolute positioning
+                left: rect.left + window.scrollX,
                 width: rect.width
             });
         }
@@ -281,7 +281,7 @@ const IconPicker = ({ value, onChange }) => {
                                 exit={{ opacity: 0, scale: 0.96, y: -10 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 style={{
-                                    position: 'fixed',
+                                    position: 'absolute',
                                     top: `${modalPosition.top}px`,
                                     left: `${modalPosition.left}px`,
                                     width: window.innerWidth < 768 ? `${modalPosition.width}px` : '24rem',
