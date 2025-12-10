@@ -36,9 +36,27 @@ const DEFAULT_CONFIG = {
         qbittorrent: { enabled: false }
     },
     groups: [
-        { id: 'admin', name: 'Administrators', description: 'Full system access', locked: true },
-        { id: 'user', name: 'Users', description: 'Personal customization', locked: true },
-        { id: 'guest', name: 'Guests', description: 'View only', locked: true }
+        {
+            id: 'admin',
+            name: 'Administrators',
+            description: 'Full system access',
+            permissions: ['*'],  // Superuser - all permissions
+            locked: true
+        },
+        {
+            id: 'user',
+            name: 'Users',
+            description: 'Personal customization',
+            permissions: ['view_dashboard', 'manage_widgets'],  // Standard user permissions
+            locked: true
+        },
+        {
+            id: 'guest',
+            name: 'Guests',
+            description: 'View only',
+            permissions: ['view_dashboard'],  // Read-only access
+            locked: true
+        }
     ],
     defaultGroup: 'user',
     tabGroups: [
