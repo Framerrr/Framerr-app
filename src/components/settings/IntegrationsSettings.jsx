@@ -3,6 +3,7 @@ import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save 
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import SystemHealthIntegration from './integrations/SystemHealthIntegration';
 
 const IntegrationsSettings = () => {
     const [integrations, setIntegrations] = useState({
@@ -139,15 +140,6 @@ const IntegrationsSettings = () => {
 
     const integrationConfigs = [
         {
-            id: 'systemstatus',
-            name: 'System Health',
-            description: 'Server health monitoring (CPU, Memory, Temperature)',
-            fields: [
-                { key: 'url', label: 'Monitoring Service URL', placeholder: 'http://192.168.1.5:3001', type: 'text' },
-                { key: 'token', label: 'API Token', placeholder: 'Optional authentication token', type: 'password' }
-            ]
-        },
-        {
             id: 'plex',
             name: 'Plex',
             description: 'Media server integration',
@@ -225,8 +217,19 @@ const IntegrationsSettings = () => {
                 </div>
             </div>
 
-            {/* Integrations List */}
-            <div className="space-y-4">
+            {/* System Health Integration - Special Multi-Backend Component */}
+            <SystemHealthIntegration
+                integration={integrations.systemstatus}
+                onUpdate={(updated) => {
+                    setIntegrations(prev => ({
+                        ...prev,
+                        systemstatus: updated
+                    }));
+                }}
+            />
+
+            {/* Other Integrations List */}
+            <div className="space-y-4 mt-4">
                 {integrationConfigs.map(config => {
                     const isEnabled = integrations[config.id]?.enabled;
                     const isExpanded = expandedSections[config.id];
