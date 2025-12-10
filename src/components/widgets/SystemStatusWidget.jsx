@@ -93,7 +93,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
         // Get theme colors
         const style = getComputedStyle(document.body);
         const textColor = style.getPropertyValue('--text-secondary').trim();
-        const gridColor = 'rgba(255, 255, 255, 0.1)';
+        const gridColor = style.getPropertyValue('--text-tertiary').trim() || 'rgba(255, 255, 255, 0.1)';
 
         // Configure time format based on range
         const timeFormats = {
@@ -233,7 +233,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                                 exit={{ opacity: 0, scale: 0.96 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
-                                style={{ width: '400px', maxWidth: '90vw' }}
+                                style={{ width: '550px', maxWidth: '90vw' }}
                             >
                                 <Popover.Arrow className="fill-current text-theme-secondary" />
 
@@ -260,7 +260,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                                 </div>
 
                                 {/* Chart */}
-                                <div style={{ height: '200px', position: 'relative' }}>
+                                <div style={{ height: '250px', position: 'relative' }}>
                                     {loading ? (
                                         <div className="absolute inset-0 flex items-center justify-center text-theme-secondary text-sm">
                                             Loading...
