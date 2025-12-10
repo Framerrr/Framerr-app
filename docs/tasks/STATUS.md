@@ -1,11 +1,11 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-09T22:30:00-05:00  
+**Last Updated:** 2025-12-09T23:42:00-05:00  
 **Current Version:** v1.1.7  
 **Development Branch:** `feat/iframe-auth-detection`  
 **Production Branch:** `main`  
 **Production Docker:** `pickels23/framerr:1.1.7` and `:latest`  
-**Development Docker:** `pickels23/framerr:develop` (sha256:47aef9d0971b)
+**Development Docker:** `pickels23/framerr:develop` (needs rebuild)
 
 ---
 
