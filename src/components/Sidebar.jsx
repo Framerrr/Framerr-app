@@ -217,7 +217,7 @@ const Sidebar = () => {
                     />
 
                     {/* Header */}
-                    <div className="h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
+                    <div className="h-20 flex items-center border-b border-theme/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
                         {/* Icon - locked in 80px container */}
                         <div className="w-20 flex items-center justify-center flex-shrink-0 text-accent drop-shadow-lg">
                             {renderIcon(userSettings?.serverIcon, 28)}
@@ -248,7 +248,7 @@ const Sidebar = () => {
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const shouldBeActive = !hash || hash === 'dashboard';
-                                return `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative`;
+                                return `flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -295,7 +295,7 @@ const Sidebar = () => {
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
                                             transition={{ duration: 0.1 }}
-                                            className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 pt-4 pb-2"
+                                            className="text-[11px] font-semibold text-theme-tertiary uppercase tracking-wider px-4 pt-4 pb-2"
                                         >
                                             Tabs
                                         </motion.div>
@@ -303,7 +303,7 @@ const Sidebar = () => {
                                 </AnimatePresence>
 
                                 {/* Separator for collapsed state */}
-                                {!isExpanded && <div className="my-3 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent w-full" />}
+                                {!isExpanded && <div className="my-3 h-px bg-gradient-to-r from-transparent via-border-theme to-transparent w-full" />}
 
                                 {/* Ungrouped tabs */}
                                 {tabs.filter(tab => !tab.groupId).map(tab => (
@@ -312,7 +312,7 @@ const Sidebar = () => {
                                         href={`/#${tab.slug}`}
                                         onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
                                         onMouseLeave={handleMouseLeave}
-                                        className={`flex items-center py-3.5 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
+                                        className={`flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
                                     >
                                         {/* Animated hover/active indicator */}
                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
@@ -346,7 +346,7 @@ const Sidebar = () => {
                                             )}
                                         </AnimatePresence>
                                         {!isExpanded && (
-                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
                                                 {tab.name}
                                             </div>
                                         )}
@@ -366,7 +366,7 @@ const Sidebar = () => {
                                                         onClick={() => toggleGroup(group.id)}
                                                         onMouseEnter={() => handleMouseEnter(`group-${group.id}`)}
                                                         onMouseLeave={handleMouseLeave}
-                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg relative"
+                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-theme-tertiary uppercase tracking-wider hover:text-theme-secondary transition-colors rounded-lg relative"
                                                     >
                                                         {/* Hover indicator for group header */}
                                                         {hoveredItem === `group-${group.id}` && (
@@ -400,7 +400,7 @@ const Sidebar = () => {
                                                                         href={`/#${tab.slug}`}
                                                                         onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
                                                                         onMouseLeave={handleMouseLeave}
-                                                                        className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-slate-400 hover:text-white transition-colors rounded-xl relative"
+                                                                        className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-theme-tertiary hover:text-theme-primary transition-colors rounded-xl relative"
                                                                     >
                                                                         {/* Animated hover/active indicator */}
                                                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
@@ -433,7 +433,7 @@ const Sidebar = () => {
                                                         href={`/#${tab.slug}`}
                                                         onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
                                                         onMouseLeave={handleMouseLeave}
-                                                        className="flex items-center justify-center py-3.5 text-slate-300 hover:text-white transition-colors rounded-xl relative group"
+                                                        className="flex items-center justify-center py-3.5 text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative group"
                                                     >
                                                         {/* Animated hover/active indicator */}
                                                         {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
@@ -450,9 +450,9 @@ const Sidebar = () => {
                                                         >
                                                             {renderIcon(tab.icon, 20)}
                                                         </motion.span>
-                                                        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                                        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
                                                             {tab.name}
-                                                            <span className="text-xs text-slate-400 block">{group.name}</span>
+                                                            <span className="text-xs text-theme-tertiary block">{group.name}</span>
                                                         </div>
                                                     </a>
                                                 ))
@@ -465,7 +465,7 @@ const Sidebar = () => {
                     </nav>
 
                     {/* Footer */}
-                    <div className="py-3 border-t border-slate-700/50 flex flex-col gap-2 relative">
+                    <div className="py-3 border-t border-theme/50 flex flex-col gap-2 relative">
                         {/* Profile Link */}
                         <a
                             href="/#settings?tab=profile&source=profile"
@@ -478,7 +478,7 @@ const Sidebar = () => {
                                 const currentTab = searchParams.get('tab');
                                 const source = searchParams.get('source');
                                 const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative group`;
+                                return `flex items-center py-3 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative group`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -496,7 +496,7 @@ const Sidebar = () => {
                                         <img
                                             src={currentUser.profilePicture}
                                             alt="Profile"
-                                            className="w-[20px] h-[20px] rounded-full object-cover border border-slate-600"
+                                            className="w-[20px] h-[20px] rounded-full object-cover border border-theme"
                                         />
                                     ) : (
                                         <UserCircle size={20} />
@@ -518,7 +518,7 @@ const Sidebar = () => {
                                 )}
                             </AnimatePresence>
                             {!isExpanded && (
-                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
                                     {currentUser?.username || 'Profile'}
                                 </div>
                             )}
@@ -537,7 +537,7 @@ const Sidebar = () => {
                                 const source = searchParams.get('source');
                                 const isProfilePage = currentTab === 'profile' && source === 'profile';
                                 const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-xl relative`;
+                                return `flex items-center py-3 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative`;
                             })()}
                         >
                             {/* Animated hover/active indicator */}
@@ -575,7 +575,7 @@ const Sidebar = () => {
                             onClick={handleLogout}
                             onMouseEnter={() => handleMouseEnter('logout')}
                             onMouseLeave={handleMouseLeave}
-                            className="flex items-center py-3 text-sm font-medium text-slate-300 hover:text-red-400 transition-colors rounded-xl relative"
+                            className="flex items-center py-3 text-sm font-medium text-theme-secondary hover:text-error transition-colors rounded-xl relative"
                         >
                             {hoveredItem === 'logout' && (
                                 <motion.div
@@ -695,7 +695,7 @@ const Sidebar = () => {
                             {tabs && tabs.length > 0 && (
                                 <div>
                                     <motion.div
-                                        className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2"
+                                        className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-2"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: isMobileMenuOpen ? 1 : 0 }}
                                         transition={{
@@ -712,7 +712,7 @@ const Sidebar = () => {
                                                 key={tab.id}
                                                 href={`/#${tab.slug}`}
                                                 onClick={() => setIsMobileMenuOpen(false)}
-                                                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-theme-tertiary/50 text-theme-secondary hover:bg-theme-tertiary hover:text-theme-primary transition-colors"
                                                 initial={{ opacity: 0 }}
                                                 animate={{
                                                     opacity: isMobileMenuOpen ? 1 : 0,
@@ -754,7 +754,7 @@ const Sidebar = () => {
                 >
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-all py-2 px-3 rounded-lg hover:bg-slate-800/60"
+                        className="flex flex-col items-center gap-1 text-theme-tertiary hover:text-theme-primary transition-all py-2 px-3 rounded-lg hover:bg-theme-hover"
                         style={{
                             transition: 'transform 300ms ease-out',
                         }}
@@ -772,7 +772,7 @@ const Sidebar = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                         onMouseEnter={() => setHoveredMobileTab('dashboard')}
                         onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-slate-400 hover:text-white"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
                     >
                         {/* Animated sliding indicator */}
                         {(() => {
@@ -807,7 +807,7 @@ const Sidebar = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                         onMouseEnter={() => setHoveredMobileTab('profile')}
                         onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-slate-400 hover:text-white"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
                     >
                         {/* Animated sliding indicator */}
                         {(() => {
@@ -862,7 +862,7 @@ const Sidebar = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                         onMouseEnter={() => setHoveredMobileTab('settings')}
                         onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-slate-400 hover:text-white"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
                     >
                         {/* Animated sliding indicator */}
                         {(() => {
