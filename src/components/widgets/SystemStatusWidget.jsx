@@ -88,12 +88,6 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
 
         if (points.length === 0) return;
 
-        // Destroy existing chart
-        if (chart) {
-            chart.destroy();
-            setChart(null);
-        }
-
         // Get theme colors
         const style = getComputedStyle(document.body);
         const textColor = style.getPropertyValue('--text-secondary').trim();
@@ -108,6 +102,11 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
         };
 
         const timeConfig = timeFormats[currentRange];
+
+        // Destroy existing chart before creating new one
+        if (chart) {
+            chart.destroy();
+        }
 
         // Create new chart
         const newChart = new window.Chart(canvasRef.current, {
@@ -171,10 +170,13 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
 
         setChart(newChart);
 
+        // Cleanup function
         return () => {
-            if (newChart) newChart.destroy();
+            if (newChart) {
+                newChart.destroy();
+            }
         };
-    }, [isOpen, graphData, currentRange, metric, config, chart]);
+    }, [isOpen, graphData, currentRange, metric, config]); // Removed 'chart' from dependencies!
 
     // Cleanup chart on close
     useEffect(() => {
