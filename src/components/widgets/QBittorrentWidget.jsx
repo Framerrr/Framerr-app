@@ -149,6 +149,12 @@ const QBittorrentWidget = ({ config }) => {
                                                     {formatBytes(transferInfo?.dl_info_data || 0)}
                                                 </span>
                                             </div>
+                                            <div className="flex justify-between gap-4">
+                                                <span className="text-theme-secondary">Global Total:</span>
+                                                <span className="text-theme-primary font-medium">
+                                                    {formatBytes(transferInfo?.alltime_dl || 0)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 </Popover.Content>
@@ -201,6 +207,12 @@ const QBittorrentWidget = ({ config }) => {
                                                 <span className="text-theme-secondary">Session Total:</span>
                                                 <span className="text-theme-primary font-medium">
                                                     {formatBytes(transferInfo?.up_info_data || 0)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between gap-4">
+                                                <span className="text-theme-secondary">Global Total:</span>
+                                                <span className="text-theme-primary font-medium">
+                                                    {formatBytes(transferInfo?.alltime_ul || 0)}
                                                 </span>
                                             </div>
                                         </div>

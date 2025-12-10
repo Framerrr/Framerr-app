@@ -501,16 +501,24 @@ router.post('/qbittorrent/transfer-info', async (req, res) => {
             return res.status(401).json({ error: 'qBittorrent authentication failed' });
         }
 
-        // Step 3: Get transfer info with session cookie (or without if no auth)
-        const transferResponse = await axios.get(`${url}/api/v2/transfer/info`, {
+        // Step 3: Get sync/maindata with session cookie (this includes server_state with alltime stats)
+        const syncResponse = await axios.get(`${url}/api/v2/sync/maindata`, {
             headers: cookie ? { Cookie: cookie } : {},
             timeout: 5000
         });
 
-        // Debug: Log the response to see actual field names
-        logger.debug('qBittorrent transfer info response:', transferResponse.data);
+        // Extract server_state which contains all transfer info including alltime_dl and alltime_ul
+        const serverState = syncResponse.data?.server_state || {};
 
-        res.json(transferResponse.data);
+        // Debug: Log the response to verify we're getting alltime stats
+        logger.debug('qBittorrent server_state:', {
+            alltime_dl: serverState.alltime_dl,
+            alltime_ul: serverState.alltime_ul,
+            dl_info_data: serverState.dl_info_data,
+            up_info_data: serverState.up_info_data
+        });
+
+        res.json(serverState);
     } catch (error) {
         logger.error('qBittorrent transfer info proxy error:', error.message);
 
