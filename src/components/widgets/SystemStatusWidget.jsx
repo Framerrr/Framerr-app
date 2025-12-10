@@ -11,7 +11,7 @@ const SystemStatusWidget = ({ config }) => {
 
     // Check if integration is enabled
     const isIntegrationEnabled = integration?.enabled && (
-        (integration.backend === 'gl ances' && integration.glances?.url) ||
+        (integration.backend === 'glances' && integration.glances?.url) ||
         (integration.backend === 'custom' && integration.custom?.url) ||
         (!integration.backend && integration.url) // Legacy format support
     );
