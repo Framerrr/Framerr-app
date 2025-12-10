@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const logger = require('./utils/logger');
+const { version } = require('./package.json');
 
 // Initialize Express app
 const app = express();
@@ -146,7 +147,7 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        version: '1.0.0-alpha.1',
+        version,
         environment: NODE_ENV,
         logLevel: process.env.LOG_LEVEL || 'info'  // Expose LOG_LEVEL for frontend logger sync
     });
@@ -199,7 +200,7 @@ if (NODE_ENV === 'production') {
 app.get('/', (req, res) => {
     res.json({
         message: 'Framerr API',
-        version: '1.0.0-alpha.1',
+        version,
         endpoints: {
             health: '/api/health'
         }
@@ -254,7 +255,7 @@ app.use((err, req, res, next) => {
         // Now start server with config loaded
         app.listen(PORT, () => {
             logger.startup('Homelab Dashboard', {
-                version: '1.0.0-alpha.1',
+                version,
                 port: PORT,
                 env: NODE_ENV
             });
