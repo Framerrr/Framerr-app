@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, X, Save, GripVertical, Loader } from 'lucide-react';
 import * as Icons from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
 import IconPicker from '../IconPicker';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
@@ -362,109 +363,110 @@ const UserTabsSettings = () => {
             )}
 
             {/* Modal */}
-            {
-                showModal && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-                        <div className="glass-card rounded-xl shadow-deep max-w-2xl w-full border border-theme">
-                            {/* Modal Header */}
-                            <div className="flex items-center justify-between p-6 border-b border-theme">
-                                <h3 className="text-xl font-bold text-theme-primary">
-                                    {modalMode === 'create' ? 'Add New Tab' : 'Edit Tab'}
-                                </h3>
+            <Dialog.Root open={showModal} onOpenChange={setShowModal}>
+                <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 bg-black/80 z-50" />
+                    <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 glass-card rounded-xl shadow-deep max-w-2xl w-full border border-theme z-50 max-h-[90vh] overflow-y-auto m-4">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-theme sticky top-0 glass-card">
+                            <Dialog.Title className="text-xl font-bold text-theme-primary">
+                                {modalMode === 'create' ? 'Add New Tab' : 'Edit Tab'}
+                            </Dialog.Title>
+                            <Dialog.Close asChild>
                                 <button
-                                    onClick={() => setShowModal(false)}
                                     className="text-theme-secondary hover:text-theme-primary transition-colors"
                                     title="Close"
                                 >
                                     <X size={24} />
                                 </button>
+                            </Dialog.Close>
+                        </div>
+
+                        {/* Modal Form */}
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <Input
+                                label="Tab Name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                required
+                                placeholder="e.g., Radarr"
+                                helperText="Appears in sidebar (URL slug auto-generated)"
+                            />
+
+                            <Input
+                                label="URL"
+                                type="url"
+                                value={formData.url}
+                                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                                required
+                                placeholder="http://example.com"
+                            />
+
+                            <div>
+                                <label className="block mb-2 font-medium text-theme-secondary text-sm">
+                                    Icon
+                                </label>
+                                <IconPicker
+                                    value={formData.icon}
+                                    onChange={(icon) => setFormData({ ...formData, icon })}
+                                />
                             </div>
 
-                            {/* Modal Form */}
-                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                <Input
-                                    label="Tab Name"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
-                                    placeholder="e.g., Radarr"
-                                    helperText="Appears in sidebar (URL slug auto-generated)"
+                            <div>
+                                <label className="block mb-2 font-medium text-theme-secondary text-sm">
+                                    Group (Optional)
+                                </label>
+                                <select
+                                    value={formData.groupId}
+                                    onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
+                                    className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                                >
+                                    <option value="">No Group</option>
+                                    {tabGroups.map(group => (
+                                        <option key={group.id} value={group.id}>
+                                            {group.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-theme-tertiary mt-1">
+                                    Organize tabs into groups in the sidebar
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="enabled"
+                                    checked={formData.enabled}
+                                    onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+                                    className="w-4 h-4 rounded border-theme text-accent focus:ring-accent"
                                 />
+                                <label htmlFor="enabled" className="text-sm text-theme-secondary">
+                                    Enabled (tab visible in sidebar)
+                                </label>
+                            </div>
 
-                                <Input
-                                    label="URL"
-                                    type="url"
-                                    value={formData.url}
-                                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                    required
-                                    placeholder="http://example.com"
-                                />
-
-                                <div>
-                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
-                                        Icon
-                                    </label>
-                                    <IconPicker
-                                        value={formData.icon}
-                                        onChange={(icon) => setFormData({ ...formData, icon })}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
-                                        Group (Optional)
-                                    </label>
-                                    <select
-                                        value={formData.groupId}
-                                        onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-                                        className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-                                    >
-                                        <option value="">No Group</option>
-                                        {tabGroups.map(group => (
-                                            <option key={group.id} value={group.id}>
-                                                {group.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <p className="text-xs text-theme-tertiary mt-1">
-                                        Organize tabs into groups in the sidebar
-                                    </p>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id="enabled"
-                                        checked={formData.enabled}
-                                        onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-                                        className="w-4 h-4 rounded border-theme text-accent focus:ring-accent"
-                                    />
-                                    <label htmlFor="enabled" className="text-sm text-theme-secondary">
-                                        Enabled (tab visible in sidebar)
-                                    </label>
-                                </div>
-
-                                {/* Modal Actions */}
-                                <div className="flex justify-end gap-3 pt-4">
+                            {/* Modal Actions */}
+                            <div className="flex justify-end gap-3 pt-4">
+                                <Dialog.Close asChild>
                                     <Button
                                         type="button"
-                                        onClick={() => setShowModal(false)}
                                         variant="ghost"
                                     >
                                         Cancel
                                     </Button>
-                                    <Button
-                                        type="submit"
-                                        icon={Save}
-                                    >
-                                        {modalMode === 'create' ? 'Create Tab' : 'Save Changes'}
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )
-            }
+                                </Dialog.Close>
+                                <Button
+                                    type="submit"
+                                    icon={Save}
+                                >
+                                    {modalMode === 'create' ? 'Create Tab' : 'Save Changes'}
+                                </Button>
+                            </div>
+                        </form>
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog.Root>
         </div >
     );
 };
