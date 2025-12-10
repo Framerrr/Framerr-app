@@ -247,6 +247,7 @@ const IconPicker = ({ value, onChange }) => {
                             side="bottom"
                             align="start"
                             sideOffset={8}
+                            collisionPadding={8}
                             asChild
                         >
                             <motion.div
