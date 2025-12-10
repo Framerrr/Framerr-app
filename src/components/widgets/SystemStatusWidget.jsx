@@ -15,14 +15,15 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
     const [loading, setLoading] = useState(false);
     const canvasRef = useRef(null);
 
-    // Metric display configuration
-    const metricConfig = {
-        cpu: { label: 'CPU', color: 'var(--accent)', unit: '%' },
-        memory: { label: 'Memory', color: 'var(--info)', unit: '%' },
-        temperature: { label: 'Temperature', color: 'var(--warning)', unit: '°C' }
-    };
-
-    const config = metricConfig[metric];
+    // Metric display configuration - memoized to prevent re-creation on every render
+    const config = React.useMemo(() => {
+        const configs = {
+            cpu: { label: 'CPU', color: 'var(--accent)', unit: '%' },
+            memory: { label: 'Memory', color: 'var(--info)', unit: '%' },
+            temperature: { label: 'Temperature', color: 'var(--warning)', unit: '°C' }
+        };
+        return configs[metric];
+    }, [metric]);
 
     // Fetch graph data when popover opens
     useEffect(() => {
