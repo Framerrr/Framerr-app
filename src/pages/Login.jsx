@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, User, AlertCircle, Loader } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -45,84 +46,173 @@ const Login = () => {
     // This prevents the login form from flashing for proxy-authenticated users
     if (authLoading) {
         return (
-            <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 p-4">
-                <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-slate-700 border-t-accent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-400">Checking authentication...</p>
-                </div>
+            <div className="min-h-screen w-full flex items-center justify-center bg-theme-primary p-4">
+                <motion.div
+                    className="text-center"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 220, damping: 30 }}
+                >
+                    <motion.div
+                        className="w-12 h-12 border-4 border-theme rounded-full mx-auto mb-4"
+                        style={{ borderTopColor: 'var(--accent)' }}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    <p className="text-theme-secondary">Checking authentication...</p>
+                </motion.div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 p-4">
-            <div className="w-full max-w-md mx-auto bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700">
-                <div className="text-center mb-8">
-                    <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-4 text-accent">
-                        <Lock size={24} />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Welcome Back</h2>
-                    <p className="text-slate-400">Sign in to access your dashboard</p>
+        <div className="min-h-screen w-full flex items-center justify-center bg-theme-primary p-4">
+            <motion.div
+                className="w-full max-w-md mx-auto glass-subtle p-10 rounded-2xl shadow-xl border border-theme"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 220, damping: 30 }}
+            >
+                <div className="text-center mb-10">
+                    <motion.div
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-accent shadow-lg"
+                        style={{ boxShadow: '0 0 30px var(--accent-glow)' }}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.1, type: "spring", stiffness: 220, damping: 30 }}
+                    >
+                        <Lock size={28} className="text-white" />
+                    </motion.div>
+                    <motion.h2
+                        className="text-3xl font-bold mb-2 text-theme-primary"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                    >
+                        Welcome Back
+                    </motion.h2>
+                    <motion.p
+                        className="text-theme-secondary"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                    >
+                        Sign in to access your dashboard
+                    </motion.p>
                 </div>
 
-                {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-lg mb-6 flex items-center gap-2 text-sm">
-                        <AlertCircle size={16} />
-                        {error}
-                    </div>
-                )}
+                <AnimatePresence mode="wait">
+                    {error && (
+                        <motion.div
+                            className="p-4 rounded-lg mb-6 flex items-center gap-3 text-sm border"
+                            style={{
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                borderColor: 'rgba(239, 68, 68, 0.2)',
+                                color: 'var(--error)'
+                            }}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{
+                                opacity: 1,
+                                y: 0,
+                                x: [0, -5, 5, -5, 5, 0]
+                            }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{
+                                opacity: { duration: 0.2 },
+                                y: { type: "spring", stiffness: 220, damping: 30 },
+                                x: { duration: 0.4 }
+                            }}
+                        >
+                            <AlertCircle size={18} />
+                            {error}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-medium text-slate-300">Username</label>
+                    <div className="mb-5">
+                        <label className="block mb-2 text-sm font-medium text-theme-primary">Username</label>
                         <div className="relative">
-                            <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-tertiary transition-colors peer-focus:text-accent" />
                             <input
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
-                                className="w-full py-3 px-4 pl-11 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-accent transition-colors"
+                                className="peer w-full py-3.5 px-4 pl-12 bg-theme-primary border-2 border-theme rounded-xl text-theme-primary placeholder-theme-tertiary focus:outline-none focus:border-accent transition-all"
+                                style={{ boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)' }}
                                 placeholder="Enter your username"
                             />
                         </div>
                     </div>
 
                     <div className="mb-6">
-                        <label className="block mb-2 text-sm font-medium text-slate-300">Password</label>
+                        <label className="block mb-2 text-sm font-medium text-theme-primary">Password</label>
                         <div className="relative">
-                            <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-tertiary transition-colors peer-focus:text-accent" />
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="w-full py-3 px-4 pl-11 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-accent transition-colors"
+                                className="peer w-full py-3.5 px-4 pl-12 bg-theme-primary border-2 border-theme rounded-xl text-theme-primary placeholder-theme-tertiary focus:outline-none focus:border-accent transition-all"
+                                style={{ boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)' }}
                                 placeholder="Enter your password"
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center mb-6">
+                    <div className="flex items-center mb-8">
                         <input
                             type="checkbox"
                             id="remember"
                             checked={rememberMe}
                             onChange={(e) => setRememberMe(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-accent focus:ring-accent focus:ring-offset-slate-800"
+                            className="w-4 h-4 rounded border-theme bg-theme-tertiary text-accent focus:ring-accent focus:ring-offset-0 transition-all cursor-pointer"
                         />
-                        <label htmlFor="remember" className="ml-2 text-sm text-slate-400 cursor-pointer select-none">Remember me</label>
+                        <label htmlFor="remember" className="ml-3 text-sm text-theme-secondary cursor-pointer select-none hover:text-theme-primary transition-colors">Remember me</label>
                     </div>
 
-                    <button
+                    <motion.button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-3 px-4 bg-accent hover:bg-accent-hover text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`w-full py-4 px-4 bg-accent text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        style={{ boxShadow: loading ? 'none' : '0 4px 14px var(--accent-glow)' }}
+                        whileHover={!loading ? { scale: 1.02, boxShadow: '0 6px 20px var(--accent-glow)' } : {}}
+                        whileTap={!loading ? { scale: 0.98 } : {}}
+                        transition={{ type: "spring", stiffness: 220, damping: 30 }}
                     >
-                        {loading ? <Loader size={18} className="animate-spin" /> : 'Sign In'}
-                    </button>
+                        <AnimatePresence mode="wait">
+                            {loading ? (
+                                <motion.div
+                                    key="loading"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="flex items-center gap-2"
+                                >
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    >
+                                        <Loader size={20} />
+                                    </motion.div>
+                                    Signing in...
+                                </motion.div>
+                            ) : (
+                                <motion.span
+                                    key="signin"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    Sign In
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </motion.button>
                 </form>
-            </div>
+            </motion.div>
         </div>
     );
 };
