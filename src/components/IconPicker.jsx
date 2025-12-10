@@ -257,7 +257,7 @@ const IconPicker = ({ value, onChange }) => {
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 style={{
                                     width: window.innerWidth < 768 ? '100%' : '24rem',
-                                    maxHeight: '80vh',
+                                    maxHeight: '60vh',
                                     zIndex: 9999
                                 }}
                                 className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden"
