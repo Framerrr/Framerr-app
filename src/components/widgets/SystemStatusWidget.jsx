@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Activity, Disc, Clock, X } from 'lucide-react';
 import logger from '../../utils/logger';
+import { useAppData } from '../../context/AppDataContext';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+
 const SystemStatusWidget = ({ config }) => {
+    // Get integrations state from context
+    const { integrations } = useAppData();
+    const integration = integrations?.systemstatus;
+
+    // Check if integration is enabled
+    const isIntegrationEnabled = integration?.enabled && (
+        (integration.backend === 'gl ances' && integration.glances?.url) ||
+        (integration.backend === 'custom' && integration.custom?.url) ||
+        (!integration.backend && integration.url) // Legacy format support
+    );
+
     // Extract config with defaults
     const { enabled = false, url = '', token = '' } = config || {};
     const [statusData, setStatusData] = useState({ cpu: 0, memory: 0, temperature: 0, uptime: '--' });
@@ -11,13 +25,38 @@ const SystemStatusWidget = ({ config }) => {
     const [chart, setChart] = useState(null);
     const canvasRef = useRef(null);
     const modalRef = useRef(null);
-    // Fetch status data
+
+    // Fetch status data - only when integration is enabled
     useEffect(() => {
-        if (!enabled || !url) return;
+        if (!isIntegrationEnabled) {
+            // Integration disabled - don't fetch
+            return;
+        }
+
         const fetchStatus = async () => {
             try {
-                // Use proxy route instead of direct fetch
-                const res = await fetch(`/api/systemstatus/status?url=${encodeURIComponent(url)}&token=${encodeURIComponent(token || '')}`);
+                // Get backend and config from integration
+                const backend = integration.backend || 'custom';
+                const backendConfig = backend === 'glances'
+                    ? integration.glances
+                    : (integration.custom || { url: integration.url, token: integration.token });
+
+                // Build endpoint based on backend
+                let endpoint = '';
+                let params = new URLSearchParams();
+
+                if (backend === 'glances') {
+                    endpoint = '/api/systemstatus/glances/status';
+                    params.append('url', backendConfig.url);
+                    if (backendConfig.password) params.append('password', backendConfig.password);
+                } else {
+                    endpoint = '/api/systemstatus/status';
+                    params.append('url', backendConfig.url);
+                    if (backendConfig.token) params.append('token', backendConfig.token);
+                }
+
+
+                const res = await fetch(`${endpoint}?${params}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 setStatusData({
@@ -33,7 +72,7 @@ const SystemStatusWidget = ({ config }) => {
         fetchStatus();
         const interval = setInterval(fetchStatus, 2000);
         return () => clearInterval(interval);
-    }, [enabled, url, token]);
+    }, [isIntegrationEnabled, integration]);
     // Load Chart.js dynamically
     useEffect(() => {
         if (!window.Chart) {
@@ -134,9 +173,15 @@ const SystemStatusWidget = ({ config }) => {
                 closeGraph();
             }
         };
-        document.addEventListener('click', handleClick);
-        return () => document.removeEventListener('click', handleClick);
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
     }, [showModal]);
+
+    // Show integration disabled message if not enabled
+    if (!isIntegrationEnabled) {
+        return <IntegrationDisabledMessage serviceName="System Health" />;
+    }
+
     const tempPct = Math.min((statusData.temperature / 100) * 100, 100);
     return (
         <div className="relative h-full">

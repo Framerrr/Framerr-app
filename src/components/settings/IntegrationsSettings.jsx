@@ -81,6 +81,9 @@ const IntegrationsSettings = () => {
 
             if (response.ok) {
                 alert('Integration settings saved successfully');
+
+                // Dispatch event to notify widgets that integrations have been updated
+                window.dispatchEvent(new CustomEvent('integrationsUpdated'));
             } else {
                 const error = await response.json();
                 alert(error.error || 'Failed to save integrations');
