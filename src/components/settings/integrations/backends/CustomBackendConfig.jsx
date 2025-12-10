@@ -1,6 +1,6 @@
 import React from 'react';
 import { Code, Lightbulb } from 'lucide-react';
-import { Input } from '../../common/Input';
+import { Input } from '../../../common/Input';
 
 /**
  * CustomBackendConfig - Custom API configuration panel

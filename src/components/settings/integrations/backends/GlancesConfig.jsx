@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertCircle, Lightbulb } from 'lucide-react';
-import { Input } from '../../common/Input';
+import { Input } from '../../../common/Input';
 
 /**
  * GlancesConfig - Glances-specific configuration panel
