@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { isAdmin } from '../utils/permissions';
 import { Card } from '../components/common/Card';
@@ -67,6 +68,13 @@ const UserSettings = () => {
     // Combined tabs
     const allTabs = [...userTabs, ...adminTabs];
 
+    // Spring config for tab animations
+    const tabSpring = {
+        type: 'spring',
+        stiffness: 350,
+        damping: 35,
+    };
+
     return (
         <div className="w-full p-4 md:p-8 max-w-[2000px] mx-auto">
             {/* Page Header */}
@@ -103,17 +111,21 @@ const UserSettings = () => {
                                 }
                                 window.location.hash = `settings?${params.toString()}`;
                             }}
-                            className={`
-                                flex items-center gap-2 px-4 py-2 rounded-lg 
-                                transition-all whitespace-nowrap text-sm font-medium
-                                ${isActive
-                                    ? 'bg-accent text-white font-semibold'
-                                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary'
-                                }
-                            `}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap text-sm font-medium relative text-theme-secondary hover:text-theme-primary"
                         >
-                            <Icon size={16} />
-                            {tab.label}
+                            {/* Animated sliding indicator */}
+                            {isActive && (
+                                <motion.div
+                                    layoutId="settingsTabIndicator"
+                                    className="absolute inset-0 bg-accent rounded-lg"
+                                    transition={tabSpring}
+                                />
+                            )}
+                            {/* Icon and text with relative z-index */}
+                            <Icon size={16} className={`relative z-10 ${isActive ? 'text-white' : ''}`} />
+                            <span className={`relative z-10 ${isActive ? 'text-white font-semibold' : ''}`}>
+                                {tab.label}
+                            </span>
                         </button>
                     );
                 })}
