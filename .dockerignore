@@ -23,6 +23,7 @@ server/public/favicon
 docs/
 .agent/
 .olddocs/
+develop-server/
 *.md
 !README.md
 
