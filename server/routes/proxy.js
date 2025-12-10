@@ -471,6 +471,55 @@ router.post('/qbittorrent/torrents', async (req, res) => {
     }
 });
 
+// POST /api/qbittorrent/transfer-info - Get global transfer statistics
+router.post('/qbittorrent/transfer-info', async (req, res) => {
+    const { url, username, password } = req.body;
+
+    if (!url) {
+        return res.status(400).json({ error: 'URL required' });
+    }
+
+    try {
+        // Step 1: Login to qBittorrent
+        const formData = new URLSearchParams();
+        if (username) formData.append('username', username);
+        if (password) formData.append('password', password);
+
+        const loginResponse = await axios.post(
+            `${url}/api/v2/auth/login`,
+            formData,
+            {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                timeout: 5000
+            }
+        );
+
+        // Step 2: Extract session cookie
+        const cookie = loginResponse.headers['set-cookie']?.[0];
+
+        if (!cookie && (username || password)) {
+            return res.status(401).json({ error: 'qBittorrent authentication failed' });
+        }
+
+        // Step 3: Get transfer info with session cookie (or without if no auth)
+        const transferResponse = await axios.get(`${url}/api/v2/transfer/info`, {
+            headers: cookie ? { Cookie: cookie } : {},
+            timeout: 5000
+        });
+
+        res.json(transferResponse.data);
+    } catch (error) {
+        logger.error('qBittorrent transfer info proxy error:', error.message);
+
+        // Check if it's an auth error
+        if (error.response?.status === 401 || error.response?.status === 403) {
+            return res.status(401).json({ error: 'qBittorrent authentication failed' });
+        }
+
+        res.status(500).json({ error: 'Failed to fetch qBittorrent transfer info', details: error.message });
+    }
+});
+
 /**
  * System Status Proxy Routes
  */
