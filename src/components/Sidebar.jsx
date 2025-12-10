@@ -575,7 +575,7 @@ const Sidebar = () => {
                             onClick={handleLogout}
                             onMouseEnter={() => handleMouseEnter('logout')}
                             onMouseLeave={handleMouseLeave}
-                            className="flex items-center py-3 text-sm font-medium text-theme-secondary hover:text-error transition-colors rounded-xl relative"
+                            className="flex items-center py-3 text-sm font-medium text-slate-400 hover:text-red-400 transition-colors rounded-xl relative"
                         >
                             {hoveredItem === 'logout' && (
                                 <motion.div
