@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FolderTree, Plus, Edit, Trash2, X, Save, GripVertical, Loader } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import {
@@ -305,47 +307,78 @@ const TabGroupsSettings = () => {
             )}
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-                    <div onClick={(e) => e.stopPropagation()} className="glass-card rounded-xl shadow-deep p-6 w-full max-w-md border border-theme">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-theme-primary">{modalMode === 'create' ? 'Create Tab Group' : `Edit: ${selectedGroup?.name}`}</h3>
-                            <button onClick={() => setShowModal(false)} className="text-theme-secondary hover:text-theme-primary transition-colors" title="Close">
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label="Group Name *"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                                placeholder="e.g., Media, Downloads, System"
-                                helperText={formData.name ? `ID: ${generateGroupId(formData.name)}` : ''}
-                            />
-
-                            <div className="flex gap-3 pt-2">
-                                <Button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    variant="secondary"
-                                    className="flex-1"
+            <Dialog.Root open={showModal} onOpenChange={setShowModal}>
+                <AnimatePresence>
+                    {showModal && (
+                        <Dialog.Portal forceMount>
+                            <Dialog.Overlay asChild>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="fixed inset-0 bg-black/80 z-50"
+                                />
+                            </Dialog.Overlay>
+                            <Dialog.Content asChild>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.96 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.96 }}
+                                    transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                                    className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 glass-card rounded-xl shadow-deep w-[calc(100%-2rem)] max-w-md border border-theme z-50"
                                 >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    className="flex-1"
-                                    icon={Save}
-                                >
-                                    {modalMode === 'create' ? 'Create' : 'Save'}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                                    <div className="p-4 sm:p-6">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <Dialog.Title className="text-lg sm:text-xl font-bold text-theme-primary">
+                                                {modalMode === 'create' ? 'Create Tab Group' : `Edit: ${selectedGroup?.name}`}
+                                            </Dialog.Title>
+                                            <Dialog.Close asChild>
+                                                <button
+                                                    className="text-theme-secondary hover:text-theme-primary transition-colors"
+                                                    title="Close"
+                                                >
+                                                    <X size={24} />
+                                                </button>
+                                            </Dialog.Close>
+                                        </div>
+
+                                        <form onSubmit={handleSubmit} className="space-y-4">
+                                            <Input
+                                                label="Group Name *"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                required
+                                                placeholder="e.g., Media, Downloads, System"
+                                                helperText={formData.name ? `ID: ${generateGroupId(formData.name)}` : ''}
+                                            />
+
+                                            <div className="flex gap-3 pt-2">
+                                                <Dialog.Close asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        className="flex-1"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </Dialog.Close>
+                                                <Button
+                                                    type="submit"
+                                                    className="flex-1"
+                                                    icon={Save}
+                                                >
+                                                    {modalMode === 'create' ? 'Create' : 'Save'}
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </motion.div>
+                            </Dialog.Content>
+                        </Dialog.Portal>
+                    )}
+                </AnimatePresence>
+            </Dialog.Root>
         </div>
     );
 };
