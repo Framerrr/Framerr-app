@@ -2,8 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Download, ArrowDown, ArrowUp } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAppData } from '../../context/AppDataContext';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const QBittorrentWidget = ({ config }) => {
+    // Get integrations state from context
+    const { integrations } = useAppData();
+    const integration = integrations?.qbittorrent;
+
+    // Check if integration is enabled
+    const isIntegrationEnabled = integration?.enabled && integration?.url;
+
     const { enabled = false, url = '', username = '', password = '' } = config || {};
     const [torrents, setTorrents] = useState([]);
     const [transferInfo, setTransferInfo] = useState(null);
@@ -16,7 +25,7 @@ const QBittorrentWidget = ({ config }) => {
     const [ulPopoverOpen, setUlPopoverOpen] = useState(false);
 
     useEffect(() => {
-        if (!enabled || !url) {
+        if (!isIntegrationEnabled) {
             return;
         }
 
@@ -28,7 +37,7 @@ const QBittorrentWidget = ({ config }) => {
                 const torrentsResponse = await fetch('/api/qbittorrent/torrents', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, username, password })
+                    body: JSON.stringify({ url: integration.url, username: integration.username, password: integration.password })
                 });
 
                 if (!torrentsResponse.ok) throw new Error(`HTTP ${torrentsResponse.status}`);
@@ -39,7 +48,7 @@ const QBittorrentWidget = ({ config }) => {
                 const transferResponse = await fetch('/api/qbittorrent/transfer-info', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, username, password })
+                    body: JSON.stringify({ url: integration.url, username: integration.username, password: integration.password })
                 });
 
                 if (transferResponse.ok) {
@@ -58,7 +67,7 @@ const QBittorrentWidget = ({ config }) => {
         fetchData();
         const interval = setInterval(fetchData, 5000); // Refresh every 5s
         return () => clearInterval(interval);
-    }, [enabled, url, username, password]);
+    }, [isIntegrationEnabled, integration]);
 
     const formatBytes = (bytes) => {
         if (bytes === 0) return '0 B';
@@ -70,8 +79,9 @@ const QBittorrentWidget = ({ config }) => {
 
     const formatSpeed = (bytesPerSec) => formatBytes(bytesPerSec) + '/s';
 
-    if (!enabled || !url) {
-        return <div className="text-theme-secondary">qBittorrent not configured.</div>;
+    // Show integration disabled message if not enabled
+    if (!isIntegrationEnabled) {
+        return <IntegrationDisabledMessage serviceName="qBittorrent" />;
     }
 
     if (loading && torrents.length === 0) {

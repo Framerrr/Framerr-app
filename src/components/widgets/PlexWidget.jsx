@@ -2,8 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Film, Network, Info, ExternalLink, StopCircle, X, Loader2 } from 'lucide-react';
 import PlaybackDataModal from './modals/PlaybackDataModal';
 import MediaInfoModal from './modals/MediaInfoModal';
+import { useAppData } from '../../context/AppDataContext';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
+    // Get integrations state from context
+    const { integrations } = useAppData();
+    const integration = integrations?.plex;
+
+    // Check if integration is enabled
+    const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.token;
+
     const { enabled = false, url = '', token = '', hideWhenEmpty = true } = config || {};
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -23,7 +32,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     }, [hideWhenEmpty]);
 
     useEffect(() => {
-        if (!enabled || !url || !token) {
+        if (!isIntegrationEnabled) {
             setLoading(false);
             return;
         }
@@ -31,7 +40,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         const fetchSessions = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`/api/plex/sessions?url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`);
+                const response = await fetch(`/api/plex/sessions?url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
@@ -46,15 +55,15 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         fetchSessions();
         const interval = setInterval(fetchSessions, 10000);
         return () => clearInterval(interval);
-    }, [enabled, url, token]);
+    }, [isIntegrationEnabled, integration]);
 
     // Fetch Plex machine ID on mount
     useEffect(() => {
-        if (!enabled || !url || !token) return;
+        if (!isIntegrationEnabled) return;
 
         const fetchMachineId = async () => {
             try {
-                const response = await fetch(`/api/plex/proxy?path=/&url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`);
+                const response = await fetch(`/api/plex/proxy?path=/&url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`);
                 if (response.ok) {
                     const xml = await response.text();
                     const match = xml.match(/machineIdentifier="([^"]+)"/);
@@ -66,7 +75,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         };
 
         fetchMachineId();
-    }, [enabled, url, token]);
+    }, [isIntegrationEnabled, integration]);
 
     // Notify dashboard when visibility changes (for hideWhenEmpty)
     useEffect(() => {
@@ -95,8 +104,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    url,
-                    token,
+                    url: integration.url,
+                    token: integration.token,
                     sessionKey: session.Session?.id || session.sessionKey
                 })
             });
@@ -105,7 +114,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
 
             setConfirmStop(null);
             // Refresh sessions immediately
-            const refreshResponse = await fetch(`/api/plex/sessions?url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`);
+            const refreshResponse = await fetch(`/api/plex/sessions?url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`);
             if (refreshResponse.ok) {
                 const result = await refreshResponse.json();
                 setData(result);
@@ -121,8 +130,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
 
     const getPlexUrl = (session) => {
         const ratingKey = session.Media?.ratingKey;
-        if (!ratingKey || !plexMachineId) return url;
-        return `${url}/web/index.html#!/server/${plexMachineId}/details?key=/library/metadata/${ratingKey}`;
+        if (!ratingKey || !plexMachineId) return integration.url;
+        return `${integration.url}/web/index.html#!/server/${plexMachineId}/details?key=/library/metadata/${ratingKey}`;
     };
 
     const handleToggleHideWhenEmpty = async (newValue) => {
@@ -161,7 +170,11 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         }
     };
 
-    if (!enabled) return <div className="text-secondary">Plex not configured.</div>;
+    // Show integration disabled message if not enabled
+    if (!isIntegrationEnabled) {
+        return <IntegrationDisabledMessage serviceName="Plex" />;
+    }
+
     if (loading && !data) return <div className="text-secondary">Loading Plex...</div>;
     if (error) return <div className="text-error">Error: {error}</div>;
 
@@ -243,9 +256,9 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                     }
 
                     const imageUrl = session.art
-                        ? `/api/plex/image?path=${encodeURIComponent(session.art)}&url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`
+                        ? `/api/plex/image?path=${encodeURIComponent(session.art)}&url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`
                         : session.thumb
-                            ? `/api/plex/image?path=${encodeURIComponent(session.thumb)}&url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`
+                            ? `/api/plex/image?path=${encodeURIComponent(session.thumb)}&url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`
                             : null;
 
                     const isHovered = hoveredSession === session.sessionKey;
@@ -542,8 +555,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
             {showMediaInfo && (
                 <MediaInfoModal
                     session={showMediaInfo}
-                    url={url}
-                    token={token}
+                    url={integration.url}
+                    token={integration.token}
                     onClose={() => setShowMediaInfo(null)}
                 />
             )}

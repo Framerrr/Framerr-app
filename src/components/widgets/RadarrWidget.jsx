@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Film } from 'lucide-react';
+import { useAppData } from '../../context/AppDataContext';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const RadarrWidget = ({ config }) => {
+    // Get integrations state from context
+    const { integrations } = useAppData();
+    const integration = integrations?.radarr;
+
+    // Check if integration is enabled
+    const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
+
     const { enabled = false, url = '', apiKey = '' } = config || {};
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!enabled || !url || !apiKey) {
+        if (!isIntegrationEnabled) {
             setLoading(false);
             return;
         }
@@ -19,7 +28,7 @@ const RadarrWidget = ({ config }) => {
                 const startDate = new Date().toISOString().split('T')[0];
                 const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-                const response = await fetch(`/api/radarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(url)}&apiKey=${encodeURIComponent(apiKey)}`);
+                const response = await fetch(`/api/radarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(integration.url)}&apiKey=${encodeURIComponent(integration.apiKey)}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
@@ -34,9 +43,13 @@ const RadarrWidget = ({ config }) => {
         fetchCalendar();
         const interval = setInterval(fetchCalendar, 60000); // Refresh every minute
         return () => clearInterval(interval);
-    }, [enabled, url, apiKey]);
+    }, [isIntegrationEnabled, integration]);
 
-    if (!enabled) return <div className="text-secondary">Radarr not configured.</div>;
+    // Show integration disabled message if not enabled
+    if (!isIntegrationEnabled) {
+        return <IntegrationDisabledMessage serviceName="Radarr" />;
+    }
+
     if (loading && !data) return <div className="text-secondary">Loading Calendar...</div>;
     if (error) return <div className="text-error">Error: {error}</div>;
 
