@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { useFloating, offset, flip, shift } from '@floating-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Upload } from 'lucide-react';
 import * as Icons from 'lucide-react';
@@ -77,30 +78,27 @@ const IconPicker = ({ value, onChange }) => {
     const [activeTab, setActiveTab] = useState('icons'); // 'icons' or 'upload'
     const [uploadedIcons, setUploadedIcons] = useState([]);
     const [loadingIcons, setLoadingIcons] = useState(false);
-    const [modalPosition, setModalPosition] = useState({ top: 0, left: 0, width: 0 });
-    const triggerRef = useRef(null);
-    const modalRef = useRef(null);
 
-    // Calculate modal position when opening
-    useEffect(() => {
-        if (isOpen && triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setModalPosition({
-                top: rect.bottom + 8,
-                left: rect.left,
-                width: rect.width
-            });
-        }
-    }, [isOpen]);
+    // Floating UI positioning - professional, lag-free
+    const { refs, floatingStyles } = useFloating({
+        open: isOpen,
+        onOpenChange: setIsOpen,
+        middleware: [
+            offset(8), // 8px gap from trigger
+            flip(), // Flip to other side if no space
+            shift({ padding: 8 }) // Keep within viewport
+        ],
+        placement: 'bottom-start'
+    });
 
     // Click-outside detection to close popover
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (isOpen &&
-                modalRef.current &&
-                !modalRef.current.contains(event.target) &&
-                triggerRef.current &&
-                !triggerRef.current.contains(event.target)
+                refs.floating.current &&
+                !refs.floating.current.contains(event.target) &&
+                refs.reference.current &&
+                !refs.reference.current.contains(event.target)
             ) {
                 setIsOpen(false);
             }
@@ -270,7 +268,7 @@ const IconPicker = ({ value, onChange }) => {
         <div className="relative">
             {/* Trigger Button */}
             <button
-                ref={triggerRef}
+                ref={refs.setReference}
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors w-full"
@@ -287,19 +285,18 @@ const IconPicker = ({ value, onChange }) => {
                     {isOpen && (
                         /* Picker Popover */
                         <motion.div
-                            ref={modalRef}
+                            ref={refs.setFloating}
+                            style={{
+                                ...floatingStyles,
+                                width: window.innerWidth < 768 ? refs.reference.current?.offsetWidth : '24rem',
+                                maxHeight: '80vh',
+                                zIndex: 9999
+                            }}
                             initial={{ opacity: 0, scale: 0.96, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.96, y: -10 }}
                             transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                            style={{
-                                position: 'fixed',
-                                top: `${modalPosition.top}px`,
-                                left: `${modalPosition.left}px`,
-                                width: window.innerWidth < 768 ? `${modalPosition.width}px` : '24rem',
-                                maxHeight: '80vh'
-                            }}
-                            className="glass-card border-theme rounded-xl shadow-2xl z-[9999] overflow-hidden"
+                            className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden"
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-theme">
@@ -311,6 +308,7 @@ const IconPicker = ({ value, onChange }) => {
                                     <X size={20} />
                                 </button>
                             </div>
+
 
                             {/* Tabs */}
                             <div className="flex border-b border-theme relative">
@@ -501,8 +499,9 @@ const IconPicker = ({ value, onChange }) => {
                     )}
                 </AnimatePresence>,
                 document.body
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 
