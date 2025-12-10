@@ -666,16 +666,15 @@ const Sidebar = () => {
 
                 <motion.div
                     className="flex flex-col relative z-10"
+                    initial={false}
                     animate={{
-                        opacity: isMobileMenuOpen
-
-                            ? 1 : 0,
-                        y: isMobileMenuOpen ? 0 : 20,
+                        opacity: isMobileMenuOpen ? 1 : 0,
                     }}
                     transition={{
-                        duration: isMobileMenuOpen ? 0.4 : 0.2,
-                        delay: isMobileMenuOpen ? 0.1 : 0,
-                        ease: 'easeOut',
+                        type: 'spring',
+                        stiffness: 350,
+                        damping: 35,
+                        mass: 0.7,
                     }}
                     style={{
                         flex: isMobileMenuOpen ? 1 : '0 0 0px',
@@ -699,7 +698,11 @@ const Sidebar = () => {
                                         className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: isMobileMenuOpen ? 1 : 0 }}
-                                        transition={{ delay: 0.2 }}
+                                        transition={{
+                                            type: 'spring',
+                                            stiffness: 350,
+                                            damping: 35,
+                                        }}
                                     >
                                         Tabs
                                     </motion.div>
@@ -710,14 +713,14 @@ const Sidebar = () => {
                                                 href={`/#${tab.slug}`}
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                                 className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                                                initial={{ opacity: 0, y: 10 }}
+                                                initial={{ opacity: 0 }}
                                                 animate={{
                                                     opacity: isMobileMenuOpen ? 1 : 0,
-                                                    y: isMobileMenuOpen ? 0 : 10,
                                                 }}
                                                 transition={{
-                                                    delay: isMobileMenuOpen ? 0.3 + (index * 0.05) : 0,
-                                                    duration: 0.3,
+                                                    type: 'spring',
+                                                    stiffness: 350,
+                                                    damping: 35,
                                                 }}
                                                 whileTap={{ scale: 0.97 }}
                                             >
