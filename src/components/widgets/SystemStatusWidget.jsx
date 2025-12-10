@@ -80,9 +80,10 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
         const now = Date.now();
         const cutoff = now - ranges[currentRange];
 
-        // Prepare data points
+        // Prepare data points - map 'temperature' metric to 'temp' field
+        const fieldName = metric === 'temperature' ? 'temp' : metric;
         const points = graphData
-            .map(d => ({ x: new Date(d.time).getTime(), y: Number(d[metric]) }))
+            .map(d => ({ x: new Date(d.time).getTime(), y: Number(d[fieldName]) }))
             .filter(p => p.x >= cutoff && Number.isFinite(p.y))
             .sort((a, b) => a.x - b.x);
 
