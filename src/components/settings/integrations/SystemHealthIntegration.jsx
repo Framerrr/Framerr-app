@@ -113,9 +113,33 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
     };
 
     const backendConfig = config[selectedBackend] || {};
-    const isConfigured = selectedBackend === 'glances'
-        ? backendConfig.url
-        : backendConfig.url;
+
+    // Validation: Check if the selected backend has required fields
+    const isValidConfig = () => {
+        if (!config.enabled) return true; // If disabled, always valid
+
+        if (selectedBackend === 'glances') {
+            return !!backendConfig.url; // Glances requires URL
+        } else if (selectedBackend === 'custom') {
+            return !!backendConfig.url; // Custom requires URL
+        }
+        return false;
+    };
+
+    const isConfigured = isValidConfig();
+
+    // Notify parent of validation state whenever it changes
+    useEffect(() => {
+        if (onUpdate) {
+            // Pass validation state along with config
+            const configWithValidation = {
+                ...config,
+                _isValid: isConfigured
+            };
+            onUpdate(configWithValidation);
+        }
+    }, [isConfigured, config.enabled, selectedBackend, backendConfig.url, backendConfig.password, backendConfig.token]);
+
 
     return (
         <div className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">

@@ -319,14 +319,23 @@ const IntegrationsSettings = () => {
             </div>
 
             {/* Save Button */}
-            <div className="mt-6 flex justify-end">
-                <Button
-                    onClick={handleSave}
-                    disabled={saving}
-                    icon={saving ? Loader : Save}
-                >
-                    {saving ? 'Saving...' : 'Save All Integrations'}
-                </Button>
+            <div className="mt-6">
+                {/* Show validation error if System Health is invalid */}
+                {integrations.systemstatus?.enabled && integrations.systemstatus?._isValid === false && (
+                    <div className="mb-3 p-3 bg-error/10 border border-error/20 rounded-lg text-sm text-error">
+                        ⚠️ System Health requires a URL for the selected backend before saving.
+                    </div>
+                )}
+
+                <div className="flex justify-end">
+                    <Button
+                        onClick={handleSave}
+                        disabled={saving || (integrations.systemstatus?.enabled && integrations.systemstatus?._isValid === false)}
+                        icon={saving ? Loader : Save}
+                    >
+                        {saving ? 'Saving...' : 'Save All Integrations'}
+                    </Button>
+                </div>
             </div>
         </div>
     );
