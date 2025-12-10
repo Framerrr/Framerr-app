@@ -1,10 +1,10 @@
-# HANDOFF DOCUMENT - Framerr v1.1.7
+# HANDOFF DOCUMENT - Framerr v1.1.8
 
-**Last Updated:** 2025-12-10T03:34:40-05:00  
-**Status:** ✅ Operational - Permission System Fixed + Backend Audited  
-**Current Version:** v1.1.7  
-**Branch:** `feat/iframe-auth-detection`  
-**Docker Image:** `pickels23/framerr:develop` (✅ rebuilt with permission fixes)
+**Last Updated:** 2025-12-10T15:14:47-05:00  
+**Status:** ✅ Production Release v1.1.8 Complete  
+**Current Version:** v1.1.8  
+**Branch:** `main` (production)  
+**Docker Image:** `pickels23/framerr:1.1.8` and `:latest` (✅ published to Docker Hub)
 
 ---
 

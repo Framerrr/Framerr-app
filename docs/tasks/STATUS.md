@@ -1,17 +1,19 @@
-# Framerr Development Status
+# Framerr Project Status
 
-**Last Updated:** 2025-12-10T04:31:14-05:00  
-**Current Version:** v1.1.7  
-**Development Branch:** `feat/iframe-auth-detection`  
-**Production Branch:** `main`  
-**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`  
-**Development Docker:** `pickels23/framerr:develop` (✅ rebuilt Dec 10)
+**Last Updated:** 2025-12-10T15:14:47-05:00  
+**Current Phase:** Production v1.1.8 Released  
+**Status:** ✅ Operational - v1.1.8 Live on Docker Hub
 
 ---
 
-## 🎯 Current Phase
+## Quick Stats
 
-**Phase:** Code Quality and Theming Improvements
+- **Version (Production):** v1.1.8 (main branch)
+- **Version (Development):** v1.1.8 (develop branch synced)
+- **Docker Hub:** `pickels23/framerr:1.1.8` and `:latest` ✅ Published
+- **GitHub:** Tag `v1.1.8` ✅ Released
+- **Build Status:** ✅ Passing
+- **Last Release:** 2025-12-10 (v1.1.8 - Major update)Quality and Theming Improvements
 
 **Status:** ✅ Code audit complete, Sidebar theming migrated
 
