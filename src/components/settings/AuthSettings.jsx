@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
@@ -8,6 +9,12 @@ import { Button } from '../common/Button';
 const AuthSettings = () => {
     // Subtab state
     const [activeTab, setActiveTab] = useState('proxy'); // 'proxy' or 'iframe'
+
+    const tabSpring = {
+        type: 'spring',
+        stiffness: 350,
+        damping: 35,
+    };
 
     // Auth proxy state
     const [proxyEnabled, setProxyEnabled] = useState(false);
@@ -245,30 +252,38 @@ const AuthSettings = () => {
             </div>
 
             {/* Subtab Navigation */}
-            <div className="flex gap-2 border-b border-theme">
+            <div className="flex gap-2 border-b border-theme relative">
                 <button
                     onClick={() => setActiveTab('proxy')}
-                    className={`px-4 py-3 font-medium transition-all relative ${activeTab === 'proxy'
-                        ? 'text-accent border-b-2 border-accent'
-                        : 'text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <div className="flex items-center gap-2">
-                        <Shield size={18} />
-                        Auth Proxy
+                    <div className="flex items-center gap-2 relative z-10">
+                        <Shield size={18} className={activeTab === 'proxy' ? 'text-accent' : ''} />
+                        <span className={activeTab === 'proxy' ? 'text-accent' : ''}>Auth Proxy</span>
                     </div>
+                    {activeTab === 'proxy' && (
+                        <motion.div
+                            layoutId="authSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={tabSpring}
+                        />
+                    )}
                 </button>
                 <button
                     onClick={() => setActiveTab('iframe')}
-                    className={`px-4 py-3 font-medium transition-all relative ${activeTab === 'iframe'
-                        ? 'text-accent border-b-2 border-accent'
-                        : 'text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <div className="flex items-center gap-2">
-                        <Globe size={18} />
-                        iFrame Auth
+                    <div className="flex items-center gap-2 relative z-10">
+                        <Globe size={18} className={activeTab === 'iframe' ? 'text-accent' : ''} />
+                        <span className={activeTab === 'iframe' ? 'text-accent' : ''}>iFrame Auth</span>
                     </div>
+                    {activeTab === 'iframe' && (
+                        <motion.div
+                            layoutId="authSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={tabSpring}
+                        />
+                    )}
                 </button>
             </div>
 

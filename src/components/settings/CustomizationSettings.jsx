@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
