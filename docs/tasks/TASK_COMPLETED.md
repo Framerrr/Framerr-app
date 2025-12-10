@@ -738,3 +738,62 @@ Comprehensive UI/UX improvements across all Settings pages including iframe auth
 - Build verified passing
 - Ready for testing and merge
 
+---
+
+## Session: Settings Tab Animations (Dec 9, 2025)
+
+**Duration:** 19:00 - 19:33 (33 minutes)  
+**Tool Calls:** 251  
+**Commits:** 7  
+**Status:** ✅ Complete - All settings tab animations implemented
+
+### Overview
+Implemented sliding indicators and page transitions for all Settings navigation (8 main tabs + 12 sub-tabs across 4 components) using /animation-test as reference pattern.
+
+### Work Completed
+
+#### Main Tab Animations (UserSettings.jsx)
+- ✅ Sliding tab indicators for 8 main tabs (layoutId="settingsTabIndicator")
+- ✅ Page transitions with slide animation (x: 20 → 0 → -20)  
+- ✅ AnimatePresence wrapper with mode="wait"
+- ✅ Spring configs: tabs 350/35, content 220/30
+
+#### Sub-Tab Animations  
+- ✅ **WidgetsSettings:** 3 sub-tabs (Gallery, Integrations, Active)
+- ✅ **CustomizationSettings:** 3 sub-tabs (General, Colors, Favicon)
+- ✅ **AuthSettings:** 2 sub-tabs (Auth Proxy, iFrame Auth)
+- ✅ **AdvancedSettings:** 4 sub-tabs (Debug, System, Experimental, Developer)  
+- ✅ Total: 12 sub-tabs with sliding indicators
+
+### Files Modified (5 total)
+- src/pages/UserSettings.jsx
+- src/components/settings/WidgetsSettings.jsx
+- src/components/settings/CustomizationSettings.jsx
+- src/components/settings/AuthSettings.jsx
+- src/components/settings/AdvancedSettings.jsx
+
+### Bug Fixes
+1. Wrong file target (Settings.jsx vs UserSettings.jsx)
+2. Missing motion import in CustomizationSettings (ReferenceError)
+3. Missed AuthSettings sub-tab indicators
+
+### Git Commits
+1. feat(mobile): add fluid sliding indicators to mobile tab bar
+2. feat(mobile): refine menu expansion for fluid bottom-up growth
+3. feat(settings): add fluid sliding indicators to main tabs
+4. fix(settings): apply sliding indicators to correct UserSettings.jsx file
+5. feat(settings): add page transitions matching AnimationTest pattern
+6. feat(settings): add sliding indicators to all sub-tab navigation
+7. fix(settings): add missing motion import and Auth sub-tab indicators
+
+### Testing
+- ✅ Build passed on all commits (3.28s - 4.46s)
+- ✅ No errors or warnings
+- ✅ User tested and approved animations
+
+### Deployment
+- Branch: feat/iframe-auth-detection
+- User handled Docker build/push manually
+- Ready for production merge
+
+
