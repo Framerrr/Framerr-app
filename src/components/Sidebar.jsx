@@ -15,6 +15,7 @@ const Sidebar = () => {
     const [tabs, setTabs] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
     const [hoveredItem, setHoveredItem] = useState(null);
+    const [hoveredMobileTab, setHoveredMobileTab] = useState(null);
     const hoverTimeoutRef = React.useRef(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
@@ -636,9 +637,9 @@ const Sidebar = () => {
                 }}
                 transition={{
                     type: 'spring',
-                    stiffness: 300,
-                    damping: 30,
-                    mass: 0.8,
+                    stiffness: 350,
+                    damping: 35,
+                    mass: 0.7,
                 }}
                 style={{
                     bottom: '1rem',
@@ -766,55 +767,142 @@ const Sidebar = () => {
                     <a
                         href="/#dashboard"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={(() => {
-                            const hash = window.location.hash.slice(1);
-                            const shouldBeActive = !hash || hash === 'dashboard';
-                            return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${shouldBeActive ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
-                        })()}
+                        onMouseEnter={() => setHoveredMobileTab('dashboard')}
+                        onMouseLeave={() => setHoveredMobileTab(null)}
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-slate-400 hover:text-white"
                     >
-                        <LayoutDashboard size={24} />
-                        <span className="text-[10px] font-medium">Dashboard</span>
+                        {/* Animated sliding indicator */}
+                        {(() => {
+                            const hash = window.location.hash.slice(1);
+                            const isActive = !hash || hash === 'dashboard';
+                            const shouldShowIndicator = isActive || hoveredMobileTab === 'dashboard';
+
+                            return shouldShowIndicator && (
+                                <motion.div
+                                    layoutId="mobileTabIndicator"
+                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            );
+                        })()}
+                        {/* Icon - with relative z-index to stay above indicator */}
+                        <div className={`relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const isActive = !hash || hash === 'dashboard';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>
+                            <LayoutDashboard size={24} />
+                        </div>
+                        <span className={`text-[10px] font-medium relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const isActive = !hash || hash === 'dashboard';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>Dashboard</span>
                     </a>
                     <a
                         href="/#settings?tab=profile&source=profile"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={(() => {
+                        onMouseEnter={() => setHoveredMobileTab('profile')}
+                        onMouseLeave={() => setHoveredMobileTab(null)}
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-slate-400 hover:text-white"
+                    >
+                        {/* Animated sliding indicator */}
+                        {(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
                             const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
                             const currentTab = searchParams.get('tab');
                             const source = searchParams.get('source');
                             const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                            return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${isActive ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
+                            const shouldShowIndicator = isActive || hoveredMobileTab === 'profile';
+
+                            return shouldShowIndicator && (
+                                <motion.div
+                                    layoutId="mobileTabIndicator"
+                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            );
                         })()}
-                    >
-                        {currentUser?.profilePicture ? (
-                            <img
-                                src={currentUser.profilePicture}
-                                alt="Profile"
-                                className="w-6 h-6 rounded-full object-cover border border-slate-600"
-                            />
-                        ) : (
-                            <UserCircle size={24} />
-                        )}
-                        <span className="text-[10px] font-medium">Profile</span>
+                        {/* Icon - with relative z-index to stay above indicator */}
+                        <div className={`relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>
+                            {currentUser?.profilePicture ? (
+                                <img
+                                    src={currentUser.profilePicture}
+                                    alt="Profile"
+                                    className="w-6 h-6 rounded-full object-cover border border-slate-600"
+                                />
+                            ) : (
+                                <UserCircle size={24} />
+                            )}
+                        </div>
+                        <span className={`text-[10px] font-medium relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>Profile</span>
                     </a>
                     <a
                         href="/#settings"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={(() => {
+                        onMouseEnter={() => setHoveredMobileTab('settings')}
+                        onMouseLeave={() => setHoveredMobileTab(null)}
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-slate-400 hover:text-white"
+                    >
+                        {/* Animated sliding indicator */}
+                        {(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
                             const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
                             const currentTab = searchParams.get('tab');
                             const source = searchParams.get('source');
                             const isProfilePage = currentTab === 'profile' && source === 'profile';
-                            const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
-                            return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${shouldHighlight ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
+                            const isActive = hash.startsWith('settings') && !isProfilePage;
+                            const shouldShowIndicator = isActive || hoveredMobileTab === 'settings';
+
+                            return shouldShowIndicator && (
+                                <motion.div
+                                    layoutId="mobileTabIndicator"
+                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            );
                         })()}
-                    >
-                        <SettingsIcon size={24} />
-                        <span className="text-[10px] font-medium">Settings</span>
+                        {/* Icon - with relative z-index to stay above indicator */}
+                        <div className={`relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isProfilePage = currentTab === 'profile' && source === 'profile';
+                            const isActive = hash.startsWith('settings') && !isProfilePage;
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>
+                            <SettingsIcon size={24} />
+                        </div>
+                        <span className={`text-[10px] font-medium relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isProfilePage = currentTab === 'profile' && source === 'profile';
+                            const isActive = hash.startsWith('settings') && !isProfilePage;
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>Settings</span>
                     </a>
                 </div>
             </motion.div>
