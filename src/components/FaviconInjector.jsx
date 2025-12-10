@@ -9,7 +9,7 @@ const FaviconInjector = () => {
     const isApplyingRef = useRef(false); // Prevent infinite loops
 
     useEffect(() => {
-        console.log('🎨 FaviconInjector mounted - loading favicon config');
+        logger.debug('FaviconInjector mounted - loading favicon config');
 
         const loadFavicon = async () => {
             try {
