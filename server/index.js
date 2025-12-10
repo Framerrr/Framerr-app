@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const logger = require('./utils/logger');
+const { version } = require('./package.json');
 
 // Initialize Express app
 const app = express();
@@ -40,7 +41,9 @@ app.use(cors({
 // Global session middleware - proxy auth takes precedence over local session
 app.use(async (req, res, next) => {
     try {
-        const systemConfig = req.app.get('systemConfig');
+        // Load fresh config from DB to respect runtime toggle changes
+        const { getSystemConfig } = require('./db/systemConfig');
+        const systemConfig = await getSystemConfig();
 
         // Try proxy auth first (if enabled and headers present)
         if (systemConfig?.auth?.proxy?.enabled) {
@@ -121,10 +124,8 @@ if (NODE_ENV !== 'production') {
 const path = require('path');
 
 // Default Framerr favicons (always available, never deleted)
-// In production, serve from dist (bundled), in dev serve from server/public
-const defaultFaviconPath = NODE_ENV === 'production'
-    ? path.join(__dirname, '../dist/favicon-default')
-    : path.join(__dirname, 'public/favicon-default');
+// Always serve from server's public folder (these are bundled with the server, not the frontend)
+const defaultFaviconPath = path.join(__dirname, 'public/favicon-default');
 app.use('/favicon-default', cors(), express.static(defaultFaviconPath));
 
 // Custom user favicons (uploaded via Settings UI)
@@ -146,7 +147,7 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        version: '1.0.0-alpha.1',
+        version,
         environment: NODE_ENV,
         logLevel: process.env.LOG_LEVEL || 'info'  // Expose LOG_LEVEL for frontend logger sync
     });
@@ -180,6 +181,11 @@ if (NODE_ENV === 'production') {
     // Serve static files
     app.use(express.static(distPath));
 
+    // OAuth callback route - serve login-complete.html directly
+    app.get('/login-complete', (req, res) => {
+        res.sendFile(path.join(distPath, 'login-complete.html'));
+    });
+
     // SPA fallback - send index.html for all non-API routes
     app.get('*', (req, res, next) => {
         // Skip API routes
@@ -194,7 +200,7 @@ if (NODE_ENV === 'production') {
 app.get('/', (req, res) => {
     res.json({
         message: 'Framerr API',
-        version: '1.0.0-alpha.1',
+        version,
         endpoints: {
             health: '/api/health'
         }
@@ -249,7 +255,7 @@ app.use((err, req, res, next) => {
         // Now start server with config loaded
         app.listen(PORT, () => {
             logger.startup('Homelab Dashboard', {
-                version: '1.0.0-alpha.1',
+                version,
                 port: PORT,
                 env: NODE_ENV
             });

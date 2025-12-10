@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
+import { RefreshCw, ExternalLink, AlertCircle, Lock, X } from 'lucide-react';
 import logger from '../utils/logger';
+import { useSystemConfig } from '../context/SystemConfigContext';
+import { detectAuthNeed, isAuthDetectionEnabled, getSensitivity, getUserAuthPatterns } from '../utils/authDetection';
 
 const TabContainer = () => {
     const navigate = useNavigate();
+    const { systemConfig } = useSystemConfig();
     const [tabs, setTabs] = useState([]);
     const [loadedTabs, setLoadedTabs] = useState(new Set()); // Track which tabs have been loaded
     const [activeSlug, setActiveSlug] = useState(null); // Current visible tab
@@ -13,9 +16,54 @@ const TabContainer = () => {
     const [error, setError] = useState(null);
     const [iframeLoadingStates, setIframeLoadingStates] = useState({}); // Track loading per iframe
 
+    // Auth detection state (per tab)
+    const [needsAuth, setNeedsAuth] = useState({}); // { slug: boolean }
+    const [authDetectionInfo, setAuthDetectionInfo] = useState({}); // { slug: detection info }
+    const [isReloading, setIsReloading] = useState({}); // { slug: boolean }
+    const iframeRefs = useRef({}); // { slug: iframe ref }
+    const authWindowRefs = useRef({}); // { slug: window ref }
+    const detectionIntervalRefs = useRef({}); // { slug: interval id }
+
     // Fetch all tabs on mount
     useEffect(() => {
         fetchTabs();
+    }, []);
+
+    // Listen for auth-complete messages from login-complete page
+    useEffect(() => {
+        const handleAuthMessage = (event) => {
+            // Security: verify origin matches Framerr's origin
+            if (event.origin !== window.location.origin) {
+                logger.warn('Ignored auth message from untrusted origin:', event.origin);
+                return;
+            }
+
+            // Check for auth-complete message
+            if (event.data?.type === 'auth-complete') {
+                logger.info('Auth complete message received via postMessage', event.data);
+
+                // Get tab from state if provided
+                const tab = event.data?.tab;
+
+                if (tab) {
+                    // Restore the specific tab
+                    logger.info(`Restoring tab: ${tab}`);
+                    window.location.hash = `#${tab}`;
+                    handleAuthComplete(tab);
+                } else {
+                    // Fallback: find the tab that has an open auth window
+                    Object.keys(authWindowRefs.current).forEach(slug => {
+                        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
+                            logger.info(`Handling auth completion for tab: ${slug}`);
+                            handleAuthComplete(slug);
+                        }
+                    });
+                }
+            }
+        };
+
+        window.addEventListener('message', handleAuthMessage);
+        return () => window.removeEventListener('message', handleAuthMessage);
     }, []);
 
     // Handle hash changes
@@ -35,6 +83,48 @@ const TabContainer = () => {
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [tabs]);
+
+    // Auto-detect authentication requirements by monitoring iframe URLs
+    useEffect(() => {
+        if (!systemConfig || !isAuthDetectionEnabled(systemConfig)) {
+            return;
+        }
+
+        const sensitivity = getSensitivity(systemConfig);
+        const userPatterns = getUserAuthPatterns(systemConfig);
+
+        // Monitor all loaded tabs
+        Array.from(loadedTabs).forEach(slug => {
+            const interval = setInterval(() => {
+                const iframe = iframeRefs.current[slug];
+                const tab = tabs.find(t => t.slug === slug);
+
+                if (!iframe || !tab || needsAuth[slug]) return;
+
+                try {
+                    const currentSrc = iframe.src;
+                    if (currentSrc) {
+                        const detection = detectAuthNeed(currentSrc, tab.url, userPatterns, sensitivity);
+                        if (detection.needsAuth) {
+                            logger.info(`Auth detected for ${slug}:`, detection);
+                            setNeedsAuth(prev => ({ ...prev, [slug]: true }));
+                            setAuthDetectionInfo(prev => ({ ...prev, [slug]: detection }));
+                        }
+                    }
+                } catch (e) {
+                    // Cross-origin restriction - expected
+                }
+            }, 1000); // Check every second
+
+            detectionIntervalRefs.current[slug] = interval;
+        });
+
+        // Cleanup intervals
+        return () => {
+            Object.values(detectionIntervalRefs.current).forEach(clearInterval);
+            detectionIntervalRefs.current = {};
+        };
+    }, [tabs, loadedTabs, systemConfig, needsAuth]);
 
     const fetchTabs = async () => {
         try {
@@ -72,6 +162,120 @@ const TabContainer = () => {
         logger.info('Reloading tab:', slug);
         setIframeLoadingStates(prev => ({ ...prev, [slug]: true }));
         setReloadKeys(prev => ({ ...prev, [slug]: (prev[slug] || 0) + 1 }));
+    };
+
+    // Auth detection handlers
+    const handleOpenAuth = (slug, authUrl) => {
+        logger.info(`Opening auth in new tab for ${slug}:`, authUrl);
+
+        // Get OAuth configuration from systemConfig
+        const clientId = systemConfig?.auth?.iframe?.clientId || '';
+        const redirectUri = systemConfig?.auth?.iframe?.redirectUri || `${window.location.origin}/login-complete`;
+        const oauthEndpoint = systemConfig?.auth?.iframe?.endpoint || '';
+        const scopes = systemConfig?.auth?.iframe?.scopes || 'openid profile email';
+
+        // Validate configuration
+        if (!clientId || !oauthEndpoint) {
+            logger.error('iFrame auth not configured', { clientId: !!clientId, endpoint: !!oauthEndpoint });
+            alert(
+                'iFrame authentication is not configured.\n\n' +
+                'Please go to Settings → Authentication → iFrame Auth to set up OAuth.'
+            );
+            return;
+        }
+
+        // Include tab slug in state so we can restore it after auth
+        const state = JSON.stringify({ tab: slug });
+
+        // Build proper OAuth authorize URL from configured endpoint
+        const oauthUrl = `${oauthEndpoint}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`;
+
+        logger.debug('OAuth authorize URL:', oauthUrl);
+
+        const authWindow = window.open(oauthUrl, '_blank');
+        authWindowRefs.current[slug] = authWindow;
+
+        if (!authWindow) {
+            logger.error('Failed to open auth window - popup blocked?');
+            alert('Please allow popups for Framerr to enable automatic authentication.');
+            return;
+        }
+
+        // Keep polling as backup in case postMessage fails
+        const pollInterval = setInterval(() => {
+            if (authWindowRefs.current[slug]?.closed) {
+                clearInterval(pollInterval);
+                // Only handle if not already handled by postMessage
+                if (needsAuth[slug]) {
+                    logger.info('Auth window closed (detected via polling)');
+                    handleAuthComplete(slug);
+                }
+            }
+        }, 500);
+    };
+
+    const handleAuthComplete = (slug) => {
+        logger.info(`Auth window closed for ${slug}, reloading iframe`);
+
+        // Close the auth window if still open and refocus Framerr
+        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
+            authWindowRefs.current[slug].close();
+        }
+        window.focus();
+
+        setIsReloading(prev => ({ ...prev, [slug]: true }));
+        setNeedsAuth(prev => ({ ...prev, [slug]: false }));
+
+        setTimeout(() => {
+            reloadTab(slug);
+            setTimeout(() => {
+                setIsReloading(prev => ({ ...prev, [slug]: false }));
+
+                // Check if still on auth page after reload
+                const iframe = iframeRefs.current[slug];
+                if (iframe) {
+                    try {
+                        const currentSrc = iframe.src;
+                        const tab = tabs.find(t => t.slug === slug);
+                        if (tab) {
+                            const sensitivity = getSensitivity(systemConfig);
+                            const userPatterns = getUserAuthPatterns(systemConfig);
+                            const detection = detectAuthNeed(currentSrc, tab.url, userPatterns, sensitivity);
+                            if (detection.needsAuth) {
+                                setNeedsAuth(prev => ({ ...prev, [slug]: true }));
+                                setAuthDetectionInfo(prev => ({ ...prev, [slug]: detection }));
+                            }
+                        }
+                    } catch (e) {
+                        // Cross-origin - can't read src
+                    }
+                }
+            }, 500);
+        }, 500);
+    };
+
+    const handleManualAuth = (slug) => {
+        const tab = tabs.find(t => t.slug === slug);
+        if (!tab) return;
+
+        const iframe = iframeRefs.current[slug];
+        const authUrl = iframe?.src || tab.url;
+
+        logger.info(`Manual auth triggered for ${slug}`);
+        setNeedsAuth(prev => ({ ...prev, [slug]: true }));
+        setAuthDetectionInfo(prev => ({
+            ...prev,
+            [slug]: {
+                needsAuth: true,
+                confidence: 10,
+                reasons: ['Manual auth trigger'],
+                threshold: 0
+            }
+        }));
+    };
+
+    const handleDismissOverlay = (slug) => {
+        setNeedsAuth(prev => ({ ...prev, [slug]: false }));
     };
 
     if (loading) {
@@ -145,6 +349,13 @@ const TabContainer = () => {
 
                             <div className="flex items-center gap-3">
                                 <button
+                                    onClick={() => handleManualAuth(slug)}
+                                    className="text-slate-400 hover:text-white transition-colors"
+                                    title="Re-authenticate"
+                                >
+                                    <Lock size={18} />
+                                </button>
+                                <button
                                     onClick={() => reloadTab(slug)}
                                     className="text-slate-400 hover:text-white transition-colors"
                                     title="Reload"
@@ -175,6 +386,7 @@ const TabContainer = () => {
                             )}
 
                             <iframe
+                                ref={el => iframeRefs.current[slug] = el}
                                 key={reloadKeys[slug] || 0}
                                 src={tab.url}
                                 title={tab.name}
@@ -182,6 +394,61 @@ const TabContainer = () => {
                                 onLoad={() => handleIframeLoad(slug)}
                                 allow="clipboard-read; clipboard-write; fullscreen"
                             />
+
+                            {/* Auth Required Overlay */}
+                            {(needsAuth[slug] || isReloading[slug]) && (
+                                <div className="absolute inset-0 glass-card flex items-center justify-center z-20" style={{ backgroundColor: 'var(--bg-tertiary-transparent)' }}>
+                                    <div className="glass-card max-w-md w-full mx-4 p-8 text-center border border-theme">
+                                        {isReloading[slug] ? (
+                                            <>
+                                                <div className="w-16 h-16 border-4 mx-auto mb-6 rounded-full animate-spin" style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}></div>
+                                                <h3 className="text-xl font-semibold mb-2 text-theme-primary">Verifying Authentication...</h3>
+                                                <p className="text-theme-secondary text-sm">Please wait while we reload the page</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'var(--accent-transparent)' }}>
+                                                    <Lock size={32} style={{ color: 'var(--accent)' }} />
+                                                </div>
+                                                <h3 className="text-xl font-semibold mb-4 text-theme-primary">Authentication Required</h3>
+                                                <p className="text-theme-secondary mb-2 text-sm">This page requires you to log in.</p>
+                                                {authDetectionInfo[slug]?.reasons?.[0] && (
+                                                    <p className="text-theme-tertiary text-xs mb-6">({authDetectionInfo[slug].reasons[0]})</p>
+                                                )}
+                                                <div className="space-y-3">
+                                                    <button
+                                                        onClick={() => handleOpenAuth(slug, iframeRefs.current[slug]?.src || tab.url)}
+                                                        className="w-full px-4 py-3 rounded-lg font-medium text-white transition-all"
+                                                        style={{ backgroundColor: 'var(--accent)' }}
+                                                    >
+                                                        <ExternalLink className="inline mr-2" size={18} />
+                                                        Open Login in New Tab
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { handleDismissOverlay(slug); reloadTab(slug); }}
+                                                        className="w-full px-4 py-3 border rounded-lg font-medium transition-all text-theme-secondary border-theme hover:border-theme-light"
+                                                    >
+                                                        Already logged in? Reload
+                                                    </button>
+                                                    <button
+                                                        onClick={() => window.open(tab.url, '_blank')}
+                                                        className="w-full px-4 py-2 text-sm transition-all text-theme-tertiary hover:text-theme-secondary"
+                                                    >
+                                                        Open in New Tab Instead
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDismissOverlay(slug)}
+                                                    className="absolute top-4 right-4 transition-all text-theme-tertiary hover:text-theme-primary"
+                                                    title="Dismiss"
+                                                >
+                                                    <X size={20} />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );

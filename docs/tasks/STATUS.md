@@ -1,18 +1,19 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-08 14:40:00  
+**Last Updated:** 2025-12-10T04:31:14-05:00  
 **Current Version:** v1.1.7  
-**Development Branch:** `develop` (Gridstack work paused)
+**Development Branch:** `feat/iframe-auth-detection`  
 **Production Branch:** `main`  
-**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`
+**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`  
+**Development Docker:** `pickels23/framerr:develop` (✅ rebuilt Dec 10)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 15:** Mobile Responsiveness & v1.1.7 Release (Complete) ✅
+**Phase:** Code Quality and Theming Improvements
 
-**Status:** Production release v1.1.7 deployed with mobile improvements and security updates.
+**Status:** ✅ Code audit complete, Sidebar theming migrated
 
 ---
 
@@ -21,18 +22,194 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
-| **Frontend** | ✅ Operational | All mobile UX improvements deployed |
+| **Frontend** | ✅ Operational | All features working |
+| **Iframe Auth** | ✅ Working | Manual Lock button + relocated settings |
 | **Docker Production** | ✅ Live | `pickels23/framerr:1.1.7` and `:latest` |
-| **Docker Debug** | ✅ Available | Use `:1.1.7` for debugging |
-| **Documentation** | ✅ Complete | Full v2.0 system in place |
+| **Docker Development** | ✅ Deployed | `pickels23/framerr:develop` (Dec 10) |
+| **Documentation** | ✅ Complete | Full v2.0 system |
 | **Workflows** | ✅ Active | 8 workflows operational |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
-| **Mobile UX** | ✅ Enhanced | Touch drag, auto-updates, fixed header |
+| **Code Quality** | ✅ Excellent | Audit complete, minimal issues |
 | **React Security** | ✅ Patched | React 19.2.1 (CVE-2025-12-03) |
+| **Settings UX** | ✅ Standardized | Theme-compliant glassmorphism |
+| **Settings Animations** | ✅ Complete | Sliding indicators + page transitions |
+| **IconPicker/Modals** | ✅ Complete | Radix UI with animations |
+| **Permission System** | ✅ Fixed | Default configs + defensive handling |
+| **Sidebar Theming** | ✅ Migrated | Text colors themed, dividers preserved |
 
 ---
 
 ## 🚀 Recent Accomplishments
+
+### Code Audit and Sidebar Theming (Dec 10, 2025) - COMPLETE ✅
+- ✅ **Code Audit:** Comprehensive scan of all changes since v1.1.7
+  - Only 1 console.log in production code (fixed)
+  - No dead code or unused imports found
+  - CLI scripts intentionally use console.* (acceptable)
+  - 49 hardcoded hex colors documented (mostly in theme configs - intentional)
+- ✅ **Logging Cleanup:** FaviconInjector.jsx console.log → logger.debug
+- ✅ **Sidebar Theming Migration:** 22 hardcoded colors → theme classes
+  - text-slate-* → text-theme-* (13 instances)
+  - hover:text-white → hover:text-theme-primary (10 instances)
+  - text-red-400 → text-error (logout button)
+  - bg-slate-800 → bg-theme-* (tooltips/mobile)
+  - Supports Light/Dark themes + custom colors
+- ✅ **Dividers Preserved:** Top/bottom borders reverted to original slate colors
+  - Per user preference for visual design
+  - Top: border-slate-700/30 (keeps blue gradient tint)
+  - Bottom: border-slate-700/50 (neutral gray)
+- 📝 3 commits (cab3bdf, 0551a8d, 4384d33)
+- 📊 Audit report created with future recommendations
+- ⚠️ Light theme testing recommended
+
+### Permission System Bug Fixes (Dec 10, 2025) - COMPLETE ✅
+- ✅ **Critical Production Bug:** Fixed missing permissions arrays in DEFAULT_CONFIG
+  - Added `permissions: ['*']` to admin group
+  - Added `permissions: ['view_dashboard', 'manage_widgets']` to user group  
+  - Added `permissions: ['view_dashboard']` to guest group
+  - Prevents "Cannot read properties of undefined" errors on new installs
+- ✅ **Defensive Error Handling:** Added validation in permissions.js
+  - Checks for undefined/invalid permissions arrays
+  - Logs warnings instead of crashing
+  - Graceful failure (denies access safely)
+- ✅ **Permission Verification:** Confirmed permissions match actual codebase
+  - View against PermissionGroupsSettings component
+  - Corrected initially invented permission strings
+  - Real permissions: view_dashboard, manage_widgets, manage_system, manage_users
+- ✅ **Backend Recovery Audit:** Systematic verification post-Git corruption
+  - Audited all database models
+  - Verified all default configurations
+  - Confirmed authentication systems complete
+  - Found only 1 critical issue (permissions - now fixed)
+  - 5 TODO placeholders for future features (intentional)
+- 📝 2 commits (`4ddf1c9`, `fad51ad`)
+- 🐳 Deployed: `pickels23/framerr:develop` (rebuilt and pushed)
+- 📊 Backend audit report created
+
+### IconPicker & Modal Improvements (Dec 9, 2025) - COMPLETE ✅
+- ✅ **IconPicker Redesign:** Migrated to Radix UI Popover
+  - Automatic positioning with flip/collision detection
+  - Fixed mobile browser positioning (no more top-left corner)
+  - Framer Motion animations (scale + fade, spring physics)
+  - Collision padding (24px) prevents edge cutoff
+  - Conservative max-height (50vh) for small screens
+- ✅ **Modal Improvements:** Converted to Radix Dialog
+  - UserTabsSettings and TabGroupsSettings
+  - Mobile scroll-lock working perfectly
+  - Entrance/exit animations matching IconPicker
+  - Responsive sizing for all screen widths
+- ✅ **Dependencies Added:**
+  - @radix-ui/react-popover
+  - @radix-ui/react-dialog
+- 📝 17 commits, 460 tool calls
+- 🐳 Deployed: `pickels23/framerr:develop`
+
+### Settings Tab Animations (Dec 9, 2025) - COMPLETE ✅
+- ✅ **Main Tab Indicators:** Sliding indicators for 8 main settings tabs
+- ✅ **Page Transitions:** Slide animations (x: 20 → 0 → -20) with opacity fade
+- ✅ **Sub-Tab Indicators:** 12 sub-tabs across 4 components
+  - WidgetsSettings (3), CustomizationSettings (3), AuthSettings (2), AdvancedSettings (4)
+- ✅ **Spring Animations:** Tabs 350/35, content 220/30 (matching /animation-test)
+- ✅ **Bug Fixes:** Wrong file target, missing motion import, missed Auth tabs
+- 📝 7 commits, 251 tool calls
+- 🐳 User handled Docker deployment
+
+### Animate-UI Sidebar Integration (Dec 9, 2025) - COMPLETE ✅
+- ✅ **Icon Standardization:** All icons 20px for perfect alignment
+- ✅ **Chevron Animation:** ChevronRight CSS rotation (0° → 90°)
+- ✅ **Icon Sliding:** Smooth animations (no appear/disappear)
+- ✅ **Unified Hover:** Morphing across tabs, groups, and items
+- ✅ **Hover Delay:** 150ms to prevent snap-back
+- ✅ **Performance:** Spring stiffness 350, GPU-accelerated CSS
+- 📝 4 commits, ~200 tool calls
+- 🐳 Deployed: `pickels23/framerr:develop`
+
+### Settings UI/UX Standardization (Dec 9, 2025) - COMPLETE ✅
+- ✅ **Iframe Auth Relocation:**
+  - Moved from Customization to Auth → iFrame Auth tab
+  - Added browser limitation documentation
+  - Integrated with OAuth settings
+  - Removed 188 lines from CustomizationSettings
+- ✅ **Container Styling:**
+  - Standardized all settings to glass-subtle
+  - Applied shadow-medium consistently
+  - Matches UserTabsSettings reference design
+  - 6 files updated
+- ✅ **Theme Class Conversion:**
+  - Replaced hardcoded slate colors in WidgetGallery (12 instances)
+  - Replaced hardcoded colors in DiagnosticsSettings (6 instances)
+  - Ensures Light/Dark theme compatibility
+- ✅ **Save Button Tracking:**
+  - Implemented change detection for Application Name/Icon
+  - Implemented change detection for Dashboard Greeting
+  - Buttons disabled when no changes made
+- ✅ **Visual Depth Adjustment:**
+  - Changed Advanced Settings from glass-card to glass-subtle
+  - Reduced shadow intensity for consistency
+- 📝 10 commits, ~360 tool calls
+- 🐳 Ready for deployment testing
+
+### Code Audit and Cleanup (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Comprehensive Audit:**
+  - Analyzed 10 files since v1.1.7
+  - Identified 1 dead code block (24 lines)
+  - Found 6 console statements needing conversion
+  - Created detailed audit report with safety ratings
+- ✅ **Dead Code Removal:**
+  - Removed non-functional Authentik listener (TabContainer.jsx)
+  - Feature never worked without Nginx injection
+  - Manual Lock button is working alternative
+- ✅ **Logger Conversions:**
+  - Converted 6 console.error to structured logger.error
+  - AppDataContext.jsx: 2 conversions
+  - PlexWidget.jsx: 3 conversions
+  - AddWidgetModal.jsx: 1 conversion
+- ✅ **Results:**
+  - -18 net lines (cleaner codebase)
+  - Build passing (5.93s)
+  - All changes committed
+- 📝 1 commit, ~65 tool calls
+- 🐳 No Docker update needed (code cleanup only)
+
+### iFrame OAuth Settings UI (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Settings Implementation:**
+  - Created AuthSettings.jsx with OAuth configuration
+  - Sub-tab navigation (Auth Proxy / iFrame Auth)
+  - OAuth endpoint, client ID, redirect URI fields
+  - HTTPS validation for security
+  - Authentik preset template
+  - Test OAuth button
+  - Collapsible setup instructions
+- ✅ **Backend Integration:**
+  - systemConfig.js schema for iframe auth
+  - config.js HTTPS validation
+  - Auto-population of redirect URI
+- ✅ **User Experience:**
+  - Theme-compliant UI
+  - Clear error messages
+  - Helpful tooltips
+  - Dynamic redirect URI display
+- 📝 3 commits, ~120 tool calls
+- 🐳 Docker image: `pickels23/framerr:develop`
+
+### Iframe Authentication (Dec 8, 2025) - PARTIAL ⚠️
+- ✅ **Manual Auth Flow:**
+  - Lock button (🔒) in tab toolbar
+  - Opens auth in new tab (bypass iframe restrictions)
+  - Auto-reload after tab closure
+  - Auto-refocus to Framerr
+  - Supports passkeys, OAuth, SAML
+- ✅ **Settings UI:**
+  - Enable/disable configuration
+  - Sensitivity levels
+  - Custom URL patterns
+- ⚠️ **Auto-Detection:**
+  - Blocked by Same-Origin Policy
+  - Cannot read cross-origin iframe navigation
+  - Settings exist but limited effectiveness
+  - Documented in artifacts
+- 📝 5 commits, ~350 tool calls
+- 🐳 Docker image: `pickels23/framerr:develop`
 
 ### v1.1.7 Production Release (Dec 8, 2025) - COMPLETE ✅
 - ✅ **Mobile Bug Fixes:**
@@ -51,23 +228,20 @@
 - 🐳 Docker images pushed to Hub
 - 🏷️ Git tag `v1.1.7` created and pushed
 
-### Documentation System v2.0 (Dec 2, 2025) - COMPLETE ✅
-- ✅ Created `docs/` structure with 6 subdirectories
-- ✅ Archived 15 recovery documentation files
-- ✅ Consolidated rules system (git, development, theming)
-- ✅ Created 8 workflows
-- ✅ `Dockerfile.dev` for debug builds
-
 ---
 
 ## 🔄 Active Work
 
-**Current Task:** v1.1.7 deployed to production  
+**Current Task:** None - settings animations complete  
+**Branch:** `feat/iframe-auth-detection`  
+**Status:** Clean state, ready for new work  
+
 **Next Steps:**
-1. Monitor v1.1.7 in production
-2. Gather user feedback on mobile improvements
-3. Consider resuming gridstack work on develop branch
-4. Plan next feature development
+- User to test settings animations
+- Consider Docker deployment
+- User to decide next feature/improvement
+
+**Clean State:** ✅ All changes committed, build passing
 
 ---
 
@@ -87,10 +261,10 @@ None reported for v1.1.7
   - Features: Mobile UX improvements, React 19.2.1
 
 ### Git Status
-- **Branch:** `main`
+- **Branch:** `feat/iframe-auth-detection`
 - **Tag:** `v1.1.7`
-- **Status:** Clean, all changes committed and pushed
-- **Latest commit:** 1e41fc0 (chore: bump version to 1.1.7)
+- **Status:** Clean, all changes committed
+- **Latest commit:** Code audit cleanup
 
 ---
 
@@ -101,7 +275,7 @@ See `TASK_BACKLOG.md` for details.
 **High Priority:**
 - Test v1.1.7 mobile improvements in production
 - User feedback collection
-- Resume gridstack work (on develop branch)
+- Decide on iframe auth branch merge
 
 **Medium Priority:**
 - Bundle size optimization

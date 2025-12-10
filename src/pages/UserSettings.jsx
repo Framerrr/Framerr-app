@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { isAdmin } from '../utils/permissions';
 import { Card } from '../components/common/Card';
@@ -67,6 +68,20 @@ const UserSettings = () => {
     // Combined tabs
     const allTabs = [...userTabs, ...adminTabs];
 
+    // Spring config for tab animations
+    const tabSpring = {
+        type: 'spring',
+        stiffness: 350,
+        damping: 35,
+    };
+
+    // Content transition spring (matching AnimationTest)
+    const contentSpring = {
+        type: 'spring',
+        stiffness: 220,
+        damping: 30,
+    };
+
     return (
         <div className="w-full p-4 md:p-8 max-w-[2000px] mx-auto">
             {/* Page Header */}
@@ -103,17 +118,21 @@ const UserSettings = () => {
                                 }
                                 window.location.hash = `settings?${params.toString()}`;
                             }}
-                            className={`
-                                flex items-center gap-2 px-4 py-2 rounded-lg 
-                                transition-all whitespace-nowrap text-sm font-medium
-                                ${isActive
-                                    ? 'bg-accent text-white font-semibold'
-                                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary'
-                                }
-                            `}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap text-sm font-medium relative text-theme-secondary hover:text-theme-primary"
                         >
-                            <Icon size={16} />
-                            {tab.label}
+                            {/* Animated sliding indicator */}
+                            {isActive && (
+                                <motion.div
+                                    layoutId="settingsTabIndicator"
+                                    className="absolute inset-0 bg-accent rounded-lg"
+                                    transition={tabSpring}
+                                />
+                            )}
+                            {/* Icon and text with relative z-index */}
+                            <Icon size={16} className={`relative z-10 ${isActive ? 'text-white' : ''}`} />
+                            <span className={`relative z-10 ${isActive ? 'text-white font-semibold' : ''}`}>
+                                {tab.label}
+                            </span>
                         </button>
                     );
                 })}
@@ -121,21 +140,103 @@ const UserSettings = () => {
 
             {/* Content Area */}
             <Card>
-                {/* User Settings */}
-                {activeTab === 'tabs' && <UserTabsSettings />}
-                {activeTab === 'customization' && <CustomizationSettings />}
-                {activeTab === 'profile' && <ProfileSettings />}
+                <AnimatePresence mode="wait">
+                    {/* User Settings */}
+                    {activeTab === 'tabs' && (
+                        <motion.div
+                            key="tabs"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <UserTabsSettings />
+                        </motion.div>
+                    )}
+                    {activeTab === 'customization' && (
+                        <motion.div
+                            key="customization"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <CustomizationSettings />
+                        </motion.div>
+                    )}
+                    {activeTab === 'profile' && (
+                        <motion.div
+                            key="profile"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <ProfileSettings />
+                        </motion.div>
+                    )}
 
-                {/* Admin Settings - only render if user has access */}
-                {hasAdminAccess && (
-                    <>
-                        {activeTab === 'users' && <UsersSettings />}
-                        {activeTab === 'tabgroups' && <TabGroupsSettings />}
-                        {activeTab === 'widgets' && <WidgetsSettings />}
-                        {activeTab === 'auth' && <AuthSettings />}
-                        {activeTab === 'advanced' && <AdvancedSettings />}
-                    </>
-                )}
+                    {/* Admin Settings - only render if user has access */}
+                    {hasAdminAccess && (
+                        <>
+                            {activeTab === 'users' && (
+                                <motion.div
+                                    key="users"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={contentSpring}
+                                >
+                                    <UsersSettings />
+                                </motion.div>
+                            )}
+                            {activeTab === 'tabgroups' && (
+                                <motion.div
+                                    key="tabgroups"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={contentSpring}
+                                >
+                                    <TabGroupsSettings />
+                                </motion.div>
+                            )}
+                            {activeTab === 'widgets' && (
+                                <motion.div
+                                    key="widgets"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={contentSpring}
+                                >
+                                    <WidgetsSettings />
+                                </motion.div>
+                            )}
+                            {activeTab === 'auth' && (
+                                <motion.div
+                                    key="auth"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={contentSpring}
+                                >
+                                    <AuthSettings />
+                                </motion.div>
+                            )}
+                            {activeTab === 'advanced' && (
+                                <motion.div
+                                    key="advanced"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={contentSpring}
+                                >
+                                    <AdvancedSettings />
+                                </motion.div>
+                            )}
+                        </>
+                    )}
+                </AnimatePresence>
             </Card>
 
             {/* Bottom Spacer - Prevents content cutoff */}

@@ -120,6 +120,57 @@ router.get('/auth', requireAdmin, async (req, res) => {
  */
 router.put('/auth', requireAdmin, async (req, res) => {
     try {
+        // Validate iframe OAuth endpoint must be HTTPS
+        if (req.body.iframe?.enabled && req.body.iframe?.endpoint) {
+            try {
+                const endpointUrl = new URL(req.body.iframe.endpoint);
+                if (endpointUrl.protocol !== 'https:') {
+                    return res.status(400).json({
+                        error: 'OAuth endpoint must use HTTPS for security'
+                    });
+                }
+            } catch (error) {
+                return res.status(400).json({
+                    error: 'Invalid OAuth endpoint URL format'
+                });
+            }
+        }
+
+        // Get current config to check if we're disabling proxy auth
+        const currentConfig = await getSystemConfig();
+        const wasProxyEnabled = currentConfig?.auth?.proxy?.enabled;
+        const willProxyBeDisabled = !req.body.proxy?.enabled;
+
+        // If disabling proxy auth while user is authenticated via proxy,
+        // create a local session to maintain authentication
+        if (wasProxyEnabled && willProxyBeDisabled && req.proxyAuth) {
+            logger.info('Proxy auth being disabled - creating local session', {
+                userId: req.user.id,
+                username: req.user.username
+            });
+
+            // Create a session for the proxy-authenticated user
+            const { createUserSession } = require('../auth/session');
+            const session = await createUserSession(
+                req.user,
+                req,
+                currentConfig.auth.session?.timeout || 86400000 // 24 hours default
+            );
+
+            // Set session cookie so user stays authenticated
+            res.cookie('sessionId', session.id, {
+                httpOnly: true,
+                secure: false, // Allow HTTP for Docker/IP access
+                sameSite: 'lax',
+                maxAge: currentConfig.auth.session?.timeout || 86400000
+            });
+
+            logger.info('Local session created for proxy user', {
+                userId: req.user.id,
+                sessionId: session.id
+            });
+        }
+
         await updateSystemConfig({ auth: req.body });
         const config = await getSystemConfig();
 

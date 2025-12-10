@@ -264,7 +264,7 @@ const FaviconSettings = () => {
             )}
 
             {/* Upload Form */}
-            <div className="glass-subtle shadow-deep border border-theme rounded-xl p-6 space-y-6">
+            <div className="glass-subtle shadow-medium border border-theme rounded-xl p-6 space-y-6">
                 {/* File Upload */}
                 <div>
                     <label className="block mb-2 font-medium text-theme-secondary text-sm">

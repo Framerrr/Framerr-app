@@ -167,7 +167,7 @@ const DebugSettings = () => {
             </div>
 
             {/* Debug Overlay Toggle */}
-            <div className="glass-card rounded-xl p-6 border border-theme">
+            <div className="glass-subtle rounded-xl p-6 border border-theme">
                 <div className="flex items-center justify-between">
                     <div>
                         <h4 className="text-theme-primary font-medium flex items-center gap-2">
@@ -191,7 +191,7 @@ const DebugSettings = () => {
             </div>
 
             {/* Log Level Control */}
-            <div className="glass-card rounded-xl p-6 border border-theme">
+            <div className="glass-subtle rounded-xl p-6 border border-theme">
                 <h4 className="text-theme-primary font-medium mb-3">Log Level</h4>
                 <p className="text-theme-secondary text-sm mb-4">
                     Set minimum log level for system logging
@@ -213,7 +213,7 @@ const DebugSettings = () => {
             </div>
 
             {/* Log Viewer */}
-            <div className="glass-card rounded-xl p-6 border border-theme">
+            <div className="glass-subtle rounded-xl p-6 border border-theme">
                 <div className="flex items-center justify-between mb-4">
                     <h4 className="text-theme-primary font-medium">System Logs</h4>
                     <div className="flex gap-2">

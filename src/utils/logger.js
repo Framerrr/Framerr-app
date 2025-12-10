@@ -22,8 +22,9 @@ const LOG_LEVELS = {
 class Logger {
     constructor() {
         // Get log level from environment, default to 'info'
-        this.level = process.env.LOG_LEVEL || 'info';
-        this.isProduction = process.env.NODE_ENV === 'production';
+        // Use import.meta.env for Vite compatibility (works in dev server and builds)
+        this.level = import.meta.env.VITE_LOG_LEVEL || 'info';
+        this.isProduction = import.meta.env.MODE === 'production';
 
         // Validate log level
         if (!LOG_LEVELS.hasOwnProperty(this.level)) {

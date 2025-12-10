@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
 const FaviconInjector = () => {
-    const [triggerReload, setTriggerReload] = useState(0);
+    const [authorizedFavicon, setAuthorizedFavicon] = useState(null);
+    const [isLoaded, setIsLoaded] = useState(false); // Track if we've loaded from API
+    const observerRef = useRef(null);
+    const isApplyingRef = useRef(false); // Prevent infinite loops
 
     useEffect(() => {
+        logger.debug('FaviconInjector mounted - loading favicon config');
+
         const loadFavicon = async () => {
             try {
                 const response = await axios.get('/api/config/favicon', {
@@ -14,68 +19,150 @@ const FaviconInjector = () => {
 
                 const { htmlSnippet, enabled } = response.data;
 
-                // Cache-busting timestamp
-                const cacheBuster = `?v=${Date.now()}`;
-
-                // Only inject custom favicons if user has uploaded them AND enabled them
-                // htmlSnippet will be null if deleted or never uploaded
+                // Store the authorized favicon HTML (or null for default)
                 if (htmlSnippet && htmlSnippet.trim() && enabled !== false) {
-                    // Remove any existing custom favicon elements (data-favicon-injected)
-                    const existingElements = document.querySelectorAll('[data-favicon-injected]');
-                    existingElements.forEach(el => el.remove());
-
-                    // Remove default Framerr favicon elements (will be replaced with custom)
-                    const defaultFavicons = document.querySelectorAll('link[href^="/favicon-default/"]');
-                    defaultFavicons.forEach(el => el.remove());
-
-                    // Create a temporary container to parse HTML
-                    const temp = document.createElement('div');
-                    // Add cache-busting to all favicon URLs
-                    const htmlWithCacheBust = htmlSnippet.replace(/href="([^"]+)"/g, (match, url) => {
-                        return `href="${url}${cacheBuster}"`;
-                    });
-                    temp.innerHTML = htmlWithCacheBust;
-
-                    // Extract and inject each element into head
-                    Array.from(temp.children).forEach(child => {
-                        // Mark as injected for easy removal later
-                        child.setAttribute('data-favicon-injected', 'true');
-                        document.head.appendChild(child);
-                    });
-
-                    logger.info('Custom favicon loaded successfully with cache-bust');
+                    setAuthorizedFavicon(htmlSnippet);
+                    logger.info('Custom favicon authorized');
                 } else {
-                    // No custom favicon - remove any injected and restore defaults with cache-bust
-                    const existingElements = document.querySelectorAll('[data-favicon-injected]');
-                    existingElements.forEach(el => el.remove());
-
-                    // Add cache-busting to default favicons too
-                    const defaultFavicons = document.querySelectorAll('link[href^="/favicon-default/"]');
-                    defaultFavicons.forEach(link => {
-                        const url = new URL(link.href);
-                        url.searchParams.set('v', Date.now().toString());
-                        link.href = url.toString();
-                    });
-
-                    logger.info('Using default Framerr favicon with cache-bust');
+                    setAuthorizedFavicon(null);
+                    logger.info('Using default Framerr favicon');
                 }
+                setIsLoaded(true); // Mark as loaded regardless of custom/default
             } catch (error) {
-                logger.error('Failed to load favicon:', error);
-                // Fail silently - default Framerr favicon will be used
+                logger.error('Failed to load favicon config:', error);
+                setAuthorizedFavicon(null);
+                setIsLoaded(true); // Still mark as loaded, use default
             }
         };
 
         loadFavicon();
 
-        // Listen for favicon update events
-        const handleFaviconUpdate = () => setTriggerReload(prev => prev + 1);
+        // Listen for favicon update events from settings
+        const handleFaviconUpdate = () => {
+            logger.info('Favicon updated, reloading...');
+            setIsLoaded(false); // Reset to trigger reload
+            loadFavicon();
+        };
         window.addEventListener('faviconUpdated', handleFaviconUpdate);
 
-        return () => window.removeEventListener('faviconUpdated', handleFaviconUpdate);
-    }, [triggerReload]);
+        return () => {
+            window.removeEventListener('faviconUpdated', handleFaviconUpdate);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isLoaded) {
+            // Still loading from API, don't apply anything yet
+            return;
+        }
+
+        const applyAuthorizedFavicon = () => {
+            if (isApplyingRef.current) return; // Prevent recursion
+            isApplyingRef.current = true;
+
+            try {
+                // Remove ALL existing favicon elements
+                const allFaviconLinks = document.querySelectorAll('link[rel*="icon"]');
+                allFaviconLinks.forEach(link => link.remove());
+
+                const cacheBuster = `?v=${Date.now()}`;
+
+                if (authorizedFavicon) {
+                    // Apply custom favicon
+                    const temp = document.createElement('div');
+                    const htmlWithCacheBust = authorizedFavicon.replace(/href="([^"]+)"/g, (match, url) => {
+                        return `href="${url}${cacheBuster}"`;
+                    });
+                    temp.innerHTML = htmlWithCacheBust;
+
+                    Array.from(temp.children).forEach(child => {
+                        child.setAttribute('data-favicon-authorized', 'true');
+                        document.head.appendChild(child);
+                    });
+                    logger.debug('Applied custom favicon');
+                } else {
+                    // Apply default Framerr favicon - create simple favicon link
+                    const link = document.createElement('link');
+                    link.rel = 'icon';
+                    link.type = 'image/svg+xml';
+                    link.href = `/favicon-default/favicon.svg${cacheBuster}`;
+                    link.setAttribute('data-favicon-authorized', 'true');
+                    document.head.appendChild(link);
+                    logger.debug('Applied default favicon');
+                }
+
+                // Mark that favicon has been applied
+                document.documentElement.setAttribute('data-favicon-loaded', 'true');
+            } finally {
+                isApplyingRef.current = false;
+            }
+        };
+
+        // Apply favicon immediately when loaded
+        applyAuthorizedFavicon();
+
+        // Set up MutationObserver to enforce favicon authority
+        const observer = new MutationObserver((mutations) => {
+            let needsReapply = false;
+
+            for (const mutation of mutations) {
+                // Check if any favicon-related nodes were added or removed
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach(node => {
+                        if (node.tagName === 'LINK' &&
+                            node.getAttribute('rel')?.includes('icon') &&
+                            !node.hasAttribute('data-favicon-authorized')) {
+                            // Unauthorized favicon added!
+                            logger.warn('Unauthorized favicon detected, blocking');
+                            needsReapply = true;
+                        }
+                    });
+
+                    mutation.removedNodes.forEach(node => {
+                        if (node.tagName === 'LINK' &&
+                            node.getAttribute('rel')?.includes('icon') &&
+                            node.hasAttribute('data-favicon-authorized')) {
+                            // Our authorized favicon was removed!
+                            logger.warn('Authorized favicon was removed, reapplying');
+                            needsReapply = true;
+                        }
+                    });
+                }
+
+                // Check if any authorized favicon had its attributes modified
+                if (mutation.type === 'attributes' &&
+                    mutation.target.tagName === 'LINK' &&
+                    mutation.target.hasAttribute('data-favicon-authorized')) {
+                    logger.warn('Authorized favicon modified, reapplying');
+                    needsReapply = true;
+                }
+            }
+
+            if (needsReapply) {
+                applyAuthorizedFavicon();
+            }
+        });
+
+        // Observe the <head> element for any changes
+        observer.observe(document.head, {
+            childList: true,
+            attributes: true,
+            subtree: false,
+            attributeFilter: ['href', 'rel', 'type']
+        });
+
+        observerRef.current = observer;
+
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+        };
+    }, [authorizedFavicon, isLoaded]);
 
     // This component doesn't render anything
     return null;
 };
 
 export default FaviconInjector;
+

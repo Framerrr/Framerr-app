@@ -1,7 +1,101 @@
 # ✅ COMPLETED TASKS
 
 
-**Last Updated:** 2025-12-08 14:40:00
+**Last Updated:** 2025-12-10T04:31:14-05:00
+
+---
+
+## Session: Code Audit and Sidebar Theming (Dec 10, 2025)
+
+**Duration:** 04:06 - 04:31 (25 minutes)  
+**Tool Calls:** ~200  
+**Commits:** 3  
+**Status:** ✅ Complete
+
+### Overview
+Comprehensive code audit session identifying and fixing console.log usage, then migrating Sidebar.jsx to theme utility classes for improved Light/Dark theme support, with partial revert of dividers per user preference.
+
+### Work Completed
+
+1. **Console.log Cleanup** - Converted to logger.debug (1 instance)
+2. **Sidebar Theming** - Migrated 22 hardcoded colors to theme classes  
+3. **Divider Revert** - Restored hardcoded border colors per user request
+
+### Files Modified
+- FaviconInjector.jsx (logging cleanup)
+- Sidebar.jsx (theming migration + partial revert)
+
+### Results
+- 23 total replacements
+- All builds passing
+- Text colors themed for Light/Dark support
+- Dividers hardcoded as originally designed
+
+### Deployment
+- Branch: feat/iframe-auth-detection
+- Commits: cab3bdf, 0551a8d, 4384d33
+- Ready for Light theme testing
+
+---
+
+## Session: Login Modernization & Auth Proxy Fixes (Dec 9, 2025)
+
+**Duration:** 22:48 - 23:42 (54 minutes)  
+**Tool Calls:** ~70  
+**Commits:** 3  
+**Status:** ✅ Complete - Ready for testing
+
+### Overview
+Triple-feature session implementing login page modernization with animations and fixing two related auth proxy bugs for seamless authentication transitions.
+
+### Work Completed
+
+#### 1. Login Page Modernization
+**Commit:** `66a1870`
+
+- Replaced all hardcoded colors with theme utility classes (zero hardcoded colors)
+- Added Framer Motion entrance animations (card slide-up, spring physics)
+- Implemented button hover/tap animations (scale 1.02/0.98)
+- Added error message shake animation
+- Enhanced loading states with smooth spinner transitions
+- Applied glass-subtle glassmorphism effect
+- Improved spacing, padding, and premium feel
+- Added icon glow effects with accent color
+- Theme compliant: works with all 5 themes + custom colors
+- Animation physics: stiffness 220, damping 30 (gentle & fluid)
+
+**Files:** `src/pages/Login.jsx` (124 insertions, 34 deletions)
+
+#### 2. Auth Proxy Bypass Toggle Fix
+**Commit:** `c8f171a`
+
+- **Bug:** Proxy auth toggle didn't work after toggling off/on with local session
+- **Root cause:** systemConfig cached at startup, never refreshed
+- **Fix:** Load fresh config from database on each middleware execution
+- **Result:** Proxy toggle takes effect immediately without server restart
+
+**Files:** `server/index.js` (3 insertions, 1 deletion)
+
+#### 3. Auth Proxy Transition Fix
+**Commit:** `ed55c14`
+
+- **Bug:** Toggling proxy auth OFF while logged in via proxy caused "not authenticated" error
+- **Root cause:** Proxy uses headers (no session cookie), disabling removed authentication
+- **Fix:** Securely create local session when disabling proxy auth while proxy-authenticated
+- **Result:** User stays logged in seamlessly during auth method transitions
+- **Security:** No compromise (user already authenticated, admin-only toggle)
+
+**Files:** `server/routes/config.js` (35 insertions)
+
+### Testing
+- ✅ All builds passed (4.74s, 8.64s, 4.86s)
+- ✅ Color audit clean (zero hardcoded colors)
+- ⏳ Manual testing pending: Login animations, theme compliance, proxy auth toggle workflow
+
+### Deployment
+- Branch: `feat/iframe-auth-detection`
+- Docker: Needs rebuild with latest changes
+- Commits: 66a1870, c8f171a, ed55c14
 
 ---
 
@@ -660,6 +754,215 @@ Implemented mobile tab bar padding for non-iframe pages using empty spacer divs,
 -  Docker image: pickels23/framerr:debug
 -  Digest: sha256:bb485256aa7e7b156029de78a4b2f53656d6668d
 -  Build verified: 1874 modules, all passing
+
+---
+
+## Session: Code Audit and Cleanup (Dec 8, 2025)
+
+**Duration:** 22:17 - 22:44 (27 minutes)  
+**Tool Calls:** ~65  
+**Status:**  Complete - All cleanup committed
+
+### Overview
+Comprehensive code audit analyzing all changes since v1.1.7, identifying and removing dead code, converting console statements to structured logging, and improving code quality.
+
+### Work Completed
+
+1. **Comprehensive Code Audit** - Analyzed 10 files, created detailed audit report
+2. **Dead Code Removal** - Removed 24 lines of non-functional Authentik listener
+3. **Logger Conversions** - Converted 6 console.error to structured logger.error
+4. **Documentation** - Created code-audit-report.md and cleanup-summary.md
+
+### Files Modified
+- TabContainer.jsx (removed Authentik postMessage listener)
+- AppDataContext.jsx (2 logger conversions)
+- PlexWidget.jsx (3 logger conversions)
+- AddWidgetModal.jsx (1 logger conversion)
+
+### Results
+- Net impact: -18 lines (cleaner code)
+- Build time: 5.93s 
+- No warnings
+- All functionality preserved
+
+### Deployment
+- Commit: chore: code audit cleanup - remove dead code and convert console statements
+- Build verified passing
+- No Docker update needed (code quality maintenance)
+
+---
+
+
+
+## Session: Settings UI/UX Standardization (Dec 9, 2025)
+
+**Duration:** 01:48 - 02:44 (56 minutes)  
+**Tool Calls:** ~360  
+**Commits:** 10  
+**Status:**  Complete - All settings standardized
+
+### Overview
+Comprehensive UI/UX improvements across all Settings pages including iframe auth detection relocation, glassmorphism standardization, theme class conversion, save button change tracking, and visual depth adjustments.
+
+### Work Completed
+
+1. **Iframe Auth Detection Relocation** - Moved to Auth  iFrame Auth tab with limitation docs
+2. **Container Styling** - glass-subtle shadow-medium applied to 6 files
+3. **Theme Class Conversion** - 18 hardcoded colors replaced with theme classes  
+4. **Save Button Tracking** - Change detection for App Name/Icon and Greeting
+5. **Visual Depth Adjustment** - Lightened Advanced Settings shadows
+
+### Files Modified (6 total)
+- AuthSettings.jsx (relocation + shadow update)
+- CustomizationSettings.jsx (removal + styling + tracking)
+- ProfileSettings.jsx (shadow update)
+- FaviconSettings.jsx (shadow update)
+- WidgetGallery.jsx (theme classes)
+- Advanced Settings (DiagnosticsSettings, DebugSettings, SystemSettings)
+
+### Results
+- All settings use glassmorphism consistently
+- Full Light/Dark theme compatibility
+- Flatten UI mode support
+- Professional, cohesive design language
+- +25 net lines (improved functionality)
+
+### Deployment
+- Branch: feat/iframe-auth-detection
+- Build verified passing
+- Ready for testing and merge
+
+---
+
+## Session: Settings Tab Animations (Dec 9, 2025)
+
+**Duration:** 19:00 - 19:33 (33 minutes)  
+**Tool Calls:** 251  
+**Commits:** 7  
+**Status:** ✅ Complete - All settings tab animations implemented
+
+### Overview
+Implemented sliding indicators and page transitions for all Settings navigation (8 main tabs + 12 sub-tabs across 4 components) using /animation-test as reference pattern.
+
+### Work Completed
+
+#### Main Tab Animations (UserSettings.jsx)
+- ✅ Sliding tab indicators for 8 main tabs (layoutId="settingsTabIndicator")
+- ✅ Page transitions with slide animation (x: 20 → 0 → -20)  
+- ✅ AnimatePresence wrapper with mode="wait"
+- ✅ Spring configs: tabs 350/35, content 220/30
+
+#### Sub-Tab Animations  
+- ✅ **WidgetsSettings:** 3 sub-tabs (Gallery, Integrations, Active)
+- ✅ **CustomizationSettings:** 3 sub-tabs (General, Colors, Favicon)
+- ✅ **AuthSettings:** 2 sub-tabs (Auth Proxy, iFrame Auth)
+- ✅ **AdvancedSettings:** 4 sub-tabs (Debug, System, Experimental, Developer)  
+- ✅ Total: 12 sub-tabs with sliding indicators
+
+### Files Modified (5 total)
+- src/pages/UserSettings.jsx
+- src/components/settings/WidgetsSettings.jsx
+- src/components/settings/CustomizationSettings.jsx
+- src/components/settings/AuthSettings.jsx
+- src/components/settings/AdvancedSettings.jsx
+
+### Bug Fixes
+1. Wrong file target (Settings.jsx vs UserSettings.jsx)
+2. Missing motion import in CustomizationSettings (ReferenceError)
+3. Missed AuthSettings sub-tab indicators
+
+### Git Commits
+1. feat(mobile): add fluid sliding indicators to mobile tab bar
+2. feat(mobile): refine menu expansion for fluid bottom-up growth
+3. feat(settings): add fluid sliding indicators to main tabs
+4. fix(settings): apply sliding indicators to correct UserSettings.jsx file
+5. feat(settings): add page transitions matching AnimationTest pattern
+6. feat(settings): add sliding indicators to all sub-tab navigation
+7. fix(settings): add missing motion import and Auth sub-tab indicators
+
+### Testing
+- ✅ Build passed on all commits (3.28s - 4.46s)
+- ✅ No errors or warnings
+- ✅ User tested and approved animations
+
+### Deployment
+- Branch: feat/iframe-auth-detection
+- User handled Docker build/push manually
+- Ready for production merge
+
+---
+
+## Session: IconPicker & Modal Improvements (Dec 9, 2025)
+
+**Duration:** 20:30 - 22:30 (~2 hours)  
+**Tool Calls:** 460  
+**Commits:** 17  
+**Status:** ✅ Complete - All IconPicker and modal improvements deployed
+
+### Overview
+Redesigned IconPicker with Radix UI Popover and converted all settings modals to Radix Dialog with professional animations and mobile compatibility.
+
+### Work Completed
+
+#### Phase 1: IconPicker Redesign
+- ✅ **Radix UI Popover Migration:** Replaced manual positioning with `@radix-ui/react-popover`
+- ✅ **Mobile Compatibility:** Fixed top-left corner positioning bug
+- ✅ **Framer Motion Animations:** Scale + fade entrance/exit (stiffness: 220, damping: 30)
+- ✅ **Collision Detection:** 24px padding, automatic flip behavior
+- ✅ **Vertical Sizing:** Conservative 50vh max-height for small screens
+
+#### Phase 2: Modal Improvements
+- ✅ **UserTabsSettings:** Converted to Radix Dialog with animations
+- ✅ **TabGroupsSettings:** Applied identical Dialog pattern
+- ✅ **Mobile Scroll-Lock:** Working perfectly on mobile browsers
+- ✅ **Responsive Sizing:** `w-[calc(100%-2rem)]` for all breakpoints
+- ✅ **Animation Consistency:** Matching spring physics across all modals
+
+#### Phase 3: Vertical Sizing Refinements
+- ✅ **Collision Padding:** Increased to 24px to prevent edge cutoff
+- ✅ **Max Height:** Reduced 80vh → 50vh for earlier shrinking
+- ✅ **Testing:** Verified no header cutoff on mobile
+
+### Files Modified (4 total)
+- `src/components/IconPicker.jsx` - Radix Popover, animations, sizing
+- `src/components/settings/UserTabsSettings.jsx` - Radix Dialog, animations
+- `src/components/settings/TabGroupsSettings.jsx` - Radix Dialog, animations
+- `package.json` - Added @radix-ui/react-popover, @radix-ui/react-dialog
+
+### Dependencies Added
+-  `@radix-ui/react-popover@^1.x.x`
+- `@radix-ui/react-dialog@^1.x.x`
+
+###Git Commits (17 total)
+1. feat(icon-picker): add fluid animations and theme system integration
+2. fix(icon-picker): increase z-index for layering
+3. fix(icon-picker): use React Portal for mobile compatibility
+4. fix(icon-picker): use absolute positioning
+5. fix(icon-picker): add scroll listener
+6. refactor(icon-picker): convert to popover pattern
+7. fix(icon-picker): make popover scroll with page
+8. fix(icon-picker): use solid background
+9. feat(icon-picker): integrate Floating UI
+10. fix(icon-picker): use FloatingPortal and autoUpdate
+11. fix(icon-picker): remove y-transform
+12. refactor(icon-picker): replace Floating UI with Radix UI Popover
+13. fix(tabs-settings): use Radix Dialog for mobile scroll-lock
+14. fix(tabs-settings): improve modal responsive sizing
+15. feat: add entrance/exit animations to modals
+16. fix(icon-picker): add collision padding
+17. fix(icon-picker): reduce max-height to 50vh
+
+### Testing
+- ✅ Build passed on all commits (4-6 seconds)
+- ✅ Tested on mobile browsers
+- ✅ Animations smooth and performant
+- ✅ User confirmed all issues resolved
+
+### Deployment
+- ✅ Docker image: `pickels23/framerr:develop`
+- ✅ Digest: sha256:47aef9d0971b3e3ecb7a70a2eea849403a1347b0f84252cfe3f79fd91c6ef3f6
+- Branch: feat/iframe-auth-detection
+- Ready for production merge
 
 ---
 
