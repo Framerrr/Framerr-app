@@ -204,7 +204,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                     <div className="w-full h-1.5 bg-theme-tertiary rounded-full overflow-hidden">
                         <div
                             style={{
-                                width: `${metric === 'temperature' ? Math.min((value / 100) * 100, 100) : value}%`,
+                                width: `${metric === 'temperature' ? Math.min(value, 100) : value}%`,
                                 backgroundColor: getColor(value)
                             }}
                             className="h-full rounded-full transition-all duration-300"
@@ -245,8 +245,8 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                                                 key={range}
                                                 onClick={() => setCurrentRange(range)}
                                                 className={`text-xs px-2 py-1 rounded transition-all ${currentRange === range
-                                                        ? 'bg-accent text-white'
-                                                        : 'bg-theme-tertiary text-theme-secondary hover:text-theme-primary'
+                                                    ? 'bg-accent text-white'
+                                                    : 'bg-theme-tertiary text-theme-secondary hover:text-theme-primary'
                                                     }`}
                                             >
                                                 {range}
@@ -293,11 +293,13 @@ const SystemStatusWidget = ({ config }) => {
     // Extract config with defaults
     const { enabled = false, url = '', token = '' } = config || {};
     const [statusData, setStatusData] = useState({ cpu: 0, memory: 0, temperature: 0, uptime: '--' });
+    const [loading, setLoading] = useState(true);
 
     // Fetch status data - only when integration is enabled
     useEffect(() => {
         if (!isIntegrationEnabled) {
             // Integration disabled - don't fetch
+            setLoading(false);
             return;
         }
 
@@ -332,8 +334,10 @@ const SystemStatusWidget = ({ config }) => {
                     temperature: data.temperature || 0,
                     uptime: data.uptime || '--'
                 });
+                setLoading(false);
             } catch (e) {
                 logger.error('Status fetch error:', e);
+                setLoading(false);
             }
         };
 
@@ -362,6 +366,15 @@ const SystemStatusWidget = ({ config }) => {
     // Show integration disabled message if not enabled
     if (!isIntegrationEnabled) {
         return <IntegrationDisabledMessage serviceName="System Health" />;
+    }
+
+    // Show loading state
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full text-theme-secondary">
+                Loading system status...
+            </div>
+        );
     }
 
     return (
