@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Filter, ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react';
 const CombinedCalendarWidget = ({ config }) => {
@@ -224,56 +225,68 @@ const CombinedCalendarWidget = ({ config }) => {
                 </div>
             )}
             {/* Click Modal - Centered Above Widget */}
-            {selectedEvent && (
-                <>
-                    {/* Backdrop */}
-                    <div
-                        onClick={() => setSelectedEvent(null)}
-                        className="absolute inset-0 bg-black/50 z-[9998] rounded-xl"
-                    />
-                    {/* Modal */}
-                    <div className="absolute top-[10%] left-1/2 transform -translate-x-1/2 bg-theme-secondary border border-theme rounded-xl p-4 z-[9999] w-[90%] max-w-[300px] shadow-deep">
-                        {/* Close button */}
-                        <button
+            <AnimatePresence>
+                {selectedEvent && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                             onClick={() => setSelectedEvent(null)}
-                            className="absolute top-2 right-2 text-theme-secondary hover:text-theme-primary transition-colors"
+                            className="absolute inset-0 bg-black/50 z-[9998] rounded-xl"
+                        />
+                        {/* Modal */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96, y: -10 }}
+                            transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                            className="absolute top-[10%] left-1/2 transform -translate-x-1/2 glass-card border-theme rounded-xl p-4 z-[9999] w-[90%] max-w-[300px] shadow-2xl"
                         >
-                            <X size={16} />
-                        </button>
-                        {/* Title */}
-                        <div className="text-sm font-semibold mb-3 text-theme-primary pr-6">
-                            {selectedEvent.type === 'sonarr'
-                                ? (selectedEvent.series?.title || selectedEvent.seriesTitle || 'Unknown Show')
-                                : (selectedEvent.title || 'Unknown Movie')
-                            }
-                        </div>
-                        {/* Episode info for TV shows */}
-                        {selectedEvent.type === 'sonarr' && (
-                            <div className="text-xs text-info mb-2 font-medium">
-                                Season {selectedEvent.seasonNumber} Episode {selectedEvent.episodeNumber}
-                                {selectedEvent.title && ` - ${selectedEvent.title}`}
+                            {/* Close button */}
+                            <button
+                                onClick={() => setSelectedEvent(null)}
+                                className="absolute top-2 right-2 text-theme-secondary hover:text-theme-primary transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                            {/* Title */}
+                            <div className="text-sm font-semibold mb-3 text-theme-primary pr-6">
+                                {selectedEvent.type === 'sonarr'
+                                    ? (selectedEvent.series?.title || selectedEvent.seriesTitle || 'Unknown Show')
+                                    : (selectedEvent.title || 'Unknown Movie')
+                                }
                             </div>
-                        )}
-                        {/* Release date */}
-                        <div className="text-xs text-theme-secondary mb-3">
-                            {selectedEvent.type === 'sonarr'
-                                ? `Airs: ${new Date(selectedEvent.airDate).toLocaleDateString()}`
-                                : `Release: ${new Date(
-                                    selectedEvent.physicalRelease ||
-                                    selectedEvent.digitalRelease ||
-                                    selectedEvent.inCinemas
-                                ).toLocaleDateString()}`
-                            }
-                        </div>
-                        {/* Overview */}
-                        {selectedEvent.overview && (
-                            <div className="text-xs text-theme-secondary leading-relaxed max-h-[120px] overflow-auto custom-scrollbar">
-                                {selectedEvent.overview}
+                            {/* Episode info for TV shows */}
+                            {selectedEvent.type === 'sonarr' && (
+                                <div className="text-xs text-info mb-2 font-medium">
+                                    Season {selectedEvent.seasonNumber} Episode {selectedEvent.episodeNumber}
+                                    {selectedEvent.title && ` - ${selectedEvent.title}`}
+                                </div>
+                            )}
+                            {/* Release date */}
+                            <div className="text-xs text-theme-secondary mb-3">
+                                {selectedEvent.type === 'sonarr'
+                                    ? `Airs: ${new Date(selectedEvent.airDate).toLocaleDateString()}`
+                                    : `Release: ${new Date(
+                                        selectedEvent.physicalRelease ||
+                                        selectedEvent.digitalRelease ||
+                                        selectedEvent.inCinemas
+                                    ).toLocaleDateString()}`
+                                }
                             </div>
-                        )}
-                    </div>
-                </>
-            )}
+                            {/* Overview */}
+                            {selectedEvent.overview && (
+                                <div className="text-xs text-theme-secondary leading-relaxed max-h-[120px] overflow-auto custom-scrollbar">
+                                    {selectedEvent.overview}
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
