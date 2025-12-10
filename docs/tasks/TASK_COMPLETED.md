@@ -796,4 +796,79 @@ Implemented sliding indicators and page transitions for all Settings navigation 
 - User handled Docker build/push manually
 - Ready for production merge
 
+---
+
+## Session: IconPicker & Modal Improvements (Dec 9, 2025)
+
+**Duration:** 20:30 - 22:30 (~2 hours)  
+**Tool Calls:** 460  
+**Commits:** 17  
+**Status:** ✅ Complete - All IconPicker and modal improvements deployed
+
+### Overview
+Redesigned IconPicker with Radix UI Popover and converted all settings modals to Radix Dialog with professional animations and mobile compatibility.
+
+### Work Completed
+
+#### Phase 1: IconPicker Redesign
+- ✅ **Radix UI Popover Migration:** Replaced manual positioning with `@radix-ui/react-popover`
+- ✅ **Mobile Compatibility:** Fixed top-left corner positioning bug
+- ✅ **Framer Motion Animations:** Scale + fade entrance/exit (stiffness: 220, damping: 30)
+- ✅ **Collision Detection:** 24px padding, automatic flip behavior
+- ✅ **Vertical Sizing:** Conservative 50vh max-height for small screens
+
+#### Phase 2: Modal Improvements
+- ✅ **UserTabsSettings:** Converted to Radix Dialog with animations
+- ✅ **TabGroupsSettings:** Applied identical Dialog pattern
+- ✅ **Mobile Scroll-Lock:** Working perfectly on mobile browsers
+- ✅ **Responsive Sizing:** `w-[calc(100%-2rem)]` for all breakpoints
+- ✅ **Animation Consistency:** Matching spring physics across all modals
+
+#### Phase 3: Vertical Sizing Refinements
+- ✅ **Collision Padding:** Increased to 24px to prevent edge cutoff
+- ✅ **Max Height:** Reduced 80vh → 50vh for earlier shrinking
+- ✅ **Testing:** Verified no header cutoff on mobile
+
+### Files Modified (4 total)
+- `src/components/IconPicker.jsx` - Radix Popover, animations, sizing
+- `src/components/settings/UserTabsSettings.jsx` - Radix Dialog, animations
+- `src/components/settings/TabGroupsSettings.jsx` - Radix Dialog, animations
+- `package.json` - Added @radix-ui/react-popover, @radix-ui/react-dialog
+
+### Dependencies Added
+-  `@radix-ui/react-popover@^1.x.x`
+- `@radix-ui/react-dialog@^1.x.x`
+
+###Git Commits (17 total)
+1. feat(icon-picker): add fluid animations and theme system integration
+2. fix(icon-picker): increase z-index for layering
+3. fix(icon-picker): use React Portal for mobile compatibility
+4. fix(icon-picker): use absolute positioning
+5. fix(icon-picker): add scroll listener
+6. refactor(icon-picker): convert to popover pattern
+7. fix(icon-picker): make popover scroll with page
+8. fix(icon-picker): use solid background
+9. feat(icon-picker): integrate Floating UI
+10. fix(icon-picker): use FloatingPortal and autoUpdate
+11. fix(icon-picker): remove y-transform
+12. refactor(icon-picker): replace Floating UI with Radix UI Popover
+13. fix(tabs-settings): use Radix Dialog for mobile scroll-lock
+14. fix(tabs-settings): improve modal responsive sizing
+15. feat: add entrance/exit animations to modals
+16. fix(icon-picker): add collision padding
+17. fix(icon-picker): reduce max-height to 50vh
+
+### Testing
+- ✅ Build passed on all commits (4-6 seconds)
+- ✅ Tested on mobile browsers
+- ✅ Animations smooth and performant
+- ✅ User confirmed all issues resolved
+
+### Deployment
+- ✅ Docker image: `pickels23/framerr:develop`
+- ✅ Digest: sha256:47aef9d0971b3e3ecb7a70a2eea849403a1347b0f84252cfe3f79fd91c6ef3f6
+- Branch: feat/iframe-auth-detection
+- Ready for production merge
+
+---
 

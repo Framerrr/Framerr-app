@@ -1,19 +1,19 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-09T19:36:00-05:00  
+**Last Updated:** 2025-12-09T22:30:00-05:00  
 **Current Version:** v1.1.7  
 **Development Branch:** `feat/iframe-auth-detection`  
 **Production Branch:** `main`  
 **Production Docker:** `pickels23/framerr:1.1.7` and `:latest`  
-**Development Docker:** `pickels23/framerr:develop`
+**Development Docker:** `pickels23/framerr:develop` (sha256:47aef9d0971b)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase:** UI/UX Animations Complete
+**Phase:** UI/UX Component Improvements Complete
 
-**Status:** ✅ All Settings animations implemented and committed
+**Status:** ✅ All IconPicker and modal improvements implemented and deployed
 
 ---
 
@@ -25,7 +25,7 @@
 | **Frontend** | ✅ Operational | All features working |
 | **Iframe Auth** | ✅ Working | Manual Lock button + relocated settings |
 | **Docker Production** | ✅ Live | `pickels23/framerr:1.1.7` and `:latest` |
-| **Docker Development** | ✅ Available | `pickels23/framerr:develop` |
+| **Docker Development** | ✅ Deployed | `pickels23/framerr:develop` (Dec 9) |
 | **Documentation** | ✅ Complete | Full v2.0 system |
 | **Workflows** | ✅ Active | 8 workflows operational |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
@@ -33,10 +33,29 @@
 | **React Security** | ✅ Patched | React 19.2.1 (CVE-2025-12-03) |
 | **Settings UX** | ✅ Standardized | Theme-compliant glassmorphism |
 | **Settings Animations** | ✅ Complete | Sliding indicators + page transitions |
+| **IconPicker/Modals** | ✅ Complete | Radix UI with animations |
 
 ---
 
 ## 🚀 Recent Accomplishments
+
+### IconPicker & Modal Improvements (Dec 9, 2025) - COMPLETE ✅
+- ✅ **IconPicker Redesign:** Migrated to Radix UI Popover
+  - Automatic positioning with flip/collision detection
+  - Fixed mobile browser positioning (no more top-left corner)
+  - Framer Motion animations (scale + fade, spring physics)
+  - Collision padding (24px) prevents edge cutoff
+  - Conservative max-height (50vh) for small screens
+- ✅ **Modal Improvements:** Converted to Radix Dialog
+  - UserTabsSettings and TabGroupsSettings
+  - Mobile scroll-lock working perfectly
+  - Entrance/exit animations matching IconPicker
+  - Responsive sizing for all screen widths
+- ✅ **Dependencies Added:**
+  - @radix-ui/react-popover
+  - @radix-ui/react-dialog
+- 📝 17 commits, 460 tool calls
+- 🐳 Deployed: `pickels23/framerr:develop`
 
 ### Settings Tab Animations (Dec 9, 2025) - COMPLETE ✅
 - ✅ **Main Tab Indicators:** Sliding indicators for 8 main settings tabs
