@@ -499,36 +499,54 @@ const CustomizationSettings = () => {
             </div>
 
             {/* Sub-Tabs */}
-            <div className="flex gap-2 border-b border-theme">
+            <div className="flex gap-2 border-b border-theme relative">
                 <button
                     onClick={() => setActiveSubTab('general')}
-                    className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'general'
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <SettingsIcon size={18} className="inline mr-2" />
-                    General
+                    <div className="flex items-center gap-2 relative z-10">
+                        <SettingsIcon size={18} className={activeSubTab === 'general' ? 'text-accent' : ''} />
+                        <span className={activeSubTab === 'general' ? 'text-accent' : ''}>General</span>
+                    </div>
+                    {activeSubTab === 'general' && (
+                        <motion.div
+                            layoutId="customizationSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        />
+                    )}
                 </button>
                 <button
                     onClick={() => setActiveSubTab('colors')}
-                    className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'colors'
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <Palette size={18} className="inline mr-2" />
-                    Colors
+                    <div className="flex items-center gap-2 relative z-10">
+                        <Palette size={18} className={activeSubTab === 'colors' ? 'text-accent' : ''} />
+                        <span className={activeSubTab === 'colors' ? 'text-accent' : ''}>Colors</span>
+                    </div>
+                    {activeSubTab === 'colors' && (
+                        <motion.div
+                            layoutId="customizationSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        />
+                    )}
                 </button>
                 <button
                     onClick={() => setActiveSubTab('favicon')}
-                    className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'favicon'
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <ImageIcon size={18} className="inline mr-2" />
-                    Favicon
+                    <div className="flex items-center gap-2 relative z-10">
+                        <ImageIcon size={18} className={activeSubTab === 'favicon' ? 'text-accent' : ''} />
+                        <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
+                    </div>
+                    {activeSubTab === 'favicon' && (
+                        <motion.div
+                            layoutId="customizationSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        />
+                    )}
                 </button>
             </div>
 
