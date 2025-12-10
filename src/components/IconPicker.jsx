@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Upload } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import logger from '../utils/logger';
@@ -230,193 +231,240 @@ const IconPicker = ({ value, onChange }) => {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white hover:border-blue-500 transition-colors w-full"
+                className="flex items-center gap-2 px-4 py-2.5 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors w-full"
                 title={getIconDisplayName()} // Tooltip shows icon name
             >
                 <CurrentIcon size={20} />
                 <span className="flex-1 text-left truncate">{getIconDisplayName()}</span>
-                <Search size={16} className="text-slate-400" />
+                <Search size={16} className="text-theme-secondary" />
             </button>
 
             {/* Modal */}
-            {isOpen && (
-                <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 bg-black/50 z-40"
-                        onClick={(e) => {
-                            if (e.target === e.currentTarget) {
-                                setIsOpen(false);
-                            }
-                        }}
-                    />
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-0 bg-black/50 z-40"
+                            onClick={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    setIsOpen(false);
+                                }
+                            }}
+                        />
 
-                    {/* Picker Modal */}
-                    <div className="absolute top-full left-0 mt-2 w-full md:w-96 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-slate-700">
-                            <h3 className="font-semibold text-white">Select Icon</h3>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="text-slate-400 hover:text-white transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
+                        {/* Picker Modal */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96, y: -10 }}
+                            transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                            className="absolute top-full left-0 mt-2 w-full md:w-96 glass-card border-theme rounded-xl shadow-2xl z-50 overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-4 border-b border-theme">
+                                <h3 className="font-semibold text-theme-primary">Select Icon</h3>
+                                <button
+                                    onClick={() => setIsOpen(false)}
+                                    className="text-theme-secondary hover:text-theme-primary transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
 
-                        {/* Tabs */}
-                        <div className="flex border-b border-slate-700">
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveTab('icons');
-                                }}
-                                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'icons'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:text-white'
-                                    }`}
-                            >
-                                Icons
-                            </button>
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveTab('upload');
-                                }}
-                                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'upload'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:text-white'
-                                    }`}
-                            >
-                                Upload
-                            </button>
-                        </div>
+                            {/* Tabs */}
+                            <div className="flex border-b border-theme relative">
+                                {/* Sliding indicator */}
+                                {activeTab === 'icons' ? (
+                                    <motion.div
+                                        layoutId="iconPickerTabIndicator"
+                                        className="absolute bottom-0 left-0 right-1/2 h-0.5 bg-accent"
+                                        transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                                    />
+                                ) : (
+                                    <motion.div
+                                        layoutId="iconPickerTabIndicator"
+                                        className="absolute bottom-0 left-1/2 right-0 h-0.5 bg-accent"
+                                        transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                                    />
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveTab('icons');
+                                    }}
+                                    className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'icons'
+                                            ? 'text-accent'
+                                            : 'text-theme-secondary hover:text-theme-primary'
+                                        }`}
+                                >
+                                    Icons
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveTab('upload');
+                                    }}
+                                    className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'upload'
+                                            ? 'text-accent'
+                                            : 'text-theme-secondary hover:text-theme-primary'
+                                        }`}
+                                >
+                                    Upload
+                                </button>
+                            </div>
 
-                        {/* Content */}
-                        <div className="p-4 max-h-96 overflow-y-auto">
-                            {activeTab === 'icons' ? (
-                                <>
-                                    {/* Search */}
-                                    <div className="mb-4">
-                                        <div className="relative">
-                                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                value={search}
-                                                onChange={(e) => setSearch(e.target.value)}
-                                                placeholder="Search icons..."
-                                                className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-                                            />
-                                        </div>
-                                    </div>
+                            {/* Content */}
+                            <div className="p-4 max-h-96 overflow-y-auto">
+                                <AnimatePresence mode="wait">
+                                    {activeTab === 'icons' ? (
+                                        <motion.div
+                                            key="icons"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                                        >
+                                            {/* Search */}
+                                            <div className="mb-4">
+                                                <div className="relative">
+                                                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-secondary" />
+                                                    <input
+                                                        type="text"
+                                                        value={search}
+                                                        onChange={(e) => setSearch(e.target.value)}
+                                                        placeholder="Search icons..."
+                                                        className="w-full pl-10 pr-4 py-2 bg-theme-secondary border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:border-accent transition-colors"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    {/* Icon Grid */}
-                                    <div className="grid grid-cols-6 gap-2">
-                                        {filteredIcons.map(iconName => {
-                                            const IconComponent = Icons[iconName] || Icons.Server;
-                                            const isSelected = value === iconName;
+                                            {/* Icon Grid */}
+                                            <div className="grid grid-cols-6 gap-2">
+                                                {filteredIcons.map(iconName => {
+                                                    const IconComponent = Icons[iconName] || Icons.Server;
+                                                    const isSelected = value === iconName;
 
-                                            return (
-                                                <button
-                                                    key={iconName}
-                                                    type="button"
-                                                    onClick={() => handleIconSelect(iconName)}
-                                                    className={`p-3 rounded-lg transition-colors ${isSelected
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
-                                                        }`}
-                                                    title={iconName}
-                                                >
-                                                    <IconComponent size={20} />
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {filteredIcons.length === 0 && (
-                                        <div className="text-center py-8 text-slate-400">
-                                            No icons found matching "{search}"
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                /* Upload Tab */
-                                <div className="space-y-4">
-                                    {/* Upload Button */}
-                                    <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors w-full">
-                                        <Upload size={18} />
-                                        <span>Upload New Icon</span>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            className="hidden"
-                                        />
-                                    </label>
-                                    <p className="text-xs text-slate-500 text-center">
-                                        Recommended: 512x512px, PNG or SVG (max 5MB)
-                                    </p>
-
-                                    {/* Uploaded Icons Grid */}
-                                    {loadingIcons ? (
-                                        <div className="text-center py-8 text-slate-400">
-                                            Loading uploaded icons...
-                                        </div>
-                                    ) : uploadedIcons.length > 0 ? (
-                                        <>
-                                            <h4 className="text-sm font-medium text-slate-300 mt-4">Uploaded Icons</h4>
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {uploadedIcons.map((icon) => {
-                                                    const isSelected = value === `custom:${icon.id}`;
                                                     return (
-                                                        <div
-                                                            key={icon.id}
-                                                            className="relative group"
+                                                        <motion.button
+                                                            key={iconName}
+                                                            type="button"
+                                                            onClick={() => handleIconSelect(iconName)}
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                                            className={`p-3 rounded-lg transition-colors ${isSelected
+                                                                    ? 'bg-accent text-white'
+                                                                    : 'bg-theme-tertiary text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+                                                                }`}
+                                                            title={iconName}
                                                         >
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleIconSelect(`custom:${icon.id}`)}
-                                                                className={`w-full aspect-square p-2 rounded-lg transition-colors ${isSelected
-                                                                    ? 'bg-blue-600 ring-2 ring-blue-400'
-                                                                    : 'bg-slate-700/50 hover:bg-slate-700'
-                                                                    }`}
-                                                                title={icon.originalName}
-                                                            >
-                                                                <img
-                                                                    src={`/api/custom-icons/${icon.id}/file`}
-                                                                    alt={icon.originalName}
-                                                                    className="w-full h-full object-contain"
-                                                                />
-                                                            </button>
-                                                            {/* Delete Button - Shows on hover */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDeleteIcon(icon.id)}
-                                                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                                                title="Delete icon"
-                                                            >
-                                                                <X size={12} />
-                                                            </button>
-                                                        </div>
+                                                            <IconComponent size={20} />
+                                                        </motion.button>
                                                     );
                                                 })}
                                             </div>
-                                        </>
+
+                                            {filteredIcons.length === 0 && (
+                                                <div className="text-center py-8 text-theme-secondary">
+                                                    No icons found matching "{search}"
+                                                </div>
+                                            )}
+                                        </motion.div>
                                     ) : (
-                                        <div className="text-center py-8 text-slate-400">
-                                            <Upload size={48} className="mx-auto mb-2 opacity-50" />
-                                            <p className="text-sm">No uploaded icons yet</p>
-                                            <p className="text-xs mt-1">Upload your first custom icon above!</p>
-                                        </div>
+                                        /* Upload Tab */
+                                        <motion.div
+                                            key="upload"
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -20 }}
+                                            transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                                            className="space-y-4"
+                                        >
+                                            {/* Upload Button */}
+                                            <label className="flex items-center justify-center gap-2 px-4 py-3 bg-accent hover:bg-accent/80 text-white rounded-lg cursor-pointer transition-colors w-full">
+                                                <Upload size={18} />
+                                                <span>Upload New Icon</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageUpload}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                            <p className="text-xs text-theme-tertiary text-center">
+                                                Recommended: 512x512px, PNG or SVG (max 5MB)
+                                            </p>
+
+                                            {/* Uploaded Icons Grid */}
+                                            {loadingIcons ? (
+                                                <div className="text-center py-8 text-theme-secondary">
+                                                    Loading uploaded icons...
+                                                </div>
+                                            ) : uploadedIcons.length > 0 ? (
+                                                <>
+                                                    <h4 className="text-sm font-medium text-theme-primary mt-4">Uploaded Icons</h4>
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {uploadedIcons.map((icon) => {
+                                                            const isSelected = value === `custom:${icon.id}`;
+                                                            return (
+                                                                <div
+                                                                    key={icon.id}
+                                                                    className="relative group"
+                                                                >
+                                                                    <motion.button
+                                                                        type="button"
+                                                                        onClick={() => handleIconSelect(`custom:${icon.id}`)}
+                                                                        whileHover={{ scale: 1.05 }}
+                                                                        whileTap={{ scale: 0.95 }}
+                                                                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                                                        className={`w-full aspect-square p-2 rounded-lg transition-colors ${isSelected
+                                                                                ? 'bg-accent ring-2 ring-accent/50'
+                                                                                : 'bg-theme-tertiary hover:bg-theme-hover'
+                                                                            }`}
+                                                                        title={icon.originalName}
+                                                                    >
+                                                                        <img
+                                                                            src={`/api/custom-icons/${icon.id}/file`}
+                                                                            alt={icon.originalName}
+                                                                            className="w-full h-full object-contain"
+                                                                        />
+                                                                    </motion.button>
+                                                                    {/* Delete Button - Shows on hover */}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteIcon(icon.id)}
+                                                                        className="absolute -top-1 -right-1 w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                                                        title="Delete icon"
+                                                                    >
+                                                                        <X size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center py-8 text-theme-secondary">
+                                                    <Upload size={48} className="mx-auto mb-2 opacity-50" />
+                                                    <p className="text-sm">No uploaded icons yet</p>
+                                                    <p className="text-xs mt-1">Upload your first custom icon above!</p>
+                                                </div>
+                                            )}
+                                        </motion.div>
                                     )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </>
-            )}
+                                </AnimatePresence>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
