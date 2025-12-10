@@ -152,7 +152,7 @@ const ProfileSettings = () => {
             </div>
 
             {/* Profile Picture Section */}
-            <div className="glass-subtle rounded-xl shadow-deep border border-theme p-6">
+            <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6">
                 <h3 className="text-lg font-semibold text-theme-primary mb-4 flex items-center gap-2">
                     <UserCircle size={20} />
                     Profile Picture
@@ -208,7 +208,7 @@ const ProfileSettings = () => {
             </div>
 
             {/* User Information Section */}
-            <div className="glass-subtle rounded-xl shadow-deep border border-theme p-6">
+            <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6">
                 <h3 className="text-lg font-semibold text-theme-primary mb-4 flex items-center gap-2">
                     <User size={20} />
                     User Information
@@ -240,7 +240,7 @@ const ProfileSettings = () => {
             </div>
 
             {/* Change Password Section */}
-            <div className="glass-subtle rounded-xl shadow-deep border border-theme p-6">
+            <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6">
                 <h3 className="text-lg font-semibold text-theme-primary mb-4 flex items-center gap-2">
                     <Lock size={20} />
                     Change Password

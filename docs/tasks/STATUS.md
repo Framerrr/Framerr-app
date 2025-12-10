@@ -1,18 +1,19 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-05 01:54  
-**Current Version:** v1.1.6-recovered  
-**Development Branch:** `develop`  
-**Production Docker:** `pickels23/framerr:feat` (Gridstack save button fixed)
+**Last Updated:** 2025-12-10T04:31:14-05:00  
+**Current Version:** v1.1.7  
+**Development Branch:** `feat/iframe-auth-detection`  
+**Production Branch:** `main`  
+**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`  
+**Development Docker:** `pickels23/framerr:develop` (✅ rebuilt Dec 10)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 1:** Dashboard Grid System - Foundation COMPLETE ✅  
-**Phase 1.5:** layoutUtils.js Fixes - Ready for Implementation 📋
+**Phase:** Code Quality and Theming Improvements
 
-**Status:** Phase 1 complete (12-column grid, Manual/Auto toggle). Phase 1.5 ready - 2 fixes needed in layoutUtils.js (column count + height preservation). Exact changes documented, no planning needed.
+**Status:** ✅ Code audit complete, Sidebar theming migrated
 
 ---
 
@@ -21,188 +22,249 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Backend** | ✅ Complete | 2,081 files from v1.1.6 Docker image |
-| **Frontend** | ✅ Operational | All stubs redesigned, mobile UI refined |
-| **Docker Latest** | ✅ Live | `pickels23/framerr:feat` (Phase 1 changes) |
-| **Docker Debug** | ✅ Available | Same as production |
-| **Documentation** | ✅ Complete | Full v2.0 system + Phase 1 complete |
-| **Workflows** | ✅ Active | 8 workflows created |
+| **Frontend** | ✅ Operational | All features working |
+| **Iframe Auth** | ✅ Working | Manual Lock button + relocated settings |
+| **Docker Production** | ✅ Live | `pickels23/framerr:1.1.7` and `:latest` |
+| **Docker Development** | ✅ Deployed | `pickels23/framerr:develop` (Dec 10) |
+| **Documentation** | ✅ Complete | Full v2.0 system |
+| **Workflows** | ✅ Active | 8 workflows operational |
 | **Git Safety** | ✅ Enforced | Strict rules after corruption incident |
-| **Dashboard** | ✅ Phase 1 | 12-column grid, 2400px max, Manual/Auto toggle |
+| **Code Quality** | ✅ Excellent | Audit complete, minimal issues |
+| **React Security** | ✅ Patched | React 19.2.1 (CVE-2025-12-03) |
+| **Settings UX** | ✅ Standardized | Theme-compliant glassmorphism |
+| **Settings Animations** | ✅ Complete | Sliding indicators + page transitions |
+| **IconPicker/Modals** | ✅ Complete | Radix UI with animations |
+| **Permission System** | ✅ Fixed | Default configs + defensive handling |
+| **Sidebar Theming** | ✅ Migrated | Text colors themed, dividers preserved |
 
 ---
 
 ## 🚀 Recent Accomplishments
 
-### Gridstack Minor Fixes (Dec 5, 2025 - 02:10) - COMPLETE ✅
-- ✅ **Fixed border flashing** on edit mode toggle (apply class during render, not DOM manipulation)
-- ✅ **Fixed mobile stacking** (changed xxs to 2 columns, sm to 12 columns)
-- ✅ **Removed debug console.logs** from GridstackWrapper and Dashboard
-- ✅ **Build passes** in 4.15s
-- 📝 1 commit (8c69cb6), ~15 tool calls, 10min session
-- **Result:** Smooth edit mode transitions, widgets stack vertically on mobile
+### Code Audit and Sidebar Theming (Dec 10, 2025) - COMPLETE ✅
+- ✅ **Code Audit:** Comprehensive scan of all changes since v1.1.7
+  - Only 1 console.log in production code (fixed)
+  - No dead code or unused imports found
+  - CLI scripts intentionally use console.* (acceptable)
+  - 49 hardcoded hex colors documented (mostly in theme configs - intentional)
+- ✅ **Logging Cleanup:** FaviconInjector.jsx console.log → logger.debug
+- ✅ **Sidebar Theming Migration:** 22 hardcoded colors → theme classes
+  - text-slate-* → text-theme-* (13 instances)
+  - hover:text-white → hover:text-theme-primary (10 instances)
+  - text-red-400 → text-error (logout button)
+  - bg-slate-800 → bg-theme-* (tooltips/mobile)
+  - Supports Light/Dark themes + custom colors
+- ✅ **Dividers Preserved:** Top/bottom borders reverted to original slate colors
+  - Per user preference for visual design
+  - Top: border-slate-700/30 (keeps blue gradient tint)
+  - Bottom: border-slate-700/50 (neutral gray)
+- 📝 3 commits (cab3bdf, 0551a8d, 4384d33)
+- 📊 Audit report created with future recommendations
+- ⚠️ Light theme testing recommended
 
-### Gridstack Save Button Fix (Dec 5, 2025 - 01:54) - COMPLETE ✅
-- ✅ **Fixed save button not activating** on drag/resize in edit mode
-- ✅ **Root cause identified:** Double closure bug (editMode + handleLayoutChange)
-- ✅ **Solution implemented:** Ref pattern at 3 layers (editModeRef, onLayoutChangeRef, useCallback)
-- ✅ **Event handlers now call latest callbacks** via refs instead of closures
-- ✅ **Dashboard handleLayoutChange wrapped** in React.useCallback with dependencies
-- 📝 6 commits (bd485a6, 75d3e0a, 2263609, 32c67c9, c512cc4, ec3f72d), ~100 tool calls, 47min session
-- **Result:** Save button works perfectly, layout changes tracked correctly
+### Permission System Bug Fixes (Dec 10, 2025) - COMPLETE ✅
+- ✅ **Critical Production Bug:** Fixed missing permissions arrays in DEFAULT_CONFIG
+  - Added `permissions: ['*']` to admin group
+  - Added `permissions: ['view_dashboard', 'manage_widgets']` to user group  
+  - Added `permissions: ['view_dashboard']` to guest group
+  - Prevents "Cannot read properties of undefined" errors on new installs
+- ✅ **Defensive Error Handling:** Added validation in permissions.js
+  - Checks for undefined/invalid permissions arrays
+  - Logs warnings instead of crashing
+  - Graceful failure (denies access safely)
+- ✅ **Permission Verification:** Confirmed permissions match actual codebase
+  - View against PermissionGroupsSettings component
+  - Corrected initially invented permission strings
+  - Real permissions: view_dashboard, manage_widgets, manage_system, manage_users
+- ✅ **Backend Recovery Audit:** Systematic verification post-Git corruption
+  - Audited all database models
+  - Verified all default configurations
+  - Confirmed authentication systems complete
+  - Found only 1 critical issue (permissions - now fixed)
+  - 5 TODO placeholders for future features (intentional)
+- 📝 2 commits (`4ddf1c9`, `fad51ad`)
+- 🐳 Deployed: `pickels23/framerr:develop` (rebuilt and pushed)
+- 📊 Backend audit report created
 
-### Dashboard Grid System - Phase 1 Complete (Dec 4, 2025 - 20:40) - COMPLETE ✅
-- ✅ **12-column grid implemented** (lg/md/sm: 12 cols, xs: 6, xxs: 2)
-- ✅ **Container expanded** to 2400px max width (was 1400px)
-- ✅ **Widget size conversions** (SystemStatus: 3→2, Calendar: 4→5)
-- ✅ **Collision prevention enabled**
-- ✅ **Manual/Auto layoutMode state added**
-- ✅ **Manual/Auto toggle UI created** (state-only, no sync yet)
-- ✅ **Column configuration fix** (sm:12, xxs:2 restored)
-- ✅ **layoutUtils.js analysis complete** (2 fixes identified)
-- 📝 3 commits (cc49195, 41d2764, 987482a), ~100 tool calls, 90min session
-- **Next:** Implement layoutUtils.js fixes (Phase 1.5, 5-10 tool calls)
+### IconPicker & Modal Improvements (Dec 9, 2025) - COMPLETE ✅
+- ✅ **IconPicker Redesign:** Migrated to Radix UI Popover
+  - Automatic positioning with flip/collision detection
+  - Fixed mobile browser positioning (no more top-left corner)
+  - Framer Motion animations (scale + fade, spring physics)
+  - Collision padding (24px) prevents edge cutoff
+  - Conservative max-height (50vh) for small screens
+- ✅ **Modal Improvements:** Converted to Radix Dialog
+  - UserTabsSettings and TabGroupsSettings
+  - Mobile scroll-lock working perfectly
+  - Entrance/exit animations matching IconPicker
+  - Responsive sizing for all screen widths
+- ✅ **Dependencies Added:**
+  - @radix-ui/react-popover
+  - @radix-ui/react-dialog
+- 📝 17 commits, 460 tool calls
+- 🐳 Deployed: `pickels23/framerr:develop`
 
-### Dashboard Grid System Planning (Dec 4, 2025 - 04:05) - COMPLETE ✅
-- ✅ **Complete architecture deep dive** (10 core dashboard files analyzed)
-- ✅ **Identified root cause of "cells taller than wide" bug** (container padding structure)
-- ✅ **Designed bidirectional sync system** (Auto/Manual modes, band detection)
-- ✅ **Created Smart Hybrid Swap algorithm** for mobile→desktop sync
-- ✅ **Pressure tested 6 comprehensive scenarios**
-- ✅ **Identified 4 edge cases with solutions**
-- ✅ **Organized documentation** (~6,400 lines across 8 files in `/docs/dashboard`)
-- ✅ **Key Decisions:** 12-column grid, desktop-first editing, widget-specific defaults
-- 📝 No commits (planning session), 161 tool calls, 1h 48min
-- **Next:** Create feat/grid-redesign branch, implement Phase 1 (MVP)
+### Settings Tab Animations (Dec 9, 2025) - COMPLETE ✅
+- ✅ **Main Tab Indicators:** Sliding indicators for 8 main settings tabs
+- ✅ **Page Transitions:** Slide animations (x: 20 → 0 → -20) with opacity fade
+- ✅ **Sub-Tab Indicators:** 12 sub-tabs across 4 components
+  - WidgetsSettings (3), CustomizationSettings (3), AuthSettings (2), AdvancedSettings (4)
+- ✅ **Spring Animations:** Tabs 350/35, content 220/30 (matching /animation-test)
+- ✅ **Bug Fixes:** Wrong file target, missing motion import, missed Auth tabs
+- 📝 7 commits, 251 tool calls
+- 🐳 User handled Docker deployment
 
-### Grid Cells 1:1 & Plex Widget Sizing (Dec 4, 2025 - 01:45) - COMPLETE ✅
-- ✅ **Fixed grid cells to achieve 1:1 aspect ratio across all viewports**
-- ✅ Resolved ResizeObserver race condition (useEffect dependency fix)
-- ✅ Fixed debug overlay to show accurate container and cell measurements
-- ✅ Implemented Plex widget card sizing with 16:9 aspect ratio
-- ✅ Added vertical centering and proper space calculations
-- ✅ Updated Plex widget minimum size to 5×4
-- ✅ User confirmed: Grid cells are now perfectly square!
-- 📝 4 commits, 212 tool calls, 37 minutes
+### Animate-UI Sidebar Integration (Dec 9, 2025) - COMPLETE ✅
+- ✅ **Icon Standardization:** All icons 20px for perfect alignment
+- ✅ **Chevron Animation:** ChevronRight CSS rotation (0° → 90°)
+- ✅ **Icon Sliding:** Smooth animations (no appear/disappear)
+- ✅ **Unified Hover:** Morphing across tabs, groups, and items
+- ✅ **Hover Delay:** 150ms to prevent snap-back
+- ✅ **Performance:** Spring stiffness 350, GPU-accelerated CSS
+- 📝 4 commits, ~200 tool calls
+- 🐳 Deployed: `pickels23/framerr:develop`
 
-### Grid Config Context System Planning (Dec 3, 2025 - 23:16) - COMPLETE ✅
-- ✅ Analyzed Plex widget sizing issues (hardcoded values not sustainable)
-- ✅ Researched implementation approaches (imports vs Context)
-- ✅ Gathered all grid configuration values (rowHeight, padding, etc.)
-- ✅ Decided on React Context approach for future extensibility
-- ✅ Created comprehensive implementation plan with complete code
-- ✅ Designed ResizeObserver-based dynamic sizing
-- ✅ Documented migration pattern for all widgets
-- 📝 Implementation plan artifact created and ready
-- 📝 4 commits (Plex widget sizing iterations), 179 tool calls
+### Settings UI/UX Standardization (Dec 9, 2025) - COMPLETE ✅
+- ✅ **Iframe Auth Relocation:**
+  - Moved from Customization to Auth → iFrame Auth tab
+  - Added browser limitation documentation
+  - Integrated with OAuth settings
+  - Removed 188 lines from CustomizationSettings
+- ✅ **Container Styling:**
+  - Standardized all settings to glass-subtle
+  - Applied shadow-medium consistently
+  - Matches UserTabsSettings reference design
+  - 6 files updated
+- ✅ **Theme Class Conversion:**
+  - Replaced hardcoded slate colors in WidgetGallery (12 instances)
+  - Replaced hardcoded colors in DiagnosticsSettings (6 instances)
+  - Ensures Light/Dark theme compatibility
+- ✅ **Save Button Tracking:**
+  - Implemented change detection for Application Name/Icon
+  - Implemented change detection for Dashboard Greeting
+  - Buttons disabled when no changes made
+- ✅ **Visual Depth Adjustment:**
+  - Changed Advanced Settings from glass-card to glass-subtle
+  - Reduced shadow intensity for consistency
+- 📝 10 commits, ~360 tool calls
+- 🐳 Ready for deployment testing
 
-### Custom Colors Toggle & Auto-Save (Dec 3, 2025 - 18:21) - PARTIAL ✅🟡
-- ✅ Custom colors toggle with proper state management
-- ✅ Auto-save with 500ms debounce (removed Save/Reset buttons)
-- ✅ All 18 ColorPickers and buttons grey out when disabled
-- ✅ Theme color synchronization with useEffect
-- ✅ `resetToThemeColors()` function created with 200ms delay
-- 🟡 **BLOCKER:** Handlers don't call reset function (file edit tool failed)
-- 🟡 Colors only revert after page refresh
-- 📝 13 commits, ~573 tool calls
+### Code Audit and Cleanup (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Comprehensive Audit:**
+  - Analyzed 10 files since v1.1.7
+  - Identified 1 dead code block (24 lines)
+  - Found 6 console statements needing conversion
+  - Created detailed audit report with safety ratings
+- ✅ **Dead Code Removal:**
+  - Removed non-functional Authentik listener (TabContainer.jsx)
+  - Feature never worked without Nginx injection
+  - Manual Lock button is working alternative
+- ✅ **Logger Conversions:**
+  - Converted 6 console.error to structured logger.error
+  - AppDataContext.jsx: 2 conversions
+  - PlexWidget.jsx: 3 conversions
+  - AddWidgetModal.jsx: 1 conversion
+- ✅ **Results:**
+  - -18 net lines (cleaner codebase)
+  - Build passing (5.93s)
+  - All changes committed
+- 📝 1 commit, ~65 tool calls
+- 🐳 No Docker update needed (code cleanup only)
 
-### Hash Navigation System Migration (Dec 2, 2025 - 20:20) - COMPLETE ✅
-- ✅ Migrated to recovered 3-layer architecture
-- ✅ MainContent component splits Settings vs Dashboard/Tabs
-- ✅ DashboardOrTabs splits Dashboard vs TabContainer
-- ✅ TabContainer manages iframe persistence with lazy loading
-- ✅ Sidebar uses recovered version with plain `<a href="#">` tags
-- ✅ UserSettings parses hash params manually (#settings?tab=profile)
-- ✅ All components use display toggling for state persistence
-- ✅ Build passing, deployed to Docker
+### iFrame OAuth Settings UI (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Settings Implementation:**
+  - Created AuthSettings.jsx with OAuth configuration
+  - Sub-tab navigation (Auth Proxy / iFrame Auth)
+  - OAuth endpoint, client ID, redirect URI fields
+  - HTTPS validation for security
+  - Authentik preset template
+  - Test OAuth button
+  - Collapsible setup instructions
+- ✅ **Backend Integration:**
+  - systemConfig.js schema for iframe auth
+  - config.js HTTPS validation
+  - Auto-population of redirect URI
+- ✅ **User Experience:**
+  - Theme-compliant UI
+  - Clear error messages
+  - Helpful tooltips
+  - Dynamic redirect URI display
+- 📝 3 commits, ~120 tool calls
+- 🐳 Docker image: `pickels23/framerr:develop`
 
-### Production Bug Fixes (Dec 2, 2025 - Evening)
-- ✅ Fixed setup redirect loop preventing admin account creation
-- ✅ Fixed setup not redirecting after account creation
-- ✅ Restored admin settings visibility
-- ✅ Fixed settings page crashes
-- ✅ Removed loading delay (simplified admin check)
+### Iframe Authentication (Dec 8, 2025) - PARTIAL ⚠️
+- ✅ **Manual Auth Flow:**
+  - Lock button (🔒) in tab toolbar
+  - Opens auth in new tab (bypass iframe restrictions)
+  - Auto-reload after tab closure
+  - Auto-refocus to Framerr
+  - Supports passkeys, OAuth, SAML
+- ✅ **Settings UI:**
+  - Enable/disable configuration
+  - Sensitivity levels
+  - Custom URL patterns
+- ⚠️ **Auto-Detection:**
+  - Blocked by Same-Origin Policy
+  - Cannot read cross-origin iframe navigation
+  - Settings exist but limited effectiveness
+  - Documented in artifacts
+- 📝 5 commits, ~350 tool calls
+- 🐳 Docker image: `pickels23/framerr:develop`
 
-### Documentation System v2.0 (Dec 2, 2025 - Afternoon)
-- ✅ Created `docs/` structure with 6 subdirectories
-- ✅ Archived 15 recovery documentation files
-- ✅ Consol idated rules system (git, development, theming)
-- ✅ Created 8 workflows (start-session, end-session, checkpoint, code-audit, git-workflow, + 3 placeholders)
-- ✅ Created `Dockerfile.dev` for debug builds
-- ✅ Organized architecture and development guides
-
----
-
-## 📁 Documentation Structure
-
-```
-docs/
-├── CHATFLOW.md                    # Quick start guide
-├── README.md                      # Documentation index
-├── tasks/                         # Task tracking
-│   ├── HANDOFF.md                 # Current state & context
-│   ├── TASK_CURRENT.md            # Active session work
-│   ├── STATUS.md                  # This file
-│   ├── TASK_BACKLOG.md            # Future work
-│   └── TASK_COMPLETED.md          # Historical log
-├── architecture/                  # System design
-│   ├── ARCHITECTURE.md
-│   └── PROJECT_SCOPE.md
-├── development/                   # Developer guides
-│   ├── WIDGET_DEVELOPMENT_GUIDE.md
-│   ├── LOGGING_REFERENCE.md
-│   └── DOCKER_BUILDS.md
-├── theming/                       # Theming documentation
-│   ├── THEMING_ENGINE.md
-│   ├── CSS_VARIABLES.md
-│   ├── DEVELOPER_GUIDE.md
-│   └── COMPONENT_PATTERNS.md
-├── archived/                      # Recovery archive
-│   └── [15 recovery docs + inventories]
-└── versions/
-    └── 1.1.6-recovered.md
-```
+### v1.1.7 Production Release (Dec 8, 2025) - COMPLETE ✅
+- ✅ **Mobile Bug Fixes:**
+  - Customizable app icon in sidebar/mobile menu
+  - Real-time tab updates (no page refresh)
+  - Touch drag-and-drop for tab/group reordering
+  - Fixed mobile menu header (stays at top)
+- ✅ **UX Improvements:**
+  - No text selection during drag
+  - Smooth drag performance (no jitter)
+  - Optimized touch timing (150ms delay, 5px tolerance)
+  - Auto-refresh on icon/name changes
+- ✅ **Security:** React 19.2.1 update
+- ✅ **Cleanup:** Removed deprecated TabsSettings.jsx
+- 📝 11 commits, ~356 tool calls
+- 🐳 Docker images pushed to Hub
+- 🏷️ Git tag `v1.1.7` created and pushed
 
 ---
 
 ## 🔄 Active Work
 
-**Current Task:** All stub components redesigned  
+**Current Task:** None - settings animations complete  
+**Branch:** `feat/iframe-auth-detection`  
+**Status:** Clean state, ready for new work  
+
 **Next Steps:**
-1. Test enhanced stub components
-2. Continue widget development
-3. Consider additional theming options
-4. Monitor component performance
+- User to test settings animations
+- Consider Docker deployment
+- User to decide next feature/improvement
+
+**Clean State:** ✅ All changes committed, build passing
 
 ---
 
 ## 🐛 Known Issues
 
-### Minor Enhancements Possible
-- Additional color presets for ColorPicker
-- More detailed error messages in ErrorBoundary
-- Additional loading states
-
-### v1.0.6 Components (Monitor)
-Functional but may have minor differences:
-- `SystemStatusWidget`
-- `CalendarWidget`
+None reported for v1.1.7
 
 ---
 
 ## 📦 Deployment Status
 
 ### Docker Images
-- **Production:** `pickels23/framerr:debug` (v1.1.6 + grid fixes)
+- **Production:** `pickels23/framerr:1.1.7` and `:latest`
   - Size: ~286 MB
-  - Status: Deployed and tested ✅
-  - Last pushed: 2025-12-04
-  - Features: 1:1 grid cells, Plex widget sizing
-  - Digest: sha256:6df6296...
+  - Status: Deployed and live
+  - Last pushed: 2025-12-08
+  - Features: Mobile UX improvements, React 19.2.1
 
 ### Git Status
-- **Branch:** `develop`
-- **Status:** Clean, 7 commits ahead
-- **Latest commit:** f21cf0c (WidgetErrorBoundary enhancement)
+- **Branch:** `feat/iframe-auth-detection`
+- **Tag:** `v1.1.7`
+- **Status:** Clean, all changes committed
+- **Latest commit:** Code audit cleanup
 
 ---
 
@@ -211,9 +273,9 @@ Functional but may have minor differences:
 See `TASK_BACKLOG.md` for details.
 
 **High Priority:**
-- Test all enhanced stub components
-- Widget development and testing
-- Production release planning
+- Test v1.1.7 mobile improvements in production
+- User feedback collection
+- Decide on iframe auth branch merge
 
 **Medium Priority:**
 - Bundle size optimization
@@ -221,9 +283,8 @@ See `TASK_BACKLOG.md` for details.
 - Extended widget library
 
 **Low Priority:**
-- Additional theming documentation
-- More color preset options
-- Extra loading states
+- Additional theming options
+- More mobile UX refinements
 
 ---
 
@@ -239,12 +300,13 @@ See `TASK_BACKLOG.md` for details.
 
 ## 📊 Metrics
 
+**Version:** v1.1.7  
 **Lines of Code:** ~50,000+ (estimated)  
-**Components:** 46 files (43 complete, 3 from earlier versions)  
+**Components:** 46 files  
 **Build Size:** 1.20 MB (15 files)  
 **Backend Files:** 2,081  
-**Documentation Files:** 40+ (comprehensive)  
-**Stub Components:** 4/4 redesigned (DeveloperSettings intentional placeholder)
+**Documentation Files:** 40+  
+**Production Releases:** 2 (v1.1.6-recovered, v1.1.7)
 
 ---
 

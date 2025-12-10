@@ -104,7 +104,7 @@ const WidgetGallery = () => {
     }, {});
 
     if (loading) {
-        return <div className="text-center py-16 text-slate-400">Loading widgets...</div>;
+        return <div className="text-center py-16 text-theme-secondary">Loading widgets...</div>;
     }
 
     return (
@@ -113,13 +113,13 @@ const WidgetGallery = () => {
             <div className="mb-6 flex flex-col sm:flex-row gap-4">
                 {/* Search */}
                 <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-tertiary" size={18} />
                     <input
                         type="text"
                         placeholder="Search widgets..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-accent"
+                        className="w-full pl-10 pr-4 py-2.5 bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:border-accent"
                     />
                 </div>
 
@@ -127,7 +127,7 @@ const WidgetGallery = () => {
                 <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-accent capitalize"
+                    className="px-4 py-2.5 bg-theme-primary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent capitalize"
                 >
                     {categories.map(cat => (
                         <option key={cat} value={cat} className="capitalize">
@@ -139,15 +139,15 @@ const WidgetGallery = () => {
 
             {/* Widget Grid */}
             {Object.keys(filteredWidgets).length === 0 ? (
-                <div className="text-center py-16 text-slate-400">
+                <div className="text-center py-16 text-theme-secondary">
                     <p>No widgets found matching your search.</p>
                 </div>
             ) : (
                 Object.entries(filteredWidgets).map(([category, widgets]) => (
                     <div key={category} className="mb-8">
-                        <h3 className="text-lg font-semibold text-white mb-4 capitalize flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-theme-primary mb-4 capitalize flex items-center gap-2">
                             {category}
-                            <span className="text-sm text-slate-400 font-normal">({widgets.length})</span>
+                            <span className="text-sm text-theme-secondary font-normal">({widgets.length})</span>
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -160,7 +160,7 @@ const WidgetGallery = () => {
                                 return (
                                     <div
                                         key={widget.type}
-                                        className="glass-subtle shadow-medium rounded-xl p-6 border border-slate-700/50 card-glow"
+                                        className="glass-subtle shadow-medium rounded-xl p-6 border border-theme card-glow"
                                     >
                                         {/* Header */}
                                         <div className="flex items-start gap-4 mb-3">
@@ -168,14 +168,14 @@ const WidgetGallery = () => {
                                                 <Icon size={24} className="text-accent" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-semibold text-white mb-1">{widget.name}</h4>
-                                                <p className="text-sm text-slate-400 line-clamp-2">{widget.description}</p>
+                                                <h4 className="font-semibold text-theme-primary mb-1">{widget.name}</h4>
+                                                <p className="text-sm text-theme-secondary line-clamp-2">{widget.description}</p>
                                             </div>
                                         </div>
 
                                         {/* Info */}
                                         <div className="flex items-center gap-2 mb-4 text-xs">
-                                            <span className="px-2 py-1 bg-slate-700/50 rounded text-slate-300">
+                                            <span className="px-2 py-1 bg-theme-tertiary rounded text-theme-secondary">
                                                 {widget.defaultSize.w}x{widget.defaultSize.h}
                                             </span>
                                             {isIntegrationRequired && (
@@ -197,7 +197,7 @@ const WidgetGallery = () => {
                                         <button
                                             onClick={() => handleAddWidget(widget.type)}
                                             disabled={addingWidget === widget.type}
-                                            className="button-elevated w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-slate-600 text-white rounded-lg transition-all font-medium"
+                                            className="button-elevated w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-theme-tertiary text-white rounded-lg transition-all font-medium"
                                         >
                                             {addingWidget === widget.type ? (
                                                 <>

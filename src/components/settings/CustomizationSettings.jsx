@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,6 +9,7 @@ import ColorPicker from '../common/ColorPicker';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import FaviconSettings from './FaviconSettings';
+import IconPicker from '../IconPicker';
 import logger from '../../utils/logger';
 
 const CustomizationSettings = () => {
@@ -55,6 +57,7 @@ const CustomizationSettings = () => {
 
     // Application name state
     const [applicationName, setApplicationName] = useState('Homelab Dashboard');
+    const [applicationIcon, setApplicationIcon] = useState('Server');
     const [savingAppName, setSavingAppName] = useState(false);
 
     // Flatten UI state
@@ -69,6 +72,13 @@ const CustomizationSettings = () => {
     // Collapsible sections state for Custom Colors
     const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
+
+    // Change tracking for save buttons
+    const [originalAppName, setOriginalAppName] = useState('Homelab Dashboard');
+    const [originalAppIcon, setOriginalAppIcon] = useState('Server');
+    const [originalGreeting, setOriginalGreeting] = useState({ enabled: true, text: 'Your personal dashboard' });
+    const [hasAppNameChanges, setHasAppNameChanges] = useState(false);
+    const [hasGreetingChanges, setHasGreetingChanges] = useState(false);
 
     // Function to get current theme colors from CSS variables
     const getCurrentThemeColors = () => {
@@ -158,13 +168,21 @@ const CustomizationSettings = () => {
                     setCustomColors(themeColors);
                 }
 
-                // Load system config for application name
+                // Load system config for application name and icon
                 const systemResponse = await axios.get('/api/config/system', {
                     withCredentials: true
                 });
 
                 if (systemResponse.data?.server?.name) {
-                    setApplicationName(systemResponse.data.server.name);
+                    const name = systemResponse.data.server.name;
+                    setApplicationName(name);
+                    setOriginalAppName(name);
+                }
+
+                if (systemResponse.data?.server?.icon) {
+                    const icon = systemResponse.data.server.icon;
+                    setApplicationIcon(icon);
+                    setOriginalAppIcon(icon);
                 }
 
                 // Load flatten UI preference
@@ -178,11 +196,22 @@ const CustomizationSettings = () => {
                     }
                 }
 
+                // Load iframe auth settings from system config
+                if (systemResponse.data?.iframeAuth) {
+                    const authConfig = systemResponse.data.iframeAuth;
+                    setIframeAuthEnabled(authConfig.enabled !== false); // Default true
+                    setAuthSensitivity(authConfig.sensitivity || 'balanced');
+                    setCustomAuthPatterns(authConfig.customPatterns || []);
+                }
+
                 // Load greeting preferences
                 if (userResponse.data?.preferences?.dashboardGreeting) {
                     const greeting = userResponse.data.preferences.dashboardGreeting;
-                    setGreetingEnabled(greeting.enabled ?? true);
-                    setGreetingText(greeting.text || 'Your personal dashboard');
+                    const enabled = greeting.enabled ?? true;
+                    const text = greeting.text || 'Your personal dashboard';
+                    setGreetingEnabled(enabled);
+                    setGreetingText(text);
+                    setOriginalGreeting({ enabled, text });
                 }
             } catch (error) {
                 logger.error('Failed to load settings:', error);
@@ -193,6 +222,22 @@ const CustomizationSettings = () => {
 
         loadSettings();
     }, []);
+
+    // Track changes for Application Name & Icon
+    useEffect(() => {
+        setHasAppNameChanges(
+            applicationName !== originalAppName ||
+            applicationIcon !== originalAppIcon
+        );
+    }, [applicationName, applicationIcon, originalAppName, originalAppIcon]);
+
+    // Track changes for Greeting
+    useEffect(() => {
+        setHasGreetingChanges(
+            greetingEnabled !== originalGreeting.enabled ||
+            greetingText !== originalGreeting.text
+        );
+    }, [greetingEnabled, greetingText, originalGreeting]);
 
     const applyColorsToDOM = (colors) => {
         Object.entries(colors).forEach(([key, value]) => {
@@ -358,7 +403,8 @@ const CustomizationSettings = () => {
         try {
             await axios.put('/api/config/system', {
                 server: {
-                    name: applicationName
+                    name: applicationName,
+                    icon: applicationIcon
                 }
             }, {
                 withCredentials: true
@@ -369,7 +415,14 @@ const CustomizationSettings = () => {
                 detail: { appName: applicationName }
             }));
 
-            logger.info('Application name saved successfully');
+            // Dispatch event to refresh sidebar/mobile menu with new icon
+            window.dispatchEvent(new Event('systemConfigUpdated'));
+
+            // Update original values after successful save
+            setOriginalAppName(applicationName);
+            setOriginalAppIcon(applicationIcon);
+
+            logger.info('Application name and icon saved successfully');
         } catch (error) {
             logger.error('Failed to save application name:', error);
             alert('Failed to save application name. Please try again.');
@@ -417,6 +470,9 @@ const CustomizationSettings = () => {
                 withCredentials: true
             });
 
+            // Update original values after successful save
+            setOriginalGreeting({ enabled: greetingEnabled, text: greetingText });
+
             logger.info('Greeting saved successfully');
         } catch (error) {
             logger.error('Failed to save greeting:', error);
@@ -444,36 +500,54 @@ const CustomizationSettings = () => {
             </div>
 
             {/* Sub-Tabs */}
-            <div className="flex gap-2 border-b border-theme">
+            <div className="flex gap-2 border-b border-theme relative">
                 <button
                     onClick={() => setActiveSubTab('general')}
-                    className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'general'
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <SettingsIcon size={18} className="inline mr-2" />
-                    General
+                    <div className="flex items-center gap-2 relative z-10">
+                        <SettingsIcon size={18} className={activeSubTab === 'general' ? 'text-accent' : ''} />
+                        <span className={activeSubTab === 'general' ? 'text-accent' : ''}>General</span>
+                    </div>
+                    {activeSubTab === 'general' && (
+                        <motion.div
+                            layoutId="customizationSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        />
+                    )}
                 </button>
                 <button
                     onClick={() => setActiveSubTab('colors')}
-                    className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'colors'
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <Palette size={18} className="inline mr-2" />
-                    Colors
+                    <div className="flex items-center gap-2 relative z-10">
+                        <Palette size={18} className={activeSubTab === 'colors' ? 'text-accent' : ''} />
+                        <span className={activeSubTab === 'colors' ? 'text-accent' : ''}>Colors</span>
+                    </div>
+                    {activeSubTab === 'colors' && (
+                        <motion.div
+                            layoutId="customizationSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        />
+                    )}
                 </button>
                 <button
                     onClick={() => setActiveSubTab('favicon')}
-                    className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === 'favicon'
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-theme-secondary hover:text-theme-primary'
-                        }`}
+                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
-                    <ImageIcon size={18} className="inline mr-2" />
-                    Favicon
+                    <div className="flex items-center gap-2 relative z-10">
+                        <ImageIcon size={18} className={activeSubTab === 'favicon' ? 'text-accent' : ''} />
+                        <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
+                    </div>
+                    {activeSubTab === 'favicon' && (
+                        <motion.div
+                            layoutId="customizationSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        />
+                    )}
                 </button>
             </div>
 
@@ -491,7 +565,7 @@ const CustomizationSettings = () => {
                 >
                     <div className="space-y-6">
                         {/* Application Name Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Application Name
                             </h3>
@@ -516,7 +590,7 @@ const CustomizationSettings = () => {
                                 {userIsAdmin && (
                                     <Button
                                         onClick={handleSaveApplicationName}
-                                        disabled={savingAppName}
+                                        disabled={!hasAppNameChanges || savingAppName}
                                         icon={Save}
                                     >
                                         {savingAppName ? 'Saving...' : 'Save Application Name'}
@@ -525,8 +599,44 @@ const CustomizationSettings = () => {
                             </div>
                         </div>
 
+                        {/* Application Icon Section */}
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
+                                Application Icon
+                            </h3>
+                            <p className="text-sm text-theme-secondary mb-4">
+                                Customize the icon displayed in the sidebar header and mobile menu.
+                                {!userIsAdmin && (
+                                    <span className="block mt-2 text-warning">
+                                        ⚠️ This setting requires admin privileges
+                                    </span>
+                                )}
+                            </p>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
+                                        Select Icon
+                                    </label>
+                                    <IconPicker
+                                        value={applicationIcon}
+                                        onChange={(icon) => setApplicationIcon(icon)}
+                                        disabled={!userIsAdmin}
+                                    />
+                                </div>
+                                {userIsAdmin && (
+                                    <Button
+                                        onClick={handleSaveApplicationName}
+                                        disabled={!hasAppNameChanges || savingAppName}
+                                        icon={Save}
+                                    >
+                                        {savingAppName ? 'Saving...' : 'Save Application Name & Icon'}
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Dashboard Greeting Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Dashboard Greeting
                             </h3>
@@ -570,7 +680,7 @@ const CustomizationSettings = () => {
                                 <div className="flex gap-3">
                                     <Button
                                         onClick={handleSaveGreeting}
-                                        disabled={savingGreeting}
+                                        disabled={!hasGreetingChanges || savingGreeting}
                                         icon={Save}
                                     >
                                         {savingGreeting ? 'Saving...' : 'Save Greeting'}
@@ -588,7 +698,7 @@ const CustomizationSettings = () => {
                         </div>
 
                         {/* Flatten UI Section */}
-                        <div className="rounded-xl p-6 border border-theme bg-theme-secondary transition-all duration-300">
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
                                 Flatten UI Design
                             </h3>

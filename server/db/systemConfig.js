@@ -19,6 +19,13 @@ const DEFAULT_CONFIG = {
             overrideLogout: false,
             logoutUrl: ''  // Empty by default - user must configure
         },
+        iframe: {
+            enabled: false,
+            endpoint: '',  // OAuth authorize endpoint
+            clientId: '',  // OAuth client ID
+            redirectUri: '',  // OAuth redirect URI (defaults to current origin + /login-complete)
+            scopes: 'openid profile email'  // OAuth scopes
+        },
         session: { timeout: 86400000 } // 24 hours
     },
     integrations: {
@@ -29,9 +36,27 @@ const DEFAULT_CONFIG = {
         qbittorrent: { enabled: false }
     },
     groups: [
-        { id: 'admin', name: 'Administrators', description: 'Full system access', locked: true },
-        { id: 'user', name: 'Users', description: 'Personal customization', locked: true },
-        { id: 'guest', name: 'Guests', description: 'View only', locked: true }
+        {
+            id: 'admin',
+            name: 'Administrators',
+            description: 'Full system access',
+            permissions: ['*'],  // Superuser - all permissions
+            locked: true
+        },
+        {
+            id: 'user',
+            name: 'Users',
+            description: 'Personal customization',
+            permissions: ['view_dashboard', 'manage_widgets'],  // Standard user permissions
+            locked: true
+        },
+        {
+            id: 'guest',
+            name: 'Guests',
+            description: 'View only',
+            permissions: ['view_dashboard'],  // Read-only access
+            locked: true
+        }
     ],
     defaultGroup: 'user',
     tabGroups: [
@@ -89,10 +114,12 @@ async function updateSystemConfig(updates) {
         auth: {
             local: { ...currentConfig.auth?.local, ...(updates.auth?.local || {}) },
             session: { ...currentConfig.auth?.session, ...(updates.auth?.session || {}) },
-            proxy: { ...currentConfig.auth?.proxy, ...(updates.auth?.proxy || {}) }
+            proxy: { ...currentConfig.auth?.proxy, ...(updates.auth?.proxy || {}) },
+            iframe: { ...currentConfig.auth?.iframe, ...(updates.auth?.iframe || {}) }
         },
         integrations: { ...currentConfig.integrations, ...(updates.integrations || {}) },
         debug: { ...currentConfig.debug, ...(updates.debug || {}) },
+        favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon, // Support null to delete
         groups: currentConfig.groups,  // Always preserve locked groups
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
         tabGroups: updates.tabGroups || currentConfig.tabGroups

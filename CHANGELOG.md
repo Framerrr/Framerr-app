@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.7] - 2025-12-08
+
+### Added
+- **Mobile Responsiveness Improvements:**
+  - Customizable application icon in sidebar and mobile menu
+  - Real-time tab updates in sidebar without page refresh
+  - Touch drag-and-drop support for tab and group reordering
+  - Fixed mobile menu header (stays at top, doesn't scroll)
+
+### Fixed
+- **Mobile UX Enhancements:**
+  - Eliminated text selection during drag operations on mobile
+  - Removed drag stickiness/jitter for smooth touch interactions
+  - Optimized touch sensor timing (150ms delay, 5px tolerance)
+  - Auto-refresh sidebar when application name/icon changes
+
+### Changed
+- **Security:** Updated React to 19.2.1 (security patch for Server Components)
+- **Cleanup:** Removed deprecated `TabsSettings.jsx` component
+
+### Technical
+- Added `TouchSensor` to @dnd-kit for mobile drag-and-drop
+- Implemented event-based system for real-time UI updates (`tabsUpdated`, `systemConfigUpdated`)
+- Disabled CSS transitions during drag for smoother mobile performance
+- Added GPU acceleration hints (`willChange: transform`)
+
+---
+
 ## [1.1.6-recovered] - 2025-12-02
 
 ### Recovery

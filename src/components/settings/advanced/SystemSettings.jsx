@@ -251,7 +251,7 @@ const SystemSettings = () => {
                 </div>
 
                 {/* System Details */}
-                <div className="glass-card rounded-xl p-6 border border-theme">
+                <div className="glass-subtle rounded-xl p-6 border border-theme">
                     <h4 className="text-theme-primary font-medium mb-4 flex items-center gap-2">
                         <Server size={18} className="text-accent" />
                         System Details
@@ -279,7 +279,7 @@ const SystemSettings = () => {
                 </div>
 
                 {/* Resource Usage */}
-                <div className="glass-card rounded-xl p-6 border border-theme">
+                <div className="glass-subtle rounded-xl p-6 border border-theme">
                     <h4 className="text-theme-primary font-medium mb-4 flex items-center gap-2">
                         <Cpu size={18} className="text-accent" />
                         Resource Usage
@@ -342,7 +342,7 @@ const SystemSettings = () => {
                 </div>
 
                 {/* System Health Checks */}
-                <div className="glass-card rounded-xl p-6 border border-theme">
+                <div className="glass-subtle rounded-xl p-6 border border-theme">
                     <h4 className="text-theme-primary font-medium mb-4 flex items-center gap-2">
                         <Activity size={18} className="text-accent" />
                         System Health
@@ -378,7 +378,7 @@ const SystemSettings = () => {
                 </div>
 
                 {/* Database Test */}
-                <div className="glass-card rounded-xl p-6 border border-theme">
+                <div className="glass-subtle rounded-xl p-6 border border-theme">
                     <div className="flex items-center justify-between mb-4">
                         <h4 className="text-theme-primary font-medium flex items-center gap-2">
                             <Database size={18} className="text-accent" />
@@ -417,7 +417,7 @@ const SystemSettings = () => {
                 </div>
 
                 {/* Speed Test */}
-                <div className="glass-card rounded-xl p-6 border border-theme">
+                <div className="glass-subtle rounded-xl p-6 border border-theme">
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h4 className="text-theme-primary font-medium flex items-center gap-2">
@@ -483,7 +483,7 @@ const SystemSettings = () => {
                 </div>
 
                 {/* API Health */}
-                <div className="glass-card rounded-xl p-6 border border-theme">
+                <div className="glass-subtle rounded-xl p-6 border border-theme">
                     <div className="flex items-center justify-between mb-4">
                         <h4 className="text-theme-primary font-medium flex items-center gap-2">
                             <Zap size={18} className="text-accent" />

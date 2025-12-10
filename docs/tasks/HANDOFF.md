@@ -1,10 +1,34 @@
-# HANDOFF DOCUMENT - Framerr v1.1.6
+# HANDOFF DOCUMENT - Framerr v1.1.7
 
-**Last Updated:** 2025-12-05 00:16  
-**Status:** ⚠️ react-grid-layout Limitation Identified, Gridstack.js Migration Planned  
-**Current Version:** v1.1.6-recovered  
-**Branch:** `develop`  
-**Docker Image:** `pickels23/framerr:feat` (Band detection working, but drag broken on mobile)
+**Last Updated:** 2025-12-10T03:34:40-05:00  
+**Status:** ✅ Operational - Permission System Fixed + Backend Audited  
+**Current Version:** v1.1.7  
+**Branch:** `feat/iframe-auth-detection`  
+**Docker Image:** `pickels23/framerr:develop` (✅ rebuilt with permission fixes)
+
+---
+
+## ⭐ WORKFLOW PATTERN (2025-12-09)
+
+### Successful Pattern for Incorporating External UI Libraries
+
+When adapting patterns from external UI libraries (like animate-ui):
+
+1. **Get Exact Reference Code** - User provides complete reference implementation
+2. **Analyze Differences** - Compare reference vs current to identify specific patterns
+3. **Adapt, Don't Copy** - Incorporate patterns while maintaining existing architecture (theme system, structure)
+4. **Incremental Implementation** - Small testable changes with frequent builds
+5. **Visual Feedback Loop** - User provides real-time feedback
+6. **Refine Iteratively** - Polish based on user testing
+
+**Example Success (2025-12-09):** Animate-UI Sidebar Integration
+- User provided `animate-ui-sidebar.tsx` reference
+- Agent identified: icon sizing, ChevronRight rotation, hover morphing, icon sliding patterns
+- Agent adapted to Framerr's theme system and architecture
+- 4 commits, all builds passed, deployed to Docker
+- Result: Professional-grade animations matching reference quality
+
+**Key Principle:** Exact reference code eliminates ambiguity and enables precise adaptation.
 
 ---
 
@@ -16,38 +40,17 @@ Modern, self-hosted homelab dashboard with iframe tab system and customizable wi
 ### Current State
 - **Backend:** ✅ Complete (2,081 files from v1.1.6 Docker image)
 - **Frontend:** ✅ 95% recovered + recovered hash navigation
-- **Build:** ✅ Passing (4.11s), ready for deployment
-- **Grid Library:** ⚠️ **react-grid-layout incompatible with requirements**
-- **Next Action:** **Migrate to Gridstack.js**
+- **Build:** ✅ Passing, deployed to Docker
+- **Documentation:** ✅ Fully restructured (v2.0 system)
+- **Status:** Production-ready, operational with proper hash routing
 
 ### Last Major Work
-**Dashboard Grid - Library Limitation Discovery** (2025-12-05 00:16, ~110 tool calls)
-
-**Problem Identified:**
-- react-grid-layout is semi-controlled (uses `layouts` as initial state only)
-- Cannot support both custom sort algorithm AND manual drag/drop
-- Exhausted all workarounds (7 different approaches tried)
-
-**What Works:**
-- ✅ Band detection algorithm (sweep line, column-first sorting)
-- ✅ Correct sort order displays in view mode
-- ✅ Desktop drag/drop (lg breakpoint)
-
-**What Doesn't Work:**
-- ❌ Mobile/tablet drag/drop (widgets snap back)
-- ❌ Simultaneous custom sort + manual positioning
-- **Root cause:** Fundamental library architecture limitation
-
-**Decision:**
-- **Switch to Gridstack.js** (truly controlled, modern, active)
-- Band detection algorithm can be reused
-- All layout states/modes can be preserved
-
-**Documentation:**
-- **Session notes:** `.gemini/.../session_grid_debugging.md` (comprehensive)
-- **Current task:** `docs/tasks/TASK_CURRENT.md`
-- **Next step:** Install Gridstack.js and migrate grid component
-
+**Hash Navigation System Migration** (2025-12-02 20:20)
+- Migrated from buggy custom implementation to recovered original system
+- Restored 3-layer component architecture (MainContent → DashboardOrTabs → TabContainer)
+- Fixed Settings hash parameter parsing (#settings?tab=profile)
+- Restored iframe persistence using display toggling
+- All navigation uses native hash events and plain `<a href="#">` tags
 
 ---
 

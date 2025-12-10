@@ -19,6 +19,12 @@ async function hasPermission(user, permission) {
             return false;
         }
 
+        // Ensure permissions array exists
+        if (!group.permissions || !Array.isArray(group.permissions)) {
+            logger.warn(`Group ${group.id} has invalid permissions array`);
+            return false;
+        }
+
         // Admin superuser check
         if (group.permissions.includes('*')) return true;
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { Responsive, WidthProvider } from 'react-grid-layout';
 import { Edit, Save, X as XIcon, Plus } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -8,13 +9,16 @@ import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyDashboard from '../components/dashboard/EmptyDashboard';
 import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/widgetRegistry';
-import { generateAllMobileLayouts, generateMobileLayout, migrateWidgetToLayouts } from '../utils/layoutUtils';
+import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import DebugOverlay from '../components/debug/DebugOverlay';
-import GridstackWrapper from '../components/GridstackWrapper';
 import axios from 'axios';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import '../styles/GridLayout.css';
 import logger from '../utils/logger';
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -23,8 +27,6 @@ const Dashboard = () => {
     const [widgets, setWidgets] = useState([]);
     const [layouts, setLayouts] = useState({
         lg: [],
-        md: [],
-        sm: [],
         xs: [],
         xxs: []
     });
@@ -41,7 +43,6 @@ const Dashboard = () => {
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
-    const [layoutMode, setLayoutMode] = useState('auto'); // 'auto' = synced layouts, 'manual' = independent per breakpoint
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -51,39 +52,20 @@ const Dashboard = () => {
         }));
     };
 
-
-    // Breakpoint change handler for Gridstack
-    const onBreakpointChange = (breakpoint) => {
-        setCurrentBreakpoint(breakpoint);
-    };
-
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 12, md: 12, sm: 2, xs: 2, xxs: 2 },  // Desktop: 12 cols, Mobile: 2 cols (stacked)
+        cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 },
         breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
-        rowHeight: 100,  // Static for reliability
-        compactType: (currentBreakpoint === 'lg' || currentBreakpoint === 'md') ? 'vertical' : null,  // Desktop+Tablet: vertical compact, Mobile: respect exact positions
-        preventCollision: !editMode,  // Allow widgets to push each other in edit mode, prevent in view mode
+        rowHeight: 100,
+        compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
+        preventCollision: false,
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
         margin: [16, 16],
         containerPadding: [0, 0],
         onBreakpointChange: (breakpoint) => setCurrentBreakpoint(breakpoint)
     }), [editMode, currentBreakpoint, isGlobalDragEnabled]);
-
-    // DEBUG: Log grid config whenever it changes
-    React.useEffect(() => {
-        console.log('⚙️ Grid Config Updated:', {
-            editMode,
-            currentBreakpoint,
-            compactType: gridConfig.compactType,
-            preventCollision: gridConfig.preventCollision,
-            isDraggable: gridConfig.isDraggable,
-            isResizable: gridConfig.isResizable,
-            cols: gridConfig.cols[currentBreakpoint]
-        });
-    }, [editMode, currentBreakpoint, gridConfig]);
 
     // Helper: Apply minW/minH/maxH from widget metadata to layout items
     const enrichLayoutWithConstraints = (widget, layoutItem) => {
@@ -200,43 +182,49 @@ const Dashboard = () => {
     useEffect(() => {
         if (!widgets.length) return;
 
-        // Only run for mobile breakpoints that use sorted stacked layouts
-        // lg/md use desktop grid, sm/xs/xxs use stacking
-        const isMobile = ['sm', 'xs', 'xxs'].includes(currentBreakpoint);
-        if (!isMobile) return;
+        // Only run for breakpoints that use sorted stacked layouts (not lg)
+        const isSorted = currentBreakpoint !== 'lg';
+        if (!isSorted) return;
 
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
-        // Use proper band detection algorithm from layoutUtils
-        const sortedWidgets = generateMobileLayout(widgets, currentBreakpoint);
+        // Determine column count for current breakpoint
+        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 24; // xs/xxs=2 (full width), md/sm/lg=24
+        const breakpoint = currentBreakpoint;
 
-        // Update widgets array with new sorted order and layouts
-        setWidgets(sortedWidgets);
+        logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
 
-        // Apply visibility (hide/show) to the sorted layouts
-        const compactedLayouts = sortedWidgets.map(w => {
-            const layout = w.layouts[currentBreakpoint];
-            const isHidden = widgetVisibility[w.id] === false;
-            return {
-                i: w.id,
-                x: layout.x,
-                y: layout.y,
-                w: layout.w,
-                h: isHidden ? 0.001 : layout.h
-            };
-        });
+        // Get widgets in sorted order with current layouts
+        // Sort by mobile layout Y position (already has correct column-first order from generateMobileLayout)
+        let currentY = 0;
+        const compactedLayouts = widgets
+            .map(w => ({
+                widget: w,
+                layout: w.layouts?.[breakpoint] || layouts[breakpoint]?.find(l => l.i === w.id),
+                isHidden: widgetVisibility[w.id] === false
+            }))
+            .filter(item => item.layout)
+            .sort((a, b) => a.layout.y - b.layout.y) // Use mobile layout Y (maintains column-first order)
+            .map(({ widget, layout, isHidden }) => {
+                const height = isHidden ? 0.001 : layout.h;
+                logger.debug(`Widget recompaction: ${widget.type}`, { hidden: isHidden, originalY: layout.y, newY: currentY, height });
 
-        logger.debug('Layouts compacted with band detection', {
-            breakpoint: currentBreakpoint,
+                const compacted = { i: widget.id, x: 0, y: currentY, w: cols, h: height };
+                currentY += height;
+                return compacted;
+            });
+
+        logger.debug('Layouts compacted', {
+            breakpoint,
             order: compactedLayouts.map(l => widgets.find(w => w.id === l.i)?.type),
             count: compactedLayouts.length
         });
 
         setLayouts(prev => ({
             ...prev,
-            [currentBreakpoint]: compactedLayouts
+            [breakpoint]: compactedLayouts
         }));
-    }, [widgetVisibility, currentBreakpoint, editMode, widgets]); // Added widgets to trigger on initial load
+    }, [widgetVisibility, currentBreakpoint, widgets]);
 
     const loadUserPreferences = async () => {
         try {
@@ -310,7 +298,7 @@ const Dashboard = () => {
 
             setWidgets(fetchedWidgets);
 
-            // Convert to layout format for all breakpoints
+            // Convert to react-grid-layout format for all breakpoints
             const initialLayouts = {
                 lg: fetchedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
                 md: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.md })),
@@ -331,130 +319,54 @@ const Dashboard = () => {
     };
 
     // Handle layout changes (drag/resize)
-    const handleLayoutChange = React.useCallback((newLayout) => {
+    const handleLayoutChange = (newLayout) => {
         if (!editMode) return;
-
-        // DEBUG: Log layout change event
-        console.log('🔧 Layout changed:', {
-            mode: layoutMode,
-            breakpoint: currentBreakpoint,
-            layoutCount: newLayout.length,
-            widgets: newLayout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h }))
-        });
 
         // Mark as having unsaved changes immediately (for all breakpoints)
         setHasUnsavedChanges(true);
 
-        // MANUAL MODE: Save changes to current breakpoint only (no sync)
-        if (layoutMode === 'manual') {
-            console.log('📍 MANUAL MODE: Saving to', currentBreakpoint, 'only (no sync)');
-            // Update widgets with new positions for current breakpoint
-            const updatedWidgets = widgets.map(widget => {
-                const layoutItem = newLayout.find(l => l.i === widget.id);
-                if (layoutItem) {
-                    return {
-                        ...widget,
-                        // Update old format only if editing desktop
-                        ...(currentBreakpoint === 'lg' && {
+        // Only process layout changes for lg (desktop) breakpoint
+        // md/sm/xs/xxs layouts are auto-generated and managed by visibility useEffect
+        if (currentBreakpoint !== 'lg') {
+            return;
+        }
+
+        // Update widgets with new desktop (lg) positions
+        const updatedWidgets = widgets.map(widget => {
+            const layoutItem = newLayout.find(l => l.i === widget.id);
+            if (layoutItem) {
+                return {
+                    ...widget,
+                    // Old format (for backward compatibility)
+                    x: layoutItem.x,
+                    y: layoutItem.y,
+                    w: layoutItem.w,
+                    h: layoutItem.h,
+                    // New format (for multi-breakpoint)
+                    layouts: {
+                        ...widget.layouts,
+                        lg: {
                             x: layoutItem.x,
                             y: layoutItem.y,
                             w: layoutItem.w,
                             h: layoutItem.h
-                        }),
-                        // Update current breakpoint layout
-                        layouts: {
-                            ...widget.layouts,
-                            [currentBreakpoint]: {
-                                x: layoutItem.x,
-                                y: layoutItem.y,
-                                w: layoutItem.w,
-                                h: layoutItem.h
-                            }
                         }
-                    };
-                }
-                return widget;
-            });
+                    }
+                };
+            }
+            return widget;
+        });
 
-            setWidgets(updatedWidgets);
-            // IMMEDIATE state update - library will use this on next render
-            setLayouts(prev => ({
-                ...prev,
-                [currentBreakpoint]: newLayout
-            }));
-            return;
-        }
+        // Auto-generate mobile layouts from updated desktop layout
+        const withMobileLayouts = generateAllMobileLayouts(updatedWidgets);
 
-        // AUTO MODE: Desktop edits sync to mobile, mobile edits stay local
-        if (currentBreakpoint === 'lg') {
-            console.log('🔄 AUTO MODE: Desktop edit, syncing down to mobile');
-            // Desktop edit → sync to all mobile breakpoints
-            const updatedWidgets = widgets.map(widget => {
-                const layoutItem = newLayout.find(l => l.i === widget.id);
-                if (layoutItem) {
-                    return {
-                        ...widget,
-                        // Old format (for backward compatibility)
-                        x: layoutItem.x,
-                        y: layoutItem.y,
-                        w: layoutItem.w,
-                        h: layoutItem.h,
-                        // New format (for multi-breakpoint)
-                        layouts: {
-                            ...widget.layouts,
-                            lg: {
-                                x: layoutItem.x,
-                                y: layoutItem.y,
-                                w: layoutItem.w,
-                                h: layoutItem.h
-                            }
-                        }
-                    };
-                }
-                return widget;
-            });
-
-            // Auto-generate mobile layouts from updated desktop layout
-            const withMobileLayouts = generateAllMobileLayouts(updatedWidgets);
-
-            setWidgets(withMobileLayouts);
-            setLayouts({
-                lg: newLayout,
-                md: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.md })),
-                sm: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
-                xs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
-            });
-        } else {
-            console.log('📱 AUTO MODE: Mobile edit on', currentBreakpoint, ', staying local');
-            // Mobile edit → stays on mobile only (no upward sync in Phase 2)
-            const updatedWidgets = widgets.map(widget => {
-                const layoutItem = newLayout.find(l => l.i === widget.id);
-                if (layoutItem) {
-                    return {
-                        ...widget,
-                        layouts: {
-                            ...widget.layouts,
-                            [currentBreakpoint]: {
-                                x: layoutItem.x,
-                                y: layoutItem.y,
-                                w: layoutItem.w,
-                                h: layoutItem.h
-                            }
-                        }
-                    };
-                }
-                return widget;
-            });
-
-            setWidgets(updatedWidgets);
-            // IMMEDIATE state update - library will use this on next render
-            setLayouts(prev => ({
-                ...prev,
-                [currentBreakpoint]: newLayout
-            }));
-        }
-    }, [editMode, widgets, layoutMode, currentBreakpoint]); // Deps: editMode for check, widgets for mapping, layoutMode/currentBreakpoint for routing
+        setWidgets(withMobileLayouts);
+        setLayouts({
+            lg: newLayout,
+            xs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
+            xxs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+        });
+    };
 
     // Save changes to API
     const handleSave = async () => {
@@ -514,19 +426,14 @@ const Dashboard = () => {
 
     // Delete widget
     const handleDeleteWidget = (widgetId) => {
-        console.log('🗑️ Deleting widget:', widgetId, 'from all breakpoints');
-
         const updatedWidgets = widgets.filter(w => w.id !== widgetId);
         setWidgets(updatedWidgets);
 
-        // PHASE 3: Always sync deletion across all breakpoints (in both modes)
-        // This ensures widget list stays consistent
+        // Regenerate layouts after deletion
         const withLayouts = generateAllMobileLayouts(updatedWidgets);
         setWidgets(withLayouts);
         setLayouts({
             lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-            md: withLayouts.map(w => ({ i: w.id, ...w.layouts.md })),
-            sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
             xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
             xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
         });
@@ -592,61 +499,17 @@ const Dashboard = () => {
                 }
             };
 
-            // PHASE 3: Respect layout mode when adding widgets
+            // Migrate new widget and regenerate all layouts
             const migratedWidget = migrateWidgetToLayouts(newWidget);
+            const allWidgets = [...widgets, migratedWidget];
+            const withLayouts = generateAllMobileLayouts(allWidgets);
 
-            if (layoutMode === 'manual') {
-                console.log('➕ MANUAL MODE: Adding widget to', currentBreakpoint, 'only');
-
-                // Add widget to current breakpoint only
-                const allWidgets = [...widgets, migratedWidget];
-                setWidgets(allWidgets);
-
-                // Get column count for current breakpoint
-                const cols = gridConfig.cols[currentBreakpoint] || 12;
-
-                // Calculate Y position: find the bottom-most widget and place below it
-                const currentLayouts = layouts[currentBreakpoint] || [];
-                let maxY = 0;
-                currentLayouts.forEach(item => {
-                    const bottomY = item.y + item.h;
-                    if (bottomY > maxY) maxY = bottomY;
-                });
-
-                // Create layout item for current breakpoint
-                // Mobile (xs/xxs): Full width, proper Y position
-                // Desktop (lg/md/sm): Use default size, proper Y position
-                const newLayoutItem = {
-                    i: migratedWidget.id,
-                    x: 0,  // Always start at left
-                    y: maxY,  // Place at bottom
-                    w: cols === 2 ? 2 : migratedWidget.w,  // Full width on mobile, default on desktop
-                    h: migratedWidget.h  // Keep default height
-                };
-
-                console.log('📍 Widget placement:', { breakpoint: currentBreakpoint, cols, x: 0, y: maxY, w: newLayoutItem.w, h: newLayoutItem.h });
-
-                // Add to current breakpoint layout only
-                setLayouts(prev => ({
-                    ...prev,
-                    [currentBreakpoint]: [...prev[currentBreakpoint], newLayoutItem]
-                }));
-            } else {
-                console.log('➕ AUTO MODE: Adding widget to all breakpoints');
-
-                // Add to all breakpoints with proper sizing
-                const allWidgets = [...widgets, migratedWidget];
-                const withLayouts = generateAllMobileLayouts(allWidgets);
-
-                setWidgets(withLayouts);
-                setLayouts({
-                    lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                    md: withLayouts.map(w => ({ i: w.id, ...w.layouts.md })),
-                    sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
-                    xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-                    xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
-                });
-            }
+            setWidgets(withLayouts);
+            setLayouts({
+                lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
+                xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
+                xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            });
 
             setHasUnsavedChanges(true);
             setShowAddModal(false);
@@ -745,7 +608,7 @@ const Dashboard = () => {
     // Empty state
     if (widgets.length === 0 && !editMode) {
         return (
-            <div className="w-full min-h-screen p-8 max-w-[2400px] mx-auto fade-in">
+            <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
                 <header className="mb-12 flex items-center justify-between">
                     <div>
                         <h1 className="text-5xl font-bold mb-3 gradient-text">
@@ -771,7 +634,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-8 max-w-[2400px] mx-auto fade-in">
+        <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
                 <div>
@@ -785,84 +648,49 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                {/* Manual/Auto Mode Toggle - Phase 1: State only */}
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-theme-tertiary border border-theme rounded-lg">
-                        <span className="text-xs text-theme-secondary font-medium">Layout Mode:</span>
-                        <button
-                            onClick={() => {
-                                const newMode = layoutMode === 'auto' ? 'manual' : 'auto';
-                                console.log('⚙️ Mode toggled:', layoutMode, '→', newMode);
-                                setLayoutMode(newMode);
-                            }}
-                            className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${layoutMode === 'auto'
-                                ? 'bg-accent text-white'
-                                : 'text-theme-secondary hover:text-theme-primary'
-                                }`}
-                            title="Auto mode: Layouts sync between breakpoints"
-                        >
-                            Auto
-                        </button>
-                        <button
-                            onClick={() => {
-                                const newMode = layoutMode === 'auto' ? 'manual' : 'auto';
-                                console.log('⚙️ Mode toggled:', layoutMode, '→', newMode);
-                                setLayoutMode(newMode);
-                            }}
-                            className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${layoutMode === 'manual'
-                                ? 'bg-accent text-white'
-                                : 'text-theme-secondary hover:text-theme-primary'
-                                }`}
-                            title="Manual mode: Independent layouts per breakpoint"
-                        >
-                            Manual
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        {editMode ? (
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                {/* Add Widget Button */}
-                                <button
-                                    onClick={handleAddWidget}
-                                    className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated backdrop-blur-md"
-                                    title="Add Widget"
-                                >
-                                    <Plus size={18} />
-                                    <span className="hidden sm:inline">Widget</span>
-                                </button>
-
-                                {/* Save Button */}
-                                <button
-                                    onClick={handleSave}
-                                    disabled={!hasUnsavedChanges || saving}
-                                    className="px-3 sm:px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-blue-600/50 disabled:to-cyan-600/50 text-white rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated shadow-lg shadow-blue-500/20 disabled:shadow-none disabled:cursor-not-allowed"
-                                    title="Save Changes"
-                                >
-                                    <Save size={18} />
-                                    <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
-                                </button>
-
-                                {/* Cancel Button */}
-                                <button
-                                    onClick={handleCancel}
-                                    className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 backdrop-blur-md"
-                                    title="Cancel"
-                                >
-                                    <XIcon size={18} />
-                                    <span className="hidden sm:inline">Cancel</span>
-                                </button>
-                            </div>
-                        ) : (
+                <div className="flex items-center gap-2 sm:gap-3">
+                    {editMode ? (
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            {/* Add Widget Button */}
                             <button
-                                onClick={handleToggleEdit}
-                                className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
+                                onClick={handleAddWidget}
+                                className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated backdrop-blur-md"
+                                title="Add Widget"
                             >
-                                <Edit size={16} />
-                                Edit
+                                <Plus size={18} />
+                                <span className="hidden sm:inline">Widget</span>
                             </button>
-                        )}
-                    </div>
+
+                            {/* Save Button */}
+                            <button
+                                onClick={handleSave}
+                                disabled={!hasUnsavedChanges || saving}
+                                className="px-3 sm:px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-blue-600/50 disabled:to-cyan-600/50 text-white rounded-lg transition-all duration-300 flex items-center gap-2 button-elevated shadow-lg shadow-blue-500/20 disabled:shadow-none disabled:cursor-not-allowed"
+                                title="Save Changes"
+                            >
+                                <Save size={18} />
+                                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
+                            </button>
+
+                            {/* Cancel Button */}
+                            <button
+                                onClick={handleCancel}
+                                className="px-3 sm:px-4 py-2.5 bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-all duration-300 flex items-center gap-2 backdrop-blur-md"
+                                title="Cancel"
+                            >
+                                <XIcon size={18} />
+                                <span className="hidden sm:inline">Cancel</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleToggleEdit}
+                            className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
+                        >
+                            <Edit size={16} />
+                            Edit
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -882,14 +710,65 @@ const Dashboard = () => {
                 {/* Show grid when widgets exist */}
                 {widgets.length > 0 && (
                     <>
-                        <GridstackWrapper
-                            widgets={widgets}
-                            currentBreakpoint={currentBreakpoint}
-                            editMode={editMode}
+                        <ResponsiveGridLayout
+                            className="layout"
+                            cols={{ lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }}
+                            breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
+                            rowHeight={100}
+                            compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
+                            preventCollision={false}
+                            isDraggable={editMode && isGlobalDragEnabled}
+                            isResizable={editMode && isGlobalDragEnabled}
+                            resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
+                            draggableCancel=".no-drag"
+                            margin={[16, 16]}
+                            containerPadding={[0, 0]}
+                            layouts={layouts}
                             onLayoutChange={handleLayoutChange}
-                            onBreakpointChange={onBreakpointChange}
-                            renderWidget={renderWidget}
-                        />
+                            onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint)}
+                        >
+                            {widgets
+                                .map(widget => {
+                                    const metadata = getWidgetMetadata(widget.type);
+                                    const layoutItem = layouts.lg.find(l => l.i === widget.id) || {
+                                        i: widget.id,
+                                        x: widget.layouts?.lg?.x || 0,
+                                        y: widget.layouts?.lg?.y || 0,
+                                        w: widget.layouts?.lg?.w || 4,
+                                        h: widget.layouts?.lg?.h || 2
+                                    };
+
+                                    const renderedWidget = renderWidget(widget);
+
+                                    // Don't render grid cell if widget returns null
+                                    if (!renderedWidget) {
+                                        return null;
+                                    }
+
+                                    // Shrink grid cell when widget should be hidden (but keep it mounted)
+                                    const shouldShrink = widgetVisibility[widget.id] === false && !editMode;
+
+                                    return (
+                                        <div
+                                            key={widget.id}
+                                            className={editMode ? 'edit-mode' : 'locked'}
+                                            style={{
+                                                opacity: shouldShrink ? 0 : 1,
+                                                overflow: 'hidden'
+                                            }}
+                                            data-grid={{
+                                                ...layoutItem,
+                                                h: shouldShrink ? 0.001 : layoutItem.h,        // Try 0.01 for thinnest line
+                                                minH: shouldShrink ? 0.001 : (metadata?.minSize?.h || 1),
+                                                maxW: metadata?.maxSize?.w || 24,
+                                                maxH: metadata?.maxSize?.h || 10
+                                            }}
+                                        >
+                                            {renderedWidget}
+                                        </div>
+                                    );
+                                })}
+                        </ResponsiveGridLayout>
                     </>
                 )}
             </div>

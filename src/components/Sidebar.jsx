@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronUp, LogOut, UserCircle } from 'lucide-react';
+import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronRight, ChevronUp, LogOut, UserCircle } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../context/AppDataContext';
@@ -14,13 +14,30 @@ const Sidebar = () => {
     const [expandedGroups, setExpandedGroups] = useState({});
     const [tabs, setTabs] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
+    const [hoveredItem, setHoveredItem] = useState(null);
+    const [hoveredMobileTab, setHoveredMobileTab] = useState(null);
+    const hoverTimeoutRef = React.useRef(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Parse query parameters from hash (e.g., /#settings?tab=profile&source=profile)
-    const hash = window.location.hash.slice(1); // Remove the '#'
+    // Spring configuration for sidebar animations (animate-ui inspired)
+    const sidebarSpring = {
+        type: 'spring',
+        stiffness: 350,
+        damping: 35,
+    };
+
+    // Faster spring for text to avoid icon pushing
+    const textSpring = {
+        type: 'spring',
+        stiffness: 400,
+        damping: 35,
+    };
+
+    // Parse query parameters from hash
+    const hash = window.location.hash.slice(1);
     const hashParts = hash.split('?');
     const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
     const currentTab = searchParams.get('tab');
@@ -41,7 +58,18 @@ const Sidebar = () => {
                 logger.error('Error fetching tabs:', error);
             }
         };
+
         fetchTabs();
+
+        const handleTabsUpdated = () => {
+            fetchTabs();
+        };
+
+        window.addEventListener('tabsUpdated', handleTabsUpdated);
+
+        return () => {
+            window.removeEventListener('tabsUpdated', handleTabsUpdated);
+        };
     }, []);
 
     // Fetch current user profile
@@ -87,6 +115,40 @@ const Sidebar = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Delayed hover handlers to prevent snap-back when mouse crosses empty space
+    const handleMouseEnter = (item) => {
+        // Clear any pending timeout
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+        setHoveredItem(item);
+    };
+
+    const handleMouseLeave = () => {
+        // Add small delay before clearing hover (150ms)
+        hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredItem(null);
+            hoverTimeoutRef.current = null;
+        }, 150);
+    };
+
+    const renderIcon = (iconValue, size = 20) => {
+        if (!iconValue) return <Icons.Server size={size} />;
+
+        if (iconValue.startsWith('custom:')) {
+            const iconId = iconValue.replace('custom:', '');
+            return <img src={`/api/custom-icons/${iconId}/file`} alt="custom icon" className="object-cover rounded" style={{ width: size, height: size }} />;
+        }
+
+        if (iconValue.startsWith('data:')) {
+            return <img src={iconValue} alt="icon" className="object-cover rounded" style={{ width: size, height: size }} />;
+        }
+
+        const IconComponent = Icons[iconValue] || Icons.Server;
+        return <IconComponent size={size} />;
+    };
+
     const toggleGroup = (groupId) => {
         setExpandedGroups(prev => ({
             ...prev,
@@ -94,41 +156,30 @@ const Sidebar = () => {
         }));
     };
 
-    const renderIcon = (iconValue, size = 20) => {
-        if (!iconValue) return <Icons.Server size={size} />;
-
-        // Handle custom uploaded icons
-        if (iconValue.startsWith('custom:')) {
-            const iconId = iconValue.replace('custom:', '');
-            return <img src={`/api/custom-icons/${iconId}/file`} alt="custom icon" className="object-cover rounded" style={{ width: size, height: size }} />;
-        }
-
-        // Handle legacy base64 images
-        if (iconValue.startsWith('data:')) {
-            return <img src={iconValue} alt="icon" className="object-cover rounded" style={{ width: size, height: size }} />;
-        }
-
-        // Handle Lucide icons
-        const IconComponent = Icons[iconValue] || Icons.Server;
-        return <IconComponent size={size} />;
-    };
-
-    // Desktop Sidebar
+    // Desktop Sidebar with animated hover indicator
     if (!isMobile) {
         return (
             <>
                 {/* Backdrop when sidebar is expanded */}
-                {isExpanded && (
-                    <div
-                        className="fixed inset-0 bg-black/20 z-30 transition-opacity duration-300"
-                        style={{ opacity: isExpanded ? 1 : 0 }}
-                    />
-                )}
+                <AnimatePresence>
+                    {isExpanded && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={sidebarSpring}
+                            className="fixed inset-0 bg-black/20 z-30"
+                        />
+                    )}
+                </AnimatePresence>
 
-                <aside
-                    className="flex flex-col transition-all duration-300 ease-in-out relative fade-in"
+                <motion.aside
+                    className="flex flex-col relative fade-in"
+                    animate={{
+                        width: isExpanded ? 280 : 80,
+                    }}
+                    transition={sidebarSpring}
                     style={{
-                        width: isExpanded ? '280px' : '80px',
                         height: 'calc(100vh - 32px)',
                         position: 'fixed',
                         left: '16px',
@@ -142,7 +193,15 @@ const Sidebar = () => {
                         boxShadow: '0 24px 48px rgba(0, 0, 0, 0.6), 0 12px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border-glass), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
                     }}
                     onMouseEnter={() => setIsExpanded(true)}
-                    onMouseLeave={() => setIsExpanded(false)}
+                    onMouseLeave={() => {
+                        setIsExpanded(false);
+                        // Clear any pending hover timeout when leaving sidebar
+                        if (hoverTimeoutRef.current) {
+                            clearTimeout(hoverTimeoutRef.current);
+                            hoverTimeoutRef.current = null;
+                        }
+                        setHoveredItem(null);
+                    }}
                 >
                     {/* Gradient border accent */}
                     <div
@@ -158,65 +217,136 @@ const Sidebar = () => {
                     />
 
                     {/* Header */}
-                    <div
-                        className={`h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10 transition-all duration-300 ${isExpanded ? 'justify-start px-6' : 'justify-center px-0'}`}
-                    >
-                        <div className={`text-accent flex items-center justify-center transition-all duration-300 drop-shadow-lg ${isExpanded ? 'min-w-[28px]' : 'w-full'}`}>
+                    <div className="h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
+                        {/* Icon - locked in 80px container */}
+                        <div className="w-20 flex items-center justify-center flex-shrink-0 text-accent drop-shadow-lg">
                             {renderIcon(userSettings?.serverIcon, 28)}
                         </div>
-                        {isExpanded && (
-                            <span className="ml-4 transition-opacity duration-300 opacity-100 gradient-text font-bold">
-                                {userSettings?.serverName || 'Dashboard'}
-                            </span>
-                        )}
+                        {/* Text - appears when expanded */}
+                        <AnimatePresence mode="wait">
+                            {isExpanded && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.1 }}
+                                    className="gradient-text font-bold"
+                                >
+                                    {userSettings?.serverName || 'Dashboard'}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 px-3">
+                    <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 relative">
+                        {/* Dashboard Link */}
                         <a
                             href="/#dashboard"
+                            onMouseEnter={() => handleMouseEnter('dashboard')}
+                            onMouseLeave={handleMouseLeave}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const shouldBeActive = !hash || hash === 'dashboard';
-                                return `flex items-center py-3.5 text-sm font-medium text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${shouldBeActive ? 'bg-accent/20 text-accent shadow-lg' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                                return `flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative`;
                             })()}
                         >
-                            <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
-                                <LayoutDashboard size={22} />
-                            </span>
-                            <span className={`whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
-                                Dashboard
-                            </span>
+                            {/* Animated hover/active indicator */}
+                            {(hoveredItem === 'dashboard' || (!window.location.hash || window.location.hash === '#dashboard')) && (
+                                <motion.div
+                                    layoutId="sidebarIndicator"
+                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${(!window.location.hash || window.location.hash === '#dashboard')
+                                        ? 'bg-accent/20 shadow-lg'
+                                        : 'bg-slate-800/60'
+                                        }`}
+                                    transition={sidebarSpring}
+                                />
+                            )}
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className={`flex items-center justify-center ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}>
+                                    <LayoutDashboard size={20} />
+                                </span>
+                            </div>
+                            {/* Text - appears when expanded */}
+                            <AnimatePresence mode="wait">
+                                {isExpanded && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.1 }}
+                                        className={`whitespace-nowrap relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
+                                    >
+                                        Dashboard
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
                         </a>
 
                         {/* Tabs Section */}
                         {tabs && tabs.length > 0 && (
                             <>
                                 {/* Header for expanded state */}
-                                {isExpanded && (
-                                    <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 pt-4 pb-2">
-                                        Tabs
-                                    </div>
-                                )}
+                                <AnimatePresence mode="wait">
+                                    {isExpanded && (
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.1 }}
+                                            className="text-[11px] font-semibold text-theme-tertiary uppercase tracking-wider px-4 pt-4 pb-2"
+                                        >
+                                            Tabs
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Separator for collapsed state */}
-                                {!isExpanded && <div className="my-3 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent w-full" />}
+                                {!isExpanded && <div className="my-3 h-px bg-gradient-to-r from-transparent via-border-theme to-transparent w-full" />}
 
-                                {/* Ungrouped tabs first */}
+                                {/* Ungrouped tabs */}
                                 {tabs.filter(tab => !tab.groupId).map(tab => (
                                     <a
                                         key={tab.id}
                                         href={`/#${tab.slug}`}
-                                        className={`flex items-center py-3.5 text-sm font-medium text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 text-accent shadow-lg' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} relative group`}
+                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                        onMouseLeave={handleMouseLeave}
+                                        className={`flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
                                     >
-                                        <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
-                                            {renderIcon(tab.icon, 22)}
-                                        </span>
-                                        <span className={`whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
-                                            {tab.name}
-                                        </span>
+                                        {/* Animated hover/active indicator */}
+                                        {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
+                                            <motion.div
+                                                layoutId="sidebarIndicator"
+                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                transition={sidebarSpring}
+                                            />
+                                        )}
+                                        <motion.span
+                                            className={`flex items-center justify-center min-w-[20px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}
+                                            animate={{ x: isExpanded ? 0 : 0 }}
+                                            transition={sidebarSpring}
+                                        >
+                                            {renderIcon(tab.icon, 20)}
+                                        </motion.span>
+                                        <AnimatePresence mode="wait">
+                                            {isExpanded && (
+                                                <motion.span
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0 }}
+                                                    transition={{
+                                                        ...textSpring,
+                                                        exit: { duration: 0.1 },
+                                                    }}
+                                                    className={`whitespace-nowrap relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                >
+                                                    {tab.name}
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
                                         {!isExpanded && (
-                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
                                                 {tab.name}
                                             </div>
                                         )}
@@ -234,39 +364,95 @@ const Sidebar = () => {
                                                 <>
                                                     <button
                                                         onClick={() => toggleGroup(group.id)}
-                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-800/40"
+                                                        onMouseEnter={() => handleMouseEnter(`group-${group.id}`)}
+                                                        onMouseLeave={handleMouseLeave}
+                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-theme-tertiary uppercase tracking-wider hover:text-theme-secondary transition-colors rounded-lg relative"
                                                     >
-                                                        <span>{group.name}</span>
-                                                        {expandedGroups[group.id] ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                                                        {/* Hover indicator for group header */}
+                                                        {hoveredItem === `group-${group.id}` && (
+                                                            <motion.div
+                                                                layoutId="sidebarIndicator"
+                                                                className="absolute inset-y-1 inset-x-2 bg-slate-800/60 rounded-xl"
+                                                                transition={sidebarSpring}
+                                                            />
+                                                        )}
+                                                        <span className="relative z-10">{group.name}</span>
+                                                        <ChevronRight
+                                                            size={16}
+                                                            className="transition-transform duration-300 relative z-10"
+                                                            style={{
+                                                                transform: expandedGroups[group.id] ? 'rotate(90deg)' : 'rotate(0deg)'
+                                                            }}
+                                                        />
                                                     </button>
-                                                    <div className={`overflow-hidden transition-all duration-300 space-y-1 ${expandedGroups[group.id] ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                                        {groupTabs.map(tab => (
-                                                            <a
-                                                                key={tab.id}
-                                                                href={`/#${tab.slug}`}
-                                                                className={`flex items-center py-3 px-4 pl-8 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 text-accent shadow-lg' : ''}`}
+                                                    <AnimatePresence>
+                                                        {expandedGroups[group.id] && (
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={sidebarSpring}
+                                                                className="overflow-hidden space-y-1 mt-1"
                                                             >
-                                                                <span className="mr-3 flex items-center justify-center">
-                                                                    {renderIcon(tab.icon, 18)}
-                                                                </span>
-                                                                <span className="truncate">{tab.name}</span>
-                                                            </a>
-                                                        ))}
-                                                    </div>
+                                                                {groupTabs.map(tab => (
+                                                                    <a
+                                                                        key={tab.id}
+                                                                        href={`/#${tab.slug}`}
+                                                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                                                        onMouseLeave={handleMouseLeave}
+                                                                        className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-theme-tertiary hover:text-theme-primary transition-colors rounded-xl relative"
+                                                                    >
+                                                                        {/* Animated hover/active indicator */}
+                                                                        {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
+                                                                            <motion.div
+                                                                                layoutId="sidebarIndicator"
+                                                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                                                transition={sidebarSpring}
+                                                                            />
+                                                                        )}
+                                                                        <motion.span
+                                                                            className={`mr-3 flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                                            animate={{ x: 0 }}
+                                                                            transition={sidebarSpring}
+                                                                        >
+                                                                            {renderIcon(tab.icon, 20)}
+                                                                        </motion.span>
+                                                                        <span className={`truncate relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
+                                                                            {tab.name}
+                                                                        </span>
+                                                                    </a>
+                                                                ))}
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </>
                                             ) : (
                                                 groupTabs.map(tab => (
                                                     <a
                                                         key={tab.id}
                                                         href={`/#${tab.slug}`}
-                                                        className={`flex items-center justify-center py-3.5 text-slate-300 hover:bg-slate-800/60 hover:text-white transition-all rounded-xl relative group ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 text-accent shadow-lg' : ''}`}
+                                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                                        onMouseLeave={handleMouseLeave}
+                                                        className="flex items-center justify-center py-3.5 text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative group"
                                                     >
-                                                        <span className="flex items-center justify-center">
+                                                        {/* Animated hover/active indicator */}
+                                                        {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
+                                                            <motion.div
+                                                                layoutId="sidebarIndicator"
+                                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                                transition={sidebarSpring}
+                                                            />
+                                                        )}
+                                                        <motion.span
+                                                            className={`flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                            animate={{ x: 0 }}
+                                                            transition={sidebarSpring}
+                                                        >
                                                             {renderIcon(tab.icon, 20)}
-                                                        </span>
-                                                        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                                        </motion.span>
+                                                        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
                                                             {tab.name}
-                                                            <span className="text-xs text-slate-400 block">{group.name}</span>
+                                                            <span className="text-xs text-theme-tertiary block">{group.name}</span>
                                                         </div>
                                                     </a>
                                                 ))
@@ -279,9 +465,12 @@ const Sidebar = () => {
                     </nav>
 
                     {/* Footer */}
-                    <div className="p-3 border-t border-slate-700/50 flex flex-col gap-2">
+                    <div className="py-3 border-t border-slate-700/50 flex flex-col gap-2 relative">
+                        {/* Profile Link */}
                         <a
                             href="/#settings?tab=profile&source=profile"
+                            onMouseEnter={() => handleMouseEnter('profile')}
+                            onMouseLeave={handleMouseLeave}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const hashParts = hash.split('?');
@@ -289,72 +478,143 @@ const Sidebar = () => {
                                 const currentTab = searchParams.get('tab');
                                 const source = searchParams.get('source');
                                 const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all relative group ${isActive ? 'bg-accent/20 text-accent' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                                return `flex items-center py-3 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative group`;
                             })()}
                         >
-                            <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
-                                {currentUser?.profilePicture ? (
-                                    <img
-                                        src={currentUser.profilePicture}
-                                        alt="Profile"
-                                        className="w-[22px] h-[22px] rounded-full object-cover border border-slate-600"
-                                    />
-                                ) : (
-                                    <UserCircle size={22} />
+                            {/* Animated hover/active indicator */}
+                            {(hoveredItem === 'profile' || (hash.startsWith('settings') && currentTab === 'profile' && source === 'profile')) && (
+                                <motion.div
+                                    layoutId="sidebarIndicator"
+                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            )}
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className={`flex items-center justify-center ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}>
+                                    {currentUser?.profilePicture ? (
+                                        <img
+                                            src={currentUser.profilePicture}
+                                            alt="Profile"
+                                            className="w-[20px] h-[20px] rounded-full object-cover border border-theme"
+                                        />
+                                    ) : (
+                                        <UserCircle size={20} />
+                                    )}
+                                </span>
+                            </div>
+                            {/* Text - appears when expanded */}
+                            <AnimatePresence mode="wait">
+                                {isExpanded && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.1 }}
+                                        className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && currentTab === 'profile' && source === 'profile' ? 'text-accent' : ''}`}
+                                    >
+                                        Profile
+                                    </motion.span>
                                 )}
-                            </span>
-                            <span className={`whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
-                                Profile
-                            </span>
+                            </AnimatePresence>
                             {!isExpanded && (
-                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-800/95 backdrop-blur-sm text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
                                     {currentUser?.username || 'Profile'}
                                 </div>
                             )}
                         </a>
+
+                        {/* Settings Link */}
                         <a
                             href="/#settings"
+                            onMouseEnter={() => handleMouseEnter('settings')}
+                            onMouseLeave={handleMouseLeave}
                             className={(() => {
                                 const hash = window.location.hash.slice(1);
                                 const hashParts = hash.split('?');
                                 const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
                                 const currentTab = searchParams.get('tab');
                                 const source = searchParams.get('source');
-                                // Highlight Settings when on any settings page EXCEPT when BOTH tab=profile AND source=profile
                                 const isProfilePage = currentTab === 'profile' && source === 'profile';
                                 const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
-                                return `flex items-center py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all ${shouldHighlight ? 'bg-accent/20 text-accent' : ''} ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`;
+                                return `flex items-center py-3 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative`;
                             })()}
                         >
-                            <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
-                                <SettingsIcon size={20} />
-                            </span>
-                            <span className={`whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
-                                Settings
-                            </span>
+                            {/* Animated hover/active indicator */}
+                            {(hoveredItem === 'settings' || (hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile'))) && (
+                                <motion.div
+                                    layoutId="sidebarIndicator"
+                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            )}
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className={`flex items-center justify-center ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}>
+                                    <SettingsIcon size={20} />
+                                </span>
+                            </div>
+                            {/* Text - appears when expanded */}
+                            <AnimatePresence mode="wait">
+                                {isExpanded && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.1 }}
+                                        className={`whitespace-nowrap relative z-10 ${hash.startsWith('settings') && !(currentTab === 'profile' && source === 'profile') ? 'text-accent' : ''}`}
+                                    >
+                                        Settings
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
                         </a>
 
+                        {/* Logout Button */}
                         <button
                             onClick={handleLogout}
-                            className={`flex items-center py-3 text-sm font-medium text-slate-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'}`}
+                            onMouseEnter={() => handleMouseEnter('logout')}
+                            onMouseLeave={handleMouseLeave}
+                            className="flex items-center py-3 text-sm font-medium text-slate-400 hover:text-red-400 transition-colors rounded-xl relative"
                         >
-                            <span className={`flex items-center justify-center min-w-[22px] ${isExpanded ? 'mr-3' : ''}`}>
-                                <LogOut size={20} />
-                            </span>
-                            <span className={`whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
-                                Logout
-                            </span>
+                            {hoveredItem === 'logout' && (
+                                <motion.div
+                                    layoutId="sidebarIndicator"
+                                    className="absolute inset-y-1 inset-x-2 bg-red-500/10 rounded-xl"
+                                    transition={sidebarSpring}
+                                />
+                            )}
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className="flex items-center justify-center">
+                                    <LogOut size={20} />
+                                </span>
+                            </div>
+                            {/* Text - appears when expanded */}
+                            <AnimatePresence mode="wait">
+                                {isExpanded && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.1 }}
+                                        className="whitespace-nowrap relative z-10"
+                                    >
+                                        Logout
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
                         </button>
                     </div>
-                </aside>
+                </motion.aside>
             </>
         );
     }
 
-    // Mobile Sidebar (Expanding Bottom Bar)
+    // Mobile Sidebar (keep existing mobile implementation - no changes needed)
     return (
         <>
-            {/* Backdrop - dims main content when menu opens, click to close */}
+            {/* Backdrop */}
             <AnimatePresence>
                 {isMobileMenuOpen && (
                     <motion.div
@@ -368,7 +628,7 @@ const Sidebar = () => {
                 )}
             </AnimatePresence>
 
-            {/* Unified Expanding Mobile Menu Container */}
+            {/* Mobile menu - keep existing implementation */}
             <motion.div
                 className="fixed left-4 right-4 z-50 flex flex-col justify-end"
                 animate={{
@@ -377,9 +637,9 @@ const Sidebar = () => {
                 }}
                 transition={{
                     type: 'spring',
-                    stiffness: 300,
-                    damping: 30,
-                    mass: 0.8,
+                    stiffness: 350,
+                    damping: 35,
+                    mass: 0.7,
                 }}
                 style={{
                     bottom: '1rem',
@@ -391,7 +651,7 @@ const Sidebar = () => {
                     boxShadow: '0 24px 48px rgba(0, 0, 0, 0.6), 0 12px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border-glass), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
                 }}
             >
-                {/* Gradient border accent */}
+                {/* Mobile menu content - keeping existing implementation unchanged */}
                 <div
                     className="absolute inset-0 rounded-[20px] pointer-events-none"
                     style={{
@@ -404,17 +664,17 @@ const Sidebar = () => {
                     }}
                 />
 
-                {/* Menu Content Area (hidden when collapsed) - Flex container */}
                 <motion.div
                     className="flex flex-col relative z-10"
+                    initial={false}
                     animate={{
                         opacity: isMobileMenuOpen ? 1 : 0,
-                        y: isMobileMenuOpen ? 0 : 20,
                     }}
                     transition={{
-                        duration: isMobileMenuOpen ? 0.4 : 0.2,
-                        delay: isMobileMenuOpen ? 0.1 : 0,
-                        ease: 'easeOut',
+                        type: 'spring',
+                        stiffness: 350,
+                        damping: 35,
+                        mass: 0.7,
                     }}
                     style={{
                         flex: isMobileMenuOpen ? 1 : '0 0 0px',
@@ -423,26 +683,26 @@ const Sidebar = () => {
                         overflow: 'hidden',
                     }}
                 >
-                    {/* Scrollable Nav Section */}
-                    <div className="overflow-y-auto px-6 pt-6 pb-4" style={{ flex: 1, minHeight: 0 }}>
-                        {/* Menu Header */}
-                        <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50">
-                            <div className="flex items-center gap-3 text-accent font-bold text-xl">
-                                {renderIcon(userSettings?.serverIcon, 24)}
-                                <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
-                            </div>
+                    <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-700/50">
+                        <div className="flex items-center gap-3 text-accent font-bold text-xl">
+                            {renderIcon(userSettings?.serverIcon, 24)}
+                            <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
                         </div>
+                    </div>
 
-                        {/* Navigation */}
+                    <div className="overflow-y-auto px-6 pt-4 pb-4" style={{ flex: 1, minHeight: 0 }}>
                         <nav className="space-y-4">
-                            {/* Tabs Section */}
                             {tabs && tabs.length > 0 && (
                                 <div>
                                     <motion.div
-                                        className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2"
+                                        className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-2"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: isMobileMenuOpen ? 1 : 0 }}
-                                        transition={{ delay: 0.2 }}
+                                        transition={{
+                                            type: 'spring',
+                                            stiffness: 350,
+                                            damping: 35,
+                                        }}
                                     >
                                         Tabs
                                     </motion.div>
@@ -452,15 +712,15 @@ const Sidebar = () => {
                                                 key={tab.id}
                                                 href={`/#${tab.slug}`}
                                                 onClick={() => setIsMobileMenuOpen(false)}
-                                                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                                                initial={{ opacity: 0, y: 10 }}
+                                                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-theme-tertiary/50 text-theme-secondary hover:bg-theme-tertiary hover:text-theme-primary transition-colors"
+                                                initial={{ opacity: 0 }}
                                                 animate={{
                                                     opacity: isMobileMenuOpen ? 1 : 0,
-                                                    y: isMobileMenuOpen ? 0 : 10,
                                                 }}
                                                 transition={{
-                                                    delay: isMobileMenuOpen ? 0.3 + (index * 0.05) : 0,
-                                                    duration: 0.3,
+                                                    type: 'spring',
+                                                    stiffness: 350,
+                                                    damping: 35,
                                                 }}
                                                 whileTap={{ scale: 0.97 }}
                                             >
@@ -474,7 +734,6 @@ const Sidebar = () => {
                         </nav>
                     </div>
 
-                    {/* Fixed Logout Section (above tab bar) */}
                     <div className="px-6 pt-4 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
                         <button
                             onClick={handleLogout}
@@ -486,7 +745,6 @@ const Sidebar = () => {
                     </div>
                 </motion.div>
 
-                {/* Tab Bar (always visible, becomes menu footer when expanded) */}
                 <div
                     className="flex justify-around items-center px-4 relative z-10"
                     style={{
@@ -496,7 +754,7 @@ const Sidebar = () => {
                 >
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-all py-2 px-3 rounded-lg hover:bg-slate-800/60"
+                        className="flex flex-col items-center gap-1 text-theme-tertiary hover:text-theme-primary transition-all py-2 px-3 rounded-lg hover:bg-theme-hover"
                         style={{
                             transition: 'transform 300ms ease-out',
                         }}
@@ -512,56 +770,142 @@ const Sidebar = () => {
                     <a
                         href="/#dashboard"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={(() => {
-                            const hash = window.location.hash.slice(1);
-                            const shouldBeActive = !hash || hash === 'dashboard';
-                            return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${shouldBeActive ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
-                        })()}
+                        onMouseEnter={() => setHoveredMobileTab('dashboard')}
+                        onMouseLeave={() => setHoveredMobileTab(null)}
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
                     >
-                        <LayoutDashboard size={24} />
-                        <span className="text-[10px] font-medium">Dashboard</span>
+                        {/* Animated sliding indicator */}
+                        {(() => {
+                            const hash = window.location.hash.slice(1);
+                            const isActive = !hash || hash === 'dashboard';
+                            const shouldShowIndicator = isActive || hoveredMobileTab === 'dashboard';
+
+                            return shouldShowIndicator && (
+                                <motion.div
+                                    layoutId="mobileTabIndicator"
+                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            );
+                        })()}
+                        {/* Icon - with relative z-index to stay above indicator */}
+                        <div className={`relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const isActive = !hash || hash === 'dashboard';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>
+                            <LayoutDashboard size={24} />
+                        </div>
+                        <span className={`text-[10px] font-medium relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const isActive = !hash || hash === 'dashboard';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>Dashboard</span>
                     </a>
                     <a
                         href="/#settings?tab=profile&source=profile"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={(() => {
+                        onMouseEnter={() => setHoveredMobileTab('profile')}
+                        onMouseLeave={() => setHoveredMobileTab(null)}
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
+                    >
+                        {/* Animated sliding indicator */}
+                        {(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
                             const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
                             const currentTab = searchParams.get('tab');
                             const source = searchParams.get('source');
                             const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                            return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${isActive ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
+                            const shouldShowIndicator = isActive || hoveredMobileTab === 'profile';
+
+                            return shouldShowIndicator && (
+                                <motion.div
+                                    layoutId="mobileTabIndicator"
+                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            );
                         })()}
-                    >
-                        {currentUser?.profilePicture ? (
-                            <img
-                                src={currentUser.profilePicture}
-                                alt="Profile"
-                                className="w-6 h-6 rounded-full object-cover border border-slate-600"
-                            />
-                        ) : (
-                            <UserCircle size={24} />
-                        )}
-                        <span className="text-[10px] font-medium">Profile</span>
-                    </a>
-                    <a
-                        href="/#settings"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={(() => {
+                        {/* Icon - with relative z-index to stay above indicator */}
+                        <div className={`relative z-10 ${(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
                             const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
                             const currentTab = searchParams.get('tab');
                             const source = searchParams.get('source');
-                            // Highlight Settings when on any settings page EXCEPT when BOTH tab=profile AND source=profile
-                            const isProfilePage = currentTab === 'profile' && source === 'profile';
-                            const shouldHighlight = hash.startsWith('settings') && !isProfilePage;
-                            return `flex flex-col items-center gap-1 transition-all py-2 px-3 rounded-lg ${shouldHighlight ? 'text-accent bg-accent/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}`;
-                        })()}
+                            const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>
+                            {currentUser?.profilePicture ? (
+                                <img
+                                    src={currentUser.profilePicture}
+                                    alt="Profile"
+                                    className="w-6 h-6 rounded-full object-cover border border-slate-600"
+                                />
+                            ) : (
+                                <UserCircle size={24} />
+                            )}
+                        </div>
+                        <span className={`text-[10px] font-medium relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>Profile</span>
+                    </a>
+                    <a
+                        href="/#settings"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        onMouseEnter={() => setHoveredMobileTab('settings')}
+                        onMouseLeave={() => setHoveredMobileTab(null)}
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
                     >
-                        <SettingsIcon size={24} />
-                        <span className="text-[10px] font-medium">Settings</span>
+                        {/* Animated sliding indicator */}
+                        {(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isProfilePage = currentTab === 'profile' && source === 'profile';
+                            const isActive = hash.startsWith('settings') && !isProfilePage;
+                            const shouldShowIndicator = isActive || hoveredMobileTab === 'settings';
+
+                            return shouldShowIndicator && (
+                                <motion.div
+                                    layoutId="mobileTabIndicator"
+                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            );
+                        })()}
+                        {/* Icon - with relative z-index to stay above indicator */}
+                        <div className={`relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isProfilePage = currentTab === 'profile' && source === 'profile';
+                            const isActive = hash.startsWith('settings') && !isProfilePage;
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>
+                            <SettingsIcon size={24} />
+                        </div>
+                        <span className={`text-[10px] font-medium relative z-10 ${(() => {
+                            const hash = window.location.hash.slice(1);
+                            const hashParts = hash.split('?');
+                            const searchParams = hashParts.length > 1 ? new URLSearchParams(hashParts[1]) : new URLSearchParams();
+                            const currentTab = searchParams.get('tab');
+                            const source = searchParams.get('source');
+                            const isProfilePage = currentTab === 'profile' && source === 'profile';
+                            const isActive = hash.startsWith('settings') && !isProfilePage;
+                            return isActive ? 'text-accent' : '';
+                        })()}`}>Settings</span>
                     </a>
                 </div>
             </motion.div>

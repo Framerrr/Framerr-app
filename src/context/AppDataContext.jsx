@@ -28,10 +28,10 @@ export const AppDataProvider = ({ children }) => {
             const systemConfigRes = await axios.get('/api/config/system');
             const systemConfig = systemConfigRes.data;
 
-            // Set user settings
+            // Set user settings with server name/icon from system config
             setUserSettings({
-                serverName: 'Homelab',
-                serverIcon: 'Server',
+                serverName: systemConfig?.server?.name || 'Homelab Dashboard',
+                serverIcon: systemConfig?.server?.icon || 'Server',
                 ...userConfig.preferences
             });
 
@@ -44,7 +44,7 @@ export const AppDataProvider = ({ children }) => {
             setServices([]);
 
         } catch (error) {
-            console.error('Failed to fetch app data:', error);
+            logger.error('Failed to fetch app data', { error: error.message });
         } finally {
             setLoading(false);
         }
@@ -52,6 +52,17 @@ export const AppDataProvider = ({ children }) => {
 
     useEffect(() => {
         fetchData();
+
+        // Listen for system config updates (app name/icon changes)
+        const handleSystemConfigUpdated = () => {
+            fetchData();
+        };
+
+        window.addEventListener('systemConfigUpdated', handleSystemConfigUpdated);
+
+        return () => {
+            window.removeEventListener('systemConfigUpdated', handleSystemConfigUpdated);
+        };
     }, [isAuthenticated]);
 
     const updateWidgetLayout = async (newLayout) => {
@@ -66,7 +77,7 @@ export const AppDataProvider = ({ children }) => {
 
             logger.debug('Widget layout saved', { widgetCount: newLayout.length });
         } catch (error) {
-            console.error('Failed to save widget layout:', error);
+            logger.error('Failed to save widget layout', { error: error.message });
             // Revert on error
             fetchData();
         }

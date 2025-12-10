@@ -17,7 +17,7 @@ export default defineConfig({
     server: {
         port: 5173,
         host: true, // Allow external access
-        allowedHosts: 'all', // Allow all hosts (for reverse proxy support)
+        allowedHosts: true, // Allow all hosts (for reverse proxy support)
         proxy: {
             '/api': {
                 target: 'http://localhost:3001',

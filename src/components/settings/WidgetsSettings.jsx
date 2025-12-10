@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LayoutGrid, Cpu, Activity } from 'lucide-react';
+import { motion } from 'framer-motion';
 import WidgetGallery from './WidgetGallery';
 import IntegrationsSettings from './IntegrationsSettings';
 import ActiveWidgets from './ActiveWidgets';
@@ -17,26 +18,40 @@ const WidgetsSettings = () => {
         { id: 'active', label: 'Active Widgets', icon: Activity }
     ];
 
+    // Spring config for sub-tab indicator
+    const tabSpring = {
+        type: 'spring',
+        stiffness: 350,
+        damping: 35,
+    };
+
     return (
         <div className="fade-in">
             {/* Sub-Tab Navigation */}
             <div className="mb-6 border-b border-theme">
-                <div className="flex gap-1">
+                <div className="flex gap-1 relative">
                     {subTabs.map(tab => {
                         const Icon = tab.icon;
+                        const isActive = activeSubTab === tab.id;
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveSubTab(tab.id)}
-                                className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeSubTab === tab.id
-                                    ? 'border-accent text-accent'
-                                    : 'border-transparent text-theme-secondary hover:text-theme-primary'
-                                    }`}
+                                className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                             >
-                                <div className="flex items-center gap-2">
-                                    <Icon size={18} />
-                                    <span>{tab.label}</span>
+                                <div className="flex items-center gap-2 relative z-10">
+                                    <Icon size={18} className={isActive ? 'text-accent' : ''} />
+                                    <span className={isActive ? 'text-accent' : ''}>{tab.label}</span>
                                 </div>
+
+                                {/* Animated sliding indicator */}
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="widgetSubTabIndicator"
+                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                                        transition={tabSpring}
+                                    />
+                                )}
                             </button>
                         );
                     })}
