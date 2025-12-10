@@ -112,6 +112,21 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
         }, 5000);
     };
 
+    const handleReset = () => {
+        if (window.confirm('Are you sure you want to reset System Health integration? This will disable the integration and clear all configuration.')) {
+            const resetConfig = {
+                enabled: false,
+                backend: 'glances',
+                glances: { url: '', password: '' },
+                custom: { url: '', token: '' },
+                _isValid: true
+            };
+            setConfig(resetConfig);
+            setSelectedBackend('glances');
+            onUpdate(resetConfig);
+        }
+    };
+
     const backendConfig = config[selectedBackend] || {};
 
     // Validation: Check if the selected backend has required fields
@@ -227,29 +242,43 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                             )}
                         </div>
 
-                        {/* Test Connection */}
-                        <div className="flex items-center gap-3 pt-2">
-                            <Button
-                                onClick={handleTest}
-                                disabled={testState?.loading || !isConfigured}
-                                variant="secondary"
-                                size="sm"
-                                icon={testState?.loading ? Loader : TestTube}
-                            >
-                                {testState?.loading ? 'Testing...' : 'Test Connection'}
-                            </Button>
+                        {/* Test Connection & Reset */}
+                        <div className="flex items-center justify-between gap-3 pt-2">
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    onClick={handleTest}
+                                    disabled={testState?.loading || !isConfigured}
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={testState?.loading ? Loader : TestTube}
+                                >
+                                    {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                </Button>
 
-                            {/* Test Result */}
-                            {testState && !testState.loading && (
-                                <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'
-                                    }`}>
-                                    {testState.success ? (
-                                        <CheckCircle2 size={16} />
-                                    ) : (
-                                        <AlertCircle size={16} />
-                                    )}
-                                    <span>{testState.message}</span>
-                                </div>
+                                {/* Test Result */}
+                                {testState && !testState.loading && (
+                                    <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'
+                                        }`}>
+                                        {testState.success ? (
+                                            <CheckCircle2 size={16} />
+                                        ) : (
+                                            <AlertCircle size={16} />
+                                        )}
+                                        <span>{testState.message}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Reset Integration Button */}
+                            {config.enabled && (
+                                <Button
+                                    onClick={handleReset}
+                                    variant="secondary"
+                                    size="sm"
+                                    className="text-error hover:bg-error/10 border-error/20"
+                                >
+                                    Reset Integration
+                                </Button>
                             )}
                         </div>
                     </div>
