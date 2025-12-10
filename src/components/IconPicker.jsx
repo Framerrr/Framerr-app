@@ -247,7 +247,7 @@ const IconPicker = ({ value, onChange }) => {
                             side="bottom"
                             align="start"
                             sideOffset={8}
-                            collisionPadding={8}
+                            collisionPadding={24}
                             asChild
                         >
                             <motion.div
@@ -257,10 +257,9 @@ const IconPicker = ({ value, onChange }) => {
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 style={{
                                     width: window.innerWidth < 768 ? '100%' : '24rem',
-                                    maxHeight: '60vh',
                                     zIndex: 9999
                                 }}
-                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden"
+                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[50vh] overflow-y-auto"
                             >
                                 {/* Header */}
                                 <div className="flex items-center justify-between p-4 border-b border-theme">
