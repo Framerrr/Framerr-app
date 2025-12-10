@@ -366,10 +366,10 @@ const UserTabsSettings = () => {
             <Dialog.Root open={showModal} onOpenChange={setShowModal}>
                 <Dialog.Portal>
                     <Dialog.Overlay className="fixed inset-0 bg-black/80 z-50" />
-                    <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 glass-card rounded-xl shadow-deep max-w-2xl w-full border border-theme z-50 max-h-[90vh] overflow-y-auto m-4">
+                    <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 glass-card rounded-xl shadow-deep max-w-2xl w-[calc(100%-2rem)] border border-theme z-50 max-h-[85vh] overflow-y-auto">
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-theme sticky top-0 glass-card">
-                            <Dialog.Title className="text-xl font-bold text-theme-primary">
+                        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-theme sticky top-0 bg-theme-primary z-10">
+                            <Dialog.Title className="text-lg sm:text-xl font-bold text-theme-primary">
                                 {modalMode === 'create' ? 'Add New Tab' : 'Edit Tab'}
                             </Dialog.Title>
                             <Dialog.Close asChild>
@@ -383,7 +383,7 @@ const UserTabsSettings = () => {
                         </div>
 
                         {/* Modal Form */}
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
                             <Input
                                 label="Tab Name"
                                 value={formData.name}
