@@ -80,15 +80,29 @@ const IconPicker = ({ value, onChange }) => {
     const [modalPosition, setModalPosition] = useState({ top: 0, left: 0, width: 0 });
     const triggerRef = useRef(null);
 
-    // Calculate modal position when opening
+    // Calculate modal position when opening or scrolling
     useEffect(() => {
-        if (isOpen && triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setModalPosition({
-                top: rect.bottom + window.scrollY + 8, // Add scroll offset for absolute positioning
-                left: rect.left + window.scrollX,
-                width: rect.width
-            });
+        const updatePosition = () => {
+            if (triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                setModalPosition({
+                    top: rect.bottom + 8, // 8px gap below button (viewport coordinates)
+                    left: rect.left,
+                    width: rect.width
+                });
+            }
+        };
+
+        if (isOpen) {
+            updatePosition();
+            // Update position on scroll so modal follows button
+            window.addEventListener('scroll', updatePosition, true);
+            window.addEventListener('resize', updatePosition);
+
+            return () => {
+                window.removeEventListener('scroll', updatePosition, true);
+                window.removeEventListener('resize', updatePosition);
+            };
         }
     }, [isOpen]);
 
@@ -281,7 +295,7 @@ const IconPicker = ({ value, onChange }) => {
                                 exit={{ opacity: 0, scale: 0.96, y: -10 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 style={{
-                                    position: 'absolute',
+                                    position: 'fixed',
                                     top: `${modalPosition.top}px`,
                                     left: `${modalPosition.left}px`,
                                     width: window.innerWidth < 768 ? `${modalPosition.width}px` : '24rem',
