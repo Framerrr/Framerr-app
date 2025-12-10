@@ -144,15 +144,9 @@ const QBittorrentWidget = ({ config }) => {
                                                 </span>
                                             </div>
                                             <div className="flex justify-between gap-4">
-                                                <span className="text-theme-secondary">Session Downloaded:</span>
+                                                <span className="text-theme-secondary">Session Total:</span>
                                                 <span className="text-theme-primary font-medium">
                                                     {formatBytes(transferInfo?.dl_info_data || 0)}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between gap-4">
-                                                <span className="text-theme-secondary">Global Downloaded:</span>
-                                                <span className="text-theme-primary font-medium">
-                                                    {formatBytes(transferInfo?.alltime_dl || 0)}
                                                 </span>
                                             </div>
                                         </div>
@@ -204,15 +198,9 @@ const QBittorrentWidget = ({ config }) => {
                                                 </span>
                                             </div>
                                             <div className="flex justify-between gap-4">
-                                                <span className="text-theme-secondary">Session Uploaded:</span>
+                                                <span className="text-theme-secondary">Session Total:</span>
                                                 <span className="text-theme-primary font-medium">
                                                     {formatBytes(transferInfo?.up_info_data || 0)}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between gap-4">
-                                                <span className="text-theme-secondary">Global Uploaded:</span>
-                                                <span className="text-theme-primary font-medium">
-                                                    {formatBytes(transferInfo?.alltime_ul || 0)}
                                                 </span>
                                             </div>
                                         </div>

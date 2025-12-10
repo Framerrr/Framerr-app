@@ -507,6 +507,9 @@ router.post('/qbittorrent/transfer-info', async (req, res) => {
             timeout: 5000
         });
 
+        // Debug: Log the response to see actual field names
+        logger.debug('qBittorrent transfer info response:', transferResponse.data);
+
         res.json(transferResponse.data);
     } catch (error) {
         logger.error('qBittorrent transfer info proxy error:', error.message);
