@@ -58,8 +58,8 @@
     --gradient-4: #e5e7eb;
 
     /* Glassmorphism Colors (lighter for light theme) */
-    --glass-start: rgba(249, 250, 251, 0.8);
-    --glass-end: rgba(255, 255, 255, 0.9);
+    --glass-start: rgba(249, 250, 251, 0.9);
+    --glass-end: rgba(255, 255, 255, 0.95);
     --border-glass: rgba(229, 231, 235, 0.8);
 
     /* Accent Secondary */

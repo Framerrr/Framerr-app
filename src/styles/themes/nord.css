@@ -62,8 +62,8 @@
     --gradient-4: #2e3440;
 
     /* Glassmorphism Colors */
-    --glass-start: rgba(67, 76, 94, 0.9);
-    --glass-end: rgba(46, 52, 64, 0.95);
+    --glass-start: rgba(67, 76, 94, 0.95);
+    --glass-end: rgba(46, 52, 64, 0.98);
     --border-glass: rgba(76, 86, 106, 0.5);
 
     /* Accent Secondary */
