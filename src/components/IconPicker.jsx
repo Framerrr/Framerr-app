@@ -249,7 +249,7 @@ const IconPicker = ({ value, onChange }) => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="fixed inset-0 bg-black/50 z-40"
+                            className="fixed inset-0 bg-black/50 z-[9998]"
                             onClick={(e) => {
                                 if (e.target === e.currentTarget) {
                                     setIsOpen(false);
@@ -263,7 +263,7 @@ const IconPicker = ({ value, onChange }) => {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.96, y: -10 }}
                             transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                            className="absolute top-full left-0 mt-2 w-full md:w-96 glass-card border-theme rounded-xl shadow-2xl z-50 overflow-hidden"
+                            className="absolute top-full left-0 mt-2 w-full md:w-96 glass-card border-theme rounded-xl shadow-2xl z-[9999] overflow-hidden"
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-theme">
@@ -299,8 +299,8 @@ const IconPicker = ({ value, onChange }) => {
                                         setActiveTab('icons');
                                     }}
                                     className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'icons'
-                                            ? 'text-accent'
-                                            : 'text-theme-secondary hover:text-theme-primary'
+                                        ? 'text-accent'
+                                        : 'text-theme-secondary hover:text-theme-primary'
                                         }`}
                                 >
                                     Icons
@@ -312,8 +312,8 @@ const IconPicker = ({ value, onChange }) => {
                                         setActiveTab('upload');
                                     }}
                                     className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'upload'
-                                            ? 'text-accent'
-                                            : 'text-theme-secondary hover:text-theme-primary'
+                                        ? 'text-accent'
+                                        : 'text-theme-secondary hover:text-theme-primary'
                                         }`}
                                 >
                                     Upload
@@ -360,8 +360,8 @@ const IconPicker = ({ value, onChange }) => {
                                                             whileTap={{ scale: 0.95 }}
                                                             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                                             className={`p-3 rounded-lg transition-colors ${isSelected
-                                                                    ? 'bg-accent text-white'
-                                                                    : 'bg-theme-tertiary text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+                                                                ? 'bg-accent text-white'
+                                                                : 'bg-theme-tertiary text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
                                                                 }`}
                                                             title={iconName}
                                                         >
@@ -425,8 +425,8 @@ const IconPicker = ({ value, onChange }) => {
                                                                         whileTap={{ scale: 0.95 }}
                                                                         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                                                         className={`w-full aspect-square p-2 rounded-lg transition-colors ${isSelected
-                                                                                ? 'bg-accent ring-2 ring-accent/50'
-                                                                                : 'bg-theme-tertiary hover:bg-theme-hover'
+                                                                            ? 'bg-accent ring-2 ring-accent/50'
+                                                                            : 'bg-theme-tertiary hover:bg-theme-hover'
                                                                             }`}
                                                                         title={icon.originalName}
                                                                     >
