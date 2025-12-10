@@ -217,7 +217,7 @@ const Sidebar = () => {
                     />
 
                     {/* Header */}
-                    <div className="h-20 flex items-center border-b border-theme/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
+                    <div className="h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
                         {/* Icon - locked in 80px container */}
                         <div className="w-20 flex items-center justify-center flex-shrink-0 text-accent drop-shadow-lg">
                             {renderIcon(userSettings?.serverIcon, 28)}
@@ -465,7 +465,7 @@ const Sidebar = () => {
                     </nav>
 
                     {/* Footer */}
-                    <div className="py-3 border-t border-theme/50 flex flex-col gap-2 relative">
+                    <div className="py-3 border-t border-slate-700/50 flex flex-col gap-2 relative">
                         {/* Profile Link */}
                         <a
                             href="/#settings?tab=profile&source=profile"
