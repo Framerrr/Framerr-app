@@ -763,56 +763,84 @@ const Sidebar = () => {
                         overflow: 'hidden',
                     }}
                 >
-                    <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-700/50">
-                        <div className="flex items-center gap-3 text-accent font-bold text-xl">
-                            {renderIcon(userSettings?.serverIcon, 24)}
-                            <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
-                        </div>
-                    </div>
-
-                    <div className="overflow-y-auto px-6 pt-4 pb-4" style={{ flex: 1, minHeight: 0 }}>
-                        <nav className="space-y-4">
-                            {tabs && tabs.length > 0 && (
-                                <div>
-                                    <motion.div
-                                        className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-2"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: isMobileMenuOpen ? 1 : 0 }}
-                                        transition={{
-                                            type: 'spring',
-                                            stiffness: 350,
-                                            damping: 35,
-                                        }}
-                                    >
-                                        Tabs
-                                    </motion.div>
-                                    <div className="space-y-1">
-                                        {tabs.map((tab, index) => (
-                                            <motion.a
-                                                key={tab.id}
-                                                href={`/#${tab.slug}`}
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-theme-tertiary/50 text-theme-secondary hover:bg-theme-tertiary hover:text-theme-primary transition-colors"
-                                                initial={{ opacity: 0 }}
-                                                animate={{
-                                                    opacity: isMobileMenuOpen ? 1 : 0,
-                                                }}
-                                                transition={{
-                                                    type: 'spring',
-                                                    stiffness: 350,
-                                                    damping: 35,
-                                                }}
-                                                whileTap={{ scale: 0.97 }}
-                                            >
-                                                {renderIcon(tab.icon, 18)}
-                                                <span>{tab.name}</span>
-                                            </motion.a>
-                                        ))}
+                    {/* Conditional: Tabs OR NotificationCenter */}
+                    <AnimatePresence mode="wait">
+                        {showNotificationCenter ? (
+                            <motion.div
+                                key="notifications"
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -20, opacity: 0 }}
+                                transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                                className="flex-1 flex flex-col overflow-hidden"
+                            >
+                                <NotificationCenter
+                                    isMobile={true}
+                                    onClose={() => setShowNotificationCenter(false)}
+                                />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="tabs"
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -20, opacity: 0 }}
+                                transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                                className="flex flex-col flex-1 min-h-0"
+                            >
+                                <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-700/50">
+                                    <div className="flex items-center gap-3 text-accent font-bold text-xl">
+                                        {renderIcon(userSettings?.serverIcon, 24)}
+                                        <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
                                     </div>
                                 </div>
-                            )}
-                        </nav>
-                    </div>
+
+                                <div className="overflow-y-auto px-6 pt-4 pb-4" style={{ flex: 1, minHeight: 0 }}>
+                                    <nav className="space-y-4">
+                                        {tabs && tabs.length > 0 && (
+                                            <div>
+                                                <motion.div
+                                                    className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-2"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: isMobileMenuOpen ? 1 : 0 }}
+                                                    transition={{
+                                                        type: 'spring',
+                                                        stiffness: 350,
+                                                        damping: 35,
+                                                    }}
+                                                >
+                                                    Tabs
+                                                </motion.div>
+                                                <div className="space-y-1">
+                                                    {tabs.map((tab, index) => (
+                                                        <motion.a
+                                                            key={tab.id}
+                                                            href={`/#${tab.slug}`}
+                                                            onClick={() => setIsMobileMenuOpen(false)}
+                                                            className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-theme-tertiary/50 text-theme-secondary hover:bg-theme-tertiary hover:text-theme-primary transition-colors"
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{
+                                                                opacity: isMobileMenuOpen ? 1 : 0,
+                                                            }}
+                                                            transition={{
+                                                                type: 'spring',
+                                                                stiffness: 350,
+                                                                damping: 35,
+                                                            }}
+                                                            whileTap={{ scale: 0.97 }}
+                                                        >
+                                                            {renderIcon(tab.icon, 18)}
+                                                            <span>{tab.name}</span>
+                                                        </motion.a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </nav>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <div className="px-6 pt-4 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
                         <button
