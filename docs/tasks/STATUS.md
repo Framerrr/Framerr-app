@@ -1,21 +1,21 @@
 # Framerr Project Status
 
-**Last Updated:** 2025-12-10T18:50:37-05:00  
-**Current Phase:** Widget Optimization Complete (feat/widget-optimization branch)  
-**Status:** ✅ Operational - v1.1.8 Live + Integration-Aware Widgets System Added
+**Last Updated:** 2025-12-10T22:21:00-05:00  
+**Current Phase:** v1.1.9 Production Released  
+**Status:** ✅ Operational - v1.1.9 Live with Interactive Widget Enhancements
 
 ---
 
 ## Quick Stats
 
-- **Version (Production):** v1.1.8 (main branch)
-- **Version (Development):** v1.1.8+ (feat/widget-optimization branch)
-- **Docker Hub:** `pickels23/framerr:develop` ✅ Latest feature work
-- **GitHub:** Tag `v1.1.8` ✅ Released
-- **Build Status:** ✅ Passing (4.31s)
-- **Last Release:** 2025-12-10 (v1.1.8 production) + Widget enhancements
+- **Version (Production):** v1.1.9 (main branch) ✅ RELEASED
+- **Version (Development):** v1.1.9 (develop branch)
+- **Docker Hub:** `pickels23/framerr:1.1.9` and `:latest` ✅ Published
+- **GitHub:** Tag `v1.1.9` ✅ Released  
+- **Build Status:** ✅ Passing (4.13s)
+- **Last Release:** 2025-12-10 (v1.1.9 production - Interactive widget enhancements)
 
-**Feature Branch:** ✅ Integration-aware widgets system completeQuality and Theming Improvements
+**Latest Release:** ✅ v1.1.9 - Sonarr/Radarr popovers + Glass gradient arrowsQuality and Theming Improvements
 
 **Status:** ✅ Code audit complete, Sidebar theming migrated
 
@@ -44,6 +44,33 @@
 ---
 
 ## 🚀 Recent Accomplishments
+
+### v1.1.9 Production Release (Dec 10, 2025) - COMPLETE ✅
+- ✅ **Interactive Widget Popovers:**
+  - Sonarr episode detail popovers (series, episode info, air dates, overview)
+  - Radarr movie detail popovers (title, year, release type, dates, overview)
+  - Radix UI Popover + Framer Motion animations
+  - Theme-compliant glass-card styling
+- ✅ **Glass Gradient Arrows Across All Interactive Widgets:**
+  - Updated 5 widgets (Calendar, QBittorrent, System Status, Sonarr, Radarr)
+  - Arrows seamlessly blend with glass-card background
+  - Uses SVG gradients with CSS variables (--glass-start/--glass-end)
+  - Unique gradient IDs per widget
+  - Subtle drop-shadow for depth
+- ✅ **Code Audit:** All 14 changed files since v1.1.7
+  - Zero console.* calls (proper centralized logging)
+  - Zero hardcoded colors
+  - Zero dead code
+  - Production-ready verification
+- ✅ **Production Release Process:**
+  - Merged feat/widget-optimization → develop → main (squash merge)
+  - Updated versions to 1.1.9
+  - Created git tag v1.1.9
+  - Built and published Docker images
+- 📝 4 commits (3 feature + 1 release)
+- 🐳 Published: `pickels23/framerr:1.1.9` and `:latest`
+- 📊 ~120 tool calls, 3h 21min session
+
 
 ### Integration-Aware Widgets & Multi-Backend Support (Dec 10, 2025) - COMPLETE ✅
 - ✅ **Integration-Aware Widgets System:**
