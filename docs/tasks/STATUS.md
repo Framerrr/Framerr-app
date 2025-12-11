@@ -1,19 +1,19 @@
 # Framerr Project Status
 
-**Last Updated:** 2025-12-10T18:50:37-05:00  
-**Current Phase:** Widget Optimization Complete (feat/widget-optimization branch)  
-**Status:** ✅ Operational - v1.1.8 Live + Integration-Aware Widgets System Added
+**Last Updated:** 2025-12-10T22:57:00-05:00  
+**Current Phase:** Production Ready  
+**Status:** ✅ Operational - v1.1.9 Live + Unraid Icon Added
 
 ---
 
 ## Quick Stats
 
-- **Version (Production):** v1.1.8 (main branch)
-- **Version (Development):** v1.1.8+ (feat/widget-optimization branch)
-- **Docker Hub:** `pickels23/framerr:develop` ✅ Latest feature work
-- **GitHub:** Tag `v1.1.8` ✅ Released
-- **Build Status:** ✅ Passing (4.31s)
-- **Last Release:** 2025-12-10 (v1.1.8 production) + Widget enhancements
+- **Version (Production):** v1.1.9 (main branch)
+- **Version (Development):** v1.1.9 (develop branch)
+- **Docker Hub:** `pickels23/framerr:1.1.9` and `pickels23/framerr:latest` ✅
+- **GitHub:** Tag `v1.1.9` ✅ Released
+- **Build Status:** ✅ Passing
+- **Last Release:** 2025-12-10 (v1.1.9 production) + Unraid icon added
 
 **Feature Branch:** ✅ Integration-aware widgets system completeQuality and Theming Improvements
 
@@ -44,6 +44,15 @@
 ---
 
 ## 🚀 Recent Accomplishments
+
+### Unraid Icon Addition (Dec 10, 2025) - COMPLETE ✅
+- ✅ **Framerr Icon for Unraid:**
+  - Added `docs/framerr.png` (168.67 KiB)
+  - Committed to both `main` and `develop` branches
+  - Accessible via GitHub raw URL (when repo is public)
+  - Ready for Unraid Community Applications template
+- 📝 2 commits (d8c0200 on main, 2b0d349 on develop)
+- ✅ User educated on GitHub public repo permissions
 
 ### Integration-Aware Widgets & Multi-Backend Support (Dec 10, 2025) - COMPLETE ✅
 - ✅ **Integration-Aware Widgets System:**
