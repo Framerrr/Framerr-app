@@ -1,7 +1,7 @@
 {
   "name": "framerr",
   "private": true,
-  "version": "1.1.7",
+  "version": "1.1.9",
   "description": "Modern, self-contained homelab dashboard - Organizr alternative",
   "type": "module",
   "scripts": {

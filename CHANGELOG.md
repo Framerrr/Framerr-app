@@ -7,6 +7,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.9] - 2025-12-10
+
+### Added
+- **Integration-Aware Widgets System:**
+  - All integration widgets now check `enabled` state from `AppDataContext`
+  - Real-time updates via `integrationsUpdated` event system
+  - Widgets automatically stop polling when integration disabled
+  - No page refresh required - updates happen instantly
+  - Standardized `IntegrationDisabledMessage` component across all widgets
+
+- **System Health Multi-Backend Support:**
+  - Backend selector UI with card-based selection (Glances, Custom API)
+  - Glances API v4 support with Docker networking
+  - Separate configuration components per backend (`GlancesConfig`, `CustomBackendConfig`)
+  - New backend selector component (`BackendSelector.jsx`)
+  - Multiple backend endpoint support for real-time and historical data
+
+- **Widget Enhancements:**
+  - Glass gradient effect on popover arrows (System Status, Calendar)
+  - Episode/movie popovers for Sonarr/Radarr widgets with detailed information
+  - Interactive popover improvements across all widgets (QBittorrent, Plex, Overseerr)
+  - Larger, theme-compliant graph popovers
+  - Improved arrow styling across all interactive widgets
+
+### Fixed
+- **Widget Stability:**
+  - Chart flashing caused by dependency loop in System Status widget
+  - Temperature graph API field (`temp` vs `temperature`)
+  - Memoized config to prevent chart re-rendering
+  - Graph popover sizing and theme compliance
+
+### Changed
+- **Architecture:**
+  - `AppDataContext` now exposes `integrations` state to all widgets
+  - Event-driven integration updates (no more page refresh required)
+  - Standardized integration status checking pattern across all widgets
+  - Enhanced proxy routes in `server/routes/proxy.js` for backend flexibility
+
+### Technical
+- Merged `feat/widget-optimization` branch (9 commits)
+- All 6 integration widgets updated: Plex, Sonarr, Radarr, qBittorrent, Overseerr, SystemStatus
+- New components: `IntegrationDisabledMessage`, `BackendSelector`, `SystemHealthIntegration`
+- Backend-specific configs: `GlancesConfig`, `CustomBackendConfig`
+
+---
+
+## [1.1.8] - 2025-12-10
+
+### Added
+- **Complete Theming System:**
+  - 5 built-in themes: Dark Pro, Nord, Catppuccin, Dracula, and Light
+  - 71 CSS variables for complete theme customization
+  - Theme utility classes (`.bg-theme-primary`, `.text-theme-secondary`, etc.)
+  - Glassmorphism effects with `.glass-card` and `.glass-subtle` classes
+  - Flatten UI mode to disable glassmorphism globally or per-widget
+  - Custom color picker support for all theme variables
+  - WCAG AA accessibility compliance across all themes
+- **Developer Workflows:**
+  - `/start-session`, `/end-session`, `/checkpoint` workflows
+  - `/code-audit`, `/build-develop`, `/build-production` workflows
+  - Comprehensive theming rules and documentation
+- **UI Enhancements:**
+  - Sidebar theming with smooth animations
+  - IconPicker improvements using Radix UI Popover
+  - Sliding indicators for settings sub-tabs
+  - Enhanced modal animations (spring physics)
+  - Animation test page for UI library integration
+
+### Fixed
+- **Critical Fixes:**
+  - Permission system default groups missing permissions arrays
+  - Auto-migration for existing installations with incomplete permissions
+  - Logger browser compatibility (`process is not defined` error)
+  - Auth proxy settings now take effect immediately without server restart
+  - Session persistence when switching from proxy to local auth
+- **Bug Fixes:**
+  - Removed buggy Gridstack implementation (reverted to react-grid-layout)
+  - Dashboard grid behavior now consistent with working version
+  - Debug overlay restored to functional state
+  - Code audit cleanup (console.log → logger.debug)
+
+### Changed
+- **Theming Migration:**
+  - Sidebar migrated to theme utility classes (selective hardcoded colors kept per design)
+  - Settings pages updated with consistent glassmorphism
+  - All UI components now use theme system (with documented exceptions)
+- **Code Quality:**
+  - Removed dead code and unused imports
+  - Converted console statements to structured logging
+  - Cleaned up deprecated authentication code
+  - Improved error handling and logging throughout
+
+### Documentation
+- Comprehensive theming documentation (`docs/theming/`)
+  - THEMING_ENGINE.md - Architecture and extensibility guide
+  - DEVELOPER_GUIDE.md - Quick start for developers
+  - CSS_VARIABLES.md - Complete variable reference (71 variables)
+  - COMPONENT_PATTERNS.md - Copy-paste component examples
+- Animation sources documentation for UI library integration
+- Updated development rules and Git workflows
+- Session tracking improvements in HANDOFF.md and TASK_CURRENT.md
+
+### Technical
+- Merged `feat/iframe-auth-detection` branch to `develop` (110+ commits)
+- Removed buggy Gridstack files: `gridConfig.js`, `GridstackWrapper.jsx`
+- Restored working react-grid-layout implementation
+- Build verification passing throughout development
+- Squash merge to main for clean production history
+
+---
+
 ## [1.1.7] - 2025-12-08
 
 ### Added
