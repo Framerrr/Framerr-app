@@ -843,6 +843,30 @@ const Sidebar = () => {
                     </AnimatePresence>
 
                     <div className="px-6 pt-4 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
+                        {/* Notifications Button */}
+                        <button
+                            onClick={() => setShowNotificationCenter(!showNotificationCenter)}
+                            className="w-full flex items-center gap-3 py-3 px-4 rounded-lg mb-2 bg-theme-secondary/10 text-theme-primary hover:bg-theme-secondary/20 transition-colors relative"
+                        >
+                            <div className="relative">
+                                {showNotificationCenter ? <LayoutGrid size={20} /> : <Mail size={20} />}
+                                {/* Red dot badge */}
+                                {!showNotificationCenter && unreadCount > 0 && (
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-1 -right-1 bg-error text-white 
+                                            text-[10px] font-bold rounded-full min-w-[18px] h-[18px] 
+                                            flex items-center justify-center shadow-lg"
+                                    >
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </motion.div>
+                                )}
+                            </div>
+                            <span className="font-medium">{showNotificationCenter ? 'Back to Tabs' : 'Notifications'}</span>
+                        </button>
+
+                        {/* Logout Button */}
                         <button
                             onClick={handleLogout}
                             className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
