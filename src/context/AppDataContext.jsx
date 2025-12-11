@@ -10,6 +10,7 @@ export const AppDataProvider = ({ children }) => {
     const [services, setServices] = useState([]);
     const [groups, setGroups] = useState([]);
     const [widgets, setWidgets] = useState([]);
+    const [integrations, setIntegrations] = useState({});
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
@@ -27,6 +28,10 @@ export const AppDataProvider = ({ children }) => {
             // Fetch system config for tab groups
             const systemConfigRes = await axios.get('/api/config/system');
             const systemConfig = systemConfigRes.data;
+
+            // Fetch integrations config
+            const integrationsRes = await axios.get('/api/integrations');
+            setIntegrations(integrationsRes.data.integrations || {});
 
             // Set user settings with server name/icon from system config
             setUserSettings({
@@ -58,10 +63,17 @@ export const AppDataProvider = ({ children }) => {
             fetchData();
         };
 
+        // Listen for integrations updates (when user saves integrations)
+        const handleIntegrationsUpdated = () => {
+            fetchData();
+        };
+
         window.addEventListener('systemConfigUpdated', handleSystemConfigUpdated);
+        window.addEventListener('integrationsUpdated', handleIntegrationsUpdated);
 
         return () => {
             window.removeEventListener('systemConfigUpdated', handleSystemConfigUpdated);
+            window.removeEventListener('integrationsUpdated', handleIntegrationsUpdated);
         };
     }, [isAuthenticated]);
 
@@ -89,6 +101,7 @@ export const AppDataProvider = ({ children }) => {
             services,
             groups,
             widgets,
+            integrations,
             loading,
             updateWidgetLayout,
             refreshData: fetchData
