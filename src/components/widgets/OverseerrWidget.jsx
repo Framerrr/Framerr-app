@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Star, Film, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAppData } from '../../context/AppDataContext';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const OverseerrWidget = ({ config }) => {
+    // Get integrations state from context
+    const { integrations } = useAppData();
+    const integration = integrations?.overseerr;
+
+    // Check if integration is enabled
+    const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
+
     const { enabled = false, url = '', apiKey = '' } = config || {};
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -9,7 +18,7 @@ const OverseerrWidget = ({ config }) => {
     const scrollContainerRef = useRef(null);
 
     useEffect(() => {
-        if (!enabled || !url || !apiKey) {
+        if (!isIntegrationEnabled) {
             setLoading(false);
             return;
         }
@@ -17,7 +26,7 @@ const OverseerrWidget = ({ config }) => {
         const fetchRequests = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`/api/overseerr/requests?url=${encodeURIComponent(url)}&apiKey=${encodeURIComponent(apiKey)}`);
+                const response = await fetch(`/api/overseerr/requests?url=${encodeURIComponent(integration.url)}&apiKey=${encodeURIComponent(integration.apiKey)}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
@@ -32,7 +41,7 @@ const OverseerrWidget = ({ config }) => {
         fetchRequests();
         const interval = setInterval(fetchRequests, 60000); // Refresh every minute
         return () => clearInterval(interval);
-    }, [enabled, url, apiKey]);
+    }, [isIntegrationEnabled, integration]);
 
     const scrollLeft = () => {
         if (scrollContainerRef.current) {
@@ -48,7 +57,11 @@ const OverseerrWidget = ({ config }) => {
         }
     };
 
-    if (!enabled) return <div className="text-theme-secondary">Overseerr not configured.</div>;
+    // Show integration disabled message if not enabled
+    if (!isIntegrationEnabled) {
+        return <IntegrationDisabledMessage serviceName="Overseerr" />;
+    }
+
     if (loading && !data) return <div className="text-theme-secondary">Loading Requests...</div>;
     if (error) return <div className="text-error">Error: {error}</div>;
 

@@ -1,10 +1,62 @@
-# HANDOFF DOCUMENT - Framerr v1.1.7
+# HANDOFF DOCUMENT - Framerr v1.1.8+
 
-**Last Updated:** 2025-12-10T03:34:40-05:00  
-**Status:** ✅ Operational - Permission System Fixed + Backend Audited  
-**Current Version:** v1.1.7  
-**Branch:** `feat/iframe-auth-detection`  
-**Docker Image:** `pickels23/framerr:develop` (✅ rebuilt with permission fixes)
+**Last Updated:** 2025-12-10T18:50:37-05:00  
+**Status:** ✅ Production Release v1.1.8 + Feature Branch Work  
+**Current Version:** v1.1.8  
+**Branch:** `feat/widget-optimization` (active development)  
+**Docker Image:** `pickels23/framerr:develop` (✅ latest feature work)
+
+---
+
+## ⭐ NEW: Integration-Aware Widgets System (2025-12-10)
+
+### Major Architectural Addition
+
+**What Changed:**
+- All integration widgets now check `enabled` state from `AppDataContext`
+- Real-time updates via `integrationsUpdated` event system
+- Widgets automatically stop polling when integration disabled
+- No page refresh required - updates happen instantly
+
+**Key Components:**
+- `AppDataContext` - Now exposes `integrations` state to all widgets
+- `IntegrationDisabledMessage` - Standardized message component
+- Event system: `integrationsUpdated` dispatched on save
+
+**Pattern:**
+```jsx
+const { integrations } = useAppData();
+const integration = integrations?.serviceName;
+const isEnabled = integration?.enabled && integration?.url;
+
+if (!isEnabled) {
+  return <IntegrationDisabledMessage serviceName="Service" />;
+}
+```
+
+**Files Affected:**
+- `src/context/AppDataContext.jsx` - Core integration state
+- All 6 integration widgets (Plex, Sonarr, Radarr, qBittorrent, Overseerr, SystemStatus)
+
+### System Health Multi-Backend Support
+
+**What Changed:**
+- System Health now supports multiple backends (Glances, Custom API)
+- Backend selector UI with card-based selection
+- Separate configuration components per backend
+- Glances API v4 support with Docker networking
+
+**Key Components:**
+- `BackendSelector.jsx` - Visual backend selection
+- `SystemHealthIntegration.jsx` - Main orchestrator
+- `GlancesConfig.jsx` - Glances-specific config
+- `CustomBackendConfig.jsx` - Custom API config
+
+**Backend Endpoints:**
+- `/api/systemstatus/glances/status` - Glances real-time data
+- `/api/systemstatus/glances/history` - Glances historical data
+- `/api/systemstatus/status` - Custom API real-time
+- `/api/systemstatus/history` - Custom API historical
 
 ---
 

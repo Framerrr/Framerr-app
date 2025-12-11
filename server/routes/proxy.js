@@ -471,6 +471,66 @@ router.post('/qbittorrent/torrents', async (req, res) => {
     }
 });
 
+// POST /api/qbittorrent/transfer-info - Get global transfer statistics
+router.post('/qbittorrent/transfer-info', async (req, res) => {
+    const { url, username, password } = req.body;
+
+    if (!url) {
+        return res.status(400).json({ error: 'URL required' });
+    }
+
+    try {
+        // Step 1: Login to qBittorrent
+        const formData = new URLSearchParams();
+        if (username) formData.append('username', username);
+        if (password) formData.append('password', password);
+
+        const loginResponse = await axios.post(
+            `${url}/api/v2/auth/login`,
+            formData,
+            {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                timeout: 5000
+            }
+        );
+
+        // Step 2: Extract session cookie
+        const cookie = loginResponse.headers['set-cookie']?.[0];
+
+        if (!cookie && (username || password)) {
+            return res.status(401).json({ error: 'qBittorrent authentication failed' });
+        }
+
+        // Step 3: Get sync/maindata with session cookie (this includes server_state with alltime stats)
+        const syncResponse = await axios.get(`${url}/api/v2/sync/maindata`, {
+            headers: cookie ? { Cookie: cookie } : {},
+            timeout: 5000
+        });
+
+        // Extract server_state which contains all transfer info including alltime_dl and alltime_ul
+        const serverState = syncResponse.data?.server_state || {};
+
+        // Debug: Log the response to verify we're getting alltime stats
+        logger.debug('qBittorrent server_state:', {
+            alltime_dl: serverState.alltime_dl,
+            alltime_ul: serverState.alltime_ul,
+            dl_info_data: serverState.dl_info_data,
+            up_info_data: serverState.up_info_data
+        });
+
+        res.json(serverState);
+    } catch (error) {
+        logger.error('qBittorrent transfer info proxy error:', error.message);
+
+        // Check if it's an auth error
+        if (error.response?.status === 401 || error.response?.status === 403) {
+            return res.status(401).json({ error: 'qBittorrent authentication failed' });
+        }
+
+        res.status(500).json({ error: 'Failed to fetch qBittorrent transfer info', details: error.message });
+    }
+});
+
 /**
  * System Status Proxy Routes
  */
@@ -544,6 +604,189 @@ router.get('/systemstatus/history', async (req, res) => {
         });
         res.status(500).json({
             error: 'Failed to fetch system status history',
+            details: error.message || error.code || 'Unknown error'
+        });
+    }
+});
+
+/**
+ * Glances Monitoring System Proxy Routes
+ */
+
+// GET /api/systemstatus/glances/status - Get current system status from Glances
+router.get('/systemstatus/glances/status', async (req, res) => {
+    const { url, password } = req.query;
+
+    if (!url) {
+        return res.status(400).json({ error: 'URL required' });
+    }
+
+    try {
+        // Translate local IPs to host.local for Docker compatibility
+        const translatedUrl = translateHostUrl(url);
+        const headers = {};
+
+        // Glances uses basic auth with password
+        if (password) {
+            const auth = Buffer.from(`glances:${password}`).toString('base64');
+            headers['Authorization'] = `Basic ${auth}`;
+        }
+
+        // Fetch multiple Glances endpoints in parallel (API v4)
+        const [cpuRes, memRes, sensorsRes, uptimeRes] = await Promise.all([
+            axios.get(`${translatedUrl}/api/4/cpu`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/mem`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/sensors`, { headers, httpsAgent, timeout: 5000 }).catch(() => ({ data: [] })),
+            axios.get(`${translatedUrl}/api/4/uptime`, { headers, httpsAgent, timeout: 5000 })
+        ]);
+
+        // Extract CPU percentage (overall usage)
+        const cpuPercent = cpuRes.data?.total || 0;
+
+        // Extract memory percentage
+        const memPercent = memRes.data?.percent || 0;
+
+        // Extract CPU temperature from sensors (prioritize CPU temp, fall back to first available)
+        let temperature = 0;
+        if (Array.isArray(sensorsRes.data) && sensorsRes.data.length > 0) {
+            // Look for CPU temperature sensors first
+            const cpuSensor = sensorsRes.data.find(s =>
+                s.label?.toLowerCase().includes('cpu') ||
+                s.label?.toLowerCase().includes('core')
+            );
+
+            if (cpuSensor && cpuSensor.value) {
+                temperature = cpuSensor.value;
+            } else {
+                // Fallback to first temperature sensor
+                const firstTempSensor = sensorsRes.data.find(s => s.value && s.unit === 'C');
+                if (firstTempSensor) {
+                    temperature = firstTempSensor.value;
+                }
+            }
+        }
+
+        // Format uptime (Glances returns uptime string or object)
+        let uptime = '--';
+        if (typeof uptimeRes.data === 'string') {
+            uptime = uptimeRes.data;
+        } else if (uptimeRes.data?.uptime) {
+            uptime = uptimeRes.data.uptime;
+        }
+
+        // Return normalized format matching System Status widget expectations
+        res.json({
+            cpu: cpuPercent,
+            memory: memPercent,
+            temperature: temperature,
+            uptime: uptime
+        });
+
+    } catch (error) {
+        logger.error('Glances status proxy error:', {
+            message: error.message,
+            code: error.code,
+            status: error.response?.status,
+            url: error.config?.url
+        });
+
+        // Return helpful error message
+        if (error.response?.status === 401) {
+            return res.status(401).json({
+                error: 'Glances authentication failed',
+                details: 'Password required or incorrect'
+            });
+        }
+
+        res.status(500).json({
+            error: 'Failed to fetch Glances status',
+            details: error.message || error.code || 'Unknown error'
+        });
+    }
+});
+
+// GET /api/systemstatus/glances/history - Get historical data from Glances
+router.get('/systemstatus/glances/history', async (req, res) => {
+    const { url, password } = req.query;
+
+    if (!url) {
+        return res.status(400).json({ error: 'URL required' });
+    }
+
+    try {
+        // Translate local IPs to host.local for Docker compatibility
+        const translatedUrl = translateHostUrl(url);
+        const headers = {};
+
+        // Glances uses basic auth with password
+        if (password) {
+            const auth = Buffer.from(`glances:${password}`).toString('base64');
+            headers['Authorization'] = `Basic ${auth}`;
+        }
+
+        // Glances doesn't have a built-in historical endpoint like /history
+        // Instead, we need to use the stats history endpoints for each metric
+        // Note: This requires Glances to be running with --export flag or using local cache
+
+        // Fetch current stats as a fallback (Glances v4 API doesn't expose full history via REST easily)
+        // For proper historical data, Glances needs to export to InfluxDB/Prometheus
+        // We'll return current data point in array format for now
+
+        const [cpuRes, memRes, sensorsRes] = await Promise.all([
+            axios.get(`${translatedUrl}/api/4/cpu`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/mem`, { headers, httpsAgent, timeout: 5000 }),
+            axios.get(`${translatedUrl}/api/4/sensors`, { headers, httpsAgent, timeout: 5000 }).catch(() => ({ data: [] }))
+        ]);
+
+        // Extract values
+        const cpuPercent = cpuRes.data?.total || 0;
+        const memPercent = memRes.data?.percent || 0;
+
+        let temperature = 0;
+        if (Array.isArray(sensorsRes.data) && sensorsRes.data.length > 0) {
+            const cpuSensor = sensorsRes.data.find(s =>
+                s.label?.toLowerCase().includes('cpu') ||
+                s.label?.toLowerCase().includes('core')
+            );
+            if (cpuSensor?.value) {
+                temperature = cpuSensor.value;
+            } else {
+                const firstTempSensor = sensorsRes.data.find(s => s.value && s.unit === 'C');
+                if (firstTempSensor) {
+                    temperature = firstTempSensor.value;
+                }
+            }
+        }
+
+        // Return current data point in historical format
+        // Note: For real historical data, Glances needs external time-series DB integration
+        const now = new Date().toISOString();
+        res.json([
+            {
+                time: now,
+                cpu: cpuPercent,
+                memory: memPercent,
+                temperature: temperature
+            }
+        ]);
+
+    } catch (error) {
+        logger.error('Glances history proxy error:', {
+            message: error.message,
+            code: error.code,
+            status: error.response?.status,
+            url: error.config?.url
+        });
+
+        if (error.response?.status === 401) {
+            return res.status(401).json({
+                error: 'Glances authentication failed',
+                details: 'Password required or incorrect'
+            });
+        }
+
+        res.status(500).json({
+            error: 'Failed to fetch Glances history',
             details: error.message || error.code || 'Unknown error'
         });
     }

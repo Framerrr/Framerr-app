@@ -3,6 +3,7 @@ import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save 
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import SystemHealthIntegration from './integrations/SystemHealthIntegration';
 
 const IntegrationsSettings = () => {
     const [integrations, setIntegrations] = useState({
@@ -80,6 +81,9 @@ const IntegrationsSettings = () => {
 
             if (response.ok) {
                 alert('Integration settings saved successfully');
+
+                // Dispatch event to notify widgets that integrations have been updated
+                window.dispatchEvent(new CustomEvent('integrationsUpdated'));
             } else {
                 const error = await response.json();
                 alert(error.error || 'Failed to save integrations');
@@ -138,15 +142,6 @@ const IntegrationsSettings = () => {
     };
 
     const integrationConfigs = [
-        {
-            id: 'systemstatus',
-            name: 'System Health',
-            description: 'Server health monitoring (CPU, Memory, Temperature)',
-            fields: [
-                { key: 'url', label: 'Monitoring Service URL', placeholder: 'http://192.168.1.5:3001', type: 'text' },
-                { key: 'token', label: 'API Token', placeholder: 'Optional authentication token', type: 'password' }
-            ]
-        },
         {
             id: 'plex',
             name: 'Plex',
@@ -225,8 +220,19 @@ const IntegrationsSettings = () => {
                 </div>
             </div>
 
-            {/* Integrations List */}
-            <div className="space-y-4">
+            {/* System Health Integration - Special Multi-Backend Component */}
+            <SystemHealthIntegration
+                integration={integrations.systemstatus}
+                onUpdate={(updated) => {
+                    setIntegrations(prev => ({
+                        ...prev,
+                        systemstatus: updated
+                    }));
+                }}
+            />
+
+            {/* Other Integrations List */}
+            <div className="space-y-4 mt-4">
                 {integrationConfigs.map(config => {
                     const isEnabled = integrations[config.id]?.enabled;
                     const isExpanded = expandedSections[config.id];
@@ -316,14 +322,23 @@ const IntegrationsSettings = () => {
             </div>
 
             {/* Save Button */}
-            <div className="mt-6 flex justify-end">
-                <Button
-                    onClick={handleSave}
-                    disabled={saving}
-                    icon={saving ? Loader : Save}
-                >
-                    {saving ? 'Saving...' : 'Save All Integrations'}
-                </Button>
+            <div className="mt-6">
+                {/* Show validation error if System Health is invalid */}
+                {integrations.systemstatus?.enabled && integrations.systemstatus?._isValid === false && (
+                    <div className="mb-3 p-3 bg-error/10 border border-error/20 rounded-lg text-sm text-error">
+                        ⚠️ System Health requires a URL for the selected backend before saving.
+                    </div>
+                )}
+
+                <div className="flex justify-end">
+                    <Button
+                        onClick={handleSave}
+                        disabled={saving || (integrations.systemstatus?.enabled && integrations.systemstatus?._isValid === false)}
+                        icon={saving ? Loader : Save}
+                    >
+                        {saving ? 'Saving...' : 'Save All Integrations'}
+                    </Button>
+                </div>
             </div>
         </div>
     );

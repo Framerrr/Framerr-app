@@ -1,14 +1,137 @@
 import React, { useState, useEffect } from 'react';
 import { Tv } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAppData } from '../../context/AppDataContext';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+
+// Episode Detail Popover Component
+const EpisodePopover = ({ episode }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const seriesTitle = episode.series?.title || episode.seriesTitle || 'Unknown Series';
+    const episodeTitle = episode.title || 'TBA';
+    const seasonNum = episode.seasonNumber ?? '?';
+    const episodeNum = episode.episodeNumber ?? '?';
+    const airDate = episode.airDate || episode.airDateUtc;
+    const overview = episode.overview || episode.series?.overview || 'No description available.';
+
+    const displayTitle = episodeTitle !== 'TBA'
+        ? `${seriesTitle} - ${episodeTitle}`
+        : seriesTitle;
+
+    return (
+        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+            <Popover.Trigger asChild>
+                <button
+                    style={{
+                        padding: '0.5rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.85rem',
+                        width: '100%',
+                        textAlign: 'left',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                    className="hover:bg-theme-tertiary"
+                >
+                    <div style={{ fontWeight: 600, marginBottom: '0.25rem' }} className="text-theme-primary">{displayTitle}</div>
+                    <div style={{ fontSize: '0.75rem' }} className="text-theme-secondary">
+                        S{seasonNum}E{episodeNum} • {airDate ? new Date(airDate).toLocaleDateString() : 'TBA'}
+                    </div>
+                </button>
+            </Popover.Trigger>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <Popover.Portal forceMount>
+                        <Popover.Content
+                            side="bottom"
+                            align="start"
+                            sideOffset={8}
+                            collisionPadding={24}
+                            asChild
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.96 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.96 }}
+                                transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                                className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
+                                style={{ minWidth: '200px', maxWidth: '300px' }}
+                            >
+                                {/* Improved Arrow - matches glass-card with border */}
+                                <Popover.Arrow
+                                    width={16}
+                                    height={8}
+                                    style={{
+                                        fill: 'url(#glass-gradient-sonarr)',
+                                        filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
+                                    }}
+                                />
+                                {/* SVG Gradient Definition for Glass Effect */}
+                                <svg width="0" height="0" style={{ position: 'absolute' }}>
+                                    <defs>
+                                        <linearGradient id="glass-gradient-sonarr" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
+                                            <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+
+                                {/* Series Title */}
+                                <div className="text-sm font-semibold mb-2 text-theme-primary">
+                                    {seriesTitle}
+                                </div>
+
+                                {/* Episode Info */}
+                                <div className="text-xs text-info mb-2 font-medium">
+                                    Season {seasonNum} Episode {episodeNum}
+                                    {episodeTitle !== 'TBA' && ` - ${episodeTitle}`}
+                                </div>
+
+                                {/* Air Date */}
+                                <div className="text-xs text-theme-secondary mb-2">
+                                    Airs: {airDate ? new Date(airDate).toLocaleDateString('en-US', {
+                                        weekday: 'short',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                    }) : 'TBA'}
+                                </div>
+
+                                {/* Overview */}
+                                {overview && (
+                                    <div className="text-xs text-theme-secondary leading-relaxed max-h-[150px] overflow-auto custom-scrollbar">
+                                        {overview}
+                                    </div>
+                                )}
+                            </motion.div>
+                        </Popover.Content>
+                    </Popover.Portal>
+                )}
+            </AnimatePresence>
+        </Popover.Root>
+    );
+};
 
 const SonarrWidget = ({ config }) => {
+    // Get integrations state from context
+    const { integrations } = useAppData();
+    const integration = integrations?.sonarr;
+
+    // Check if integration is enabled
+    const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
+
     const { enabled = false, url = '', apiKey = '' } = config || {};
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!enabled || !url || !apiKey) {
+        if (!isIntegrationEnabled) {
             setLoading(false);
             return;
         }
@@ -19,7 +142,7 @@ const SonarrWidget = ({ config }) => {
                 const startDate = new Date().toISOString().split('T')[0];
                 const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-                const response = await fetch(`/api/sonarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(url)}&apiKey=${encodeURIComponent(apiKey)}`);
+                const response = await fetch(`/api/sonarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(integration.url)}&apiKey=${encodeURIComponent(integration.apiKey)}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
@@ -34,9 +157,13 @@ const SonarrWidget = ({ config }) => {
         fetchCalendar();
         const interval = setInterval(fetchCalendar, 60000); // Refresh every minute
         return () => clearInterval(interval);
-    }, [enabled, url, apiKey]);
+    }, [isIntegrationEnabled, integration]);
 
-    if (!enabled) return <div className="text-secondary">Sonarr not configured.</div>;
+    // Show integration disabled message if not enabled
+    if (!isIntegrationEnabled) {
+        return <IntegrationDisabledMessage serviceName="Sonarr" />;
+    }
+
     if (loading && !data) return <div className="text-secondary">Loading Calendar...</div>;
     if (error) return <div className="text-error">Error: {error}</div>;
 
@@ -48,34 +175,9 @@ const SonarrWidget = ({ config }) => {
                 <span>Upcoming Episodes</span>
             </div>
             {episodes.length === 0 ? <div className="text-secondary">No upcoming episodes.</div> :
-                episodes.map(ep => {
-                    const seriesTitle = ep.series?.title || ep.seriesTitle || 'Unknown Series';
-                    const episodeTitle = ep.title || 'TBA';
-                    const seasonNum = ep.seasonNumber ?? '?';
-                    const episodeNum = ep.episodeNumber ?? '?';
-                    const airDate = ep.airDate || ep.airDateUtc;
-
-                    const displayTitle = episodeTitle !== 'TBA'
-                        ? `${seriesTitle} - ${episodeTitle}`
-                        : seriesTitle;
-
-                    return (
-                        <div
-                            key={ep.id}
-                            style={{
-                                padding: '0.5rem',
-                                background: 'rgba(255,255,255,0.05)',
-                                borderRadius: '0.5rem',
-                                fontSize: '0.85rem'
-                            }}
-                        >
-                            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{displayTitle}</div>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                                S{seasonNum}E{episodeNum} • {airDate ? new Date(airDate).toLocaleDateString() : 'TBA'}
-                            </div>
-                        </div>
-                    );
-                })
+                episodes.map(ep => (
+                    <EpisodePopover key={ep.id} episode={ep} />
+                ))
             }
         </div>
     );

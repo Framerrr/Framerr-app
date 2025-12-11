@@ -1,17 +1,21 @@
-# Framerr Development Status
+# Framerr Project Status
 
-**Last Updated:** 2025-12-10T04:31:14-05:00  
-**Current Version:** v1.1.7  
-**Development Branch:** `feat/iframe-auth-detection`  
-**Production Branch:** `main`  
-**Production Docker:** `pickels23/framerr:1.1.7` and `:latest`  
-**Development Docker:** `pickels23/framerr:develop` (✅ rebuilt Dec 10)
+**Last Updated:** 2025-12-10T18:50:37-05:00  
+**Current Phase:** Widget Optimization Complete (feat/widget-optimization branch)  
+**Status:** ✅ Operational - v1.1.8 Live + Integration-Aware Widgets System Added
 
 ---
 
-## 🎯 Current Phase
+## Quick Stats
 
-**Phase:** Code Quality and Theming Improvements
+- **Version (Production):** v1.1.8 (main branch)
+- **Version (Development):** v1.1.8+ (feat/widget-optimization branch)
+- **Docker Hub:** `pickels23/framerr:develop` ✅ Latest feature work
+- **GitHub:** Tag `v1.1.8` ✅ Released
+- **Build Status:** ✅ Passing (4.31s)
+- **Last Release:** 2025-12-10 (v1.1.8 production) + Widget enhancements
+
+**Feature Branch:** ✅ Integration-aware widgets system completeQuality and Theming Improvements
 
 **Status:** ✅ Code audit complete, Sidebar theming migrated
 
@@ -40,6 +44,32 @@
 ---
 
 ## 🚀 Recent Accomplishments
+
+### Integration-Aware Widgets & Multi-Backend Support (Dec 10, 2025) - COMPLETE ✅
+- ✅ **Integration-Aware Widgets System:**
+  - All 6 widgets now check integration enabled state
+  - Real-time updates via `integrationsUpdated` event
+  - No page refresh required for integration changes
+  - Widgets stop polling when integration disabled
+  - Standardized IntegrationDisabledMessage component
+- ✅ **System Health Multi-Backend Support:**
+  - Added Glances backend (API v4)
+  - Custom API backend maintained
+  - Visual backend selector with cards
+  - Separate config components per backend
+  - Docker networking support
+  - Basic Auth for Glances
+- ✅ **System Status Widget Refactor:**
+  - Converted to Radix UI Popovers (3 popovers)
+  - Fixed temperature field mapping (temp vs temperature)
+  - Fixed chart flashing bug
+  - Increased popover size (550px x 250px)
+  - Proper time scales (1h, 6h, 1d, 3d)
+  - Theme-compliant colors
+  - Framer Motion animations
+- ✅ **Reset Integration Button:** Safe reset with confirmation
+- 📝 15+ commits, ~470 tool calls
+- 🐳 Deployed: `pickels23/framerr:develop`
 
 ### Code Audit and Sidebar Theming (Dec 10, 2025) - COMPLETE ✅
 - ✅ **Code Audit:** Comprehensive scan of all changes since v1.1.7
