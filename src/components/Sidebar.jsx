@@ -712,7 +712,7 @@ const Sidebar = () => {
             <motion.div
                 className="fixed left-4 right-4 z-50 flex flex-col justify-end"
                 animate={{
-                    maxHeight: isMobileMenuOpen ? '60vh' : '70px',
+                    height: isMobileMenuOpen ? '60vh' : '70px',
                     scale: isMobileMenuOpen ? 1 : 0.98,
                 }}
                 transition={{
