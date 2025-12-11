@@ -4,6 +4,11 @@ description: End Framerr session and prepare handoff
 
 # End Session and Handoff
 
+**⚠️ CRITICAL: NEVER USE POWERSHELL COMMANDS WITHOUT USER APPROVAL**  
+- Use bash/git commands only (cat, echo, rm, git, etc.)
+- PowerShell cmdlets (Add-Content, Get-Content,  etc.) require explicit user permission
+- This is a STRICT rule - violations interrupt workflow
+
 ## Steps
 
 1. **Complete current work:**

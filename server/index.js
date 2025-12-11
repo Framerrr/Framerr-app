@@ -168,6 +168,7 @@ app.use('/api/backup', require('./routes/backup'));
 app.use('/api/custom-icons', require('./routes/custom-icons'));
 app.use('/api/advanced', require('./routes/advanced'));
 app.use('/api/diagnostics', require('./routes/diagnostics'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 
 // Proxy routes for widgets (require authentication)
