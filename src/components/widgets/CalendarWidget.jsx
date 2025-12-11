@@ -44,7 +44,14 @@ const EventPopover = ({ event }) => {
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
                                 style={{ minWidth: '180px', maxWidth: '200px' }}
                             >
-                                <Popover.Arrow className="fill-current text-theme-secondary" />
+                                <Popover.Arrow
+                                    className="fill-[var(--background-secondary)]"
+                                    width={16}
+                                    height={8}
+                                    style={{
+                                        filter: 'drop-shadow(0 -1px 1px var(--border-theme))'
+                                    }}
+                                />
 
                                 {/* Title */}
                                 <div className="text-sm font-semibold mb-2 text-theme-primary">

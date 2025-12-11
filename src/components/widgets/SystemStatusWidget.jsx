@@ -235,7 +235,14 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
                                 style={{ width: '550px', maxWidth: '90vw' }}
                             >
-                                <Popover.Arrow className="fill-current text-theme-secondary" />
+                                <Popover.Arrow
+                                    className="fill-[var(--background-secondary)]"
+                                    width={16}
+                                    height={8}
+                                    style={{
+                                        filter: 'drop-shadow(0 -1px 1px var(--border-theme))'
+                                    }}
+                                />
 
                                 {/* Header */}
                                 <div className="flex justify-between items-center mb-3">

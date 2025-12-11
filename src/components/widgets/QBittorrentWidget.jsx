@@ -145,7 +145,14 @@ const QBittorrentWidget = ({ config }) => {
                                         className="glass-card border-theme rounded-xl shadow-2xl p-4 z-50"
                                         style={{ minWidth: 'max-content' }}
                                     >
-                                        <Popover.Arrow className="fill-current text-theme-secondary" />
+                                        <Popover.Arrow
+                                            className="fill-[var(--background-secondary)]"
+                                            width={16}
+                                            height={8}
+                                            style={{
+                                                filter: 'drop-shadow(0 -1px 1px var(--border-theme))'
+                                            }}
+                                        />
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between gap-4">
                                                 <span className="text-theme-secondary">Download Speed:</span>
@@ -205,7 +212,14 @@ const QBittorrentWidget = ({ config }) => {
                                         className="glass-card border-theme rounded-xl shadow-2xl p-4 z-50"
                                         style={{ minWidth: 'max-content' }}
                                     >
-                                        <Popover.Arrow className="fill-current text-theme-secondary" />
+                                        <Popover.Arrow
+                                            className="fill-[var(--background-secondary)]"
+                                            width={16}
+                                            height={8}
+                                            style={{
+                                                filter: 'drop-shadow(0 -1px 1px var(--border-theme))'
+                                            }}
+                                        />
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between gap-4">
                                                 <span className="text-theme-secondary">Upload Speed:</span>
