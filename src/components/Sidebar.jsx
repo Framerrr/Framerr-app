@@ -21,13 +21,12 @@ const Sidebar = () => {
     const hoverTimeoutRef = React.useRef(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
-    const { unreadCount, notifications } = useNotifications();
+    const { unreadCount } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
 
     // Notification center state
     const [showNotificationCenter, setShowNotificationCenter] = useState(false);
-    const [activeNotificationFilter, setActiveNotificationFilter] = useState('all');
 
     // Spring configuration for sidebar animations (animate-ui inspired)
     const sidebarSpring = {
@@ -764,101 +763,39 @@ const Sidebar = () => {
                         overflow: 'hidden',
                     }}
                 >
-                    {/* Header - transitions content */}
-                    <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-700/50">
-                        <AnimatePresence mode="wait">
-                            {showNotificationCenter ? (
-                                <motion.div
-                                    key="notification-header"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                                    className="flex items-center justify-between"
-                                >
-                                    <h2 className="text-xl font-semibold text-theme-primary">
-                                        Notifications
-                                    </h2>
-                                    <span className="text-sm text-theme-secondary">
-                                        {unreadCount} unread
-                                    </span>
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="app-header"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                                    className="flex items-center gap-3 text-accent font-bold text-xl"
-                                >
-                                    {renderIcon(userSettings?.serverIcon, 24)}
-                                    <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    {/* Filter Buttons - only for notifications, FIXED (doesn't scroll) */}
-                    <AnimatePresence>
-                        {showNotificationCenter && (
+                    {/* Conditional: Tabs OR NotificationCenter */}
+                    <AnimatePresence mode="wait">
+                        {showNotificationCenter ? (
                             <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
+                                key="notifications"
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -20, opacity: 0 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                                className="flex gap-2 border-b border-theme px-6 py-3 flex-shrink-0"
+                                className="flex-1 flex flex-col overflow-hidden"
                             >
-                                {[
-                                    { id: 'all', label: 'All', count: notifications.length },
-                                    { id: 'unread', label: 'Unread', count: unreadCount },
-                                    { id: 'read', label: 'Read', count: notifications.length - unreadCount }
-                                ].map(filter => (
-                                    <button
-                                        key={filter.id}
-                                        onClick={() => setActiveNotificationFilter(filter.id)}
-                                        className={`
-                                            px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                                            ${activeNotificationFilter === filter.id
-                                                ? 'bg-accent text-white'
-                                                : 'text-theme-secondary hover:bg-theme-hover'
-                                            }
-                                        `}
-                                    >
-                                        {filter.label} ({filter.count})
-                                    </button>
-                                ))}
+                                <NotificationCenter
+                                    isMobile={true}
+                                    onClose={() => setShowNotificationCenter(false)}
+                                />
                             </motion.div>
-                        )}
-                    </AnimatePresence>
+                        ) : (
+                            <motion.div
+                                key="tabs"
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -20, opacity: 0 }}
+                                transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                                className="flex flex-col flex-1 min-h-0"
+                            >
+                                <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-700/50">
+                                    <div className="flex items-center gap-3 text-accent font-bold text-xl">
+                                        {renderIcon(userSettings?.serverIcon, 24)}
+                                        <span className="gradient-text">{userSettings?.serverName || 'Dashboard'}</span>
+                                    </div>
+                                </div>
 
-                    {/* Main Scrollable Content - transitions between tabs and notifications */}
-                    <div className="overflow-y-auto px-6 pt-4 pb-4" style={{ flex: 1, minHeight: 0 }}>
-                        <AnimatePresence mode="wait">
-                            {showNotificationCenter ? (
-                                <motion.div
-                                    key="notification-list"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                                >
-                                    {/* Use NotificationCenter without its header/filters (already rendered above) */}
-                                    <NotificationCenter
-                                        isMobile={true}
-                                        hideHeader={true}
-                                        hideFilters={true}
-                                        activeFilter={activeNotificationFilter}
-                                    />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="tabs-list"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                                >
+                                <div className="overflow-y-auto px-6 pt-4 pb-4" style={{ flex: 1, minHeight: 0 }}>
                                     <nav className="space-y-4">
                                         {tabs && tabs.length > 0 && (
                                             <div>
@@ -900,10 +837,10 @@ const Sidebar = () => {
                                             </div>
                                         )}
                                     </nav>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <div className="px-6 pt-4 pb-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
                         {/* Notifications Button */}

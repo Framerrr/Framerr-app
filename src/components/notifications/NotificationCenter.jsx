@@ -16,21 +16,12 @@ const ICONS = {
  * 
  * Unified notification center for desktop and mobile
  * - Desktop: Renders inside transformed sidebar
- * - Mobile: Renders inside expanded mobile menu (with external header/filters)
+ * - Mobile: Renders inside expanded mobile menu
  * 
  * @param {boolean} isMobile - Whether rendering in mobile mode
  * @param {function} onClose - Close callback
- * @param {boolean} hideHeader - Hide the internal header (for mobile integration)
- * @param {boolean} hideFilters - Hide the internal filter tabs (for mobile integration)
- * @param {string} activeFilter - External filter state (for mobile integration)
  */
-const NotificationCenter = ({
-    isMobile = false,
-    onClose,
-    hideHeader = false,
-    hideFilters = false,
-    activeFilter: externalActiveFilter
-}) => {
+const NotificationCenter = ({ isMobile = false, onClose }) => {
     const {
         notifications,
         unreadCount,
@@ -43,18 +34,15 @@ const NotificationCenter = ({
 
     const [activeFilter, setActiveFilter] = useState('all');
 
-    // Use external filter if provided, otherwise use internal state
-    const currentFilter = externalActiveFilter || activeFilter;
-
     // Filter notifications
     const filteredNotifications = useMemo(() => {
-        if (currentFilter === 'unread') {
+        if (activeFilter === 'unread') {
             return notifications.filter(n => !n.read);
-        } else if (currentFilter === 'read') {
+        } else if (activeFilter === 'read') {
             return notifications.filter(n => n.read);
         }
         return notifications;
-    }, [notifications, currentFilter]);
+    }, [notifications, activeFilter]);
 
     // Group notifications by date
     const groupedNotifications = useMemo(() => {
@@ -242,77 +230,73 @@ const NotificationCenter = ({
     return (
         <div className="flex-1 flex flex-col glass-card border-l border-theme">
             {/* Header */}
-            {!hideHeader && (
-                <div className="p-6 border-b border-theme flex-shrink-0">
-                    <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-xl font-semibold text-theme-primary">
-                            Notifications
-                        </h2>
-                        {onClose && (
-                            <button
-                                onClick={onClose}
-                                className="text-theme-tertiary hover:text-theme-primary 
-                                    transition-colors p-1"
-                                aria-label="Close notifications"
-                            >
-                                <X size={20} />
-                            </button>
-                        )}
-                    </div>
-                    <p className="text-sm text-theme-secondary">
-                        {unreadCount} unread
-                    </p>
-
-                    {/* Action Buttons */}
-                    {notifications.length > 0 && (
-                        <div className="flex gap-2 mt-4">
-                            <button
-                                onClick={handleMarkAllRead}
-                                disabled={unreadCount === 0}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg
-                                    bg-accent text-white hover:bg-accent-hover
-                                    disabled:opacity-50 disabled:cursor-not-allowed
-                                    transition-colors"
-                            >
-                                Mark all read
-                            </button>
-                            <button
-                                onClick={handleClearAll}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg
-                                    bg-error/10 text-error hover:bg-error/20
-                                    transition-colors"
-                            >
-                                Clear all
-                            </button>
-                        </div>
+            <div className="p-6 border-b border-theme flex-shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-xl font-semibold text-theme-primary">
+                        Notifications
+                    </h2>
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="text-theme-tertiary hover:text-theme-primary 
+                                transition-colors p-1"
+                            aria-label="Close notifications"
+                        >
+                            <X size={20} />
+                        </button>
                     )}
                 </div>
-            )}
+                <p className="text-sm text-theme-secondary">
+                    {unreadCount} unread
+                </p>
+
+                {/* Action Buttons */}
+                {notifications.length > 0 && (
+                    <div className="flex gap-2 mt-4">
+                        <button
+                            onClick={handleMarkAllRead}
+                            disabled={unreadCount === 0}
+                            className="px-3 py-1.5 text-xs font-medium rounded-lg
+                                bg-accent text-white hover:bg-accent-hover
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                                transition-colors"
+                        >
+                            Mark all read
+                        </button>
+                        <button
+                            onClick={handleClearAll}
+                            className="px-3 py-1.5 text-xs font-medium rounded-lg
+                                bg-error/10 text-error hover:bg-error/20
+                                transition-colors"
+                        >
+                            Clear all
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {/* Filter Tabs */}
-            {!hideFilters && (
-                <div className="flex gap-2 border-b border-theme px-6 py-3 flex-shrink-0">
-                    {[
-                        { id: 'all', label: 'All', count: notifications.length },
-                        { id: 'unread', label: 'Unread', count: unreadCount },
-                        { id: 'read', label: 'Read', count: notifications.length - unreadCount }
-                    ].map(filter => (
-                        <button
-                            key={filter.id}
-                            onClick={() => setActiveFilter(filter.id)}
-                            className={`
-                                px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                                ${currentFilter === filter.id
-                                    ? 'bg-accent text-white'
-                                    : 'text-theme-secondary hover:bg-theme-hover'
-                                }
-                            `}
-                        >
-                            {filter.label} ({filter.count})
-                        </button>
-                    ))}
-                </div>
-            )}
+            <div className="flex gap-2 border-b border-theme px-6 py-3 flex-shrink-0">
+                {[
+                    { id: 'all', label: 'All', count: notifications.length },
+                    { id: 'unread', label: 'Unread', count: unreadCount },
+                    { id: 'read', label: 'Read', count: notifications.length - unreadCount }
+                ].map(filter => (
+                    <button
+                        key={filter.id}
+                        onClick={() => setActiveFilter(filter.id)}
+                        className={`
+                            px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                            ${activeFilter === filter.id
+                                ? 'bg-accent text-white'
+                                : 'text-theme-secondary hover:bg-theme-hover'
+                            }
+                        `}
+                    >
+                        {filter.label} ({filter.count})
+                    </button>
+                ))}
+            </div>
 
             {/* Notification List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
