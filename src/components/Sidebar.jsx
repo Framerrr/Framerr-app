@@ -222,78 +222,23 @@ const Sidebar = () => {
                         }}
                     />
 
-                    {/* Header */}
-                    <div className="h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
-                        {/* Icon - locked in 80px container */}
-                        <div className="w-20 flex items-center justify-center flex-shrink-0 text-accent drop-shadow-lg">
-                            {renderIcon(userSettings?.serverIcon, 28)}
+                    {/* Conditional: NotificationCenter OR Header+Nav */}
+                    {showNotificationCenter ? (
+                        <div className="flex-1 flex flex-col overflow-hidden">
+                            <NotificationCenter
+                                isMobile={false}
+                                onClose={() => setShowNotificationCenter(false)}
+                            />
                         </div>
-                        {/* Text - appears when expanded */}
-                        <AnimatePresence mode="wait">
-                            {isExpanded && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.1 }}
-                                    className="gradient-text font-bold"
-                                >
-                                    {userSettings?.serverName || 'Dashboard'}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 relative">
-                        {/* Dashboard Link */}
-                        <a
-                            href="/#dashboard"
-                            onMouseEnter={() => handleMouseEnter('dashboard')}
-                            onMouseLeave={handleMouseLeave}
-                            className={(() => {
-                                const hash = window.location.hash.slice(1);
-                                const shouldBeActive = !hash || hash === 'dashboard';
-                                return `flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative`;
-                            })()}
-                        >
-                            {/* Animated hover/active indicator */}
-                            {(hoveredItem === 'dashboard' || (!window.location.hash || window.location.hash === '#dashboard')) && (
-                                <motion.div
-                                    layoutId="sidebarIndicator"
-                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${(!window.location.hash || window.location.hash === '#dashboard')
-                                        ? 'bg-accent/20 shadow-lg'
-                                        : 'bg-slate-800/60'
-                                        }`}
-                                    transition={sidebarSpring}
-                                />
-                            )}
-                            {/* Icon - locked in 80px container */}
-                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
-                                <span className={`flex items-center justify-center ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}>
-                                    <LayoutDashboard size={20} />
-                                </span>
-                            </div>
-                            {/* Text - appears when expanded */}
-                            <AnimatePresence mode="wait">
-                                {isExpanded && (
-                                    <motion.span
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.1 }}
-                                        className={`whitespace-nowrap relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
-                                    >
-                                        Dashboard
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
-                        </a>
-
-                        {/* Tabs Section */}
-                        {tabs && tabs.length > 0 && (
-                            <>
-                                {/* Header for expanded state */}
+                    ) : (
+                        <>
+                            {/* Header */}
+                            <div className="h-20 flex items-center border-b border-slate-700/30 text-accent font-semibold text-lg whitespace-nowrap overflow-hidden relative z-10">
+                                {/* Icon - locked in 80px container */}
+                                <div className="w-20 flex items-center justify-center flex-shrink-0 text-accent drop-shadow-lg">
+                                    {renderIcon(userSettings?.serverIcon, 28)}
+                                </div>
+                                {/* Text - appears when expanded */}
                                 <AnimatePresence mode="wait">
                                     {isExpanded && (
                                         <motion.div
@@ -301,174 +246,241 @@ const Sidebar = () => {
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
                                             transition={{ duration: 0.1 }}
-                                            className="text-[11px] font-semibold text-theme-tertiary uppercase tracking-wider px-4 pt-4 pb-2"
+                                            className="gradient-text font-bold"
                                         >
-                                            Tabs
+                                            {userSettings?.serverName || 'Dashboard'}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
+                            </div>
 
-                                {/* Separator for collapsed state */}
-                                {!isExpanded && <div className="my-3 h-px bg-gradient-to-r from-transparent via-border-theme to-transparent w-full" />}
-
-                                {/* Ungrouped tabs */}
-                                {tabs.filter(tab => !tab.groupId).map(tab => (
-                                    <a
-                                        key={tab.id}
-                                        href={`/#${tab.slug}`}
-                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
-                                        onMouseLeave={handleMouseLeave}
-                                        className={`flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
-                                    >
-                                        {/* Animated hover/active indicator */}
-                                        {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
-                                            <motion.div
-                                                layoutId="sidebarIndicator"
-                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
-                                                transition={sidebarSpring}
-                                            />
-                                        )}
-                                        <motion.span
-                                            className={`flex items-center justify-center min-w-[20px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}
-                                            animate={{ x: isExpanded ? 0 : 0 }}
+                            {/* Navigation */}
+                            <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 relative">
+                                {/* Dashboard Link */}
+                                <a
+                                    href="/#dashboard"
+                                    onMouseEnter={() => handleMouseEnter('dashboard')}
+                                    onMouseLeave={handleMouseLeave}
+                                    className={(() => {
+                                        const hash = window.location.hash.slice(1);
+                                        const shouldBeActive = !hash || hash === 'dashboard';
+                                        return `flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative`;
+                                    })()}
+                                >
+                                    {/* Animated hover/active indicator */}
+                                    {(hoveredItem === 'dashboard' || (!window.location.hash || window.location.hash === '#dashboard')) && (
+                                        <motion.div
+                                            layoutId="sidebarIndicator"
+                                            className={`absolute inset-y-1 inset-x-2 rounded-xl ${(!window.location.hash || window.location.hash === '#dashboard')
+                                                ? 'bg-accent/20 shadow-lg'
+                                                : 'bg-slate-800/60'
+                                                }`}
                                             transition={sidebarSpring}
-                                        >
-                                            {renderIcon(tab.icon, 20)}
-                                        </motion.span>
+                                        />
+                                    )}
+                                    {/* Icon - locked in 80px container */}
+                                    <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                        <span className={`flex items-center justify-center ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}>
+                                            <LayoutDashboard size={20} />
+                                        </span>
+                                    </div>
+                                    {/* Text - appears when expanded */}
+                                    <AnimatePresence mode="wait">
+                                        {isExpanded && (
+                                            <motion.span
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.1 }}
+                                                className={`whitespace-nowrap relative z-10 ${!window.location.hash || window.location.hash === '#dashboard' ? 'text-accent' : ''}`}
+                                            >
+                                                Dashboard
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </a>
+
+                                {/* Tabs Section */}
+                                {tabs && tabs.length > 0 && (
+                                    <>
+                                        {/* Header for expanded state */}
                                         <AnimatePresence mode="wait">
                                             {isExpanded && (
-                                                <motion.span
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
+                                                <motion.div
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
                                                     exit={{ opacity: 0 }}
-                                                    transition={{
-                                                        ...textSpring,
-                                                        exit: { duration: 0.1 },
-                                                    }}
-                                                    className={`whitespace-nowrap relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                    transition={{ duration: 0.1 }}
+                                                    className="text-[11px] font-semibold text-theme-tertiary uppercase tracking-wider px-4 pt-4 pb-2"
                                                 >
-                                                    {tab.name}
-                                                </motion.span>
+                                                    Tabs
+                                                </motion.div>
                                             )}
                                         </AnimatePresence>
-                                        {!isExpanded && (
-                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
-                                                {tab.name}
-                                            </div>
-                                        )}
-                                    </a>
-                                ))}
 
-                                {/* Grouped tabs */}
-                                {groups && groups.map(group => {
-                                    const groupTabs = tabs.filter(tab => tab.groupId === group.id);
-                                    if (groupTabs.length === 0) return null;
+                                        {/* Separator for collapsed state */}
+                                        {!isExpanded && <div className="my-3 h-px bg-gradient-to-r from-transparent via-border-theme to-transparent w-full" />}
 
-                                    return (
-                                        <div key={group.id} className={isExpanded ? 'mt-2' : ''}>
-                                            {isExpanded ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => toggleGroup(group.id)}
-                                                        onMouseEnter={() => handleMouseEnter(`group-${group.id}`)}
-                                                        onMouseLeave={handleMouseLeave}
-                                                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-theme-tertiary uppercase tracking-wider hover:text-theme-secondary transition-colors rounded-lg relative"
-                                                    >
-                                                        {/* Hover indicator for group header */}
-                                                        {hoveredItem === `group-${group.id}` && (
-                                                            <motion.div
-                                                                layoutId="sidebarIndicator"
-                                                                className="absolute inset-y-1 inset-x-2 bg-slate-800/60 rounded-xl"
-                                                                transition={sidebarSpring}
-                                                            />
-                                                        )}
-                                                        <span className="relative z-10">{group.name}</span>
-                                                        <ChevronRight
-                                                            size={16}
-                                                            className="transition-transform duration-300 relative z-10"
-                                                            style={{
-                                                                transform: expandedGroups[group.id] ? 'rotate(90deg)' : 'rotate(0deg)'
-                                                            }}
-                                                        />
-                                                    </button>
-                                                    <AnimatePresence>
-                                                        {expandedGroups[group.id] && (
-                                                            <motion.div
-                                                                initial={{ height: 0, opacity: 0 }}
-                                                                animate={{ height: 'auto', opacity: 1 }}
-                                                                exit={{ height: 0, opacity: 0 }}
-                                                                transition={sidebarSpring}
-                                                                className="overflow-hidden space-y-1 mt-1"
-                                                            >
-                                                                {groupTabs.map(tab => (
-                                                                    <a
-                                                                        key={tab.id}
-                                                                        href={`/#${tab.slug}`}
-                                                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
-                                                                        onMouseLeave={handleMouseLeave}
-                                                                        className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-theme-tertiary hover:text-theme-primary transition-colors rounded-xl relative"
-                                                                    >
-                                                                        {/* Animated hover/active indicator */}
-                                                                        {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
-                                                                            <motion.div
-                                                                                layoutId="sidebarIndicator"
-                                                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
-                                                                                transition={sidebarSpring}
-                                                                            />
-                                                                        )}
-                                                                        <motion.span
-                                                                            className={`mr-3 flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
-                                                                            animate={{ x: 0 }}
-                                                                            transition={sidebarSpring}
-                                                                        >
-                                                                            {renderIcon(tab.icon, 20)}
-                                                                        </motion.span>
-                                                                        <span className={`truncate relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
-                                                                            {tab.name}
-                                                                        </span>
-                                                                    </a>
-                                                                ))}
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </>
-                                            ) : (
-                                                groupTabs.map(tab => (
-                                                    <a
-                                                        key={tab.id}
-                                                        href={`/#${tab.slug}`}
-                                                        onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
-                                                        onMouseLeave={handleMouseLeave}
-                                                        className="flex items-center justify-center py-3.5 text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative group"
-                                                    >
-                                                        {/* Animated hover/active indicator */}
-                                                        {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
-                                                            <motion.div
-                                                                layoutId="sidebarIndicator"
-                                                                className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
-                                                                transition={sidebarSpring}
-                                                            />
-                                                        )}
+                                        {/* Ungrouped tabs */}
+                                        {tabs.filter(tab => !tab.groupId).map(tab => (
+                                            <a
+                                                key={tab.id}
+                                                href={`/#${tab.slug}`}
+                                                onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                                onMouseLeave={handleMouseLeave}
+                                                className={`flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
+                                            >
+                                                {/* Animated hover/active indicator */}
+                                                {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
+                                                    <motion.div
+                                                        layoutId="sidebarIndicator"
+                                                        className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                        transition={sidebarSpring}
+                                                    />
+                                                )}
+                                                <motion.span
+                                                    className={`flex items-center justify-center min-w-[20px] relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''} ${isExpanded ? 'mr-3' : ''}`}
+                                                    animate={{ x: isExpanded ? 0 : 0 }}
+                                                    transition={sidebarSpring}
+                                                >
+                                                    {renderIcon(tab.icon, 20)}
+                                                </motion.span>
+                                                <AnimatePresence mode="wait">
+                                                    {isExpanded && (
                                                         <motion.span
-                                                            className={`flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
-                                                            animate={{ x: 0 }}
-                                                            transition={sidebarSpring}
+                                                            initial={{ opacity: 0, x: -10 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            exit={{ opacity: 0 }}
+                                                            transition={{
+                                                                ...textSpring,
+                                                                exit: { duration: 0.1 },
+                                                            }}
+                                                            className={`whitespace-nowrap relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
                                                         >
-                                                            {renderIcon(tab.icon, 20)}
-                                                        </motion.span>
-                                                        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
                                                             {tab.name}
-                                                            <span className="text-xs text-theme-tertiary block">{group.name}</span>
-                                                        </div>
-                                                    </a>
-                                                ))
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </>
-                        )}
-                    </nav>
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                                {!isExpanded && (
+                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
+                                                        {tab.name}
+                                                    </div>
+                                                )}
+                                            </a>
+                                        ))}
+
+                                        {/* Grouped tabs */}
+                                        {groups && groups.map(group => {
+                                            const groupTabs = tabs.filter(tab => tab.groupId === group.id);
+                                            if (groupTabs.length === 0) return null;
+
+                                            return (
+                                                <div key={group.id} className={isExpanded ? 'mt-2' : ''}>
+                                                    {isExpanded ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => toggleGroup(group.id)}
+                                                                onMouseEnter={() => handleMouseEnter(`group-${group.id}`)}
+                                                                onMouseLeave={handleMouseLeave}
+                                                                className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-theme-tertiary uppercase tracking-wider hover:text-theme-secondary transition-colors rounded-lg relative"
+                                                            >
+                                                                {/* Hover indicator for group header */}
+                                                                {hoveredItem === `group-${group.id}` && (
+                                                                    <motion.div
+                                                                        layoutId="sidebarIndicator"
+                                                                        className="absolute inset-y-1 inset-x-2 bg-slate-800/60 rounded-xl"
+                                                                        transition={sidebarSpring}
+                                                                    />
+                                                                )}
+                                                                <span className="relative z-10">{group.name}</span>
+                                                                <ChevronRight
+                                                                    size={16}
+                                                                    className="transition-transform duration-300 relative z-10"
+                                                                    style={{
+                                                                        transform: expandedGroups[group.id] ? 'rotate(90deg)' : 'rotate(0deg)'
+                                                                    }}
+                                                                />
+                                                            </button>
+                                                            <AnimatePresence>
+                                                                {expandedGroups[group.id] && (
+                                                                    <motion.div
+                                                                        initial={{ height: 0, opacity: 0 }}
+                                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                                        exit={{ height: 0, opacity: 0 }}
+                                                                        transition={sidebarSpring}
+                                                                        className="overflow-hidden space-y-1 mt-1"
+                                                                    >
+                                                                        {groupTabs.map(tab => (
+                                                                            <a
+                                                                                key={tab.id}
+                                                                                href={`/#${tab.slug}`}
+                                                                                onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                                                                onMouseLeave={handleMouseLeave}
+                                                                                className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-theme-tertiary hover:text-theme-primary transition-colors rounded-xl relative"
+                                                                            >
+                                                                                {/* Animated hover/active indicator */}
+                                                                                {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
+                                                                                    <motion.div
+                                                                                        layoutId="sidebarIndicator"
+                                                                                        className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                                                        transition={sidebarSpring}
+                                                                                    />
+                                                                                )}
+                                                                                <motion.span
+                                                                                    className={`mr-3 flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                                                    animate={{ x: 0 }}
+                                                                                    transition={sidebarSpring}
+                                                                                >
+                                                                                    {renderIcon(tab.icon, 20)}
+                                                                                </motion.span>
+                                                                                <span className={`truncate relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}>
+                                                                                    {tab.name}
+                                                                                </span>
+                                                                            </a>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
+                                                        </>
+                                                    ) : (
+                                                        groupTabs.map(tab => (
+                                                            <a
+                                                                key={tab.id}
+                                                                href={`/#${tab.slug}`}
+                                                                onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
+                                                                onMouseLeave={handleMouseLeave}
+                                                                className="flex items-center justify-center py-3.5 text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative group"
+                                                            >
+                                                                {/* Animated hover/active indicator */}
+                                                                {(hoveredItem === `tab-${tab.id}` || window.location.hash.slice(1) === tab.slug) && (
+                                                                    <motion.div
+                                                                        layoutId="sidebarIndicator"
+                                                                        className={`absolute inset-y-1 inset-x-2 rounded-xl ${window.location.hash.slice(1) === tab.slug ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                                                        transition={sidebarSpring}
+                                                                    />
+                                                                )}
+                                                                <motion.span
+                                                                    className={`flex items-center justify-center relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
+                                                                    animate={{ x: 0 }}
+                                                                    transition={sidebarSpring}
+                                                                >
+                                                                    {renderIcon(tab.icon, 20)}
+                                                                </motion.span>
+                                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-theme-secondary/95 backdrop-blur-sm text-theme-primary text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-theme">
+                                                                    {tab.name}
+                                                                    <span className="text-xs text-theme-tertiary block">{group.name}</span>
+                                                                </div>
+                                                            </a>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </>
+                                )}
+                            </nav>
+                        </>
+                    )}
 
                     {/* Footer */}
                     <div className="py-3 border-t border-slate-700/50 flex flex-col gap-2 relative">
