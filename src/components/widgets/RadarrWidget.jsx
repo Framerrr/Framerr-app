@@ -64,13 +64,22 @@ const MoviePopover = ({ movie }) => {
                             >
                                 {/* Improved Arrow - matches glass-card with border */}
                                 <Popover.Arrow
-                                    className="fill-[var(--background-secondary)]"
                                     width={16}
                                     height={8}
                                     style={{
-                                        filter: 'drop-shadow(0 -1px 1px var(--border-theme))'
+                                        fill: 'url(#glass-gradient-radarr)',
+                                        filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
                                     }}
                                 />
+                                {/* SVG Gradient Definition for Glass Effect */}
+                                <svg width="0" height="0" style={{ position: 'absolute' }}>
+                                    <defs>
+                                        <linearGradient id="glass-gradient-radarr" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
+                                            <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
 
                                 {/* Movie Title */}
                                 <div className="text-sm font-semibold mb-2 text-theme-primary">
