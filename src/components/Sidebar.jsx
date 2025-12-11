@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronRight, ChevronUp, LogOut, UserCircle } from 'lucide-react';
+import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronRight, ChevronUp, LogOut, UserCircle, Mail, LayoutGrid } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationCenter from './notifications/NotificationCenter';
 import logger from '../utils/logger';
 
 const Sidebar = () => {
@@ -19,8 +21,12 @@ const Sidebar = () => {
     const hoverTimeoutRef = React.useRef(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
+    const { unreadCount } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Notification center state
+    const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
     // Spring configuration for sidebar animations (animate-ui inspired)
     const sidebarSpring = {
@@ -176,7 +182,7 @@ const Sidebar = () => {
                 <motion.aside
                     className="flex flex-col relative fade-in"
                     animate={{
-                        width: isExpanded ? 280 : 80,
+                        width: showNotificationCenter ? 400 : (isExpanded ? 280 : 80),
                     }}
                     transition={sidebarSpring}
                     style={{
