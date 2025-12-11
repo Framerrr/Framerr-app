@@ -484,6 +484,55 @@ const Sidebar = () => {
 
                     {/* Footer */}
                     <div className="py-3 border-t border-slate-700/50 flex flex-col gap-2 relative">
+                        {/* Notifications Button */}
+                        <button
+                            onClick={() => setShowNotificationCenter(!showNotificationCenter)}
+                            onMouseEnter={() => handleMouseEnter('notifications')}
+                            onMouseLeave={handleMouseLeave}
+                            className="relative flex items-center py-3 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl"
+                        >
+                            {/*Animated hover/active indicator */}
+                            {(hoveredItem === 'notifications' || showNotificationCenter) && (
+                                <motion.div
+                                    layoutId="sidebarIndicator"
+                                    className={`absolute inset-y-1 inset-x-2 rounded-xl ${showNotificationCenter ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    transition={sidebarSpring}
+                                />
+                            )}
+                            {/* Icon - locked in 80px container */}
+                            <div className="w-20 flex items-center justify-center flex-shrink-0 relative z-10">
+                                <span className={`flex items-center justify-center relative ${showNotificationCenter ? 'text-accent' : ''}`}>
+                                    {showNotificationCenter ? <LayoutGrid size={20} /> : <Mail size={20} />}
+                                    {/* Red dot badge */}
+                                    {!showNotificationCenter && unreadCount > 0 && (
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="absolute -top-1 -right-1 bg-error text-white 
+                                                text-[10px] font-bold rounded-full min-w-[18px] h-[18px] 
+                                                flex items-center justify-center shadow-lg"
+                                        >
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </motion.div>
+                                    )}
+                                </span>
+                            </div>
+                            {/* Text - appears when expanded */}
+                            <AnimatePresence mode="wait">
+                                {isExpanded && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.1 }}
+                                        className={`whitespace-nowrap relative z-10 ${showNotificationCenter ? 'text-accent' : ''}`}
+                                    >
+                                        {showNotificationCenter ? 'Back to Tabs' : 'Notifications'}
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
+                        </button>
+
                         {/* Profile Link */}
                         <a
                             href="/#settings?tab=profile&source=profile"
@@ -625,6 +674,19 @@ const Sidebar = () => {
                         </button>
                     </div>
                 </motion.aside>
+
+                {/* Backdrop overlay when notification center is open */}
+                <AnimatePresence>
+                    {showNotificationCenter && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowNotificationCenter(false)}
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
+                        />
+                    )}
+                </AnimatePresence>
             </>
         );
     }
