@@ -773,6 +773,7 @@ const Sidebar = () => {
                                 exit={{ y: -20, opacity: 0 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 className="flex-1 flex flex-col overflow-hidden"
+                                style={{ height: '100%' }}
                             >
                                 <NotificationCenter
                                     isMobile={true}
