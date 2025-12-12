@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
+import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown, Bell } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { isAdmin } from '../../utils/permissions';
 import ColorPicker from '../common/ColorPicker';
 import { Input } from '../common/Input';
@@ -16,6 +17,7 @@ const CustomizationSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
+    const { addNotification } = useNotifications();
     const userIsAdmin = isAdmin(user);
 
     // Default color values matching dark-pro.css - 21 customizable variables
@@ -72,6 +74,13 @@ const CustomizationSettings = () => {
     // Collapsible sections state for Custom Colors
     const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
+
+    // Notification preferences state
+    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [notificationSound, setNotificationSound] = useState(false);
+    const [savingNotifications, setSavingNotifications] = useState(false);
+    const [originalNotifications, setOriginalNotifications] = useState({ enabled: true, sound: false });
+    const [hasNotificationChanges, setHasNotificationChanges] = useState(false);
 
     // Change tracking for save buttons
     const [originalAppName, setOriginalAppName] = useState('Homelab Dashboard');
@@ -542,6 +551,22 @@ const CustomizationSettings = () => {
                         <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
                     </div>
                     {activeSubTab === 'favicon' && (
+                        <motion.div
+                            layoutId="customizationSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveSubTab('notifications')}
+                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                >
+                    <div className="flex items-center gap-2 relative z-10">
+                        <Bell size={18} className={activeSubTab === 'notifications' ? 'text-accent' : ''} />
+                        <span className={activeSubTab === 'notifications' ? 'text-accent' : ''}>Notifications</span>
+                    </div>
+                    {activeSubTab === 'notifications' && (
                         <motion.div
                             layoutId="customizationSubTabIndicator"
                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
@@ -1076,6 +1101,97 @@ const CustomizationSettings = () => {
                     }}
                 >
                     <FaviconSettings />
+                </div>
+
+                <div
+                    style={{
+                        opacity: activeSubTab === 'notifications' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'notifications' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'notifications' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <div className="space-y-6">
+                        {/* Notification Preferences */}
+                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
+                                Notification Preferences
+                            </h3>
+                            <p className="text-sm text-theme-secondary mb-6">
+                                Configure how you receive notifications throughout the application.
+                            </p>
+
+                            <div className="space-y-6">
+                                {/* Enable Notifications Toggle */}
+                                <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-theme-primary mb-1">
+                                            Enable Notifications
+                                        </div>
+                                        <div className="text-xs text-theme-tertiary">
+                                            {notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}
+                                        </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={notificationsEnabled}
+                                            onChange={(e) => setNotificationsEnabled(e.target.checked)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    </label>
+                                </div>
+
+                                {/* Sound Toggle */}
+                                <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-theme-primary mb-1">
+                                            Notification Sound
+                                        </div>
+                                        <div className="text-xs text-theme-tertiary">
+                                            {notificationSound ? 'Sound enabled' : 'Sound disabled'}
+                                        </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={notificationSound}
+                                            onChange={(e) => setNotificationSound(e.target.checked)}
+                                            disabled={!notificationsEnabled}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                                    </label>
+                                </div>
+
+                                {/* Test Notification Button */}
+                                <div className="p-4 bg-info/10 border border-info/30 rounded-lg">
+                                    <h4 className="text-sm font-medium text-theme-primary mb-2">
+                                        Test Notifications
+                                    </h4>
+                                    <p className="text-xs text-theme-secondary mb-4">
+                                        Send a test notification to preview how notifications will appear.
+                                    </p>
+                                    <Button
+                                        onClick={() => {
+                                            addNotification({
+                                                title: 'Test Notification',
+                                                message: 'This is a test notification to demonstrate how notifications appear!',
+                                                type: 'info'
+                                            });
+                                        }}
+                                        variant="secondary"
+                                        icon={Bell}
+                                    >
+                                        Send Test Notification
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
