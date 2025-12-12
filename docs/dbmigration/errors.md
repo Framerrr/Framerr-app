@@ -74,6 +74,66 @@ git commit -m "fix(db): add in-memory caching to systemConfig to prevent query s
 
 ---
 
+## Error #2: user_preferences Schema Mismatch ✅ RESOLVED
+
+### Problem
+- **Observed**: 16+ `SQLITE_ERROR: no such column: dashboard_config` errors
+- **Error Messages**:
+  - `Failed to get user config`
+  - `Failed to get widgets`
+  - `Failed to get theme`
+  - `Error fetching user tabs`
+- **Root Cause**: `schema.sql` and `userConfig.js` had mismatched column names
+
+### Schema vs Code Mismatch
+
+**Schema Had** (schema.sql lines 47-51):
+```sql
+tabs, widgets, dashboard, theme, custom_colors
+```
+
+**Code Expected** (userConfig.js line 42):
+```sql
+dashboard_config, tabs, theme_config, sidebar_config, preferences
+```
+
+### Solution Implemented
+**File**: `server/database/schema.sql`
+
+**Changes** (Lines 47-52):
+```sql
+-- BEFORE:
+tabs TEXT DEFAULT '[]',
+widgets TEXT DEFAULT '[]',
+dashboard TEXT DEFAULT '{"widgets":[]}',
+theme TEXT DEFAULT 'dark',
+custom_colors TEXT DEFAULT '{}',
+
+-- AFTER:
+dashboard_config TEXT DEFAULT '{"widgets":[]}',
+tabs TEXT DEFAULT '[]',
+theme_config TEXT DEFAULT '{"mode":"system","primaryColor":"#3b82f6"}',
+sidebar_config TEXT DEFAULT '{"collapsed":false}',
+preferences TEXT DEFAULT '{"dashboardGreeting":{"enabled":true,"text":"Your personal dashboard"}}',
+```
+
+**Impact**: All `getUserConfig()` queries will now succeed
+
+### Testing
+- ✅ Build passes: `npm run build` (4.39s)
+- ⏳ Pending: Docker rebuild with new schema
+
+### Important Note
+**Existing databases will need migration**: If a database was created with the old schema, it will need to be recreated or migrated via ALTER TABLE commands.
+
+### Commit
+```bash
+git add server/database/schema.sql
+git commit -m "fix(db): correct user_preferences schema to match userConfig.js"
+```
+
+---
+
 ## Next Steps
 
 1. Test in Docker to verify cache behavior

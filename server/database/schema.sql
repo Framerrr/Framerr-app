@@ -44,11 +44,11 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS user_preferences (
     user_id TEXT PRIMARY KEY,
-    tabs TEXT DEFAULT '[]',                    -- JSON array of tab objects
-    widgets TEXT DEFAULT '[]',                 -- JSON array of widget objects
-    dashboard TEXT DEFAULT '{"widgets":[]}',   -- JSON object for dashboard config
-    theme TEXT DEFAULT 'dark',
-    custom_colors TEXT DEFAULT '{}',           -- JSON object for custom theme colors
+    dashboard_config TEXT DEFAULT '{\"widgets\":[]}',   -- JSON object for dashboard + widgets
+    tabs TEXT DEFAULT '[]',                             -- JSON array of tab objects
+    theme_config TEXT DEFAULT '{"mode":"system","primaryColor":"#3b82f6"}',  -- JSON theme object
+    sidebar_config TEXT DEFAULT '{"collapsed":false}',  -- JSON sidebar settings
+    preferences TEXT DEFAULT '{"dashboardGreeting":{"enabled":true,"text":"Your personal dashboard"}}',  -- Other user preferences
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
