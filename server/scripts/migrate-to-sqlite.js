@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { db, initializeSchema, isInitialized } = require('../database/db');
+const db = require('../database/db');
 
 // Determine data directory
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
@@ -24,7 +24,8 @@ const JSON_FILES = {
     users: path.join(DATA_DIR, 'users.json'),
     systemConfig: path.join(DATA_DIR, 'config.json'),
     userConfigs: path.join(DATA_DIR, 'user-configs'),
-    notifications: path.join(DATA_DIR, 'notifications')
+    notifications: path.join(DATA_DIR, 'notifications.json'),
+    customIcons: path.join(DATA_DIR, 'custom-icons.json')
 };
 
 // Parse command line arguments
@@ -64,7 +65,7 @@ function validateSourceData() {
     console.log('  users.json:', checks.users ? '✓' : '✗');
     console.log('  config.json:', checks.systemConfig ? '✓' : '✗');
     console.log('  user-configs/:', checks.userConfigs ? '✓' : '✗');
-    console.log('  notifications/:', checks.notifications ? '✓' : '✗');
+    console.log('  notifications.json:', checks.notifications ? '✓' : '✗');
 
     return checks;
 }
@@ -89,11 +90,55 @@ function migrateUsers() {
         return { users: users.length, sessions: sessions.length };
     }
 
-    // Migration implementation will be completed in Session 3
-    console.log('  [TODO] Migrate users to SQLite');
-    console.log('  [TODO] Migrate sessions to SQLite');
+    // Migrate users
+    const insertUser = db.prepare(`
+        INSERT INTO users (id, username, password, email, group_id, is_setup_admin, created_at, last_login)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-    return { users: 0, sessions: 0 };
+    const migrateUsersTransaction = db.transaction(() => {
+        for (const user of users) {
+            insertUser.run(
+                user.id,
+                user.username,
+                user.password,
+                user.email || null,
+                user.groupId || user.group || 'user',
+                user.isSetupAdmin ? 1 : 0,
+                Math.floor(new Date(user.createdAt).getTime() / 1000),
+                user.lastLogin ? Math.floor(new Date(user.lastLogin).getTime() / 1000) : null
+            );
+        }
+    });
+
+    migrateUsersTransaction();
+    console.log(`  ✓ Migrated ${users.length} users`);
+
+    // Migrate sessions
+    if (sessions.length > 0) {
+        const insertSession = db.prepare(`
+            INSERT INTO sessions (token, user_id, ip_address, user_agent, created_at, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `);
+
+        const migrateSessionsTransaction = db.transaction(() => {
+            for (const session of sessions) {
+                insertSession.run(
+                    session.token,
+                    session.userId,
+                    session.ipAddress || null,
+                    session.userAgent || null,
+                    Math.floor(new Date(session.createdAt).getTime() / 1000),
+                    Math.floor(new Date(session.expiresAt).getTime() / 1000)
+                );
+            }
+        });
+
+        migrateSessionsTransaction();
+        console.log(`  ✓ Migrated ${sessions.length} sessions`);
+    }
+
+    return { users: users.length, sessions: sessions.length };
 }
 
 /**
@@ -115,10 +160,34 @@ function migrateUserConfigs() {
         return configFiles.length;
     }
 
-    // Migration implementation will be completed in Session 3
-    console.log('  [TODO] Migrate user configs to SQLite');
+    const insertConfig = db.prepare(`
+        INSERT INTO user_preferences (user_id, tabs, widgets, dashboard, theme, custom_colors)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `);
 
-    return 0;
+    const migrateConfigsTransaction = db.transaction(() => {
+        for (const file of configFiles) {
+            const userId = file.replace('.json', '');
+            const configPath = path.join(JSON_FILES.userConfigs, file);
+            const config = readJSONFile(configPath);
+
+            if (config) {
+                insertConfig.run(
+                    userId,
+                    JSON.stringify(config.tabs || []),
+                    JSON.stringify(config.widgets || []),
+                    JSON.stringify(config.dashboard || { widgets: [] }),
+                    config.theme || 'dark',
+                    JSON.stringify(config.customColors || {})
+                );
+            }
+        }
+    });
+
+    migrateConfigsTransaction();
+    console.log(`  ✓ Migrated ${configFiles.length} user configurations`);
+
+    return configFiles.length;
 }
 
 /**
@@ -135,14 +204,57 @@ function migrateSystemConfig() {
 
     if (isDryRun) {
         const keys = Object.keys(configData);
-        console.log(`  Would migrate ${keys.length} config keys`);
+        console.log(`  Would migrate ${keys.length} config sections`);
         return keys.length;
     }
 
-    // Migration implementation will be completed in Session 3
-    console.log('  [TODO] Migrate system config to SQLite');
+    const upsertConfig = db.prepare(`
+        INSERT INTO system_config (key, value)
+        VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `);
 
-    return 0;
+    const migrateConfigTransaction = db.transaction(() => {
+        // Migrate each top-level config section as a key-value pair
+        if (configData.server) {
+            upsertConfig.run('server', JSON.stringify(configData.server));
+        }
+        if (configData.auth?.local) {
+            upsertConfig.run('auth.local', JSON.stringify(configData.auth.local));
+        }
+        if (configData.auth?.proxy) {
+            upsertConfig.run('auth.proxy', JSON.stringify(configData.auth.proxy));
+        }
+        if (configData.auth?.iframe) {
+            upsertConfig.run('auth.iframe', JSON.stringify(configData.auth.iframe));
+        }
+        if (configData.auth?.session) {
+            upsertConfig.run('auth.session', JSON.stringify(configData.auth.session));
+        }
+        if (configData.integrations) {
+            upsertConfig.run('integrations', JSON.stringify(configData.integrations));
+        }
+        if (configData.groups) {
+            upsertConfig.run('groups', JSON.stringify(configData.groups));
+        }
+        if (configData.defaultGroup) {
+            upsertConfig.run('defaultGroup', JSON.stringify(configData.defaultGroup));
+        }
+        if (configData.tabGroups) {
+            upsertConfig.run('tabGroups', JSON.stringify(configData.tabGroups));
+        }
+        if (configData.debug) {
+            upsertConfig.run('debug', JSON.stringify(configData.debug));
+        }
+        if (configData.favicon !== undefined) {
+            upsertConfig.run('favicon', JSON.stringify(configData.favicon));
+        }
+    });
+
+    migrateConfigTransaction();
+    console.log('  ✓ Migrated system configuration');
+
+    return 1;
 }
 
 /**
@@ -151,31 +263,47 @@ function migrateSystemConfig() {
 function migrateNotifications() {
     console.log('\n[MIGRATE] Notifications...');
 
-    if (!fs.existsSync(JSON_FILES.notifications)) {
-        console.log('  No notifications directory found, skipping');
+    const notifData = readJSONFile(JSON_FILES.notifications);
+    if (!notifData) {
+        console.log('  No notifications.json found, skipping');
         return 0;
     }
 
-    const notifFiles = fs.readdirSync(JSON_FILES.notifications)
-        .filter(f => f.endsWith('.json'));
+    const notifications = notifData.notifications || [];
 
-    let totalNotifications = 0;
-    notifFiles.forEach(file => {
-        const data = readJSONFile(path.join(JSON_FILES.notifications, file));
-        if (data && Array.isArray(data)) {
-            totalNotifications += data.length;
+    if (isDryRun) {
+        console.log(`  Would migrate ${notifications.length} notifications`);
+        return notifications.length;
+    }
+
+    if (notifications.length === 0) {
+        console.log('  No notifications to migrate');
+        return 0;
+    }
+
+    const insertNotif = db.prepare(`
+        INSERT INTO notifications (id, user_id, title, message, type, read, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const migrateNotifsTransaction = db.transaction(() => {
+        for (const notif of notifications) {
+            insertNotif.run(
+                notif.id,
+                notif.userId,
+                notif.title,
+                notif.message || null,
+                notif.type || 'info',
+                notif.read ? 1 : 0,
+                Math.floor(new Date(notif.createdAt).getTime() / 1000)
+            );
         }
     });
 
-    if (isDryRun) {
-        console.log(`  Would migrate ${totalNotifications} notifications from ${notifFiles.length} users`);
-        return totalNotifications;
-    }
+    migrateNotifsTransaction();
+    console.log(`  ✓ Migrated ${notifications.length} notifications`);
 
-    // Migration implementation will be completed in Session 3
-    console.log('  [TODO] Migrate notifications to SQLite');
-
-    return 0;
+    return notifications.length;
 }
 
 /**
@@ -184,12 +312,41 @@ function migrateNotifications() {
 function verifyMigration(stats) {
     console.log('\n[VERIFY] Data integrity...');
 
-    // Verification implementation will be completed in Session 3
-    console.log('  [TODO] Verify user count matches');
-    console.log('  [TODO] Verify config integrity');
-    console.log('  [TODO] Verify notification count');
+    if (isDryRun) {
+        console.log('  Skipping verification (dry run)');
+        return true;
+    }
 
-    return true;
+    // Verify user count
+    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+    console.log(`  Users in database: ${userCount} (expected: ${stats.users})`);
+
+    // Verify session count
+    const sessionCount = db.prepare('SELECT COUNT(*) as count FROM sessions').get().count;
+    console.log(`  Sessions in database: ${sessionCount} (expected: ${stats.sessions})`);
+
+    // Verify config count
+    const configCount = db.prepare('SELECT COUNT(*) as count FROM user_preferences').get().count;
+    console.log(`  User configs in database: ${configCount} (expected: ${stats.configs})`);
+
+    // Verify notification count
+    const notifCount = db.prepare('SELECT COUNT(*) as count FROM notifications').get().count;
+    console.log(`  Notifications in database: ${notifCount} (expected: ${stats.notifications})`);
+
+    const allMatch = (
+        userCount === stats.users &&
+        sessionCount === stats.sessions &&
+        configCount === stats.configs &&
+        notifCount === stats.notifications
+    );
+
+    if (allMatch) {
+        console.log('  ✓ All counts match - migration successful');
+    } else {
+        console.log('  ⚠️  Count mismatch detected - review migration');
+    }
+
+    return allMatch;
 }
 
 /**
@@ -214,6 +371,9 @@ function createBackups() {
     if (fs.existsSync(JSON_FILES.systemConfig)) {
         fs.copyFileSync(JSON_FILES.systemConfig, path.join(backupDir, 'config.json'));
     }
+    if (fs.existsSync(JSON_FILES.notifications)) {
+        fs.copyFileSync(JSON_FILES.notifications, path.join(backupDir, 'notifications.json'));
+    }
 
     console.log(`  ✓ Backup created: ${backupDir}`);
     return backupDir;
@@ -234,23 +394,10 @@ async function main() {
     // Step 1: Validate source data
     const checks = validateSourceData();
 
-    // Step 2: Initialize schema if needed
-    if (!isInitialized()) {
-        console.log('\n[SCHEMA] Initializing database schema...');
-        if (!isDryRun) {
-            initializeSchema();
-            console.log('  ✓ Schema initialized');
-        } else {
-            console.log('  Would initialize schema');
-        }
-    } else {
-        console.log('\n[SCHEMA] Database already initialized');
-    }
-
-    // Step 3: Create backups (unless dry run)
+    // Step 2: Create backups (unless dry run)
     const backupDir = createBackups();
 
-    // Step 4: Migrate data
+    // Step 3: Migrate data
     const stats = {
         users: 0,
         sessions: 0,
@@ -267,24 +414,28 @@ async function main() {
     stats.systemConfig = migrateSystemConfig();
     stats.notifications = migrateNotifications();
 
-    // Step 5: Verify migration
+    // Step 4: Verify migration
     if (!isDryRun) {
         verifyMigration(stats);
     }
 
-    // Step 6: Summary
+    // Step 5: Summary
     console.log('\n═══════════════════════════════════════════════════');
     console.log('  Migration Summary');
     console.log('═══════════════════════════════════════════════════');
     console.log(`  Users:         ${stats.users}`);
     console.log(`  Sessions:      ${stats.sessions}`);
     console.log(`  User Configs:  ${stats.configs}`);
-    console.log(`  System Config: ${stats.systemConfig}`);
+    console.log(`  System Config: ${stats.systemConfig > 0 ? 'Yes' : 'No'}`);
     console.log(`  Notifications: ${stats.notifications}`);
 
     if (!isDryRun) {
         console.log(`\n  Backup: ${backupDir}`);
         console.log('\n✓ Migration complete!');
+        console.log('\nNext steps:');
+        console.log('  1. Test the application with SQLite');
+        console.log('  2. If successful, delete JSON files');
+        console.log('  3. If issues, restore from backup and report');
     } else {
         console.log('\n✓ Dry run complete - use without --dry-run to migrate');
     }
@@ -300,3 +451,4 @@ if (require.main === module) {
 }
 
 module.exports = { main };
+
