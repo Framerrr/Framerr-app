@@ -124,12 +124,12 @@ INSERT OR IGNORE INTO system_config (key, value) VALUES
 
 -- ============================================================================
 -- TABLE 8: custom_icons
--- Stores custom uploaded icons (base64 encoded)
+-- Stores custom uploaded icons (file-based storage)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS custom_icons (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    data TEXT NOT NULL,                        -- Base64 encoded image data
+    file_path TEXT NOT NULL,                   -- Relative path to icon file in /config/upload/custom-icons/
     mime_type TEXT NOT NULL,
     uploaded_by TEXT,
     uploaded_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),

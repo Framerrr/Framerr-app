@@ -1,17 +1,23 @@
 const { db } = require('../database/db');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const path = require('path');
+const fs = require('fs');
+
+// Use DATA_DIR from environment or default to server/data
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
+const ICONS_DIR = path.join(DATA_DIR, 'upload/custom-icons');
 
 /**
  * Add a custom icon
- * @param {object} iconData - Icon data (name, data as base64, mimeType, uploadedBy)
+ * @param {object} iconData - Icon data (filename, originalName, mimeType, filePath, uploadedBy)
  * @returns {Promise<object>} Created icon record
  */
 async function addIcon(iconData) {
     const icon = {
         id: uuidv4(),
         name: iconData.originalName || iconData.filename || iconData.name,
-        data: iconData.data, // Base64 encoded image data
+        filePath: iconData.filePath || iconData.filename, // Relative path/filename
         mimeType: iconData.mimeType,
         uploadedBy: iconData.uploadedBy,
         uploadedAt: new Date().toISOString()
@@ -19,14 +25,14 @@ async function addIcon(iconData) {
 
     try {
         const insert = db.prepare(`
-            INSERT INTO custom_icons (id, name, data, mime_type, uploaded_by, uploaded_at)
+            INSERT INTO custom_icons (id, name, file_path, mime_type, uploaded_by, uploaded_at)
             VALUES (?, ?, ?, ?, ?, strftime('%s', 'now'))
         `);
 
         insert.run(
             icon.id,
             icon.name,
-            icon.data,
+            icon.filePath,
             icon.mimeType,
             icon.uploadedBy
         );
@@ -36,7 +42,7 @@ async function addIcon(iconData) {
         // Return object with legacy field names for compatibility
         return {
             id: icon.id,
-            filename: icon.name, // Legacy field name
+            filename: icon.filePath, // File path stored as filename
             originalName: icon.name,
             mimeType: icon.mimeType,
             uploadedBy: icon.uploadedBy,
@@ -64,10 +70,10 @@ async function getIconById(iconId) {
         // Return with legacy field names for compatibility
         return {
             id: icon.id,
-            filename: icon.name,
+            filename: icon.file_path,
             originalName: icon.name,
             mimeType: icon.mime_type,
-            data: icon.data, // Include base64 data for serving
+            filePath: icon.file_path, // Include file path
             uploadedBy: icon.uploaded_by,
             uploadedAt: new Date(icon.uploaded_at * 1000).toISOString()
         };
@@ -83,12 +89,12 @@ async function getIconById(iconId) {
  */
 async function listIcons() {
     try {
-        const icons = db.prepare('SELECT id, name, mime_type, uploaded_by, uploaded_at FROM custom_icons').all();
+        const icons = db.prepare('SELECT id, name, file_path, mime_type, uploaded_by, uploaded_at FROM custom_icons').all();
 
-        // Return with legacy field names for compatibility (without data to reduce payload)
+        // Return with legacy field names for compatibility (without file paths to reduce payload)
         return icons.map(icon => ({
             id: icon.id,
-            filename: icon.name,
+            filename: icon.file_path,
             originalName: icon.name,
             mimeType: icon.mime_type,
             uploadedBy: icon.uploaded_by,
@@ -107,11 +113,18 @@ async function listIcons() {
  */
 async function deleteIcon(iconId) {
     try {
-        // First get the icon to return it
+        // First get the icon to return it and delete the file
         const icon = db.prepare('SELECT * FROM custom_icons WHERE id = ?').get(iconId);
 
         if (!icon) {
             return null;
+        }
+
+        // Delete physical file from disk
+        const filePath = path.join(ICONS_DIR, icon.file_path);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            logger.info(`Deleted icon file: ${filePath}`);
         }
 
         // Delete from database
@@ -123,7 +136,7 @@ async function deleteIcon(iconId) {
         // Return with legacy field names for compatibility
         return {
             id: icon.id,
-            filename: icon.name,
+            filename: icon.file_path,
             originalName: icon.name,
             mimeType: icon.mime_type,
             uploadedBy: icon.uploaded_by,
@@ -136,34 +149,32 @@ async function deleteIcon(iconId) {
 }
 
 /**
- * Get icon data URI (replaces getIconPath for SQLite)
+ * Get absolute file path for serving icon
  * @param {string} iconIdOrFilename - Icon ID or filename (for legacy compatibility)
- * @returns {Promise<string|null>} Data URI or null if not found
+ * @returns {Promise<string|null>} Absolute file path or null if not found
  */
 async function getIconPath(iconIdOrFilename) {
     try {
-        // Try to find by ID first, then by name (filename)
-        let icon = db.prepare('SELECT data, mime_type FROM custom_icons WHERE id = ?').get(iconIdOrFilename);
+        // Try to find by ID first, then by file_path (filename)
+        let icon = db.prepare('SELECT file_path FROM custom_icons WHERE id = ?').get(iconIdOrFilename);
 
         if (!icon) {
-            icon = db.prepare('SELECT data, mime_type FROM custom_icons WHERE name = ?').get(iconIdOrFilename);
+            icon = db.prepare('SELECT file_path FROM custom_icons WHERE file_path = ?').get(iconIdOrFilename);
         }
 
         if (!icon) {
             return null;
         }
 
-        // Return data URI for embedding in <img> tags
-        return `data:${icon.mime_type};base64,${icon.data}`;
+        // Return absolute path to file
+        return path.join(ICONS_DIR, icon.file_path);
     } catch (error) {
         logger.error('Failed to get icon path', { error: error.message, iconIdOrFilename });
         throw error;
     }
 }
 
-// Export ICONS_DIR for legacy compatibility (but it's not used anymore)
-const ICONS_DIR = '/virtual/icons'; // Virtual path since icons are now in database
-
+// Export ICONS_DIR for compatibility
 module.exports = {
     addIcon,
     getIconById,
