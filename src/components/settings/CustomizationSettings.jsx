@@ -509,7 +509,7 @@ const CustomizationSettings = () => {
             </div>
 
             {/* Sub-Tabs */}
-            <div className="flex gap-2 border-b border-theme relative">
+            <div className="flex gap-2 overflow-x-auto pb-2 border-b border-theme relative">
                 <button
                     onClick={() => setActiveSubTab('general')}
                     className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
