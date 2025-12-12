@@ -17,7 +17,7 @@ const CustomizationSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
-    const { info: showInfoToast } = useNotifications();
+    const { info: showInfoToast, addNotification } = useNotifications();
     const userIsAdmin = isAdmin(user);
 
     // Default color values matching dark-pro.css - 21 customizable variables
@@ -1177,10 +1177,23 @@ const CustomizationSettings = () => {
                                     </p>
                                     <Button
                                         onClick={() => {
+                                            const testNotification = {
+                                                id: `test-${Date.now()}`,
+                                                title: 'Test Notification',
+                                                message: 'This is a test notification to demonstrate how notifications appear!',
+                                                type: 'info',
+                                                read: false,
+                                                createdAt: new Date().toISOString()
+                                            };
+
+                                            // Show toast popup
                                             showInfoToast(
-                                                'Test Notification',
-                                                'This is a test notification to demonstrate how notifications appear!'
+                                                testNotification.title,
+                                                testNotification.message
                                             );
+
+                                            // Add to notification center
+                                            addNotification(testNotification);
                                         }}
                                         variant="secondary"
                                         icon={Bell}
