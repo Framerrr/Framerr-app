@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const iconUpload = require('../middleware/iconUpload');
 const customIconsDB = require('../db/customIcons');
 const { requireAuth: authenticateUser } = require('../middleware/auth');
@@ -14,11 +16,16 @@ router.post('/', authenticateUser, iconUpload.single('icon'), async (req, res) =
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // Create icon record in database
+        // Read the uploaded file and convert to base64
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const base64Data = fileBuffer.toString('base64');
+
+        // Create icon record in database with base64 data
         const icon = await customIconsDB.addIcon({
             filename: req.file.filename,
             originalName: req.file.originalname,
             mimeType: req.file.mimetype,
+            data: base64Data, // Add the base64 encoded data
             uploadedBy: req.user.id
         });
 
