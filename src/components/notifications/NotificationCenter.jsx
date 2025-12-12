@@ -232,7 +232,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
             {/* Header */}
             <div className={`border-b border-theme flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-baseline gap-3">
                         <h2 className={`font-semibold text-theme-primary ${isMobile ? 'text-lg' : 'text-xl'}`}>
                             Notifications
                         </h2>
