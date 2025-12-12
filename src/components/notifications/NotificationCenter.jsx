@@ -33,6 +33,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
     } = useNotifications();
 
     const [activeFilter, setActiveFilter] = useState('all');
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
 
     // Filter notifications
     const filteredNotifications = useMemo(() => {
@@ -103,12 +104,11 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
     };
 
     const handleClearAll = async () => {
-        if (window.confirm('Are you sure you want to clear all notifications?')) {
-            try {
-                await clearAll();
-            } catch (error) {
-                logger.error('Failed to clear all notifications', { error: error.message });
-            }
+        try {
+            await clearAll();
+            setShowClearConfirm(false);
+        } catch (error) {
+            logger.error('Failed to clear all notifications', { error: error.message });
         }
     };
 
@@ -288,14 +288,37 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                         >
                             Mark all read
                         </button>
-                        <button
-                            onClick={handleClearAll}
-                            className="px-3 py-1.5 text-xs font-medium rounded-lg
-                                bg-error/10 text-error hover:bg-error/20
-                                transition-colors"
-                        >
-                            Clear all
-                        </button>
+
+                        {!showClearConfirm ? (
+                            <button
+                                onClick={() => setShowClearConfirm(true)}
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg
+                                    bg-error/10 text-error hover:bg-error/20
+                                    transition-colors"
+                            >
+                                Clear all
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-theme-secondary">Are you sure?</span>
+                                <button
+                                    onClick={handleClearAll}
+                                    className="px-3 py-1.5 text-xs font-medium rounded-lg
+                                        bg-error text-white hover:bg-error/80
+                                        transition-colors"
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    onClick={() => setShowClearConfirm(false)}
+                                    className="px-3 py-1.5 text-xs font-medium rounded-lg
+                                        bg-theme-tertiary text-theme-primary hover:bg-theme-hover
+                                        transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
