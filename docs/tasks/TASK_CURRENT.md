@@ -1,135 +1,99 @@
-# Framerr v1.1.9 - Notification System Refinements
+# SQLite Migration - Session 1: Foundation & Infrastructure
 
 **Date:** 2025-12-11  
-**Session Start:** 19:04 EST  
-**Session End:** 19:44 EST  
-**Branch:** `develop`  
-**Current Version:** v1.1.9
+**Session Start:** 21:37 EST  
+**Branch:** `feature/sqlite-migration`  
+**Current Version:** v1.1.9 (base)  
+**Session:** 1 of 3
 
 ---
 
-## Session Summary
+## Session Goal
 
-### Total Tool Calls: ~95
-### Last Checkpoint: 3
+Create database infrastructure and schema without modifying production code.
 
----
-
-## Achievements This Session ✅
-
-### Mobile Notification Center - Complete Refinement
-- ✅ Fixed mobile menu height consistency (65vh → 75vh)
-- ✅ Fixed scrollability issues (added minHeight: 0, overflow constraints)
-- ✅ Removed desktop styling from mobile (glass-card, border-l conditional)
-- ✅ Compacted header for more list space:
-  - Unread count inline with title (items-baseline)
-  - Filter tabs moved into header
-  - Action buttons consolidated
-  - Reduced padding (p-6 → p-4)
-
-### Notification Settings Tab
-- ✅ Added "Notifications" sub-tab to Settings → Customization
-- ✅ Enable/Disable notifications toggle
-- ✅ Notification sound toggle
-- ✅ Test Notification button (creates both toast + backend notification)
-
-### Test Notification Fixes
-- ✅ Fixed test button to create both toast AND backend notification
-- ✅ Proper notification object with ID and timestamp
-- ✅ Eliminates 404 errors on mark-as-read/delete
-
-### Inline Confirmation UI
-- ✅ Replaced browser confirm popup with inline confirmation
-- ✅ Clear all button expands to show Yes/Cancel buttons
-- ✅ Theme-compliant styling
-- ✅ Layout: Yes | Cancel | "Are you sure?"
-
-### Backend Route Fix (Critical)
-- ✅ Fixed clear-all 404 error
-- ✅ Moved `/mark-all-read` and `/clear-all` routes BEFORE `/:id` route
-- ✅ Prevents Express from matching specific paths to parameter routes
-- ✅ Removed duplicate route definitions
+**Estimated Tool Calls:** 50-60  
+**Current Tool Call:** ~10  
+**Next Checkpoint:** #10 ✅ (approaching)
 
 ---
 
-## Current State
+## Session 1 Tasks
 
-### Working
-- ✅ Mobile notification center fully functional and scrollable
-- ✅ Desktop notification center fully functional
-- ✅ Toast notifications working
-- ✅ Test notification creates both toast and backend notification
-- ✅ Clear all with inline confirmation working
-- ✅ Mark all as read working
-- ✅ Individual notification actions working
-- ✅ Theme compliant across all UIs
+### Pre-Session Setup ✅
+- [x] Create feature branch `feature/sqlite-migration` from `develop`
+- [x] Update documentation to reflect working branch
+- [/] Begin Session 1 work
 
-### Not Yet Implemented
-- ❌ Notification preferences persistence (settings UI exists but not saved)
-- ❌ Notification sound playback
-- ❌ Phase 4: Server-Sent Events (real-time notifications)
-- ❌ Phase 5: Web Push Notifications
-  
----
+### Phase 1: Install Dependencies (5-8 tool calls)
+- [ ] Update `server/package.json` with `better-sqlite3` dependency
+- [ ] Document installation for Docker build
+- [ ] Test import of `better-sqlite3`
 
-## Next Immediate Steps
+### Phase 2: Create Database Module (15-20 tool calls)
+- [ ] Create `server/database/` directory
+- [ ] Create `server/database/db.js` connection singleton
+  - Initialize database connection
+  - Export db instance
+  - Handle connection errors
+  - Add WAL mode for better concurrency
+- [ ] Test database initialization
 
-1. **Implement notification preferences persistence:**
-   - Add backend endpoint to save/load notification settings
-   - Wire up enable/disable functionality
-   - Implement sound playback with audio file
+### Phase 3: Create Complete Schema (20-25 tool calls)
+- [ ] Create `server/database/schema.sql` with all 8 tables:
+  - `users` table + indexes
+  - `sessions` table + indexes
+  - `user_preferences` table
+  - `tab_groups` table
+  - `notifications` table + indexes
+  - `integrations` table
+  - `system_config` table + seed data
+  - `custom_icons` table
+- [ ] Add all foreign key constraints
+- [ ] Add all indexes for performance
+- [ ] Test schema creation (empty database)
 
-2. **Start Phase 4: Server-Sent Events**
-   - Real-time notification delivery
-   - Auto-update notification center when new notifications arrive
+### Phase 4: Create Migration Script Skeleton (10-12 tool calls)
+- [ ] Create `server/scripts/migrate-to-sqlite.js`
+- [ ] Add JSON file reading logic
+- [ ] Add database initialization
+- [ ] Add validation/verification functions
+- [ ] Add error handling framework
+- [ ] Document usage
 
-3. **Phase 5: Web Push Notifications**
-   - Service worker registration
-   - Push API integration
-   - Browser notification permission requests
-
----
-
-## Files Modified This Session
-
-### Frontend
-- `src/components/Sidebar.jsx` - Mobile menu height, NotificationCenter wrapper
-- `src/components/notifications/NotificationCenter.jsx` - Scrolling, header compaction, inline confirm
-- `src/components/settings/CustomizationSettings.jsx` - Notification settings tab
-
-### Backend
-- `server/routes/notifications.js` - Fixed route ordering for clear-all endpoint
-
----
-
-## Testing Performed
-
-✅ Test notification button creates toast + backend notification  
-✅ Mobile notification center scrolls properly  
-✅ Clear all shows inline confirmation and works (after container restart)  
-✅ Mark all read works  
-✅ Individual notification mark as read/delete works  
-✅ Theme compliant in Light and Dark themes  
-✅ Flatten UI mode works  
-✅ Height consistent between tabs and notifications (75vh)  
+### Session Wrap-Up
+- [ ] Run `npm run build` to verify nothing broken
+- [ ] Commit all changes to feature branch
+- [ ] Update session documentation
+- [ ] Add session end marker
 
 ---
 
-## Deployment Status
+## Deliverables (Session 1)
 
-- All changes committed to `develop` branch
-- Docker image: `pickels23/framerr:develop` (pushed)
-- Build: Passing ✅
-- **Backend changes require container restart**
+- ✅ Feature branch created and documented
+- ⏳ `server/database/db.js` - Working database connection
+- ⏳ `server/database/schema.sql` - Complete schema with 8 tables
+- ⏳ `server/scripts/migrate-to-sqlite.js` - Migration script skeleton
+- ⏳ `server/package.json` - Updated with better-sqlite3
 
 ---
 
-## Session End Marker
+## Safety Notes
 
-✅ **SESSION END**
-- Session ended: 2025-12-11 19:44 EST
-- Status: Mobile notification center fully refined and working
-- Branch: `develop`
-- Build: Passing ✅
-- Docker: Deployed to develop
-- Ready for Phase 4-6 implementation
+**No production code changes in this session**
+- All changes are new files or package.json updates
+- Can abort safely - nothing breaks existing functionality
+- Build should still pass (no breaking changes)
+
+---
+
+## Next Session Preview
+
+**Session 2:** Rewrite users.js and userConfig.js (70-90 tool calls)
+
+---
+
+**Status:** In Progress  
+**Branch:** `feature/sqlite-migration`  
+**Last Updated:** 2025-12-11 21:42 EST

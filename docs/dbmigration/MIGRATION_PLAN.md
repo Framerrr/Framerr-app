@@ -2,9 +2,10 @@
 
 ## Executive Summary
 
+**Branch:** `feature/sqlite-migration`  
 **Current State:** All data stored in JSON files with `fs.readFile`/`fs.writeFile` operations  
 **Target State:** SQLite database with `better-sqlite3` queries  
-**Impact:** YES - **Every DB module needs modification** (5 files, 43 functions total)
+**Impact:** YES - **Every DB module needs modification** (5 files, 43 functions total)  
 **Frontend Impact:** NO - API contracts remain identical
 
 ---
