@@ -1,25 +1,25 @@
 // Quick check script for debugging users
-const fs = require('fs');
-const path = require('path');
-
-const usersPath = path.join(__dirname, '../data/users.json');
+const { listUsers } = require('../db/users');
 
 console.log('=== USER DATABASE CHECK ===\n');
 
-try {
-    const data = fs.readFileSync(usersPath, 'utf8');
-    const db = JSON.parse(data);
+(async () => {
+    try {
+        const users = await listUsers();
 
-    console.log(`Total users: ${db.users.length}`);
-    console.log('\nUsers found:');
-    db.users.forEach(user => {
-        console.log(`- ${user.username} (${user.group}) - Created: ${user.createdAt}`);
-    });
+        console.log(`Total users: ${users.length}`);
+        console.log('\nUsers found:');
+        users.forEach(user => {
+            console.log(`- ${user.username} (${user.groupId}) - Created: ${new Date(user.createdAt * 1000).toISOString()}`);
+        });
 
-    if (db.users.length === 0) {
-        console.log('\n⚠️  No users found!');
-        console.log('👉 Run: node server/scripts/create-admin.js');
+        if (users.length === 0) {
+            console.log('\n⚠️  No users found!');
+            console.log('👉 Run: node server/scripts/create-admin.js');
+        }
+    } catch (error) {
+        console.error('Error reading users database:', error.message);
+        process.exit(1);
     }
-} catch (error) {
-    console.error('Error reading users database:', error.message);
-}
+})();
+
