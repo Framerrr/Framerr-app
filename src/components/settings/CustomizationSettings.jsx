@@ -17,7 +17,7 @@ const CustomizationSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
-    const { addNotification } = useNotifications();
+    const { info: showInfoToast } = useNotifications();
     const userIsAdmin = isAdmin(user);
 
     // Default color values matching dark-pro.css - 21 customizable variables
@@ -1177,11 +1177,10 @@ const CustomizationSettings = () => {
                                     </p>
                                     <Button
                                         onClick={() => {
-                                            addNotification({
-                                                title: 'Test Notification',
-                                                message: 'This is a test notification to demonstrate how notifications appear!',
-                                                type: 'info'
-                                            });
+                                            showInfoToast(
+                                                'Test Notification',
+                                                'This is a test notification to demonstrate how notifications appear!'
+                                            );
                                         }}
                                         variant="secondary"
                                         icon={Bell}
