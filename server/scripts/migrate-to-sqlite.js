@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const db = require('../database/db');
+const { db } = require('../database/db');
 
 // Determine data directory
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
