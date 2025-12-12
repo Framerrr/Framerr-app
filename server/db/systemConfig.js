@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const { db } = require('../database/db');
 const logger = require('../utils/logger');
 
 // Default system configuration
