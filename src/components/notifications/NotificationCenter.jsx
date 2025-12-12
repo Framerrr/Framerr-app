@@ -300,7 +300,6 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                             </button>
                         ) : (
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-theme-secondary">Are you sure?</span>
                                 <button
                                     onClick={handleClearAll}
                                     className="px-3 py-1.5 text-xs font-medium rounded-lg
@@ -317,6 +316,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                 >
                                     Cancel
                                 </button>
+                                <span className="text-xs text-theme-secondary">Are you sure?</span>
                             </div>
                         )}
                     </div>
