@@ -23,7 +23,8 @@ let db;
 
 try {
     db = new Database(DB_PATH, {
-        verbose: process.env.LOG_LEVEL === 'debug' ? console.log : null
+        // Verbose logging disabled - was causing UUID truncation in console output
+        verbose: null
     });
 
     // Enable WAL mode for better concurrency (allows simultaneous reads and writes)
