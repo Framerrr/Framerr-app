@@ -17,8 +17,8 @@ const DEFAULT_PREFERENCES = {
 async function getUser(username) {
     try {
         const user = db.prepare(`
-            SELECT id, username, password_hash as passwordHash, display_name as displayName,
-                   user_group as "group", preferences, require_password_reset as requirePasswordReset,
+            SELECT id, username, password as passwordHash, username as displayName,
+                   group_id as "group", is_setup_admin as isSetupAdmin,
                    created_at as createdAt, last_login as lastLogin
             FROM users
             WHERE LOWER(username) = LOWER(?)
@@ -46,8 +46,8 @@ async function getUser(username) {
 async function getUserById(userId) {
     try {
         const user = db.prepare(`
-            SELECT id, username, password_hash as passwordHash, display_name as displayName,
-                   user_group as "group", preferences, require_password_reset as requirePasswordReset,
+            SELECT id, username, password as passwordHash, username as displayName,
+                   group_id as "group", is_setup_admin as isSetupAdmin,
                    created_at as createdAt, last_login as lastLogin
             FROM users
             WHERE id = ?
@@ -84,25 +84,23 @@ async function createUser(userData) {
         }
 
         const id = uuidv4();
-        const preferences = JSON.stringify({ ...DEFAULT_PREFERENCES, ...userData.preferences });
-        const createdAt = new Date().toISOString();
+        const createdAt = Math.floor(Date.now() / 1000);
 
         const stmt = db.prepare(`
             INSERT INTO users (
-                id, username, password_hash, display_name, user_group,
-                preferences, require_password_reset, created_at, last_login
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                id, username, password, email, group_id,
+                is_setup_admin, created_at, last_login
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
             id,
             userData.username,
             userData.passwordHash,
-            userData.displayName || userData.username,
+            userData.email || null,
             userData.group || 'user',
-            preferences,
-            userData.requirePasswordReset ? 1 : 0,
-            createdAt,
+            userData.isSetupAdmin ? 1 : 0,
+            Math.floor(new Date(createdAt).getTime() / 1000),
             null
         );
 
@@ -112,10 +110,9 @@ async function createUser(userData) {
         return {
             id,
             username: userData.username,
-            displayName: userData.displayName || userData.username,
+            displayName: userData.username,
             group: userData.group || 'user',
-            preferences: JSON.parse(preferences),
-            requirePasswordReset: userData.requirePasswordReset || false,
+            isSetupAdmin: userData.isSetupAdmin || false,
             createdAt,
             lastLogin: null
         };
@@ -163,30 +160,32 @@ async function updateUser(userId, updates) {
             values.push(allowedUpdates.username);
         }
         if (allowedUpdates.passwordHash !== undefined) {
-            fields.push('password_hash = ?');
+            fields.push('password = ?');
             values.push(allowedUpdates.passwordHash);
         }
-        if (allowedUpdates.displayName !== undefined) {
-            fields.push('display_name = ?');
-            values.push(allowedUpdates.displayName);
-        }
+        // displayName not stored separately - it's same as username
+        // if (allowedUpdates.displayName !== undefined) {
+        //     fields.push('username = ?');
+        //     values.push(allowedUpdates.displayName);
+        // }
         if (allowedUpdates.group !== undefined) {
-            fields.push('user_group = ?');
+            fields.push('group_id = ?');
             values.push(allowedUpdates.group);
         }
-        if (allowedUpdates.preferences !== undefined) {
-            // Merge with existing preferences
-            const mergedPrefs = {
-                ...currentUser.preferences,
-                ...allowedUpdates.preferences
-            };
-            fields.push('preferences = ?');
-            values.push(JSON.stringify(mergedPrefs));
-        }
-        if (allowedUpdates.requirePasswordReset !== undefined) {
-            fields.push('require_password_reset = ?');
-            values.push(allowedUpdates.requirePasswordReset ? 1 : 0);
-        }
+        // Preferences not stored in users table anymore
+        // if (allowedUpdates.preferences !== undefined) {
+        //     const mergedPrefs = {
+        //         ...currentUser.preferences,
+        //         ...allowedUpdates.preferences
+        //     };
+        //     fields.push('preferences = ?');
+        //     values.push(JSON.stringify(mergedPrefs));
+        // }
+        // require_password_reset not in schema
+        // if (allowedUpdates.requirePasswordReset !== undefined) {
+        //     fields.push('require_password_reset = ?');
+        //     values.push(allowedUpdates.requirePasswordReset ? 1 : 0);
+        // }
         if (allowedUpdates.lastLogin !== undefined) {
             fields.push('last_login = ?');
             values.push(allowedUpdates.lastLogin);
@@ -245,8 +244,8 @@ async function deleteUser(userId) {
 async function listUsers() {
     try {
         const users = db.prepare(`
-            SELECT id, username, display_name as displayName,
-                   user_group as "group", preferences, require_password_reset as requirePasswordReset,
+            SELECT id, username, username as displayName,
+                   group_id as "group", is_setup_admin as isSetupAdmin,
                    created_at as createdAt, last_login as lastLogin
             FROM users
             ORDER BY created_at ASC
@@ -407,8 +406,8 @@ async function cleanupExpiredSessions() {
 async function getAllUsers() {
     try {
         const users = db.prepare(`
-            SELECT id, username, password_hash as passwordHash, display_name as displayName,
-                   user_group as "group", preferences, require_password_reset as requirePasswordReset,
+            SELECT id, username, password as passwordHash, username as displayName,
+                   group_id as "group", is_setup_admin as isSetupAdmin,
                    created_at as createdAt, last_login as lastLogin
             FROM users
             ORDER BY created_at ASC
@@ -445,7 +444,7 @@ async function resetUserPassword(userId) {
 
         db.prepare(`
             UPDATE users 
-            SET password_hash = ?, require_password_reset = 1
+            SET password = ?
             WHERE id = ?
         `).run(passwordHash, userId);
 
