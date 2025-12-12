@@ -1176,24 +1176,30 @@ const CustomizationSettings = () => {
                                         Send a test notification to preview how notifications will appear.
                                     </p>
                                     <Button
-                                        onClick={() => {
-                                            const testNotification = {
-                                                id: `test-${Date.now()}`,
-                                                title: 'Test Notification',
-                                                message: 'This is a test notification to demonstrate how notifications appear!',
-                                                type: 'info',
-                                                read: false,
-                                                createdAt: new Date().toISOString()
-                                            };
+                                        onClick={async () => {
+                                            try {
+                                                // Create notification in backend
+                                                const response = await axios.post('/api/notifications', {
+                                                    title: 'Test Notification',
+                                                    message: 'This is a test notification to demonstrate how notifications appear!',
+                                                    type: 'info'
+                                                }, {
+                                                    withCredentials: true
+                                                });
 
-                                            // Show toast popup
-                                            showInfoToast(
-                                                testNotification.title,
-                                                testNotification.message
-                                            );
+                                                // Show toast popup
+                                                showInfoToast(
+                                                    'Test Notification',
+                                                    'This is a test notification to demonstrate how notifications appear!'
+                                                );
 
-                                            // Add to notification center
-                                            addNotification(testNotification);
+                                                // Add to notification center immediately (from response)
+                                                if (response.data) {
+                                                    addNotification(response.data);
+                                                }
+                                            } catch (error) {
+                                                console.error('Failed to create test notification:', error);
+                                            }
                                         }}
                                         variant="secondary"
                                         icon={Bell}

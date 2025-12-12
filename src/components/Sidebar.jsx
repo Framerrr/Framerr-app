@@ -772,8 +772,8 @@ const Sidebar = () => {
                                 animate={{ y: 0, opacity: 1 }}
                                 exit={{ y: -20, opacity: 0 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                                className="flex-1 flex flex-col overflow-hidden"
-                                style={{ height: '100%' }}
+                                className="flex-1 flex flex-col"
+                                style={{ height: '100%', minHeight: 0 }}
                             >
                                 <NotificationCenter
                                     isMobile={true}
