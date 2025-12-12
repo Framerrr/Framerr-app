@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { db } = require('../database/db');
+const { db, initializeSchema, isInitialized } = require('../database/db');
 
 // Determine data directory
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
@@ -394,10 +394,23 @@ async function main() {
     // Step 1: Validate source data
     const checks = validateSourceData();
 
-    // Step 2: Create backups (unless dry run)
+    // Step 2: Initialize schema if needed
+    if (!isDryRun) {
+        if (!isInitialized()) {
+            console.log('\n[SCHEMA] Database not initialized - creating tables...');
+            initializeSchema();
+            console.log('  ✓ Schema initialized successfully');
+        } else {
+            console.log('\n[SCHEMA] Database already initialized');
+        }
+    } else {
+        console.log('\n[SCHEMA] Would initialize database schema if needed');
+    }
+
+    // Step 3: Create backups (unless dry run)
     const backupDir = createBackups();
 
-    // Step 3: Migrate data
+    // Step 4: Migrate data
     const stats = {
         users: 0,
         sessions: 0,
@@ -414,12 +427,12 @@ async function main() {
     stats.systemConfig = migrateSystemConfig();
     stats.notifications = migrateNotifications();
 
-    // Step 4: Verify migration
+    // Step 5: Verify migration
     if (!isDryRun) {
         verifyMigration(stats);
     }
 
-    // Step 5: Summary
+    // Step 6: Summary
     console.log('\n═══════════════════════════════════════════════════');
     console.log('  Migration Summary');
     console.log('═══════════════════════════════════════════════════');
