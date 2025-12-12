@@ -228,7 +228,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
     };
 
     return (
-        <div className={`flex-1 flex flex-col ${isMobile ? '' : 'glass-card border-l border-theme'}`}>
+        <div className={`flex-1 flex flex-col ${isMobile ? '' : 'glass-card border-l border-theme'}`} style={{ minHeight: 0, overflow: 'hidden' }}>
             {/* Header */}
             <div className="p-6 border-b border-theme flex-shrink-0">
                 <div className="flex items-center justify-between mb-2">
