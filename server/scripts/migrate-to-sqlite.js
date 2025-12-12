@@ -164,7 +164,7 @@ function migrateUserConfigs() {
     }
 
     const insertConfig = db.prepare(`
-        INSERT INTO user_preferences (user_id, tabs, widgets, dashboard, theme, custom_colors)
+        INSERT INTO user_preferences (user_id, dashboard_config, tabs, theme_config, sidebar_config, preferences)
         VALUES (?, ?, ?, ?, ?, ?)
     `);
 
@@ -175,13 +175,21 @@ function migrateUserConfigs() {
             const config = readJSONFile(configPath);
 
             if (config) {
+                // Map old JSON structure to new schema columns
+                const dashboardConfig = config.dashboard || { widgets: [] };
+                const themeConfig = config.theme ?
+                    (typeof config.theme === 'string' ? { mode: config.theme, primaryColor: '#3b82f6' } : config.theme)
+                    : { mode: 'system', primaryColor: '#3b82f6' };
+                const sidebarConfig = config.sidebar || { collapsed: false };
+                const preferences = config.preferences || { dashboardGreeting: { enabled: true, text: 'Your personal dashboard' } };
+
                 insertConfig.run(
                     userId,
+                    JSON.stringify(dashboardConfig),
                     JSON.stringify(config.tabs || []),
-                    JSON.stringify(config.widgets || []),
-                    JSON.stringify(config.dashboard || { widgets: [] }),
-                    config.theme || 'dark',
-                    JSON.stringify(config.customColors || {})
+                    JSON.stringify(themeConfig),
+                    JSON.stringify(sidebarConfig),
+                    JSON.stringify(preferences)
                 );
             }
         }
