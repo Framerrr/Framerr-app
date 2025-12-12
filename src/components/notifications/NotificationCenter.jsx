@@ -230,11 +230,16 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
     return (
         <div className={`flex-1 flex flex-col ${isMobile ? '' : 'glass-card border-l border-theme'}`} style={{ minHeight: 0, overflow: 'hidden' }}>
             {/* Header */}
-            <div className="p-6 border-b border-theme flex-shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-semibold text-theme-primary">
-                        Notifications
-                    </h2>
+            <div className={`border-b border-theme flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'}`}>
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                        <h2 className={`font-semibold text-theme-primary ${isMobile ? 'text-lg' : 'text-xl'}`}>
+                            Notifications
+                        </h2>
+                        <span className="text-sm text-theme-secondary">
+                            {unreadCount} unread
+                        </span>
+                    </div>
                     {onClose && (
                         <button
                             onClick={onClose}
@@ -246,13 +251,33 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                         </button>
                     )}
                 </div>
-                <p className="text-sm text-theme-secondary">
-                    {unreadCount} unread
-                </p>
+
+                {/* Filter Tabs */}
+                <div className="flex gap-2 mb-3">
+                    {[
+                        { id: 'all', label: 'All', count: notifications.length },
+                        { id: 'unread', label: 'Unread', count: unreadCount },
+                        { id: 'read', label: 'Read', count: notifications.length - unreadCount }
+                    ].map(filter => (
+                        <button
+                            key={filter.id}
+                            onClick={() => setActiveFilter(filter.id)}
+                            className={`
+                                px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+                                ${activeFilter === filter.id
+                                    ? 'bg-accent text-white'
+                                    : 'text-theme-secondary hover:bg-theme-hover'
+                                }
+                            `}
+                        >
+                            {filter.label} ({filter.count})
+                        </button>
+                    ))}
+                </div>
 
                 {/* Action Buttons */}
                 {notifications.length > 0 && (
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex gap-2">
                         <button
                             onClick={handleMarkAllRead}
                             disabled={unreadCount === 0}
@@ -273,29 +298,6 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                         </button>
                     </div>
                 )}
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex gap-2 border-b border-theme px-6 py-3 flex-shrink-0">
-                {[
-                    { id: 'all', label: 'All', count: notifications.length },
-                    { id: 'unread', label: 'Unread', count: unreadCount },
-                    { id: 'read', label: 'Read', count: notifications.length - unreadCount }
-                ].map(filter => (
-                    <button
-                        key={filter.id}
-                        onClick={() => setActiveFilter(filter.id)}
-                        className={`
-                            px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                            ${activeFilter === filter.id
-                                ? 'bg-accent text-white'
-                                : 'text-theme-secondary hover:bg-theme-hover'
-                            }
-                        `}
-                    >
-                        {filter.label} ({filter.count})
-                    </button>
-                ))}
             </div>
 
             {/* Notification List */}
