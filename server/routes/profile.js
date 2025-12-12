@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getUserById, updateUser } = require('../db/users');
+const { getUserConfig, updateUserConfig } = require('../db/userConfig');
 const { hashPassword, verifyPassword } = require('../auth/password');
 const profileUpload = require('../middleware/profileUpload');
 const logger = require('../utils/logger');
@@ -115,15 +116,18 @@ router.post('/picture', requireAuth, profileUpload.single('profilePicture'), asy
 
         // Delete old profile picture if it exists
         const user = await getUserById(req.user.id);
-        if (user.profilePicture) {
+        const config = await getUserConfig(req.user.id);
+        const oldProfilePicture = config.preferences?.profilePicture;
+
+        if (oldProfilePicture) {
             try {
                 // Try new location first
-                if (user.profilePicture.startsWith('/profile-pictures/')) {
-                    const oldPath = path.join('/config/upload', user.profilePicture);
+                if (oldProfilePicture.startsWith('/profile-pictures/')) {
+                    const oldPath = path.join('/config/upload', oldProfilePicture);
                     await fs.unlink(oldPath);
                 } else {
                     // Legacy location (server/public) - for existing users
-                    const oldPath = path.join(__dirname, '../public', user.profilePicture);
+                    const oldPath = path.join(__dirname, '../public', oldProfilePicture);
                     await fs.unlink(oldPath);
                 }
             } catch (err) {
@@ -134,10 +138,12 @@ router.post('/picture', requireAuth, profileUpload.single('profilePicture'), asy
         // Move file to profile pictures directory
         await fs.rename(req.file.path, newPath);
 
-        // Update user with profile picture path
+        // Update user preferences with profile picture path (NOT users table)
         const profilePicturePath = `/profile-pictures/${filename}`;
-        await updateUser(req.user.id, {
-            profilePicture: profilePicturePath
+        await updateUserConfig(req.user.id, {
+            preferences: {
+                profilePicture: profilePicturePath
+            }
         });
 
         logger.info('Profile picture uploaded', { userId: req.user.id, username: user.username });
@@ -169,26 +175,30 @@ router.post('/picture', requireAuth, profileUpload.single('profilePicture'), asy
 router.delete('/picture', requireAuth, async (req, res) => {
     try {
         const user = await getUserById(req.user.id);
+        const config = await getUserConfig(req.user.id);
+        const profilePicture = config.preferences?.profilePicture;
 
-        if (user.profilePicture) {
+        if (profilePicture) {
             // Delete the file
             try {
                 // Try new location first
-                if (user.profilePicture.startsWith('/profile-pictures/')) {
-                    const filePath = path.join('/config/upload', user.profilePicture);
+                if (profilePicture.startsWith('/profile-pictures/')) {
+                    const filePath = path.join('/config/upload', profilePicture);
                     await fs.unlink(filePath);
                 } else {
                     // Legacy location (server/public)
-                    const filePath = path.join(__dirname, '../public', user.profilePicture);
+                    const filePath = path.join(__dirname, '../public', profilePicture);
                     await fs.unlink(filePath);
                 }
             } catch (err) {
                 // File might not exist, that's okay
             }
 
-            // Update user
-            await updateUser(req.user.id, {
-                profilePicture: null
+            // Update user preferences to remove profile picture
+            await updateUserConfig(req.user.id, {
+                preferences: {
+                    profilePicture: null
+                }
             });
         }
 
