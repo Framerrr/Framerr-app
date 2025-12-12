@@ -272,17 +272,17 @@ async function listUsers() {
  */
 async function createSession(userId, sessionData, expiresIn = 86400000) {
     try {
-        const id = uuidv4();
-        const createdAt = new Date().toISOString();
-        const expiresAt = new Date(Date.now() + expiresIn).toISOString();
+        const token = uuidv4();
+        const createdAt = Math.floor(Date.now() / 1000);
+        const expiresAt = Math.floor((Date.now() + expiresIn) / 1000);
 
         const stmt = db.prepare(`
-            INSERT INTO sessions (id, user_id, ip_address, user_agent, created_at, expires_at)
+            INSERT INTO sessions (token, user_id, ip_address, user_agent, created_at, expires_at)
             VALUES (?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
-            id,
+            token,
             userId,
             sessionData.ipAddress || null,
             sessionData.userAgent || null,
@@ -291,7 +291,7 @@ async function createSession(userId, sessionData, expiresIn = 86400000) {
         );
 
         return {
-            id,
+            id: token,
             userId,
             ipAddress: sessionData.ipAddress || null,
             userAgent: sessionData.userAgent || null,
@@ -312,16 +312,16 @@ async function createSession(userId, sessionData, expiresIn = 86400000) {
 async function getSession(sessionId) {
     try {
         const session = db.prepare(`
-            SELECT id, user_id as userId, ip_address as ipAddress, 
+            SELECT token as id, user_id as userId, ip_address as ipAddress, 
                    user_agent as userAgent, created_at as createdAt, expires_at as expiresAt
             FROM sessions
-            WHERE id = ?
+            WHERE token = ?
         `).get(sessionId);
 
         if (!session) return null;
 
-        // Check if session is expired
-        if (new Date(session.expiresAt) < new Date()) {
+        // Check if session is expired (timestamps are Unix seconds)
+        if (session.expiresAt < Math.floor(Date.now() / 1000)) {
             await revokeSession(sessionId);
             return null;
         }
@@ -339,7 +339,7 @@ async function getSession(sessionId) {
  */
 async function revokeSession(sessionId) {
     try {
-        db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+        db.prepare('DELETE FROM sessions WHERE token = ?').run(sessionId);
     } catch (error) {
         logger.error('Failed to revoke session', { error: error.message, sessionId });
         throw error;
@@ -366,13 +366,14 @@ async function revokeAllUserSessions(userId) {
  */
 async function getUserSessions(userId) {
     try {
+        const currentTime = Math.floor(Date.now() / 1000);
         const sessions = db.prepare(`
-            SELECT id, user_id as userId, ip_address as ipAddress,
+            SELECT token as id, user_id as userId, ip_address as ipAddress,
                    user_agent as userAgent, created_at as createdAt, expires_at as expiresAt
             FROM sessions
-            WHERE user_id = ? AND expires_at > datetime('now')
+            WHERE user_id = ? AND expires_at > ?
             ORDER BY created_at DESC
-        `).all(userId);
+        `).all(userId, currentTime);
 
         return sessions;
     } catch (error) {
@@ -386,9 +387,10 @@ async function getUserSessions(userId) {
  */
 async function cleanupExpiredSessions() {
     try {
+        const currentTime = Math.floor(Date.now() / 1000);
         const result = db.prepare(`
-            DELETE FROM sessions WHERE expires_at < datetime('now')
-        `).run();
+            DELETE FROM sessions WHERE expires_at < ?
+        `).run(currentTime);
 
         if (result.changes > 0) {
             logger.debug(`Cleaned up ${result.changes} expired sessions`);
