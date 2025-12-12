@@ -1,6 +1,10 @@
 const { db } = require('../database/db');
 const logger = require('../utils/logger');
 
+// In-memory cache to prevent repeated database queries
+let configCache = null;
+let cacheTimestamp = null;
+
 // Default system configuration
 const DEFAULT_CONFIG = {
     server: {
@@ -116,20 +120,34 @@ function buildConfigFromKeyValues(rows) {
 }
 
 /**
- * Read system configuration from SQLite
+ * Read system configuration from SQLite (with in-memory caching)
  * @returns {Promise<object>} System configuration
  */
 async function getSystemConfig() {
     try {
+        // Return cached config if available
+        if (configCache !== null) {
+            return configCache;
+        }
+
         const rows = db.prepare('SELECT key, value FROM system_config').all();
 
-        // If no config exists, return defaults
+        // If no config exists, cache and return defaults
         if (rows.length === 0) {
             logger.info('No system config in database, returning defaults');
+            configCache = DEFAULT_CONFIG;
+            cacheTimestamp = Date.now();
             return DEFAULT_CONFIG;
         }
 
-        return buildConfigFromKeyValues(rows);
+        const config = buildConfigFromKeyValues(rows);
+
+        // Cache the config
+        configCache = config;
+        cacheTimestamp = Date.now();
+        logger.debug('System config loaded and cached', { timestamp: cacheTimestamp });
+
+        return config;
     } catch (error) {
         logger.error('Failed to read system config from database', { error: error.message });
         throw error;
@@ -209,7 +227,12 @@ async function updateSystemConfig(updates) {
         });
 
         updateMany();
-        logger.info('System configuration updated in database');
+
+        // Invalidate cache after update
+        configCache = null;
+        cacheTimestamp = null;
+        logger.info('System configuration updated in database (cache invalidated)');
+
         return newConfig;
     } catch (error) {
         logger.error('Failed to update system config in database', { error: error.message });
