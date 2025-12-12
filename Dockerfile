@@ -31,7 +31,16 @@ WORKDIR /app
 
 # Copy backend package files
 COPY server/package*.json ./server/
-RUN cd server && npm ci --omit=dev
+
+# Install build dependencies, install npm packages, then remove build deps
+# This ensures better-sqlite3 native module is compiled for the correct architecture
+RUN apk add --no-cache --virtual .build-deps \
+        python3 \
+        make \
+        g++ \
+    && cd server \
+    && npm ci --omit=dev \
+    && apk del .build-deps
 
 # Copy backend code
 COPY server/ ./server/
