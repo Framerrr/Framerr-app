@@ -98,10 +98,13 @@ function migrateUsers() {
 
     const migrateUsersTransaction = db.transaction(() => {
         for (const user of users) {
+            // Handle NULL passwords (proxy auth users) by providing placeholder
+            const password = user.password || '*PROXY_AUTH*';
+
             insertUser.run(
                 user.id,
                 user.username,
-                user.password,
+                password,
                 user.email || null,
                 user.groupId || user.group || 'user',
                 user.isSetupAdmin ? 1 : 0,
