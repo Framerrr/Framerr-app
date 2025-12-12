@@ -90,6 +90,50 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/notifications/mark-all-read
+ * Mark all notifications as read for the authenticated user
+ */
+router.post('/mark-all-read', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const updatedCount = await markAllAsRead(userId);
+
+        logger.info('All notifications marked as read', {
+            userId,
+            count: updatedCount
+        });
+
+        res.json({ updatedCount });
+    } catch (error) {
+        logger.error('Failed to mark all as read', { error: error.message });
+        res.status(500).json({ error: 'Failed to mark all as read' });
+    }
+});
+
+/**
+ * DELETE /api/notifications/clear-all
+ * Clear all notifications for the authenticated user
+ */
+router.delete('/clear-all', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const deletedCount = await clearAll(userId);
+
+        logger.info('All notifications cleared', {
+            userId,
+            count: deletedCount
+        });
+
+        res.json({ deletedCount });
+    } catch (error) {
+        logger.error('Failed to clear all notifications', { error: error.message });
+        res.status(500).json({ error: 'Failed to clear all notifications' });
+    }
+});
+
+/**
  * PATCH /api/notifications/:id/read
  * Mark a notification as read
  */
@@ -137,50 +181,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
     } catch (error) {
         logger.error('Failed to delete notification', { error: error.message });
         res.status(500).json({ error: 'Failed to delete notification' });
-    }
-});
-
-/**
- * POST /api/notifications/mark-all-read
- * Mark all notifications as read for the authenticated user
- */
-router.post('/mark-all-read', requireAuth, async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        const updatedCount = await markAllAsRead(userId);
-
-        logger.info('All notifications marked as read', {
-            userId,
-            count: updatedCount
-        });
-
-        res.json({ updatedCount });
-    } catch (error) {
-        logger.error('Failed to mark all as read', { error: error.message });
-        res.status(500).json({ error: 'Failed to mark all as read' });
-    }
-});
-
-/**
- * DELETE /api/notifications/clear-all
- * Clear all notifications for the authenticated user
- */
-router.delete('/clear-all', requireAuth, async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        const deletedCount = await clearAll(userId);
-
-        logger.info('All notifications cleared', {
-            userId,
-            count: deletedCount
-        });
-
-        res.json({ deletedCount });
-    } catch (error) {
-        logger.error('Failed to clear all notifications', { error: error.message });
-        res.status(500).json({ error: 'Failed to clear all notifications' });
     }
 });
 
