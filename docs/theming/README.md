@@ -100,5 +100,5 @@ For questions or issues with theming:
 
 ---
 
-**Last Updated:** 2025-12-03  
-**System Version:** 2.0 (Post-Recovery)
+**Last Updated:** 2025-12-12  
+**Quick Reference:** See `docs/reference/theming.md` for quick lookup
