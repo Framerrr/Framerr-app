@@ -241,7 +241,7 @@ const UsersSettings = () => {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-theme-secondary text-sm hidden lg:table-cell">
-                                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                                        {user.createdAt ? new Date(user.createdAt * 1000).toLocaleDateString() : '-'}
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex gap-2 justify-end">
