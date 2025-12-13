@@ -17,11 +17,13 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import '../styles/GridLayout.css';
 import logger from '../utils/logger';
+import { useNotifications } from '../context/NotificationContext';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const { warning: showWarning, error: showError } = useNotifications();
 
     // State
     const [widgets, setWidgets] = useState([]);
@@ -470,7 +472,7 @@ const Dashboard = () => {
             if (metadata.requiresIntegration) {
                 const integration = integrations[metadata.requiresIntegration];
                 if (!integration?.enabled || !integration?.url) {
-                    alert(`This widget requires ${metadata.requiresIntegration} integration. Please configure it in Settings first.`);
+                    showWarning('Integration Required', `This widget requires ${metadata.requiresIntegration} integration. Please configure it in Settings first.`);
                     return;
                 }
             }
@@ -481,7 +483,7 @@ const Dashboard = () => {
                     key => !integrations[key]?.enabled || !integrations[key]?.url
                 );
                 if (missingIntegrations.length > 0) {
-                    alert(`This widget requires ${missingIntegrations.join(' and ')} integration${missingIntegrations.length > 1 ? 's' : ''}. Please configure in Settings first.`);
+                    showWarning('Integration Required', `This widget requires ${missingIntegrations.join(' and ')} integration${missingIntegrations.length > 1 ? 's' : ''}. Please configure in Settings first.`);
                     return;
                 }
             }
@@ -533,7 +535,7 @@ const Dashboard = () => {
             }
         } catch (error) {
             logger.error('Failed to add widget:', error);
-            alert('Failed to add widget. Please try again.');
+            showError('Add Widget Failed', 'Failed to add widget. Please try again.');
         }
     };
 

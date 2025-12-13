@@ -4,10 +4,12 @@ import { RefreshCw, ExternalLink, AlertCircle, Lock, X } from 'lucide-react';
 import logger from '../utils/logger';
 import { useSystemConfig } from '../context/SystemConfigContext';
 import { detectAuthNeed, isAuthDetectionEnabled, getSensitivity, getUserAuthPatterns } from '../utils/authDetection';
+import { useNotifications } from '../context/NotificationContext';
 
 const TabContainer = () => {
     const navigate = useNavigate();
     const { systemConfig } = useSystemConfig();
+    const { warning: showWarning } = useNotifications();
     const [tabs, setTabs] = useState([]);
     const [loadedTabs, setLoadedTabs] = useState(new Set()); // Track which tabs have been loaded
     const [activeSlug, setActiveSlug] = useState(null); // Current visible tab
@@ -177,9 +179,9 @@ const TabContainer = () => {
         // Validate configuration
         if (!clientId || !oauthEndpoint) {
             logger.error('iFrame auth not configured', { clientId: !!clientId, endpoint: !!oauthEndpoint });
-            alert(
-                'iFrame authentication is not configured.\n\n' +
-                'Please go to Settings → Authentication → iFrame Auth to set up OAuth.'
+            showWarning(
+                'Not Configured',
+                'iFrame authentication is not configured. Please go to Settings → Authentication → iFrame Auth to set up OAuth.'
             );
             return;
         }
@@ -197,7 +199,7 @@ const TabContainer = () => {
 
         if (!authWindow) {
             logger.error('Failed to open auth window - popup blocked?');
-            alert('Please allow popups for Framerr to enable automatic authentication.');
+            showWarning('Popup Blocked', 'Please allow popups for Framerr to enable automatic authentication.');
             return;
         }
 
