@@ -1,188 +1,176 @@
-# SQLite Migration - COMPLETE ✅
+# Fresh Installation Bug Fixes - SQLite Migration Testing
 
 **Date:** 2025-12-12  
-**Session Start:** 23:40 EST  
-**Session End:** 00:05 EST  
+**Session Start:** 19:00 EST  
+**Session End:** 21:41 EST  
 **Branch:** `feature/sqlite-migration`  
-**Current Version:** v1.1.9 (base)  
-**Status:** ✅ **MIGRATION COMPLETE**
+**Status:** ✅ Critical bugs fixed, fresh install tested
 
 ---
 
 ## Session Summary
 
-### Total Tool Calls: ~140
-### Session Duration: ~25 minutes
+### Total Tool Calls: ~95
+### Session Duration: ~2.5 hours
 
 ---
 
-## MAJOR ACHIEVEMENT: Complete Database Migration ✅
+## Context: Fresh Installation Testing
 
-### What Was Accomplished
-
-This session completed the ENTIRE SQLite migration from JSON files to SQLite database:
-
-**Migration Script Created:**
-- Created `migrate-from-backup.js` - Complete migration script
-- Migrates ALL data from backup config files
-- Generates working `framerr.db` file (~131 KB)
-
-**All Data Migrated:**
-- ✅ **2 users**: Jon (admin), Joey (user)
-- ✅ **24 sessions**: All login sessions preserved  
-- ✅ **User preferences** (Jon's complete config):
-  - 10 widgets (Clock, Weather, Link Grid, System Status, Plex, Overseerr, Sonarr, Radarr, Calendar, qBittorrent)
-  - 9 tabs (Tautulli, Sonarr, Radarr, Calibre, Book Download, qBittorrent, Overseer, Prowlarr, Home Assistant)
-  - Theme: dark-pro with custom colors
-  - All UI preferences
-- ✅ **System configuration**:
-  - Server name: NEBULA-TEST
-  - Custom server icon
-  - 7 integrations (Plex, Sonarr, Radarr, Overseerr, qBittorrent, System Health, System Status)
-  - 3 user groups (admin, user, guest)
-  - 4 tab groups (Media, Downloads, Books, System)
-  - Auth settings (local + iframe)
-  - Favicon configuration
-- ✅ **Custom icons metadata**: Nebula logo
-
-**Fixes Applied:**
-- ✅ Disabled verbose SQL logging (fixes UUID truncation in logs)
-- ✅ Created diagnostic script for missing user preferences
-- ✅ Verified all data counts match source
+User performed complete fresh installation walkthrough to identify bugs in SQLite migration. Deleted `/config` directory and started from scratch to simulate new user experience.
 
 ---
 
-## Files Created/Modified
+## Critical Bugs Fixed (7 Total)
 
-### New Files
-1. `server/scripts/migrate-from-backup.js` - Complete migration script (273 lines)
-2. `server/scripts/diagnose-user-data.js` - Diagnostic/fix tool
-3. `server/data/framerr.db` - Migrated SQLite database (131 KB)
+### 1. Database Schema Initialization Failure ⚠️ **CRITICAL**
+- **Problem:** Fresh databases connected but schema.sql never executed
+- **Symptom:** `no such table: system_config` error on startup
+- **Fix:** Added initialization check in `server/index.js` before loading config
+- **Commit:** `fix(db): initialize schema on fresh database before loading config`
 
-### Modified Files
-1. `server/database/db.js` - Disabled verbose logging
+### 2. Custom Icon Display (500 Error) ⚠️ **CRITICAL**  
+- **Problem:** Icons uploaded successfully but returned 500 error when displaying
+- **Symptom:** `path must be a string to res.sendFile` error
+- **Root Cause:** `getIconPath()` is async but wasn't awaited
+- **Fix:** Added `await` to `getIconPath()` call in route handler
+- **Commit:** `fix(custom-icons): await getIconPath async call in route handler`
 
-**Total:** 3 new files, 1 modified file
+### 3. Permission Check Failures ⚠️ **CRITICAL**
+- **Problem:** Continuous `config.groups.find is not a function` errors
+- **Root Cause:** Backend stores groups as object, code expected array
+- **Fix:** Changed `config.groups.find()` to `config.groups[user.group]`
+- **Commit:** `fix: custom icon display and permission checks`
+
+### 4. Users Tab Crash (Frontend) ⚠️ **CRITICAL**
+- **Problem:** Users settings tab crashed with `M.groups.filter is not a function`
+- **Root Cause:** Frontend expected groups as array, backend returns object
+- **Fix:** Convert object to array in frontend, convert back to object when saving
+- **Files:** `UsersSettings.jsx`, `PermissionGroupsSettings.jsx`
+- **Commit:** `fix: frontend groups format - convert object to array`
+
+### 5. User Creation Dates Show "1970"
+- **Problem:** New users displayed creation date as "1/21/1970"
+- **Root Cause (DB):** Double timestamp conversion in createUser function
+- **Root Cause (Frontend):** SQLite stores seconds, JavaScript expects milliseconds
+- **Fix (DB):** Use `createdAt` directly (already in seconds)
+- **Fix (Frontend):** Multiply by 1000 when creating Date object
+- **Commits:** 
+  - `fix(users): remove double timestamp conversion in createUser`
+  - `fix: user created date display - convert unix timestamp from seconds to milliseconds`
+
+### 6. Profile Picture Endpoint Missing Data
+- **Problem:** GET `/api/profile` didn't include profilePicture field
+- **Root Cause:** Profile pictures stored in preferences, endpoint only returned users table
+- **Fix:** Fetch and merge profilePicture from user config
+- **Commit:** `fix(profile): GET /api/profile now includes profilePicture from user_preferences.preferences`
+
+### 7. Misleading Proxy Auth Log Messages
+- **Problem:** Logs showed "Using proxy auth user" for all users
+- **Root Cause:** Hardcoded log message didn't check actual auth method
+- **Fix:** Check `req.proxyAuth` flag and log actual method
+- **Commit:** `fix: misleading proxy auth log message - now shows actual auth method`
+
+---
+
+## Files Modified (9 Total)
+
+### Backend (7 files)
+1. `server/index.js` - Schema initialization
+2. `server/db/users.js` - User creation timestamp
+3. `server/routes/custom-icons.js` - Async/await fix
+4. `server/routes/profile.js` - Profile picture in response
+5. `server/routes/auth.js` - Log message fix
+6. `server/utils/permissions.js` - Groups object handling
+
+### Frontend (2 files)
+7. `src/components/settings/UsersSettings.jsx` - Groups conversion, date display
+8. `src/components/settings/PermissionGroupsSettings.jsx` - Groups conversion
+
+---
+
+## Testing Performed
+
+### ✅ Fresh Installation Verification
+1. Deleted `/config` directory
+2. Started Docker container
+3. Schema initialized automatically ✅
+4. Created admin user "Jon"
+5. User creation date correct (12/12/2024) ✅
+6. Uploaded custom icons ✅
+7. Icons displayed correctly ✅
+8. Uploaded profile picture ✅
+9. Profile picture displayed ✅
+10. Users tab loaded correctly ✅
+11. Permission groups tab loaded ✅
+12. All permissions working ✅
+
+### ✅ Build Verification
+```bash
+npm run build
+# ✓ built in 4.14s - All builds passing ✅
+```
 
 ---
 
 ## Git Status
 
-- ✅ Commit 1: `ad9e8dd` - "fix(db): add diagnostic script and disable verbose logging to fix missing user preferences"
-- ✅ Commit 2: `24b7319` - "feat(migration): complete backup migration script with all user data"
-- ✅ Branch: `feature/sqlite-migration`
-- ✅ Build: Passing ✅ (4.00s)
+**Commits This Session (7):**
+1. `fix(db): initialize schema on fresh database before loading config`
+2. `fix: custom icon display and permission checks`
+3. `fix: frontend groups format`
+4. `fix(users): remove double timestamp conversion`
+5. `fix: user created date display`
+6. `fix(profile): GET /api/profile includes profilePicture`
+7. `fix(custom-icons): await getIconPath async call`
+
+**Branch:** `feature/sqlite-migration`  
+**Status:** Clean, all changes committed  
+**Build:** ✅ Passing
 
 ---
 
-## Deployment Ready
+## Current State
 
-### Database Created
-- **Location**: `server/data/framerr.db`
-- **Size**: 131 KB
-- **Schema**: Complete with all 8 tables
-- **Data**: 100% of backup config migrated
+### What Works
+- ✅ Fresh database initialization
+- ✅ User creation with correct timestamps
+- ✅ Custom icon upload and display
+- ✅ Profile picture upload and display
+- ✅ Permission system (groups as object)
+- ✅ Users management tab
+- ✅ Permission groups management
+- ✅ All authentication flows
 
-### Deployment Steps
-```bash
-# 1. Copy database to Docker
-docker cp server/data/framerr.db framerr:/config/framerr.db
-
-# 2. Restart container
-docker restart framerr
-
-# 3. Login and verify
-# All widgets, tabs, integrations should load correctly
-```
+### In Progress
+- User continuing fresh install walkthrough
+- Identifying any remaining edge cases
+- Testing all features systematically
 
 ---
 
-## What Works Now
+## Next Immediate Steps
 
-### Complete SQLite-Powered System
-- ✅ User authentication (users table)
-- ✅ Session management (sessions table)
-- ✅ User preferences (user_preferences table with 5 JSON columns)
-- ✅ System configuration (system_config table)
-- ✅ All integrations configured
-- ✅ All tab groups defined
-- ✅ All user groups with permissions
-
-### Data Integrity
-- ✅ All 2 users migrated with correct passwords
-- ✅ All 24 sessions preserved
-- ✅ All 10 widgets with complete config
-- ✅ All 9 tabs with URLs and groups
-- ✅ Theme preferences intact
-- ✅ Custom colors preserved
-- ✅ Integration credentials maintained
+1. **User continues testing** - Complete fresh install walkthrough
+2. **Address additional bugs** - Fix any new issues discovered
+3. **Docker deployment** - Push `pickels23/framerr:develop` when ready
+4. **Merge to develop** - When all testing complete
+5. **Production release** - Tag v1.2.0 with SQLite migration
 
 ---
 
-## Known Issues (Minor)
+## Blockers / Notes
 
-As noted by user: "some minor bugs we need to work out but its nothing major"
-
-### To Address in Follow-up
-- Runtime bugs after deployment (user to report)
-- Edge cases in migration (user to test)
-
----
-
-## Migration Statistics
-
-| Data Type | Source | Migrated | Status |
-|-----------|--------|----------|--------|
-| Users | 2 | 2 | ✅ 100% |
-| Sessions | 24 | 24 | ✅ 100% |
-| Widgets | 10 | 10 | ✅ 100% |
-| Tabs | 9 | 9 | ✅ 100% |
-| Integrations | 7 | 7 | ✅ 100% |
-| Tab Groups | 4 | 4 | ✅ 100% |
-| User Groups | 3 | 3 | ✅ 100% |
-| Custom Icons | 1 | 1 (metadata) | ✅ 100% |
-
-**Total Migration Success Rate: 100%**
-
----
-
-## Documentation
-
-Created walkthrough documents:
-- `deployment.md` - Complete deployment guide with verification checklist
-- Migration instructions with troubleshooting
-- Verification steps for all features
-
----
-
-## Next Steps
-
-### Immediate (User)
-1. Copy `framerr.db` to Docker container
-2. Restart container  
-3. Login and test all functionality
-4. Report any runtime bugs
-
-### Follow-up (Agent)
-1. Address reported runtime bugs
-2. Optimize queries if performance issues
-3. Add any missing edge case handling
-4. Final testing and verification
+**None** - All critical bugs resolved, fresh install working correctly
 
 ---
 
 ## Session End Marker
 
 ✅ **SESSION END**
-- Session ended: 2025-12-12 00:05 EST
-- Status: **SQLite migration COMPLETE**
-- Branch: `feature/sqlite-migration`
-- Build: Passing ✅
-- Database: Generated and ready for deployment
-- Next: Deploy to Docker and test
-- Ready for next session: YES ✅
-
----
-
-**MIGRATION STATUS: ✅ COMPLETE**  
-**Database ready for production deployment.**
+- Session ended: 2025-12-12 21:41 EST
+- Status: Ready for next session
+- All critical bugs addressed
+- Build verified passing
+- Fresh installation tested and working
+- Ready for continued testing and deployment

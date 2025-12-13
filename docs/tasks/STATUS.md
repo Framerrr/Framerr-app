@@ -1,12 +1,23 @@
 # Framerr Development Status
 
-**Last Updated:** 2025-12-11 19:44 EST  
+**Last Updated:** 2025-12-12 21:41 EST  
 **Current Version:** v1.1.9  
-**Branch:** `develop`
+**Branch:** `feature/sqlite-migration`
 
 ---
 
 ## Recent Accomplishments
+
+### SQLite Migration - Fresh Install Bug Fixes (2025-12-12)
+**Critical Bugs Fixed:**
+- ✅ Database schema initialization on fresh install
+- ✅ Custom icon display (async/await bug)
+- ✅ Permission checks (groups object format)
+- ✅ Users tab crash (frontend groups handling)
+- ✅ User creation timestamps (double conversion)
+- ✅ Profile picture endpoint
+- ✅ Proxy auth log messages
+**Status:** 7 bugs fixed, fresh install tested and working
 
 ### v1.1.9 - Notification System Phase 3 Complete (2025-12-11)
 **Desktop & Mobile Implementation:**

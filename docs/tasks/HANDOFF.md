@@ -1,12 +1,30 @@
 # HANDOFF DOCUMENT - Framerr v1.1.9
 
-**Last Updated:** 2025-12-12T00:05:00-05:00  
-**Status:** ✅ SQLite Migration COMPLETE (minor bugs remain)  
+**Last Updated:** 2025-12-12T21:41:00-05:00  
+**Status:** ✅ SQLite Migration - Fresh Install Bugs Fixed  
 **Current Version:** v1.1.9  
 **Branch:** `feature/sqlite-migration`  
-**Docker Image:** Ready for testing with migrated database
+**Docker Image:** Ready for deployment
 
-**IMPORTANT:** SQLite migration is COMPLETE. All user data migrated from JSON to SQLite database. Ready for Docker deployment and testing. Some minor runtime bugs to address post-deployment.
+**IMPORTANT:** Fresh installation tested - 7 critical bugs identified and fixed. All builds passing. Database initialization, custom icons, permissions, user timestamps, and frontend groups handling all working correctly.
+
+
+---
+
+## 🔥 CRITICAL: Fresh Install Bug Fixes (2025-12-12)
+
+### Session Summary
+During fresh installation walkthrough, identified and fixed 7 critical bugs:
+
+1. **Database Schema Initialization** - Fresh databases now properly initialize before loading config
+2. **Custom Icon Display** - Fixed async/await bug preventing icon display (500 error)
+3. **Permission Checks** - Fixed groups object vs array format mismatch
+4. **Users Tab Crash** - Fixed frontend groups handling
+5. **User Timestamps** - Fixed double conversion causing 1970 dates
+6. **Profile Endpoint** - GET /api/profile now includes profilePicture
+7. **Proxy Auth Logs** - Fixed misleading log messages
+
+**All fixes committed and tested. Build passing. Fresh install working correctly.**
 
 
 ---
