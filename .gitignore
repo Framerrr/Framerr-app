@@ -40,3 +40,6 @@ tmp/
 # But ignore others
 yarn.lock
 pnpm-lock.yaml
+
+# Local development tools
+develop-server/
