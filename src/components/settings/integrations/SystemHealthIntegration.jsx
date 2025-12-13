@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw } from 'lucide-react';
+import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
@@ -21,6 +21,7 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
         custom: { url: '', token: '' }
     });
     const [testState, setTestState] = useState(null);
+    const [confirmReset, setConfirmReset] = useState(false);
 
     // Auto-expand when enabled
     useEffect(() => {
@@ -113,18 +114,17 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
     };
 
     const handleReset = () => {
-        if (window.confirm('Are you sure you want to reset System Health integration? This will disable the integration and clear all configuration.')) {
-            const resetConfig = {
-                enabled: false,
-                backend: 'glances',
-                glances: { url: '', password: '' },
-                custom: { url: '', token: '' },
-                _isValid: true
-            };
-            setConfig(resetConfig);
-            setSelectedBackend('glances');
-            onUpdate(resetConfig);
-        }
+        const resetConfig = {
+            enabled: false,
+            backend: 'glances',
+            glances: { url: '', password: '' },
+            custom: { url: '', token: '' },
+            _isValid: true
+        };
+        setConfig(resetConfig);
+        setSelectedBackend('glances');
+        onUpdate(resetConfig);
+        setConfirmReset(false);
     };
 
     const backendConfig = config[selectedBackend] || {};
@@ -269,16 +269,38 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                                 )}
                             </div>
 
-                            {/* Reset Integration Button */}
+                            {/* Reset Integration Button with inline confirmation */}
                             {config.enabled && (
-                                <Button
-                                    onClick={handleReset}
-                                    variant="secondary"
-                                    size="sm"
-                                    className="text-error hover:bg-error/10 border-error/20"
-                                >
-                                    Reset Integration
-                                </Button>
+                                !confirmReset ? (
+                                    <Button
+                                        onClick={() => setConfirmReset(true)}
+                                        variant="secondary"
+                                        size="sm"
+                                        className="text-error hover:bg-error/10 border-error/20"
+                                    >
+                                        Reset Integration
+                                    </Button>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-error">Reset?</span>
+                                        <Button
+                                            onClick={handleReset}
+                                            variant="danger"
+                                            size="sm"
+                                            icon={Check}
+                                        >
+                                            Yes
+                                        </Button>
+                                        <Button
+                                            onClick={() => setConfirmReset(false)}
+                                            variant="secondary"
+                                            size="sm"
+                                            icon={X}
+                                        >
+                                            No
+                                        </Button>
+                                    </div>
+                                )
                             )}
                         </div>
                     </div>

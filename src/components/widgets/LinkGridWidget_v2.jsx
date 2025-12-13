@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, GripVertical } from 'lucide-react';
+import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, GripVertical, Check, X } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import axios from 'axios';
 import logger from '../../utils/logger';
 import IconPicker from '../IconPicker';
+import { useNotifications } from '../../context/NotificationContext';
 
 /**
  * LinkGrid Widget v2 - Dynamic Grid System
@@ -20,6 +21,7 @@ import IconPicker from '../IconPicker';
 
 const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled }) => {
     const { links = [] } = config || {};
+    const { error: showError } = useNotifications();
 
     // Refs for dimension measurement
     const containerRef = useRef(null);
@@ -33,6 +35,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     const [draggedLinkId, setDraggedLinkId] = useState(null); // ID of link being dragged
     const [dragOverLinkId, setDragOverLinkId] = useState(null); // ID of link being dragged over
     const [previewLinks, setPreviewLinks] = useState([]); // Temporary order during drag
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null); // ID of link pending delete confirmation
 
     const [formData, setFormData] = useState({
         title: '',
@@ -385,17 +388,15 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         } catch (error) {
             logger.error('Failed to save link:', error);
             logger.error('Error details:', error.response?.data);
-            alert('Failed to save link. Please try again.');
+            showError('Save Failed', 'Failed to save link. Please try again.');
         }
     };
 
     /**
-     * Delete link
+     * Delete link (called after inline confirmation)
      */
-    const handleDeleteLink = async (linkId, linkTitle) => {
-        if (!window.confirm(`Delete "${linkTitle}"?`)) {
-            return;
-        }
+    const handleDeleteLink = async (linkId) => {
+        setConfirmDeleteId(null); // Clear confirmation state
 
         try {
             // Remove from links array
@@ -450,7 +451,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             }
         } catch (error) {
             logger.error('Failed to delete link:', error);
-            alert('Failed to delete link. Please try again.');
+            showError('Delete Failed', 'Failed to delete link. Please try again.');
         }
     };
 
@@ -542,7 +543,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             }, 100);
         } catch (error) {
             logger.error('Failed to reorder links:', error);
-            alert('Failed to reorder links. Please try again.');
+            showError('Reorder Failed', 'Failed to reorder links. Please try again.');
             setPreviewLinks([]); // Clear on error
         }
     };
@@ -683,22 +684,50 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                             e.stopPropagation();
                             setEditingLinkId(link.id);
                             setShowAddForm(false);
+                            setConfirmDeleteId(null);
                         }}
                     >
                         <Edit2 size={16} className="text-white" />
                     </button>
-                    {/* Delete button */}
-                    <button
-                        className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
-                        title="Delete link"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDeleteLink(link.id, link.title);
-                        }}
-                    >
-                        <Trash2 size={16} className="text-white" />
-                    </button>
+                    {/* Delete button with inline confirmation */}
+                    {confirmDeleteId !== link.id ? (
+                        <button
+                            className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
+                            title="Delete link"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setConfirmDeleteId(link.id);
+                            }}
+                        >
+                            <Trash2 size={16} className="text-white" />
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
+                                title="Confirm delete"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDeleteLink(link.id);
+                                }}
+                            >
+                                <Check size={16} className="text-white" />
+                            </button>
+                            <button
+                                className="p-2 bg-theme-tertiary hover:bg-theme-hover rounded-lg transition-colors pointer-events-auto"
+                                title="Cancel"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setConfirmDeleteId(null);
+                                }}
+                            >
+                                <X size={16} className="text-white" />
+                            </button>
+                        </>
+                    )}
                 </div>
             );
         };

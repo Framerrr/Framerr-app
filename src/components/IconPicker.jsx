@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, Upload } from 'lucide-react';
+import { X, Search, Upload, Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import logger from '../utils/logger';
+import { useNotifications } from '../context/NotificationContext';
 
 // Popular icons for quick selection - 126 validated icons
 const POPULAR_ICONS = [
@@ -77,6 +78,8 @@ const IconPicker = ({ value, onChange }) => {
     const [activeTab, setActiveTab] = useState('icons'); // 'icons' or 'upload'
     const [uploadedIcons, setUploadedIcons] = useState([]);
     const [loadingIcons, setLoadingIcons] = useState(false);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const { error: showError } = useNotifications();
 
     // Fetch uploaded icons when component mounts
     useEffect(() => {
@@ -188,11 +191,11 @@ const IconPicker = ({ value, onChange }) => {
                 await fetchUploadedIcons();
                 setIsOpen(false);
             } else {
-                alert('Failed to upload icon');
+                showError('Upload Failed', 'Failed to upload icon');
             }
         } catch (error) {
             logger.error('Failed to upload icon:', error);
-            alert('Failed to upload icon');
+            showError('Upload Failed', 'Failed to upload icon');
         }
 
         // Reset the input
@@ -200,10 +203,6 @@ const IconPicker = ({ value, onChange }) => {
     };
 
     const handleDeleteIcon = async (iconId) => {
-        if (!confirm('Delete this custom icon? This cannot be undone.')) {
-            return;
-        }
-
         try {
             const response = await fetch(`/api/custom-icons/${iconId}`, {
                 method: 'DELETE',
@@ -217,12 +216,15 @@ const IconPicker = ({ value, onChange }) => {
                 if (value === `custom:${iconId}`) {
                     onChange('Server');
                 }
+                setConfirmDeleteId(null);
             } else {
-                alert('Failed to delete icon');
+                showError('Delete Failed', 'Failed to delete icon');
+                setConfirmDeleteId(null);
             }
         } catch (error) {
             logger.error('Failed to delete icon:', error);
-            alert('Failed to delete icon');
+            showError('Delete Failed', 'Failed to delete icon');
+            setConfirmDeleteId(null);
         }
     };
 
@@ -433,15 +435,36 @@ const IconPicker = ({ value, onChange }) => {
                                                                                 className="w-full h-full object-contain"
                                                                             />
                                                                         </motion.button>
-                                                                        {/* Delete Button - Shows on hover */}
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleDeleteIcon(icon.id)}
-                                                                            className="absolute -top-1 -right-1 w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                                                            title="Delete icon"
-                                                                        >
-                                                                            <X size={12} />
-                                                                        </button>
+                                                                        {/* Delete Button with inline confirmation */}
+                                                                        {confirmDeleteId !== icon.id ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setConfirmDeleteId(icon.id)}
+                                                                                className="absolute -top-1 -right-1 w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                                                                title="Delete icon"
+                                                                            >
+                                                                                <X size={12} />
+                                                                            </button>
+                                                                        ) : (
+                                                                            <div className="absolute -top-1 -right-1 flex gap-0.5">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleDeleteIcon(icon.id)}
+                                                                                    className="w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full flex items-center justify-center"
+                                                                                    title="Confirm delete"
+                                                                                >
+                                                                                    <Check size={10} />
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setConfirmDeleteId(null)}
+                                                                                    className="w-5 h-5 bg-theme-tertiary hover:bg-theme-hover text-white rounded-full flex items-center justify-center"
+                                                                                    title="Cancel"
+                                                                                >
+                                                                                    <X size={10} />
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 );
                                                             })}

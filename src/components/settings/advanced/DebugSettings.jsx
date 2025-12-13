@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Trash2, Search, Bug, Play, Pause } from 'lucide-react';
+import { Download, Trash2, Search, Bug, Play, Pause, Check, X } from 'lucide-react';
 import axios from 'axios';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
@@ -13,6 +13,7 @@ const DebugSettings = () => {
     const [filterLevel, setFilterLevel] = useState('ALL');
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [confirmClear, setConfirmClear] = useState(false);
     const logsEndRef = useRef(null);
 
     const logLevels = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
@@ -110,13 +111,13 @@ const DebugSettings = () => {
     };
 
     const handleClearLogs = async () => {
-        if (!confirm('Clear all logs? This cannot be undone.')) return;
-
         try {
             await axios.post('/api/advanced/logs/clear');
             setLogs([]);
+            setConfirmClear(false);
         } catch (error) {
             logger.error('Failed to clear logs:', error);
+            setConfirmClear(false);
         }
     };
 
@@ -231,13 +232,32 @@ const DebugSettings = () => {
                             icon={Download}
                             title="Download logs"
                         />
-                        <Button
-                            onClick={handleClearLogs}
-                            variant="danger"
-                            size="sm"
-                            icon={Trash2}
-                            title="Clear logs"
-                        />
+                        {!confirmClear ? (
+                            <Button
+                                onClick={() => setConfirmClear(true)}
+                                variant="danger"
+                                size="sm"
+                                icon={Trash2}
+                                title="Clear logs"
+                            />
+                        ) : (
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    onClick={handleClearLogs}
+                                    variant="danger"
+                                    size="sm"
+                                    icon={Check}
+                                    title="Confirm clear"
+                                />
+                                <Button
+                                    onClick={() => setConfirmClear(false)}
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={X}
+                                    title="Cancel"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
