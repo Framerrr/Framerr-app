@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Info, Loader, X, Search } from 'lucide-react';
+import { Trash2, Info, Loader, X, Search, Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { getWidgetMetadata, getWidgetIconName } from '../../utils/widgetRegistry';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import IconPicker from '../IconPicker';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { useNotifications } from '../../context/NotificationContext';
 
 // Popular icons for quick selection - 126 validated icons (same as IconPicker)
 const POPULAR_ICONS = [
@@ -69,6 +70,8 @@ const ActiveWidgets = () => {
     const [removingWidget, setRemovingWidget] = useState(null);
     const [iconPickerOpen, setIconPickerOpen] = useState(null); // Track which widget's picker is open
     const [iconSearch, setIconSearch] = useState('');
+    const [confirmRemoveId, setConfirmRemoveId] = useState(null);
+    const { error: showError } = useNotifications();
 
     useEffect(() => {
         fetchWidgets();
@@ -86,16 +89,16 @@ const ActiveWidgets = () => {
     };
 
     const handleRemove = async (widgetId) => {
-        if (!confirm('Remove this widget from your dashboard?')) return;
-
         setRemovingWidget(widgetId);
         try {
             const updatedWidgets = widgets.filter(w => w.id !== widgetId);
             await axios.put('/api/widgets', { widgets: updatedWidgets });
             setWidgets(updatedWidgets);
+            setConfirmRemoveId(null);
         } catch (error) {
             logger.error('Failed to remove widget', { widgetId, error: error.message });
-            alert('Failed to remove widget. Please try again.');
+            showError('Remove Failed', 'Failed to remove widget. Please try again.');
+            setConfirmRemoveId(null);
         } finally {
             setRemovingWidget(null);
         }
@@ -202,22 +205,48 @@ const ActiveWidgets = () => {
                                     </div>
                                 </div>
 
-                                {/* Delete Button */}
+                                {/* Delete Button with Inline Confirmation */}
                                 <div className="flex-shrink-0">
-                                    <Button
-                                        onClick={() => handleRemove(widget.id)}
-                                        disabled={removingWidget === widget.id}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-error hover:bg-error/10"
-                                        title="Remove widget"
-                                    >
-                                        {removingWidget === widget.id ? (
-                                            <Loader size={18} className="animate-spin" />
-                                        ) : (
-                                            <Trash2 size={18} />
-                                        )}
-                                    </Button>
+                                    {confirmRemoveId !== widget.id ? (
+                                        <Button
+                                            onClick={() => setConfirmRemoveId(widget.id)}
+                                            disabled={removingWidget === widget.id}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-error hover:bg-error/10"
+                                            title="Remove widget"
+                                        >
+                                            {removingWidget === widget.id ? (
+                                                <Loader size={18} className="animate-spin" />
+                                            ) : (
+                                                <Trash2 size={18} />
+                                            )}
+                                        </Button>
+                                    ) : (
+                                        <div className="flex gap-1">
+                                            <Button
+                                                onClick={() => handleRemove(widget.id)}
+                                                disabled={removingWidget === widget.id}
+                                                variant="danger"
+                                                size="sm"
+                                                title="Confirm remove"
+                                            >
+                                                {removingWidget === widget.id ? (
+                                                    <Loader size={14} className="animate-spin" />
+                                                ) : (
+                                                    <Check size={14} />
+                                                )}
+                                            </Button>
+                                            <Button
+                                                onClick={() => setConfirmRemoveId(null)}
+                                                variant="secondary"
+                                                size="sm"
+                                                title="Cancel"
+                                            >
+                                                <X size={14} />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -271,7 +300,7 @@ const ActiveWidgets = () => {
                                                         }));
                                                     } catch (error) {
                                                         logger.error('Failed to update widget flatten setting', { widgetId: widget.id, error: error.message });
-                                                        alert('Failed to update widget. Please try again.');
+                                                        showError('Update Failed', 'Failed to update widget. Please try again.');
                                                         fetchWidgets();
                                                     }
                                                 }}
@@ -307,7 +336,7 @@ const ActiveWidgets = () => {
                                                             }));
                                                         } catch (error) {
                                                             logger.error('Failed to update widget header setting', { widgetId: widget.id, error: error.message });
-                                                            alert('Failed to update widget. Please try again.');
+                                                            showError('Update Failed', 'Failed to update widget. Please try again.');
                                                             fetchWidgets();
                                                         }
                                                     }}
