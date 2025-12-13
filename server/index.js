@@ -250,8 +250,8 @@ app.use((err, req, res, next) => {
             logger.info('Fresh database detected - initializing schema...');
             initializeSchema();
             // Set initial version for fresh databases
-            setVersion(db, 3); // Current expected version (matches latest migration)
-            logger.info('Database schema initialized (v3)');
+            setVersion(db, 1); // Current expected version (matches latest migration)
+            logger.info('Database schema initialized (v1)');
         } else {
             // Check if migrations are needed
             const status = checkMigrationStatus(db);
