@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.10] - 2025-12-13
+
+### Added
+- **Database Migration System:**
+  - Automatic schema migrations on server startup
+  - Auto-backup before migrations (keeps last 3 backups)
+  - Downgrade detection (prevents data loss from version mismatch)
+  - JSON column utilities for flexible data updates
+
+### Changed
+- **Internal:**
+  - CHATFLOW v2.0 agent workflow system
+  - Documentation cleanup and reorganization
+
+### Fixed
+- SQLite migration stability improvements
+- Fresh install database initialization
+- User creation timestamp handling
+
+---
+
 ## [1.1.9] - 2025-12-10
 
 ### Added
