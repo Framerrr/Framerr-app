@@ -22,27 +22,15 @@ const MainContent = () => {
     // Check if we're on settings (including query params like ?tab=profile)
     const isSettings = currentHash === 'settings' || currentHash.startsWith('settings?');
 
-    // Always render both components, toggle visibility (not display)
+    // Always render both components, toggle visibility with display
     // This prevents TabContainer from unmounting when navigating to settings
-    // Using visibility instead of display prevents react-grid-layout from re-measuring
+    // Each page has its own overflow-y-auto for independent scroll positions
     return (
         <>
-            <div style={{
-                visibility: isSettings ? 'hidden' : 'visible',
-                position: isSettings ? 'absolute' : 'relative',
-                height: '100%',
-                width: '100%',
-                overflowY: 'auto'
-            }}>
+            <div style={{ display: isSettings ? 'none' : 'flex', height: '100%', width: '100%', overflowY: 'auto' }}>
                 <DashboardOrTabs />
             </div>
-            <div style={{
-                visibility: isSettings ? 'visible' : 'hidden',
-                position: isSettings ? 'relative' : 'absolute',
-                height: '100%',
-                width: '100%',
-                overflowY: 'auto'
-            }}>
+            <div style={{ display: isSettings ? 'flex' : 'none', height: '100%', width: '100%', overflowY: 'auto' }}>
                 <UserSettings />
             </div>
         </>
