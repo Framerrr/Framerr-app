@@ -100,7 +100,14 @@ description: Build and deploy Docker images (develop or production)
    ```
 
 ### Post-release
-10. **Return to develop and update tracking**
+10. **Create production backup**
+    ```powershell
+    # Run from Framerr-app-backup directory
+    C:\Users\Jonathan\Documents\Antigravity\Framerr-app-backup\backup.ps1
+    ```
+    This creates: `Framerr-app-backup/backup_MM_DD_YYYY/`
+
+11. **Return to develop and update tracking**
     ```bash
     git checkout develop
     ```
@@ -110,3 +117,6 @@ description: Build and deploy Docker images (develop or production)
     - **Release Status:** RELEASED
     - **Draft Changelog:** (empty or next version)
     - **Draft Status:** (empty - will be created next session)
+
+12. **Create next draft changelog** (optional, can wait for next session)
+    Create `docs/versions/X.X.X.md` placeholder for next version
