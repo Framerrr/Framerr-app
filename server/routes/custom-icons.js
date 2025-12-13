@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const iconUpload = require('../middleware/iconUpload');
 const customIconsDB = require('../db/customIcons');
 const { requireAuth: authenticateUser } = require('../middleware/auth');
@@ -14,11 +15,12 @@ router.post('/', authenticateUser, iconUpload.single('icon'), async (req, res) =
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // Create icon record in database
+        // Store file path (relative to /config/upload/custom-icons/)
         const icon = await customIconsDB.addIcon({
             filename: req.file.filename,
             originalName: req.file.originalname,
             mimeType: req.file.mimetype,
+            filePath: req.file.filename, // Just the filename, served from /config/upload/custom-icons/
             uploadedBy: req.user.id
         });
 
@@ -53,7 +55,8 @@ router.get('/:id/file', async (req, res) => {
             return res.status(404).json({ error: 'Icon not found' });
         }
 
-        const filePath = customIconsDB.getIconPath(icon.filename);
+        // Use icon.filePath (the actual file path) not icon.filename
+        const filePath = await customIconsDB.getIconPath(icon.filePath);
         res.sendFile(filePath);
     } catch (error) {
         logger.error('Failed to serve custom icon', { error: error.message });

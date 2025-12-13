@@ -1,82 +1,57 @@
-const fs = require('fs').promises;
-const path = require('path');
+const { db } = require('../database/db');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const path = require('path');
+const fs = require('fs');
 
+// Use DATA_DIR from environment or default to server/data
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
-const CUSTOM_ICONS_DB_PATH = path.join(DATA_DIR, 'custom-icons.json');
-const ICONS_DIR = path.join(DATA_DIR, 'upload/custom-icons'); // Consolidated under /config/upload/
-
-/**
- * Initialize custom icons database and directory
- */
-async function initCustomIconsDB() {
-    try {
-        await fs.access(CUSTOM_ICONS_DB_PATH);
-    } catch {
-        logger.info('Initializing custom icons database...');
-        try {
-            await fs.mkdir(DATA_DIR, { recursive: true });
-            await fs.mkdir(ICONS_DIR, { recursive: true });
-            await fs.writeFile(CUSTOM_ICONS_DB_PATH, JSON.stringify({ icons: [] }, null, 2));
-            logger.info('Custom icons database created at ' + CUSTOM_ICONS_DB_PATH);
-        } catch (error) {
-            logger.error('Failed to initialize custom icons database', { error: error.message });
-            throw error;
-        }
-    }
-}
-
-/**
- * Read custom icons database
- * @returns {Promise<object>} Database content
- */
-async function readDB() {
-    await initCustomIconsDB();
-    try {
-        const data = await fs.readFile(CUSTOM_ICONS_DB_PATH, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        logger.error('Failed to read custom icons database', { error: error.message });
-        throw error;
-    }
-}
-
-/**
- * Write to custom icons database
- * @param {object} db - Database content
- */
-async function writeDB(db) {
-    try {
-        await fs.writeFile(CUSTOM_ICONS_DB_PATH, JSON.stringify(db, null, 2));
-    } catch (error) {
-        logger.error('Failed to write custom icons database', { error: error.message });
-        throw error;
-    }
-}
+const ICONS_DIR = path.join(DATA_DIR, 'upload/custom-icons');
 
 /**
  * Add a custom icon
- * @param {object} iconData - Icon data (filename, originalName, mimeType, uploadedBy)
+ * @param {object} iconData - Icon data (filename, originalName, mimeType, filePath, uploadedBy)
  * @returns {Promise<object>} Created icon record
  */
 async function addIcon(iconData) {
-    const db = await readDB();
-
     const icon = {
         id: uuidv4(),
-        filename: iconData.filename,
-        originalName: iconData.originalName,
+        name: iconData.originalName || iconData.filename || iconData.name,
+        filePath: iconData.filePath || iconData.filename, // Relative path/filename
         mimeType: iconData.mimeType,
         uploadedBy: iconData.uploadedBy,
         uploadedAt: new Date().toISOString()
     };
 
-    db.icons.push(icon);
-    await writeDB(db);
+    try {
+        const insert = db.prepare(`
+            INSERT INTO custom_icons (id, name, file_path, mime_type, uploaded_by, uploaded_at)
+            VALUES (?, ?, ?, ?, ?, strftime('%s', 'now'))
+        `);
 
-    logger.info(`Custom icon added: ${icon.filename} by user ${icon.uploadedBy}`);
-    return icon;
+        insert.run(
+            icon.id,
+            icon.name,
+            icon.filePath,
+            icon.mimeType,
+            icon.uploadedBy
+        );
+
+        logger.info(`Custom icon added: ${icon.name} by user ${icon.uploadedBy}`);
+
+        // Return object with legacy field names for compatibility
+        return {
+            id: icon.id,
+            filename: icon.filePath, // File path stored as filename
+            originalName: icon.name,
+            mimeType: icon.mimeType,
+            uploadedBy: icon.uploadedBy,
+            uploadedAt: icon.uploadedAt
+        };
+    } catch (error) {
+        logger.error('Failed to add custom icon', { error: error.message });
+        throw error;
+    }
 }
 
 /**
@@ -85,8 +60,27 @@ async function addIcon(iconData) {
  * @returns {Promise<object|null>} Icon object or null
  */
 async function getIconById(iconId) {
-    const db = await readDB();
-    return db.icons.find(i => i.id === iconId) || null;
+    try {
+        const icon = db.prepare('SELECT * FROM custom_icons WHERE id = ?').get(iconId);
+
+        if (!icon) {
+            return null;
+        }
+
+        // Return with legacy field names for compatibility
+        return {
+            id: icon.id,
+            filename: icon.file_path,
+            originalName: icon.name,
+            mimeType: icon.mime_type,
+            filePath: icon.file_path, // Include file path
+            uploadedBy: icon.uploaded_by,
+            uploadedAt: new Date(icon.uploaded_at * 1000).toISOString()
+        };
+    } catch (error) {
+        logger.error('Failed to get icon by ID', { error: error.message, iconId });
+        throw error;
+    }
 }
 
 /**
@@ -94,8 +88,22 @@ async function getIconById(iconId) {
  * @returns {Promise<array>} Array of icons
  */
 async function listIcons() {
-    const db = await readDB();
-    return db.icons;
+    try {
+        const icons = db.prepare('SELECT id, name, file_path, mime_type, uploaded_by, uploaded_at FROM custom_icons').all();
+
+        // Return with legacy field names for compatibility (without file paths to reduce payload)
+        return icons.map(icon => ({
+            id: icon.id,
+            filename: icon.file_path,
+            originalName: icon.name,
+            mimeType: icon.mime_type,
+            uploadedBy: icon.uploaded_by,
+            uploadedAt: new Date(icon.uploaded_at * 1000).toISOString()
+        }));
+    } catch (error) {
+        logger.error('Failed to list custom icons', { error: error.message });
+        throw error;
+    }
 }
 
 /**
@@ -104,37 +112,69 @@ async function listIcons() {
  * @returns {Promise<object|null>} Deleted icon or null
  */
 async function deleteIcon(iconId) {
-    const db = await readDB();
-    const icon = db.icons.find(i => i.id === iconId);
-
-    if (!icon) return null;
-
-    // Delete the physical file
-    const filePath = path.join(ICONS_DIR, icon.filename);
     try {
-        await fs.unlink(filePath);
-        logger.info(`Deleted icon file: ${icon.filename}`);
+        // First get the icon to return it and delete the file
+        const icon = db.prepare('SELECT * FROM custom_icons WHERE id = ?').get(iconId);
+
+        if (!icon) {
+            return null;
+        }
+
+        // Delete physical file from disk
+        const filePath = path.join(ICONS_DIR, icon.file_path);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            logger.info(`Deleted icon file: ${filePath}`);
+        }
+
+        // Delete from database
+        const deleteStmt = db.prepare('DELETE FROM custom_icons WHERE id = ?');
+        deleteStmt.run(iconId);
+
+        logger.info(`Custom icon deleted: ${icon.name}`);
+
+        // Return with legacy field names for compatibility
+        return {
+            id: icon.id,
+            filename: icon.file_path,
+            originalName: icon.name,
+            mimeType: icon.mime_type,
+            uploadedBy: icon.uploaded_by,
+            uploadedAt: new Date(icon.uploaded_at * 1000).toISOString()
+        };
     } catch (error) {
-        logger.warn(`Failed to delete icon file: ${icon.filename}`, { error: error.message });
+        logger.error('Failed to delete custom icon', { error: error.message, iconId });
+        throw error;
     }
-
-    // Remove from database
-    db.icons = db.icons.filter(i => i.id !== iconId);
-    await writeDB(db);
-
-    logger.info(`Custom icon deleted: ${icon.filename}`);
-    return icon;
 }
 
 /**
- * Get icon file path
- * @param {string} filename - Icon filename
- * @returns {string} Full path to icon file
+ * Get absolute file path for serving icon
+ * @param {string} iconIdOrFilename - Icon ID or filename (for legacy compatibility)
+ * @returns {Promise<string|null>} Absolute file path or null if not found
  */
-function getIconPath(filename) {
-    return path.join(ICONS_DIR, filename);
+async function getIconPath(iconIdOrFilename) {
+    try {
+        // Try to find by ID first, then by file_path (filename)
+        let icon = db.prepare('SELECT file_path FROM custom_icons WHERE id = ?').get(iconIdOrFilename);
+
+        if (!icon) {
+            icon = db.prepare('SELECT file_path FROM custom_icons WHERE file_path = ?').get(iconIdOrFilename);
+        }
+
+        if (!icon) {
+            return null;
+        }
+
+        // Return absolute path to file
+        return path.join(ICONS_DIR, icon.file_path);
+    } catch (error) {
+        logger.error('Failed to get icon path', { error: error.message, iconIdOrFilename });
+        throw error;
+    }
 }
 
+// Export ICONS_DIR for compatibility
 module.exports = {
     addIcon,
     getIconById,
@@ -143,3 +183,4 @@ module.exports = {
     getIconPath,
     ICONS_DIR
 };
+

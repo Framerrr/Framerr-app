@@ -1,10 +1,6 @@
-const fs = require('fs').promises;
-const path = require('path');
 const logger = require('../utils/logger');
 const { getUserById } = require('./users');
-
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
-const USER_CONFIGS_DIR = path.join(DATA_DIR, 'users');
+const { db } = require('../database/db');
 
 // Default user dashboard configuration
 const DEFAULT_USER_CONFIG = {
@@ -29,48 +25,42 @@ const DEFAULT_USER_CONFIG = {
 };
 
 /**
- * Initialize user config directory
- */
-async function initUserConfigDir() {
-    try {
-        await fs.access(USER_CONFIGS_DIR);
-    } catch {
-        await fs.mkdir(USER_CONFIGS_DIR, { recursive: true });
-    }
-}
-
-/**
- * Get configuration file path for a user
- * @param {string} userId 
- */
-function getUserConfigPath(userId) {
-    return path.join(USER_CONFIGS_DIR, `${userId}.json`);
-}
-
-/**
  * Get user configuration
  * @param {string} userId - User ID
  * @returns {Promise<object>} User configuration
  */
 async function getUserConfig(userId) {
-    await initUserConfigDir();
-
-    // Verify user exists first
-    const user = await getUserById(userId);
-    if (!user) {
-        throw new Error('User not found');
-    }
-
-    const configPath = getUserConfigPath(userId);
-
     try {
-        await fs.access(configPath);
-        const data = await fs.readFile(configPath, 'utf8');
-        return JSON.parse(data);
-    } catch {
-        // Return default config if no personal config exists
-        logger.debug(`No config found for user ${userId}, returning default`);
-        return DEFAULT_USER_CONFIG;
+        // Verify user exists first
+        const user = await getUserById(userId);
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Try to get config from database
+        const result = db.prepare(`
+            SELECT dashboard_config, tabs, theme_config, sidebar_config, preferences
+            FROM user_preferences
+            WHERE user_id = ?
+        `).get(userId);
+
+        if (!result) {
+            // Return default config if no personal config exists
+            logger.debug(`No config found for user ${userId}, returning default`);
+            return DEFAULT_USER_CONFIG;
+        }
+
+        // Parse JSON columns and build config object
+        return {
+            dashboard: result.dashboard_config ? JSON.parse(result.dashboard_config) : DEFAULT_USER_CONFIG.dashboard,
+            tabs: result.tabs ? JSON.parse(result.tabs) : DEFAULT_USER_CONFIG.tabs,
+            theme: result.theme_config ? JSON.parse(result.theme_config) : DEFAULT_USER_CONFIG.theme,
+            sidebar: result.sidebar_config ? JSON.parse(result.sidebar_config) : DEFAULT_USER_CONFIG.sidebar,
+            preferences: result.preferences ? JSON.parse(result.preferences) : DEFAULT_USER_CONFIG.preferences
+        };
+    } catch (error) {
+        logger.error('Failed to get user config', { error: error.message, userId });
+        throw error;
     }
 }
 
@@ -116,26 +106,64 @@ function isObject(item) {
  * @returns {Promise<object>} Updated configuration
  */
 async function updateUserConfig(userId, updates) {
-    await initUserConfigDir();
-
-    // Verify user exists
-    const user = await getUserById(userId);
-    if (!user) {
-        throw new Error('User not found');
-    }
-
-    const currentConfig = await getUserConfig(userId);
-    // Use deep merge to properly handle nested objects
-    const newConfig = deepMerge(currentConfig, updates);
-
-    const configPath = getUserConfigPath(userId);
-
     try {
-        await fs.writeFile(configPath, JSON.stringify(newConfig, null, 2));
+        // Verify user exists
+        const user = await getUserById(userId);
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const currentConfig = await getUserConfig(userId);
+        // Use deep merge to properly handle nested objects
+        const newConfig = deepMerge(currentConfig, updates);
+
+        // Check if user_preferences record exists
+        const exists = db.prepare(`
+            SELECT user_id FROM user_preferences WHERE user_id = ?
+        `).get(userId);
+
+        if (exists) {
+            // Update existing record
+            const stmt = db.prepare(`
+                UPDATE user_preferences
+                SET dashboard_config = ?,
+                    tabs = ?,
+                    theme_config = ?,
+                    sidebar_config = ?,
+                    preferences = ?
+                WHERE user_id = ?
+            `);
+
+            stmt.run(
+                JSON.stringify(newConfig.dashboard),
+                JSON.stringify(newConfig.tabs),
+                JSON.stringify(newConfig.theme),
+                JSON.stringify(newConfig.sidebar),
+                JSON.stringify(newConfig.preferences),
+                userId
+            );
+        } else {
+            // Insert new record
+            const stmt = db.prepare(`
+                INSERT INTO user_preferences (
+                    user_id, dashboard_config, tabs, theme_config, sidebar_config, preferences
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            `);
+
+            stmt.run(
+                userId,
+                JSON.stringify(newConfig.dashboard),
+                JSON.stringify(newConfig.tabs),
+                JSON.stringify(newConfig.theme),
+                JSON.stringify(newConfig.sidebar),
+                JSON.stringify(newConfig.preferences)
+            );
+        }
+
         logger.debug(`Configuration updated for user ${user.username}`);
         return newConfig;
     } catch (error) {
-        logger.error(`Failed to update config for user ${userId}`, { error: error.message });
+        logger.error('Failed to update user config', { error: error.message, userId });
         throw error;
     }
 }

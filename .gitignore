@@ -40,3 +40,10 @@ tmp/
 # But ignore others
 yarn.lock
 pnpm-lock.yaml
+
+# Local development tools
+develop-server/
+
+# Internal documentation (not for public GitHub)
+docs/
+.agent/

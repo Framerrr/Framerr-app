@@ -1,93 +1,115 @@
 ---
-description: End Framerr session and prepare handoff
+description: End session and prepare handoff for next agent
 ---
 
-# End Session and Handoff
+# /end-session
+
+## Pre-flight Check
+
+```bash
+git branch --show-current
+git status
+```
+
+**Verify:**
+- [ ] On expected branch (develop, feature/*, etc.)
+- [ ] Not accidentally on `main`
+
+---
+
+## Verification Gates (Must Pass All)
+
+Before ending, verify:
+
+- [ ] Build passes: `npm run build`
+- [ ] On correct branch
+- [ ] `docs/chatflow/TASK_CURRENT.md` updated
+- [ ] Draft changelog updated (if changes were made)
+- [ ] Reference docs updated if systems changed
+- [ ] Changes committed
+
+---
 
 ## Steps
 
-1. **Complete current work:**
-   - Finish current subtask if close to completion
-   - Or reach a clean stopping point
-   - Ensure no files are mid-edit
-
-2. **Run final verification if code changed:**
+1. **Verify build passes**
    ```bash
    npm run build
    ```
-   - Must pass before continuing
-   - If fails  Fix issues first
+   If fails → fix first, do not proceed
 
-3. **Update `docs/tasks/TASK_CURRENT.md` with:**
-   - Session end timestamp
-   - Total tool calls this session
-   - Last checkpoint number
-   - Achievements (what was completed)
-   - Current state (where things stand)
-   - Next immediate step  
-   - Any blockers or notes
-   - **CRITICAL:** Add explicit marker at end of file:
-     ```markdown
-     ---
-     ## Session End Marker
-      **SESSION END**
-     - Session ended: [timestamp]
-     - Status: Ready for next session
-     ```
-
-4. **Update `docs/tasks/HANDOFF.md` (only if major changes):**
-   - New approaches discovered
-   - Important decisions made
-   - Architecture changes
-   - Update timestamp
-
-5. **Update `docs/tasks/STATUS.md`:**
-   - Update "Last Updated" timestamp
-   - Update recent accomplishments section
-   - Update current phase progress
-   - Update production/development deployment info (if applicable)
-
-6. **Append to `docs/tasks/TASK_COMPLETED.md` (if work was completed):**
-   - Add session summary with date/title
-   - List what was implemented
-   - Files modified
-   - Issues resolved
-   - Testing performed
-
-7. **Update `docs/tasks/TASK_BACKLOG.md` (if applicable):**
-   - Mark completed items with 
-   - Update progress tracking
-
-8. **Verify all updates succeeded:**
-   - View `docs/tasks/TASK_CURRENT.md` (check for session end marker)
-   - View `docs/tasks/HANDOFF.md` (check for updated timestamp if changed)
-   - View `docs/tasks/STATUS.md` (check for updated timestamp)
-   - If ANY failed  Report to user, retry or provide manual instructions
-
-9. **Commit work if user approves:**
+2. **Check branch before committing**
    ```bash
-   git status
+   git branch --show-current
+   ```
+   
+   **Confirm with user:** "About to commit to `[branch]`. Proceed?"
+   
+   ⚠️ If on wrong branch, switch before committing!
+
+3. **Update draft changelog**
+   
+   If you made changes this session, update the draft changelog:
+   ```
+   docs/versions/[version].md (check TASK_CURRENT.md for filename)
+   ```
+   
+   Add entries under appropriate section:
+   - **Features:** New functionality
+   - **Bug Fixes:** Fixes
+   - **Changes:** Modifications, refactors
+
+   ⚠️ Keep "DRAFT" status marker - do NOT change to RELEASED
+
+4. **Update session state**
+   
+   Edit `docs/chatflow/TASK_CURRENT.md` with:
+   - **Last Updated:** [timestamp]
+   - **Branch:** [current branch]
+   - **Current State:** What was accomplished
+   - **Next Step:** Explicit, actionable next step
+   - **SESSION END marker** at bottom
+
+   ⚠️ Use `replace_file_content` - do NOT use CLI append
+
+5. **Update reference docs if you changed systems**
+   
+   | If you changed... | Update... |
+   |-------------------|-----------|
+   | Component structure | `architecture.md` |
+   | CSS/theming | `theming.md` |
+   | Widget behavior | `widgets.md` |
+
+6. **Commit changes**
+   ```bash
    git add .
-   git commit -m "Session end: [brief summary]"
+   git commit -m "Session: [brief summary]"
    ```
 
-10. **Provide handoff summary to user:**
-    - Session stats (tool calls, tasks completed, files modified)
-    - Completed items
-    - In-progress items
-    - Next steps for new chat
-    - Documentation status
+7. **Remind user about push**
+   
+   "Changes committed to `[branch]`. Don't forget to push if desired:
+   ```bash
+   git push origin [branch]
+   ```"
 
-11. **VERIFICATION (confirm to user):**
-    - [ ] TASK_CURRENT.md updated?
-    - [ ] HANDOFF.md updated (if needed)?
-    - [ ] STATUS.md updated?
-    - [ ] TASK_COMPLETED.md appended (if work done)?
-    - [ ] TASK_BACKLOG.md updated (if applicable)?
-    - [ ] All changes committed (if approved)?
-    - [ ] Ready for next session?
+8. **Verify handoff quality**
+   
+   Ask yourself:
+   - Would a new agent know exactly where to start?
+   - Is the next step explicit and actionable?
+   - Is the draft changelog accurate?
+   - Is the branch clearly documented?
+   
+   If NO → improve before ending
 
-## Session Length Warning
+---
 
-If session exceeded 50 tool calls, remind user:
-"Note: This session used [X] tool calls. For optimal context, try to keep sessions under 50-80 tool calls when possible."
+## Adaptability Check
+
+**If the CHATFLOW system needs updating (new patterns, missing docs, etc.):**
+
+1. Point it out to the user
+2. Propose the specific change
+3. **Wait for user confirmation** before modifying any workflow/system file
+4. Never silently update CHATFLOW files

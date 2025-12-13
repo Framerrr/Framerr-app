@@ -39,7 +39,12 @@ const PermissionGroupsSettings = () => {
             const response = await fetch('/api/config/system', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
-                setGroups(data.groups || []);
+                // Convert groups object to array: {"admin":{...}, "user":{...}} => [{id:"admin",...}, {id:"user",...}]
+                const groupsArray = Object.entries(data.groups || {}).map(([id, group]) => ({
+                    id,
+                    ...group
+                }));
+                setGroups(groupsArray);
                 setDefaultGroup(data.defaultGroup || 'user');
             }
         } catch (error) {
@@ -87,15 +92,22 @@ const PermissionGroupsSettings = () => {
         const newGroup = { id: groupId, name: formData.name, permissions: formData.permissions };
 
         try {
-            const updatedGroups = modalMode === 'create'
+            const updatedGroupsArray = modalMode === 'create'
                 ? [...groups, newGroup]
                 : groups.map(g => g.id === groupId ? newGroup : g);
+
+            // Convert array back to object format for backend: [{id:"admin",...}] => {"admin":{...}}
+            const groupsObject = updatedGroupsArray.reduce((acc, group) => {
+                const { id, ...groupData } = group;
+                acc[id] = groupData;
+                return acc;
+            }, {});
 
             const response = await fetch('/api/config/system', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ groups: updatedGroups })
+                body: JSON.stringify({ groups: groupsObject })
             });
 
             if (response.ok) {
@@ -124,11 +136,20 @@ const PermissionGroupsSettings = () => {
         if (!confirm(`Delete group "${group.name}"?`)) return;
 
         try {
+            const updatedGroupsArray = groups.filter(g => g.id !== group.id);
+
+            // Convert array back to object format for backend
+            const groupsObject = updatedGroupsArray.reduce((acc, group) => {
+                const { id, ...groupData } = group;
+                acc[id] = groupData;
+                return acc;
+            }, {});
+
             const response = await fetch('/api/config/system', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ groups: groups.filter(g => g.id !== group.id) })
+                body: JSON.stringify({ groups: groupsObject })
             });
 
             if (response.ok) fetchGroups();

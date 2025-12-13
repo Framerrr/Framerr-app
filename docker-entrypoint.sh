@@ -77,6 +77,33 @@ chown -R framerr:framerr /app
 echo "Ensuring /config has correct permissions..."
 chown -R $PUID:$PGID /config
 
+# AUTO-MIGRATION: Check if JSON files exist and database doesn't
+echo ""
+echo "Checking for database migration..."
+if [ -f "/config/users.json" ] && [ ! -f "/config/.migration-complete" ]; then
+    echo "JSON files detected - running automatic migration to SQLite..."
+    echo "This will preserve all your data in the new database format."
+    echo ""
+    
+    # Run migration as framerr user
+    if su-exec framerr node /app/server/scripts/migrate-to-sqlite.js; then
+        echo ""
+        echo "✓ Migration successful!"
+        echo "  Creating marker file to prevent re-migration..."
+        su-exec framerr touch /config/.migration-complete
+        echo "  ✓ Migration complete"
+    else
+        echo ""
+        echo "⚠️  Migration failed - server will start but may not work correctly"
+        echo "    Please check logs and report this issue"
+    fi
+elif [ -f "/config/.migration-complete" ]; then
+    echo "Database already migrated (marker file exists)"
+else
+    echo "No JSON files found - starting with fresh SQLite database"
+fi
+echo ""
+
 echo "Starting Framerr as user: framerr (UID:$PUID, GID:$PGID)"
 echo ""
 

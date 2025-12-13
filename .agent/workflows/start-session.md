@@ -1,60 +1,82 @@
 ---
-description: Initialize a new Framerr development session
+description: Begin a new Framerr development session
 ---
 
-# Start New Framerr Session
+# /start-session
 
 ## Steps
 
-1. **Verify critical files exist:**
-   - Check for `docs/tasks/HANDOFF.md` (required)
-   - Check for `docs/tasks/TASK_CURRENT.md` (required)
-   - Check for `docs/architecture/ARCHITECTURE.md` (optional)
-   - If missing  Invoke `/recover-session`
+1. **Check current branch**
+   ```bash
+   git branch --show-current
+   git status
+   ```
+   
+   **Report to user:**
+   - Current branch name
+   - Whether there are uncommitted changes
+   
+   | Branch | Expected Work |
+   |--------|---------------|
+   | `develop` | General development, bug fixes |
+   | `feature/*` | Specific feature work |
+   | `main` | ⚠️ WARNING - should not work directly on main |
 
-2. **Read current state documents in order:**
-   - Read `docs/CHATFLOW.md` - Quick start guide (understand the workflow system)
-   - Read `docs/tasks/HANDOFF.md` - Focus on CRITICAL CONTEXT section first
-   - Read `docs/tasks/TASK_CURRENT.md` - Check for "SESSION END" marker at bottom of file  
-   - If no "SESSION END" marker or "Ready for next session" status  Invoke `/recover-session`
-   - Read `docs/architecture/PROJECT_SCOPE.md` (optional - for vision/design philosophy context)
-   - Skim `docs/tasks/TASK_BACKLOG.md` (awareness - know what's planned)
-   - Read `docs/architecture/ARCHITECTURE.md` (if working with files/structure)
-   - **Read `docs/dashboard/IMPLEMENTATION_PLAN.md` (MANDATORY if working on dashboard features)**
-   - **Read `docs/theming/THEMING_ENGINE.md` (MANDATORY before creating/editing UI components)**
-   - **Reference `.agent/rules/theming-rules.md` (BLOCKING rules for UI work)**
+2. **Read system hub**
+   ```
+   Read .agent/AGENT.md
+   ```
+   - Understand file map
+   - Know task type requirements
+   - Know prohibited behaviors
 
-3. **Initialize checkpoint tracking:**
-   - Set tool call counter to 0
-   - Set next checkpoint at #10
-   - Note in task_boundary: "Tool calls: 0, Next checkpoint: #10"
+3. **Read session state**
+   ```
+   Read docs/chatflow/TASK_CURRENT.md
+   ```
+   - Find SESSION END marker
+   - Know where last session ended
+   - **Check Version Tracking section**
+   - **Verify branch matches expected** (from last session)
 
-4. **Summarize back to user:**
-   - Current phase and status
-   - Last completed work
-   - Current task (or "Awaiting assignment")
-   - Checkpoint system initialized
-   - Available workflows:
-     * `/build-develop` - Deploy to develop
-     * `/build-production` - Create production release  
-     * `/checkpoint` - Manual context check
-     * `/end-session` - Wrap up session
-     * `/recover-session` - Emergency recovery
-     * `/code-audit` - Code quality cleanup
-     * `/git-workflow` - Git operations guide
+4. **Check changelog status**
+   
+   Look at "Version Tracking" section in TASK_CURRENT.md:
+   
+   | If Draft Status is... | Action |
+   |-----------------------|--------|
+   | DRAFT - In Development | Continue updating existing draft changelog |
+   | (no draft exists) | Create new draft after production release |
+   
+   **⚠️ NEVER create a new draft if one already exists with DRAFT status!**
 
-5. **CRITICAL: Remind about git commits:**
-   > [!IMPORTANT]
-   > **Auto-commit after EVERY change** to enable easy reversion if files get corrupted.
-   > After implementing each feature or fix:
-   > 1. Check for file corruption (large file size, syntax errors)
-   > 2. If clean  Auto-commit with descriptive message
-   > 3. If corrupted  Alert user, do NOT commit corrupted files
-   > ```bash
-   > git add .
-   > git commit -m "feat: descriptive message"
-   > ```
+5. **Identify task type from user request**
+   - UI work → read `docs/reference/theming.md`
+   - Architecture work → read `docs/reference/architecture.md`
+   - Widget work → read `docs/reference/widgets.md`
+   - If doc doesn't exist → ask user before proceeding
 
-6. **Wait for task assignment** from user
-   - Don't start coding yet
-   - Ask clarifying questions if needed
+6. **Summarize to user**
+   - **Current branch** (highlight if not develop)
+   - Current version info (last release, draft version)
+   - Where we left off
+   - What they want to do now
+   - Ready to plan (await approval before executing)
+
+---
+
+## Adaptability Check
+
+**If you notice the CHATFLOW system is missing something:**
+- New file type not tracked
+- Workflow doesn't cover a scenario
+- Documentation structure changed
+
+**DO:**
+1. Point it out to the user
+2. Propose the update
+3. Wait for user confirmation before changing any workflow/system files
+
+**DON'T:**
+- Silently modify CHATFLOW system files
+- Assume the change is wanted

@@ -1,8 +1,10 @@
-const fs = require('fs').promises;
-const path = require('path');
+const { db } = require('../database/db');
 const logger = require('../utils/logger');
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
-const SYSTEM_CONFIG_PATH = path.join(DATA_DIR, 'config.json');
+
+// In-memory cache to prevent repeated database queries
+let configCache = null;
+let cacheTimestamp = null;
+
 // Default system configuration
 const DEFAULT_CONFIG = {
     server: {
@@ -65,49 +67,106 @@ const DEFAULT_CONFIG = {
         { id: 'system', name: 'System', order: 2 }
     ]
 };
+
 /**
- * Initialize system config if it doesn't exist
+ * Helper: Rebuild nested config object from flattened key-value pairs
  */
-async function initSystemConfig() {
-    try {
-        await fs.access(SYSTEM_CONFIG_PATH);
-    } catch {
-        logger.info('Initializing system config...');
-        try {
-            await fs.mkdir(DATA_DIR, { recursive: true });
-            await fs.writeFile(SYSTEM_CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
-            logger.info('System config created at ' + SYSTEM_CONFIG_PATH);
-        } catch (error) {
-            logger.error('Failed to initialize system config', { error: error.message });
-            throw error;
+function buildConfigFromKeyValues(rows) {
+    const config = { ...DEFAULT_CONFIG };
+
+    for (const row of rows) {
+        const { key, value } = row;
+        const parsed = JSON.parse(value);
+
+        // Map keys to config structure
+        switch (key) {
+            case 'server':
+                config.server = { ...config.server, ...parsed };
+                break;
+            case 'auth.local':
+                config.auth.local = { ...config.auth.local, ...parsed };
+                break;
+            case 'auth.proxy':
+                config.auth.proxy = { ...config.auth.proxy, ...parsed };
+                break;
+            case 'auth.iframe':
+                config.auth.iframe = { ...config.auth.iframe, ...parsed };
+                break;
+            case 'auth.session':
+                config.auth.session = { ...config.auth.session, ...parsed };
+                break;
+            case 'integrations':
+                config.integrations = { ...config.integrations, ...parsed };
+                break;
+            case 'groups':
+                config.groups = parsed;
+                break;
+            case 'defaultGroup':
+                config.defaultGroup = parsed;
+                break;
+            case 'tabGroups':
+                config.tabGroups = parsed;
+                break;
+            case 'debug':
+                config.debug = parsed;
+                break;
+            case 'favicon':
+                config.favicon = parsed;
+                break;
         }
     }
+
+    return config;
 }
+
 /**
- * Read system configuration
+ * Read system configuration from SQLite (with in-memory caching)
  * @returns {Promise<object>} System configuration
  */
 async function getSystemConfig() {
-    await initSystemConfig();
     try {
-        const data = await fs.readFile(SYSTEM_CONFIG_PATH, 'utf8');
-        return JSON.parse(data);
+        // Return cached config if available
+        if (configCache !== null) {
+            return configCache;
+        }
+
+        const rows = db.prepare('SELECT key, value FROM system_config').all();
+
+        // If no config exists, cache and return defaults
+        if (rows.length === 0) {
+            logger.info('No system config in database, returning defaults');
+            configCache = DEFAULT_CONFIG;
+            cacheTimestamp = Date.now();
+            return DEFAULT_CONFIG;
+        }
+
+        const config = buildConfigFromKeyValues(rows);
+
+        // Cache the config
+        configCache = config;
+        cacheTimestamp = Date.now();
+        logger.debug('System config loaded and cached', { timestamp: cacheTimestamp });
+
+        return config;
     } catch (error) {
-        logger.error('Failed to read system config', { error: error.message });
+        logger.error('Failed to read system config from database', { error: error.message });
         throw error;
     }
 }
+
 /**
- * Update system configuration
+ * Update system configuration in SQLite
  * @param {object} updates - Partial updates to apply
  * @returns {Promise<object>} Updated configuration
  */
 async function updateSystemConfig(updates) {
     const currentConfig = await getSystemConfig();
+
     // VALIDATION: Prevent modification/deletion of system groups
     if (updates.groups) {
         throw new Error('Permission groups cannot be modified. Groups are locked to: admin, user, guest');
     }
+
     // Build new config explicitly to avoid merge issues
     const newConfig = {
         server: { ...currentConfig.server, ...(updates.server || {}) },
@@ -124,15 +183,63 @@ async function updateSystemConfig(updates) {
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
         tabGroups: updates.tabGroups || currentConfig.tabGroups
     };
+
     try {
-        await fs.writeFile(SYSTEM_CONFIG_PATH, JSON.stringify(newConfig, null, 2));
-        logger.info('System configuration updated');
+        // Prepare UPSERT statements for each top-level config key
+        const upsert = db.prepare(`
+            INSERT INTO system_config (key, value)
+            VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        `);
+
+        // Update all config sections as separate key-value pairs
+        const updateMany = db.transaction(() => {
+            if (updates.server) {
+                upsert.run('server', JSON.stringify(newConfig.server));
+            }
+            if (updates.auth?.local) {
+                upsert.run('auth.local', JSON.stringify(newConfig.auth.local));
+            }
+            if (updates.auth?.proxy) {
+                upsert.run('auth.proxy', JSON.stringify(newConfig.auth.proxy));
+            }
+            if (updates.auth?.iframe) {
+                upsert.run('auth.iframe', JSON.stringify(newConfig.auth.iframe));
+            }
+            if (updates.auth?.session) {
+                upsert.run('auth.session', JSON.stringify(newConfig.auth.session));
+            }
+            if (updates.integrations) {
+                upsert.run('integrations', JSON.stringify(newConfig.integrations));
+            }
+            if (updates.debug) {
+                upsert.run('debug', JSON.stringify(newConfig.debug));
+            }
+            if (updates.favicon !== undefined) {
+                upsert.run('favicon', JSON.stringify(newConfig.favicon));
+            }
+            if (updates.defaultGroup) {
+                upsert.run('defaultGroup', JSON.stringify(newConfig.defaultGroup));
+            }
+            if (updates.tabGroups) {
+                upsert.run('tabGroups', JSON.stringify(newConfig.tabGroups));
+            }
+        });
+
+        updateMany();
+
+        // Invalidate cache after update
+        configCache = null;
+        cacheTimestamp = null;
+        logger.info('System configuration updated in database (cache invalidated)');
+
         return newConfig;
     } catch (error) {
-        logger.error('Failed to update system config', { error: error.message });
+        logger.error('Failed to update system config in database', { error: error.message });
         throw error;
     }
-};
+}
+
 module.exports = {
     getSystemConfig,
     updateSystemConfig,

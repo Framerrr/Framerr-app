@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.10] - 2025-12-13
+
+### Added
+- **Database Migration System:**
+  - Automatic schema migrations on server startup
+  - Auto-backup before migrations (keeps last 3 backups)
+  - Downgrade detection (prevents data loss from version mismatch)
+  - JSON column utilities for flexible data updates
+
+### Changed
+- **Internal:**
+  - CHATFLOW v2.0 agent workflow system
+  - Documentation cleanup and reorganization
+
+### Fixed
+- SQLite migration stability improvements
+- Fresh install database initialization
+- User creation timestamp handling
+
+---
+
+## [1.1.9] - 2025-12-10
+
+### Added
+- **Integration-Aware Widgets System:**
+  - All integration widgets now check `enabled` state from `AppDataContext`
+  - Real-time updates via `integrationsUpdated` event system
+  - Widgets automatically stop polling when integration disabled
+  - No page refresh required - updates happen instantly
+  - Standardized `IntegrationDisabledMessage` component across all widgets
+
+- **System Health Multi-Backend Support:**
+  - Backend selector UI with card-based selection (Glances, Custom API)
+  - Glances API v4 support with Docker networking
+  - Separate configuration components per backend (`GlancesConfig`, `CustomBackendConfig`)
+  - New backend selector component (`BackendSelector.jsx`)
+  - Multiple backend endpoint support for real-time and historical data
+
+- **Widget Enhancements:**
+  - Glass gradient effect on popover arrows (System Status, Calendar)
+  - Episode/movie popovers for Sonarr/Radarr widgets with detailed information
+  - Interactive popover improvements across all widgets (QBittorrent, Plex, Overseerr)
+  - Larger, theme-compliant graph popovers
+  - Improved arrow styling across all interactive widgets
+
+### Fixed
+- **Widget Stability:**
+  - Chart flashing caused by dependency loop in System Status widget
+  - Temperature graph API field (`temp` vs `temperature`)
+  - Memoized config to prevent chart re-rendering
+  - Graph popover sizing and theme compliance
+
+### Changed
+- **Architecture:**
+  - `AppDataContext` now exposes `integrations` state to all widgets
+  - Event-driven integration updates (no more page refresh required)
+  - Standardized integration status checking pattern across all widgets
+  - Enhanced proxy routes in `server/routes/proxy.js` for backend flexibility
+
+### Technical
+- Merged `feat/widget-optimization` branch (9 commits)
+- All 6 integration widgets updated: Plex, Sonarr, Radarr, qBittorrent, Overseerr, SystemStatus
+- New components: `IntegrationDisabledMessage`, `BackendSelector`, `SystemHealthIntegration`
+- Backend-specific configs: `GlancesConfig`, `CustomBackendConfig`
+
+---
+
 ## [1.1.8] - 2025-12-10
 
 ### Added

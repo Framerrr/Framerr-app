@@ -1,10 +1,16 @@
 # Development Guides
 
-This directory contains developer guides and references.
+Developer guides and references for Framerr.
 
 ## Files
 
-- **WIDGET_DEVELOPMENT_GUIDE.md** - How to create custom widgets
-- **LOGGING_REFERENCE.md** - Logging system usage and best practices
-- **DOCKER_BUILDS.md** - Docker development and debug build guide
-- **MOBILE_LAYOUT_ALGORITHM.md** - Mobile responsive layout documentation (if exists)
+- **DOCKER_BUILDS.md** - Docker build types and debugging
+- **LOGGING_REFERENCE.md** - Logging system usage
+- **WIDGET_DEVELOPMENT_GUIDE.md** - How to create widgets
+
+## Quick Reference
+
+For quick lookups, see `docs/reference/`:
+- `architecture.md` - System architecture
+- `theming.md` - Theming quick reference  
+- `widgets.md` - Widget development quick reference

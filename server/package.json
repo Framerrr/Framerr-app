@@ -1,6 +1,6 @@
 {
     "name": "framerr-server",
-    "version": "1.1.9",
+    "version": "1.1.10",
     "description": "Backend API server for Framerr",
     "main": "index.js",
     "scripts": {
@@ -11,6 +11,7 @@
         "adm-zip": "^0.5.16",
         "axios": "^1.6.2",
         "bcryptjs": "^3.0.3",
+        "better-sqlite3": "^11.7.0",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
         "dotenv": "^16.3.1",

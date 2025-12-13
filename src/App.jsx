@@ -6,10 +6,12 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SystemConfigProvider } from './context/SystemConfigContext';
 import { AppDataProvider } from './context/AppDataContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import FaviconInjector from './components/FaviconInjector';
 import AppTitle from './components/AppTitle';
+import ToastContainer from './components/notifications/ToastContainer';
 
 import Login from './pages/Login';
 import Setup from './pages/Setup';
@@ -56,27 +58,30 @@ const App = () => {
                 <ThemeProvider>
                     <SystemConfigProvider>
                         <AppDataProvider>
-                            <Routes>
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/setup" element={<Setup />} />
-                                <Route path="/animation-test" element={<AnimationTest />} />
+                            <NotificationProvider>
+                                <ToastContainer />
+                                <Routes>
+                                    <Route path="/login" element={<Login />} />
+                                    <Route path="/setup" element={<Setup />} />
+                                    <Route path="/animation-test" element={<AnimationTest />} />
 
-                                {/* Protected Routes with Themed Wrapper */}
-                                <Route path="/*" element={
-                                    <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                                        <ProtectedRoute>
-                                            <div className="flex w-full h-screen">
-                                                <Sidebar />
-                                                <main className="flex-1 overflow-y-auto pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
-                                                    <Routes>
-                                                        <Route path="/*" element={<MainContent />} />
-                                                    </Routes>
-                                                </main>
-                                            </div>
-                                        </ProtectedRoute>
-                                    </div>
-                                } />
-                            </Routes>
+                                    {/* Protected Routes with Themed Wrapper */}
+                                    <Route path="/*" element={
+                                        <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                                            <ProtectedRoute>
+                                                <div className="flex w-full h-screen">
+                                                    <Sidebar />
+                                                    <main className="flex-1 overflow-y-auto pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
+                                                        <Routes>
+                                                            <Route path="/*" element={<MainContent />} />
+                                                        </Routes>
+                                                    </main>
+                                                </div>
+                                            </ProtectedRoute>
+                                        </div>
+                                    } />
+                                </Routes>
+                            </NotificationProvider>
                         </AppDataProvider>
                     </SystemConfigProvider>
                 </ThemeProvider>
