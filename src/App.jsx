@@ -71,7 +71,7 @@ const App = () => {
                                             <ProtectedRoute>
                                                 <div className="flex w-full h-screen">
                                                     <Sidebar />
-                                                    <main className="flex-1 overflow-y-auto pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
+                                                    <main className="flex-1 pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
                                                         <Routes>
                                                             <Route path="/*" element={<MainContent />} />
                                                         </Routes>

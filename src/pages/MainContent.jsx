@@ -24,12 +24,13 @@ const MainContent = () => {
 
     // Always render both components, toggle visibility with display
     // This prevents TabContainer from unmounting when navigating to settings
+    // Each page has its own overflow-y-auto for independent scroll positions
     return (
         <>
-            <div style={{ display: isSettings ? 'none' : 'flex', height: '100%', width: '100%' }}>
+            <div style={{ display: isSettings ? 'none' : 'flex', height: '100%', width: '100%', overflowY: 'auto' }}>
                 <DashboardOrTabs />
             </div>
-            <div style={{ display: isSettings ? 'flex' : 'none', height: '100%', width: '100%' }}>
+            <div style={{ display: isSettings ? 'flex' : 'none', height: '100%', width: '100%', overflowY: 'auto' }}>
                 <UserSettings />
             </div>
         </>

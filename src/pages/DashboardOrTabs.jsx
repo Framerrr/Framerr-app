@@ -36,12 +36,13 @@ const DashboardOrTabs = () => {
 
     // Always render both components, use display to toggle visibility
     // This keeps TabContainer (and its iframes) mounted when navigating to dashboard
+    // Each section has its own overflow-y-auto for independent scroll positions
     return (
         <>
-            <div style={{ display: showTabs ? 'none' : 'flex', height: '100%', width: '100%' }}>
+            <div style={{ display: showTabs ? 'none' : 'flex', height: '100%', width: '100%', overflowY: 'auto' }}>
                 <Dashboard />
             </div>
-            <div style={{ display: showTabs ? 'flex' : 'none', height: '100%', width: '100%' }}>
+            <div style={{ display: showTabs ? 'flex' : 'none', height: '100%', width: '100%', overflowY: 'auto' }}>
                 <TabContainer />
             </div>
         </>
