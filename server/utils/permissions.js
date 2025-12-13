@@ -13,8 +13,15 @@ async function hasPermission(user, permission) {
     try {
         const config = await getSystemConfig();
 
-        // groups is stored as object {"admin":{...},"user":{...}} in database
-        const group = config.groups[user.group];
+        // Handle both array format (new) and object format (legacy)
+        // Array: [{id: 'admin', ...}, {id: 'user', ...}]
+        // Object: {'admin': {...}, 'user': {...}}
+        let group;
+        if (Array.isArray(config.groups)) {
+            group = config.groups.find(g => g.id === user.group);
+        } else {
+            group = config.groups[user.group];
+        }
 
         if (!group) {
             logger.warn(`User ${user.username} belongs to unknown group ${user.group}`);
@@ -48,8 +55,15 @@ async function getUserPermissions(user) {
 
     try {
         const config = await getSystemConfig();
-        // groups is stored as object {"admin":{...},"user":{...}}
-        const group = config.groups[user.group];
+
+        // Handle both array format (new) and object format (legacy)
+        let group;
+        if (Array.isArray(config.groups)) {
+            group = config.groups.find(g => g.id === user.group);
+        } else {
+            group = config.groups[user.group];
+        }
+
         return group && group.permissions ? group.permissions : [];
     } catch (error) {
         logger.error('Failed to get user permissions', { error: error.message });
