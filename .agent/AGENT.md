@@ -98,6 +98,34 @@ This includes:
 ❌ **NEVER commit broken code:**
 - Fix build errors before committing
 
+❌ **NEVER use browser for testing:**
+- User will always test manually
+- Instead, tell user: "Ready to test! Check: [specific things to verify]"
+- User will provide feedback after testing
+
+---
+
+## Testing Protocol
+
+**Agent does:**
+- Run `npm run build` to verify code compiles
+- Ensure no syntax/import errors
+
+**User does:**
+- All browser/UI testing
+- All functional testing
+- Provides feedback
+
+**After code changes, provide test guidance:**
+```
+Ready for testing! Please verify:
+- [ ] [Specific feature/fix works]
+- [ ] [No regressions in related areas]
+- [ ] [Edge case if relevant]
+```
+
+User will return with feedback - expect iteration.
+
 ---
 
 ## Critical Rules (Always Active)
