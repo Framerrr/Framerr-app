@@ -1,0 +1,432 @@
+import React, { useState, useEffect } from 'react';
+import { Bell, Volume2, VolumeX, ChevronDown, ChevronRight, Play } from 'lucide-react';
+import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNotifications } from '../../context/NotificationContext';
+import { Button } from '../common/Button';
+import logger from '../../utils/logger';
+
+/**
+ * NotificationSettings Component
+ * 
+ * Standalone settings tab for configuring notification preferences
+ * - Enable/disable notifications globally
+ * - Enable/disable notification sounds
+ * - Test notifications button
+ * - Per-integration notification toggles (expandable sections)
+ */
+const NotificationSettings = () => {
+    const { info: showInfoToast, addNotification } = useNotifications();
+
+    // General settings
+    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [notificationSound, setNotificationSound] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    // Integration notification settings
+    const [integrationSettings, setIntegrationSettings] = useState({
+        plex: { enabled: true, sessionStart: true, sessionEnd: true },
+        sonarr: { enabled: true, downloadComplete: true },
+        radarr: { enabled: true, downloadComplete: true },
+        qbittorrent: { enabled: true, downloadComplete: true },
+        overseerr: { enabled: true, requestApproved: true, requestAvailable: true },
+        systemHealth: { enabled: true, resourceAlerts: true }
+    });
+
+    // Expanded sections state
+    const [expandedSections, setExpandedSections] = useState({});
+
+    // Load settings on mount
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const response = await axios.get('/api/config/user', {
+                    withCredentials: true
+                });
+
+                if (response.data?.preferences?.notifications) {
+                    const notifPrefs = response.data.preferences.notifications;
+                    setNotificationsEnabled(notifPrefs.enabled ?? true);
+                    setNotificationSound(notifPrefs.sound ?? false);
+
+                    if (notifPrefs.integrations) {
+                        setIntegrationSettings(prev => ({
+                            ...prev,
+                            ...notifPrefs.integrations
+                        }));
+                    }
+                }
+            } catch (error) {
+                logger.error('Failed to load notification settings:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadSettings();
+    }, []);
+
+    // Save settings when changed
+    const saveSettings = async (updates) => {
+        setSaving(true);
+        try {
+            await axios.put('/api/config/user', {
+                preferences: {
+                    notifications: {
+                        enabled: updates.enabled ?? notificationsEnabled,
+                        sound: updates.sound ?? notificationSound,
+                        integrations: updates.integrations ?? integrationSettings
+                    }
+                }
+            }, {
+                withCredentials: true
+            });
+
+            logger.info('Notification settings saved');
+        } catch (error) {
+            logger.error('Failed to save notification settings:', error);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleToggleNotifications = async (enabled) => {
+        setNotificationsEnabled(enabled);
+        await saveSettings({ enabled });
+    };
+
+    const handleToggleSound = async (enabled) => {
+        setNotificationSound(enabled);
+        await saveSettings({ sound: enabled });
+    };
+
+    const handleToggleIntegration = async (integrationId, field, value) => {
+        const updated = {
+            ...integrationSettings,
+            [integrationId]: {
+                ...integrationSettings[integrationId],
+                [field]: value
+            }
+        };
+        setIntegrationSettings(updated);
+        await saveSettings({ integrations: updated });
+    };
+
+    const toggleSection = (id) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    const sendTestNotification = async () => {
+        try {
+            // Create notification in backend
+            const response = await axios.post('/api/notifications', {
+                title: 'Test Notification',
+                message: 'This is a test notification to demonstrate how notifications appear!',
+                type: 'info'
+            }, {
+                withCredentials: true
+            });
+
+            // Show toast popup
+            showInfoToast(
+                'Test Notification',
+                'This is a test notification to demonstrate how notifications appear!'
+            );
+
+            // Add to notification center immediately (from response)
+            if (response.data) {
+                addNotification(response.data);
+            }
+        } catch (error) {
+            logger.error('Failed to create test notification:', error);
+        }
+    };
+
+    // Integration configurations for UI
+    const integrations = [
+        {
+            id: 'plex',
+            name: 'Plex',
+            description: 'Media server notifications',
+            icon: '🎬',
+            options: [
+                { key: 'sessionStart', label: 'Session started' },
+                { key: 'sessionEnd', label: 'Session ended' }
+            ]
+        },
+        {
+            id: 'sonarr',
+            name: 'Sonarr',
+            description: 'TV show download notifications',
+            icon: '📺',
+            options: [
+                { key: 'downloadComplete', label: 'Download complete' }
+            ]
+        },
+        {
+            id: 'radarr',
+            name: 'Radarr',
+            description: 'Movie download notifications',
+            icon: '🎥',
+            options: [
+                { key: 'downloadComplete', label: 'Download complete' }
+            ]
+        },
+        {
+            id: 'qbittorrent',
+            name: 'qBittorrent',
+            description: 'Torrent client notifications',
+            icon: '⬇️',
+            options: [
+                { key: 'downloadComplete', label: 'Download complete' }
+            ]
+        },
+        {
+            id: 'overseerr',
+            name: 'Overseerr',
+            description: 'Media request notifications',
+            icon: '🎟️',
+            options: [
+                { key: 'requestApproved', label: 'Request approved' },
+                { key: 'requestAvailable', label: 'Media available' }
+            ]
+        },
+        {
+            id: 'systemHealth',
+            name: 'System Health',
+            description: 'System resource alerts',
+            icon: '💻',
+            options: [
+                { key: 'resourceAlerts', label: 'Resource alerts (high CPU/memory)' }
+            ]
+        }
+    ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+                    <p className="text-theme-secondary">Loading settings...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6 fade-in">
+            {/* Header */}
+            <div>
+                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
+                    Notification Settings
+                </h2>
+                <p className="text-sm text-theme-secondary">
+                    Configure how you receive notifications throughout the application
+                </p>
+            </div>
+
+            {/* General Settings Section */}
+            <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                <h3 className="text-lg font-semibold text-theme-primary mb-4 flex items-center gap-2">
+                    <Bell size={20} />
+                    General Settings
+                </h3>
+
+                <div className="space-y-4">
+                    {/* Master Enable Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
+                        <div className="flex-1">
+                            <div className="text-sm font-medium text-theme-primary mb-1">
+                                Enable Notifications
+                            </div>
+                            <div className="text-xs text-theme-tertiary">
+                                {notificationsEnabled
+                                    ? 'Receive toast notifications for important events'
+                                    : 'All notifications are disabled'}
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={notificationsEnabled}
+                                onChange={(e) => handleToggleNotifications(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                        </label>
+                    </div>
+
+                    {/* Sound Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
+                        <div className="flex-1 flex items-center gap-3">
+                            {notificationSound ? (
+                                <Volume2 size={20} className="text-accent" />
+                            ) : (
+                                <VolumeX size={20} className="text-theme-tertiary" />
+                            )}
+                            <div>
+                                <div className="text-sm font-medium text-theme-primary mb-1">
+                                    Notification Sound
+                                </div>
+                                <div className="text-xs text-theme-tertiary">
+                                    {notificationSound
+                                        ? 'Play a sound when notifications appear'
+                                        : 'Notifications are silent'}
+                                </div>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={notificationSound}
+                                onChange={(e) => handleToggleSound(e.target.checked)}
+                                disabled={!notificationsEnabled}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                        </label>
+                    </div>
+
+                    {/* Test Notification */}
+                    <div className="p-4 bg-info/10 border border-info/30 rounded-lg">
+                        <h4 className="text-sm font-medium text-theme-primary mb-2">
+                            Test Notifications
+                        </h4>
+                        <p className="text-xs text-theme-secondary mb-4">
+                            Send a test notification to preview how notifications will appear.
+                        </p>
+                        <Button
+                            onClick={sendTestNotification}
+                            disabled={!notificationsEnabled}
+                            variant="secondary"
+                            icon={Play}
+                        >
+                            Send Test Notification
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Integration Notifications Section */}
+            <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                <h3 className="text-lg font-semibold text-theme-primary mb-2 flex items-center gap-2">
+                    <Bell size={20} />
+                    Integration Notifications
+                </h3>
+                <p className="text-sm text-theme-secondary mb-6">
+                    Configure which integrations send you notifications. These require the corresponding integration to be enabled in Widgets → Integrations.
+                </p>
+
+                <div className="space-y-3">
+                    {integrations.map((integration) => {
+                        const isExpanded = expandedSections[integration.id];
+                        const settings = integrationSettings[integration.id] || {};
+                        const isEnabled = settings.enabled !== false;
+
+                        return (
+                            <div
+                                key={integration.id}
+                                className="border border-theme rounded-lg overflow-hidden"
+                            >
+                                {/* Integration Header */}
+                                <button
+                                    onClick={() => toggleSection(integration.id)}
+                                    className="w-full flex items-center justify-between p-4 bg-theme-secondary hover:bg-theme-hover transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">{integration.icon}</span>
+                                        <div className="text-left">
+                                            <div className="text-sm font-medium text-theme-primary">
+                                                {integration.name}
+                                            </div>
+                                            <div className="text-xs text-theme-tertiary">
+                                                {integration.description}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`text-xs px-2 py-1 rounded ${isEnabled ? 'bg-success/20 text-success' : 'bg-theme-tertiary text-theme-tertiary'}`}>
+                                            {isEnabled ? 'Enabled' : 'Disabled'}
+                                        </span>
+                                        {isExpanded ? (
+                                            <ChevronDown size={18} className="text-theme-secondary" />
+                                        ) : (
+                                            <ChevronRight size={18} className="text-theme-secondary" />
+                                        )}
+                                    </div>
+                                </button>
+
+                                {/* Expanded Options */}
+                                <AnimatePresence>
+                                    {isExpanded && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="p-4 bg-theme-tertiary border-t border-theme space-y-3">
+                                                {/* Master Toggle for Integration */}
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-theme-primary font-medium">
+                                                        Enable {integration.name} notifications
+                                                    </span>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isEnabled}
+                                                            onChange={(e) => handleToggleIntegration(integration.id, 'enabled', e.target.checked)}
+                                                            disabled={!notificationsEnabled}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="w-9 h-5 bg-theme-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-disabled:opacity-50"></div>
+                                                    </label>
+                                                </div>
+
+                                                {/* Individual notification type toggles */}
+                                                {isEnabled && integration.options.map((option) => (
+                                                    <div
+                                                        key={option.key}
+                                                        className="flex items-center justify-between pl-4 border-l-2 border-theme"
+                                                    >
+                                                        <span className="text-sm text-theme-secondary">
+                                                            {option.label}
+                                                        </span>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={settings[option.key] !== false}
+                                                                onChange={(e) => handleToggleIntegration(integration.id, option.key, e.target.checked)}
+                                                                disabled={!notificationsEnabled}
+                                                                className="sr-only peer"
+                                                            />
+                                                            <div className="w-9 h-5 bg-theme-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-disabled:opacity-50"></div>
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Info Note */}
+                <div className="mt-6 p-4 bg-warning/10 border border-warning/30 rounded-lg">
+                    <p className="text-xs text-theme-secondary">
+                        <strong className="text-warning">Note:</strong> Integration notifications require the corresponding service to be configured in the Widgets → Integrations settings. Notifications will only appear when those integrations are enabled and connected.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default NotificationSettings;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
+import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { isAdmin } from '../utils/permissions';
@@ -9,6 +9,7 @@ import { Card } from '../components/common/Card';
 import UserTabsSettings from '../components/settings/UserTabsSettings';
 import CustomizationSettings from '../components/settings/CustomizationSettings';
 import ProfileSettings from '../components/settings/ProfileSettings';
+import NotificationSettings from '../components/settings/NotificationSettings';
 
 // Admin Settings Components
 import UsersSettings from '../components/settings/UsersSettings';
@@ -55,6 +56,7 @@ const UserSettings = () => {
         ...(hasAdminAccess ? [{ id: 'tabgroups', label: 'Tab Groups', icon: FolderTree }] : []),
         { id: 'customization', label: 'Customization', icon: SettingsIcon },
         { id: 'profile', label: 'Profile', icon: User },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
     ];
 
     // Admin tabs (only for admins)
@@ -173,6 +175,17 @@ const UserSettings = () => {
                             transition={contentSpring}
                         >
                             <ProfileSettings />
+                        </motion.div>
+                    )}
+                    {activeTab === 'notifications' && (
+                        <motion.div
+                            key="notifications"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <NotificationSettings />
                         </motion.div>
                     )}
 
