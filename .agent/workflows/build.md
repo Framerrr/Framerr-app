@@ -32,6 +32,38 @@ description: Build and deploy Docker images (develop or production)
 
 ---
 
+## Git Branch Hierarchy
+
+```
+main         ← Production releases (squash merge from develop)
+  ↑
+develop      ← Active development (regular merges)
+  ↑
+feature/*    ← Isolated features (with user approval)
+```
+
+### Rules
+
+| Branch | Commits | Merge Type | Push to GitHub |
+|--------|---------|------------|----------------|
+| `feature/*` | Messy OK | Regular merge → develop | Optional |
+| `develop` | Frequent OK | **Squash merge** → main | Yes (backup) |
+| `main` | Clean history | Only via squash merge | Yes |
+
+### When to Use Feature Branches
+
+**Ask user first!** Create feature branch when:
+- Large feature that spans multiple sessions
+- Experimental changes that might be reverted
+- User explicitly requests isolation
+
+**Stay on develop when:**
+- Small fixes or improvements
+- Single-session work
+- User doesn't specify
+
+---
+
 ## Production Build
 
 ### Pre-flight
@@ -78,12 +110,15 @@ description: Build and deploy Docker images (develop or production)
    ```
 
 ### Git Operations
-7. **Merge to main** (requires user approval)
+7. **Squash merge to main** (requires user approval)
    ```bash
    git checkout main
-   git merge develop
+   git merge --squash develop
+   git commit -m "release: vX.X.X - [summary of changes]"
    git push origin main
    ```
+   
+   ⚠️ Squash merge creates ONE clean commit on main with all develop changes
 
 8. **Tag release**
    ```bash
