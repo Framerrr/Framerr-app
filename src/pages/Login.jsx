@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { Lock, User, AlertCircle, Loader } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,6 +12,7 @@ const Login = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { login, isAuthenticated, loading: authLoading } = useAuth();
+    const { success: showSuccess } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -31,6 +33,7 @@ const Login = () => {
         try {
             const result = await login(username, password, rememberMe);
             if (result.success) {
+                showSuccess('Welcome!', 'You have successfully logged in');
                 navigate(from, { replace: true });
             } else {
                 setError(result.error || 'Login failed');

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { setNotificationFunctions } from '../utils/axiosSetup';
 import logger from '../utils/logger';
 
 export const NotificationContext = createContext(null);
@@ -94,6 +95,11 @@ export const NotificationProvider = ({ children }) => {
     const info = useCallback((title, message, options) => {
         return showToast('info', title, message, options);
     }, [showToast]);
+
+    // Configure axios interceptor with notification functions
+    useEffect(() => {
+        setNotificationFunctions({ error });
+    }, [error]);
 
     // Add notification to center (from backend or SSE)
     const addNotification = useCallback((notification) => {

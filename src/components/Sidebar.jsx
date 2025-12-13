@@ -21,7 +21,7 @@ const Sidebar = () => {
     const hoverTimeoutRef = React.useRef(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
-    const { unreadCount } = useNotifications();
+    const { unreadCount, info: showInfo } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -110,6 +110,7 @@ const Sidebar = () => {
     }, []);
 
     const handleLogout = async () => {
+        showInfo('Goodbye!', 'You have been logged out');
         await logout();
         navigate('/login');
     };
