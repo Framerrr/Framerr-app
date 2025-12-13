@@ -100,7 +100,7 @@ async function createUser(userData) {
             userData.email || null,
             userData.group || 'user',
             userData.isSetupAdmin ? 1 : 0,
-            Math.floor(new Date(createdAt).getTime() / 1000),
+            createdAt,  // Already in seconds from line 87
             null
         );
 
