@@ -25,7 +25,14 @@ const UsersSettings = () => {
     // Compute which groups have admin permissions
     const adminGroups = useMemo(() => {
         if (!systemConfig?.groups) return new Set(['admin']);
-        const groups = systemConfig.groups
+
+        // Convert groups object to array: {"admin":{...}, "user":{...}} => [{id:"admin",...}, {id:"user",...}]
+        const groupsArray = Object.entries(systemConfig.groups || {}).map(([id, group]) => ({
+            id,
+            ...group
+        }));
+
+        const groups = groupsArray
             .filter(g => g.permissions && g.permissions.includes('*'))
             .map(g => g.id);
         return new Set(groups);
@@ -60,7 +67,12 @@ const UsersSettings = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                setPermissionGroups(data.groups || []);
+                // Convert groups object to array for select options
+                const groupsArray = Object.entries(data.groups || {}).map(([id, group]) => ({
+                    id,
+                    name: group.name
+                }));
+                setPermissionGroups(groupsArray);
             }
         } catch (error) {
             logger.error('Error fetching permission groups:', error);
