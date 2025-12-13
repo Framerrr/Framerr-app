@@ -56,7 +56,7 @@ router.get('/:id/file', async (req, res) => {
         }
 
         // Use icon.filePath (the actual file path) not icon.filename
-        const filePath = customIconsDB.getIconPath(icon.filePath);
+        const filePath = await customIconsDB.getIconPath(icon.filePath);
         res.sendFile(filePath);
     } catch (error) {
         logger.error('Failed to serve custom icon', { error: error.message });
