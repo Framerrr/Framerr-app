@@ -27,9 +27,16 @@ router.get('/', requireAuth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Return user without password hash
+        // Get user config to fetch profilePicture from preferences
+        const config = await getUserConfig(req.user.id);
+        const profilePicture = config.preferences?.profilePicture || null;
+
+        // Return user without password hash, but include profilePicture from preferences
         const { passwordHash, ...userProfile } = user;
-        res.json(userProfile);
+        res.json({
+            ...userProfile,
+            profilePicture  // Add profilePicture from preferences
+        });
     } catch (error) {
         logger.error('Failed to get profile', { userId: req.user.id, error: error.message });
         res.status(500).json({ error: 'Failed to get profile' });

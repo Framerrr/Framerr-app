@@ -242,6 +242,14 @@ app.use((err, req, res, next) => {
 // Start server with proper async initialization
 (async () => {
     try {
+        // Initialize database schema if this is a fresh database
+        const { isInitialized, initializeSchema } = require('./database/db');
+        if (!isInitialized()) {
+            logger.info('Fresh database detected - initializing schema...');
+            initializeSchema();
+            logger.info('Database schema initialized');
+        }
+
         // Load system config BEFORE starting server
         const { getSystemConfig } = require('./db/systemConfig');
         const systemConfig = await getSystemConfig();

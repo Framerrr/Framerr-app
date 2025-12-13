@@ -91,9 +91,11 @@ router.post('/logout', async (req, res) => {
  */
 router.get('/me', async (req, res) => {
     try {
-        // Check proxy auth first (req.user set by session middleware)
+        // Check if user is already authenticated (via session or proxy auth middleware)
         if (req.user) {
-            logger.debug('[Auth] /me: Using proxy auth user', { username: req.user.username });
+            // Log authentication method accurately
+            const authMethod = req.proxyAuth ? 'proxy auth' : 'session';
+            logger.debug(`[Auth] /me: Authenticated user via ${authMethod}`, { username: req.user.username });
             return res.json({
                 user: {
                     id: req.user.id,

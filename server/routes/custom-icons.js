@@ -55,7 +55,8 @@ router.get('/:id/file', async (req, res) => {
             return res.status(404).json({ error: 'Icon not found' });
         }
 
-        const filePath = customIconsDB.getIconPath(icon.filename);
+        // Use icon.filePath (the actual file path) not icon.filename
+        const filePath = customIconsDB.getIconPath(icon.filePath);
         res.sendFile(filePath);
     } catch (error) {
         logger.error('Failed to serve custom icon', { error: error.message });
