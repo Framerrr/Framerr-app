@@ -112,6 +112,18 @@ const Dashboard = () => {
         loadDebugOverlaySetting();
     }, []);
 
+    // Listen for greeting updates from settings
+    useEffect(() => {
+        const handleGreetingUpdate = (event) => {
+            const { enabled, text } = event.detail || {};
+            if (enabled !== undefined) setGreetingEnabled(enabled);
+            if (text !== undefined) setGreetingText(text);
+        };
+
+        window.addEventListener('greetingUpdated', handleGreetingUpdate);
+        return () => window.removeEventListener('greetingUpdated', handleGreetingUpdate);
+    }, []);
+
     // Listen for widget config updates (from individual widgets)
     useEffect(() => {
         const handleWidgetConfigUpdate = async (event) => {

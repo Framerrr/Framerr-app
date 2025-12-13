@@ -58,7 +58,7 @@ const CustomizationSettings = () => {
     const [loading, setLoading] = useState(true);
 
     // Application name state
-    const [applicationName, setApplicationName] = useState('Homelab Dashboard');
+    const [applicationName, setApplicationName] = useState('Framerr');
     const [applicationIcon, setApplicationIcon] = useState('Server');
     const [savingAppName, setSavingAppName] = useState(false);
 
@@ -83,7 +83,7 @@ const CustomizationSettings = () => {
     const [hasNotificationChanges, setHasNotificationChanges] = useState(false);
 
     // Change tracking for save buttons
-    const [originalAppName, setOriginalAppName] = useState('Homelab Dashboard');
+    const [originalAppName, setOriginalAppName] = useState('Framerr');
     const [originalAppIcon, setOriginalAppIcon] = useState('Server');
     const [originalGreeting, setOriginalGreeting] = useState({ enabled: true, text: 'Your personal dashboard' });
     const [hasAppNameChanges, setHasAppNameChanges] = useState(false);
@@ -482,6 +482,11 @@ const CustomizationSettings = () => {
             // Update original values after successful save
             setOriginalGreeting({ enabled: greetingEnabled, text: greetingText });
 
+            // Dispatch event to notify Dashboard to update immediately
+            window.dispatchEvent(new CustomEvent('greetingUpdated', {
+                detail: { enabled: greetingEnabled, text: greetingText }
+            }));
+
             logger.info('Greeting saved successfully');
         } catch (error) {
             logger.error('Failed to save greeting:', error);
@@ -589,13 +594,13 @@ const CustomizationSettings = () => {
                     }}
                 >
                     <div className="space-y-6">
-                        {/* Application Name Section */}
+                        {/* Application Branding Section */}
                         <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
-                                Application Name
+                                Application Branding
                             </h3>
                             <p className="text-sm text-theme-secondary mb-4">
-                                Customize the application name displayed in the sidebar and throughout the dashboard.
+                                Customize the application name and icon displayed throughout the dashboard.
                                 {!userIsAdmin && (
                                     <span className="block mt-2 text-warning">
                                         ⚠️ This setting requires admin privileges
@@ -609,38 +614,12 @@ const CustomizationSettings = () => {
                                     onChange={(e) => setApplicationName(e.target.value)}
                                     disabled={!userIsAdmin}
                                     maxLength={50}
-                                    placeholder="Homelab Dashboard"
+                                    placeholder="Framerr"
                                     helperText={`${applicationName.length}/50 characters`}
                                 />
-                                {userIsAdmin && (
-                                    <Button
-                                        onClick={handleSaveApplicationName}
-                                        disabled={!hasAppNameChanges || savingAppName}
-                                        icon={Save}
-                                    >
-                                        {savingAppName ? 'Saving...' : 'Save Application Name'}
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Application Icon Section */}
-                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
-                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
-                                Application Icon
-                            </h3>
-                            <p className="text-sm text-theme-secondary mb-4">
-                                Customize the icon displayed in the sidebar header and mobile menu.
-                                {!userIsAdmin && (
-                                    <span className="block mt-2 text-warning">
-                                        ⚠️ This setting requires admin privileges
-                                    </span>
-                                )}
-                            </p>
-                            <div className="space-y-4">
                                 <div>
                                     <label className="block mb-2 font-medium text-theme-secondary text-sm">
-                                        Select Icon
+                                        Application Icon
                                     </label>
                                     <IconPicker
                                         value={applicationIcon}

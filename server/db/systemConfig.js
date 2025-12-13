@@ -9,7 +9,7 @@ let cacheTimestamp = null;
 const DEFAULT_CONFIG = {
     server: {
         port: 3001,
-        name: 'Homelab Dashboard'
+        name: 'Framerr'
     },
     auth: {
         local: { enabled: true },

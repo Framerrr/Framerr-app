@@ -35,7 +35,7 @@ export const AppDataProvider = ({ children }) => {
 
             // Set user settings with server name/icon from system config
             setUserSettings({
-                serverName: systemConfig?.server?.name || 'Homelab Dashboard',
+                serverName: systemConfig?.server?.name || 'Framerr',
                 serverIcon: systemConfig?.server?.icon || 'Server',
                 ...userConfig.preferences
             });

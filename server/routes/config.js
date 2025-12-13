@@ -53,7 +53,7 @@ router.get('/app-name', async (req, res) => {
     try {
         const config = await getSystemConfig();
         res.json({
-            name: config.server?.name || 'Homelab Dashboard'
+            name: config.server?.name || 'Framerr'
         });
     } catch (error) {
         logger.error('Failed to get app name', { error: error.message });
