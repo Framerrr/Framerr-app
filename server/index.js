@@ -243,11 +243,40 @@ app.use((err, req, res, next) => {
 (async () => {
     try {
         // Initialize database schema if this is a fresh database
-        const { isInitialized, initializeSchema } = require('./database/db');
+        const { isInitialized, initializeSchema, db } = require('./database/db');
+        const { checkMigrationStatus, runMigrations, setVersion } = require('./database/migrator');
+
         if (!isInitialized()) {
             logger.info('Fresh database detected - initializing schema...');
             initializeSchema();
-            logger.info('Database schema initialized');
+            // Set initial version for fresh databases
+            setVersion(db, 3); // Current expected version (matches latest migration)
+            logger.info('Database schema initialized (v3)');
+        } else {
+            // Check if migrations are needed
+            const status = checkMigrationStatus(db);
+
+            if (status.isDowngrade) {
+                // Database is newer than app expects - refuse to start
+                logger.error(`Database schema (v${status.currentVersion}) is newer than this version of Framerr expects (v${status.expectedVersion}).`);
+                logger.error('Please upgrade Framerr or restore from a backup.');
+                process.exit(1);
+            }
+
+            if (status.needsMigration) {
+                logger.info(`Database migration needed: v${status.currentVersion} → v${status.expectedVersion}`);
+                const result = runMigrations(db);
+
+                if (!result.success) {
+                    logger.error('Database migration failed:', result.error);
+                    logger.error('Please check logs and restore from backup if needed.');
+                    process.exit(1);
+                }
+
+                logger.info(`Database migrated successfully: v${result.migratedFrom} → v${result.migratedTo}`);
+            } else {
+                logger.debug(`Database at version ${status.currentVersion}, no migration needed`);
+            }
         }
 
         // Load system config BEFORE starting server
