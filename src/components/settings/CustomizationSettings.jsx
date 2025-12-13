@@ -17,7 +17,7 @@ const CustomizationSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
-    const { error: showError } = useNotifications();
+    const { error: showError, success: showSuccess } = useNotifications();
     const userIsAdmin = isAdmin(user);
 
     // Default color values matching dark-pro.css - 21 customizable variables
@@ -427,6 +427,7 @@ const CustomizationSettings = () => {
             setOriginalAppIcon(applicationIcon);
 
             logger.info('Application name and icon saved successfully');
+            showSuccess('Settings Saved', 'Application name and icon updated');
         } catch (error) {
             logger.error('Failed to save application name:', error);
             showError('Save Failed', 'Failed to save application name. Please try again.');
@@ -483,6 +484,7 @@ const CustomizationSettings = () => {
             }));
 
             logger.info('Greeting saved successfully');
+            showSuccess('Greeting Saved', 'Dashboard greeting updated');
         } catch (error) {
             logger.error('Failed to save greeting:', error);
             showError('Save Failed', 'Failed to save greeting. Please try again.');

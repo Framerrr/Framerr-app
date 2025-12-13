@@ -71,7 +71,7 @@ const ActiveWidgets = () => {
     const [iconPickerOpen, setIconPickerOpen] = useState(null); // Track which widget's picker is open
     const [iconSearch, setIconSearch] = useState('');
     const [confirmRemoveId, setConfirmRemoveId] = useState(null);
-    const { error: showError } = useNotifications();
+    const { error: showError, success: showSuccess } = useNotifications();
 
     useEffect(() => {
         fetchWidgets();
@@ -95,6 +95,7 @@ const ActiveWidgets = () => {
             await axios.put('/api/widgets', { widgets: updatedWidgets });
             setWidgets(updatedWidgets);
             setConfirmRemoveId(null);
+            showSuccess('Widget Removed', 'Widget has been removed from the dashboard');
         } catch (error) {
             logger.error('Failed to remove widget', { widgetId, error: error.message });
             showError('Remove Failed', 'Failed to remove widget. Please try again.');

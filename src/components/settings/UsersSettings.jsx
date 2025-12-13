@@ -127,6 +127,10 @@ const UsersSettings = () => {
             if (response.ok) {
                 setShowModal(false);
                 fetchUsers();
+                showSuccess(
+                    modalMode === 'create' ? 'User Created' : 'User Updated',
+                    modalMode === 'create' ? `User "${formData.username}" created successfully` : `User "${formData.username}" updated successfully`
+                );
             } else {
                 const error = await response.json();
                 showError('Save Failed', error.error || 'Failed to save user');
@@ -147,6 +151,7 @@ const UsersSettings = () => {
             if (response.ok) {
                 setConfirmDeleteId(null);
                 fetchUsers();
+                showSuccess('User Deleted', `User "${username}" has been deleted`);
             } else {
                 const error = await response.json();
                 showError('Delete Failed', error.error || 'Failed to delete user');

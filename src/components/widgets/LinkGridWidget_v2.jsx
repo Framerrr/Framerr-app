@@ -21,7 +21,7 @@ import { useNotifications } from '../../context/NotificationContext';
 
 const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled }) => {
     const { links = [] } = config || {};
-    const { error: showError } = useNotifications();
+    const { error: showError, success: showSuccess } = useNotifications();
 
     // Refs for dimension measurement
     const containerRef = useRef(null);
@@ -385,6 +385,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                     }
                 }));
             }
+            showSuccess('Link Saved', `Link "${linkData.title}" saved successfully`);
         } catch (error) {
             logger.error('Failed to save link:', error);
             logger.error('Error details:', error.response?.data);
@@ -449,6 +450,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                     }
                 }));
             }
+            showSuccess('Link Deleted', 'Link has been removed');
         } catch (error) {
             logger.error('Failed to delete link:', error);
             showError('Delete Failed', 'Failed to delete link. Please try again.');

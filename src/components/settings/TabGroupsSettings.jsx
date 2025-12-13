@@ -128,7 +128,7 @@ const TabGroupsSettings = () => {
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [formData, setFormData] = useState({ id: '', name: '', order: 0 });
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const { error: showError, warning: showWarning } = useNotifications();
+    const { error: showError, warning: showWarning, success: showSuccess } = useNotifications();
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -211,6 +211,10 @@ const TabGroupsSettings = () => {
             if (response.ok) {
                 setShowModal(false);
                 fetchTabGroups();
+                showSuccess(
+                    modalMode === 'create' ? 'Group Created' : 'Group Updated',
+                    `Tab group "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
+                );
             } else {
                 showError('Save Failed', (await response.json()).error || 'Failed to save group');
             }
@@ -232,6 +236,7 @@ const TabGroupsSettings = () => {
             if (response.ok) {
                 setConfirmDeleteId(null);
                 fetchTabGroups();
+                showSuccess('Group Deleted', `Tab group "${group.name}" has been deleted`);
             } else {
                 showError('Delete Failed', 'Failed to delete group');
                 setConfirmDeleteId(null);

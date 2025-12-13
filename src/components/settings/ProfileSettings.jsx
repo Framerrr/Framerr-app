@@ -7,7 +7,7 @@ import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 
 const ProfileSettings = () => {
-    const { error: showError } = useNotifications();
+    const { error: showError, success: showSuccess } = useNotifications();
 
     // User info
     const [username, setUsername] = useState('');
@@ -83,6 +83,7 @@ const ProfileSettings = () => {
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
+            showSuccess('Password Changed', 'Your password has been updated successfully');
         } catch (error) {
             setPasswordError(error.response?.data?.error || 'Failed to change password');
         } finally {
@@ -120,6 +121,7 @@ const ProfileSettings = () => {
             window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
                 detail: { profilePicture: pictureUrl }
             }));
+            showSuccess('Photo Updated', 'Profile picture uploaded successfully');
         } catch (error) {
             logger.error('Failed to upload profile picture:', error);
             showError('Upload Failed', error.response?.data?.error || 'Failed to upload profile picture');
@@ -140,6 +142,7 @@ const ProfileSettings = () => {
             window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
                 detail: { profilePicture: null }
             }));
+            showSuccess('Photo Removed', 'Profile picture has been removed');
         } catch (error) {
             logger.error('Failed to remove profile picture:', error);
             showError('Remove Failed', 'Failed to remove profile picture');

@@ -25,7 +25,7 @@ const PermissionGroupsSettings = () => {
     const [modalMode, setModalMode] = useState('create');
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const { error: showError, warning: showWarning } = useNotifications();
+    const { error: showError, warning: showWarning, success: showSuccess } = useNotifications();
 
     const [formData, setFormData] = useState({
         id: '',
@@ -114,6 +114,10 @@ const PermissionGroupsSettings = () => {
             if (response.ok) {
                 setShowModal(false);
                 fetchGroups();
+                showSuccess(
+                    modalMode === 'create' ? 'Group Created' : 'Group Updated',
+                    `Permission group "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
+                );
             } else {
                 showError('Save Failed', (await response.json()).error || 'Failed to save group');
             }
@@ -156,6 +160,7 @@ const PermissionGroupsSettings = () => {
             if (response.ok) {
                 setConfirmDeleteId(null);
                 fetchGroups();
+                showSuccess('Group Deleted', `Permission group "${group.name}" has been deleted`);
             } else {
                 showError('Delete Failed', 'Failed to delete group');
                 setConfirmDeleteId(null);
@@ -176,7 +181,10 @@ const PermissionGroupsSettings = () => {
                 body: JSON.stringify({ defaultGroup: newDefaultGroup })
             });
 
-            if (response.ok) setDefaultGroup(newDefaultGroup);
+            if (response.ok) {
+                setDefaultGroup(newDefaultGroup);
+                showSuccess('Default Updated', 'Default permission group updated');
+            }
             else showError('Update Failed', 'Failed to update default group');
         } catch (error) {
             showError('Update Failed', 'Failed to update default group');

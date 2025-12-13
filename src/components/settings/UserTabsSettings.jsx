@@ -143,7 +143,7 @@ const UserTabsSettings = () => {
     const [modalMode, setModalMode] = useState('create');
     const [selectedTab, setSelectedTab] = useState(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const { error: showError } = useNotifications();
+    const { error: showError, success: showSuccess } = useNotifications();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -250,6 +250,10 @@ const UserTabsSettings = () => {
                 fetchTabs();
                 // Notify sidebar to update
                 window.dispatchEvent(new Event('tabsUpdated'));
+                showSuccess(
+                    modalMode === 'create' ? 'Tab Created' : 'Tab Updated',
+                    `Tab "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
+                );
             } else {
                 const error = await response.json();
                 showError('Save Failed', error.error || 'Failed to save tab');
@@ -272,6 +276,7 @@ const UserTabsSettings = () => {
                 fetchTabs();
                 // Notify sidebar to update
                 window.dispatchEvent(new Event('tabsUpdated'));
+                showSuccess('Tab Deleted', `Tab "${tabName}" has been deleted`);
             } else {
                 const error = await response.json();
                 showError('Delete Failed', error.error || 'Failed to delete tab');
