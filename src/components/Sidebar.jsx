@@ -94,6 +94,15 @@ const Sidebar = () => {
             }
         };
         fetchUserProfile();
+
+        // Listen for profile picture updates from settings
+        const handleProfilePictureUpdate = (event) => {
+            const { profilePicture } = event.detail || {};
+            setCurrentUser(prev => prev ? { ...prev, profilePicture } : null);
+        };
+
+        window.addEventListener('profilePictureUpdated', handleProfilePictureUpdate);
+        return () => window.removeEventListener('profilePictureUpdated', handleProfilePictureUpdate);
     }, []);
 
     const handleLogout = async () => {

@@ -106,6 +106,11 @@ const ProfileSettings = () => {
             });
 
             setProfilePicture(response.data.profilePicture);
+
+            // Dispatch event to notify Sidebar to refresh profile picture
+            window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
+                detail: { profilePicture: response.data.profilePicture }
+            }));
         } catch (error) {
             logger.error('Failed to upload profile picture:', error);
             alert(error.response?.data?.error || 'Failed to upload profile picture');
@@ -122,6 +127,11 @@ const ProfileSettings = () => {
                 withCredentials: true
             });
             setProfilePicture(null);
+
+            // Dispatch event to notify Sidebar
+            window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
+                detail: { profilePicture: null }
+            }));
         } catch (error) {
             logger.error('Failed to remove profile picture:', error);
             alert('Failed to remove profile picture');
