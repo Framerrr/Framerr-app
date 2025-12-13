@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { isAdmin } from '../../utils/permissions';
 import ColorPicker from '../common/ColorPicker';
 import { Input } from '../common/Input';
@@ -16,7 +17,7 @@ const CustomizationSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
-
+    const { error: showError } = useNotifications();
     const userIsAdmin = isAdmin(user);
 
     // Default color values matching dark-pro.css - 21 customizable variables
@@ -369,7 +370,7 @@ const CustomizationSettings = () => {
             applyColorsToDOM(customColors);
         } catch (error) {
             logger.error('Failed to save custom colors:', error);
-            alert('Failed to save custom colors. Please try again.');
+            showError('Save Failed', 'Failed to save custom colors. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -397,7 +398,7 @@ const CustomizationSettings = () => {
             });
         } catch (error) {
             logger.error('Failed to reset colors:', error);
-            alert('Failed to reset colors. Please try again.');
+            showError('Reset Failed', 'Failed to reset colors. Please try again.');
         }
     };
 
@@ -428,7 +429,7 @@ const CustomizationSettings = () => {
             logger.info('Application name and icon saved successfully');
         } catch (error) {
             logger.error('Failed to save application name:', error);
-            alert('Failed to save application name. Please try again.');
+            showError('Save Failed', 'Failed to save application name. Please try again.');
         } finally {
             setSavingAppName(false);
         }
@@ -453,7 +454,7 @@ const CustomizationSettings = () => {
             logger.info('Flatten UI preference saved');
         } catch (error) {
             logger.error('Failed to save flatten UI preference:', error);
-            alert('Failed to save flatten UI preference.');
+            showError('Save Failed', 'Failed to save flatten UI preference.');
         } finally {
             setSavingFlattenUI(false);
         }
@@ -484,7 +485,7 @@ const CustomizationSettings = () => {
             logger.info('Greeting saved successfully');
         } catch (error) {
             logger.error('Failed to save greeting:', error);
-            alert('Failed to save greeting. Please try again.');
+            showError('Save Failed', 'Failed to save greeting. Please try again.');
         } finally {
             setSavingGreeting(false);
         }

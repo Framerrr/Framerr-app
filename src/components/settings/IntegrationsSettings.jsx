@@ -4,6 +4,7 @@ import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import SystemHealthIntegration from './integrations/SystemHealthIntegration';
+import { useNotifications } from '../../context/NotificationContext';
 
 const IntegrationsSettings = () => {
     const [integrations, setIntegrations] = useState({
@@ -19,6 +20,7 @@ const IntegrationsSettings = () => {
     const [saving, setSaving] = useState(false);
     const [expandedSections, setExpandedSections] = useState({});
     const [testStates, setTestStates] = useState({});
+    const { success: showSuccess, error: showError } = useNotifications();
 
     useEffect(() => {
         fetchIntegrations();
@@ -80,17 +82,17 @@ const IntegrationsSettings = () => {
             });
 
             if (response.ok) {
-                alert('Integration settings saved successfully');
+                showSuccess('Settings Saved', 'Integration settings saved successfully');
 
                 // Dispatch event to notify widgets that integrations have been updated
                 window.dispatchEvent(new CustomEvent('integrationsUpdated'));
             } else {
                 const error = await response.json();
-                alert(error.error || 'Failed to save integrations');
+                showError('Save Failed', error.error || 'Failed to save integrations');
             }
         } catch (error) {
             logger.error('Error saving integrations:', error);
-            alert('Failed to save integrations');
+            showError('Save Failed', 'Failed to save integrations');
         } finally {
             setSaving(false);
         }

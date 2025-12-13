@@ -4,8 +4,11 @@ import { User, Save, RotateCcw, Lock, Mail, UserCircle, Upload, X } from 'lucide
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { useNotifications } from '../../context/NotificationContext';
 
 const ProfileSettings = () => {
+    const { error: showError } = useNotifications();
+
     // User info
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -24,6 +27,7 @@ const ProfileSettings = () => {
     const [uploadingPicture, setUploadingPicture] = useState(false);
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState(false);
+    const [confirmRemovePicture, setConfirmRemovePicture] = useState(false);
 
     // Load user profile and preferences on mount
     useEffect(() => {
@@ -92,7 +96,7 @@ const ProfileSettings = () => {
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert('File size must be less than 5MB');
+            showError('File Too Large', 'File size must be less than 5MB');
             return;
         }
 
@@ -118,20 +122,19 @@ const ProfileSettings = () => {
             }));
         } catch (error) {
             logger.error('Failed to upload profile picture:', error);
-            alert(error.response?.data?.error || 'Failed to upload profile picture');
+            showError('Upload Failed', error.response?.data?.error || 'Failed to upload profile picture');
         } finally {
             setUploadingPicture(false);
         }
     };
 
     const handleRemoveProfilePicture = async () => {
-        if (!confirm('Remove your profile picture?')) return;
-
         try {
             await axios.delete('/api/profile/picture', {
                 withCredentials: true
             });
             setProfilePicture(null);
+            setConfirmRemovePicture(false);
 
             // Dispatch event to notify Sidebar
             window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
@@ -139,7 +142,8 @@ const ProfileSettings = () => {
             }));
         } catch (error) {
             logger.error('Failed to remove profile picture:', error);
-            alert('Failed to remove profile picture');
+            showError('Remove Failed', 'Failed to remove profile picture');
+            setConfirmRemovePicture(false);
         }
     };
 
@@ -183,13 +187,32 @@ const ProfileSettings = () => {
                                     alt="Profile"
                                     className="w-24 h-24 min-w-[80px] min-h-[80px] max-w-[120px] max-h-[120px] aspect-square rounded-full object-cover border-2 border-theme"
                                 />
-                                <button
-                                    onClick={handleRemoveProfilePicture}
-                                    className="absolute -top-2 -right-2 w-7 h-7 bg-error hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors"
-                                    title="Remove picture"
-                                >
-                                    <X size={14} />
-                                </button>
+                                {!confirmRemovePicture ? (
+                                    <button
+                                        onClick={() => setConfirmRemovePicture(true)}
+                                        className="absolute -top-2 -right-2 w-7 h-7 bg-error hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors"
+                                        title="Remove picture"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                ) : (
+                                    <div className="absolute -top-3 -right-3 flex gap-1">
+                                        <button
+                                            onClick={handleRemoveProfilePicture}
+                                            className="w-7 h-7 bg-error hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold transition-colors"
+                                            title="Confirm remove"
+                                        >
+                                            ✓
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmRemovePicture(false)}
+                                            className="w-7 h-7 bg-theme-tertiary hover:bg-theme-secondary border border-theme rounded-full flex items-center justify-center text-theme-primary text-xs font-bold transition-colors"
+                                            title="Cancel"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="w-24 h-24 min-w-[80px] min-h-[80px] max-w-[120px] max-h-[120px] aspect-square rounded-full bg-theme-tertiary flex items-center justify-center">

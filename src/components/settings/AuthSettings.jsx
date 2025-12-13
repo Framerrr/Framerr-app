@@ -5,8 +5,11 @@ import { motion } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { useNotifications } from '../../context/NotificationContext';
 
 const AuthSettings = () => {
+    const { error: showError, warning: showWarning } = useNotifications();
+
     // Subtab state
     const [activeTab, setActiveTab] = useState('proxy'); // 'proxy' or 'iframe'
 
@@ -185,7 +188,7 @@ const AuthSettings = () => {
             logger.info('Auth settings saved successfully');
         } catch (error) {
             logger.error('Failed to save auth settings', { error: error.message });
-            alert(error.response?.data?.error || 'Failed to save settings. Please try again.');
+            showError('Save Failed', error.response?.data?.error || 'Failed to save settings. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -200,7 +203,7 @@ const AuthSettings = () => {
 
     const handleTestOAuth = () => {
         if (!oauthEndpoint || !clientId) {
-            alert('Please fill in OAuth endpoint and client ID before testing');
+            showWarning('Missing Fields', 'Please fill in OAuth endpoint and client ID before testing');
             return;
         }
 

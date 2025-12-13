@@ -3,6 +3,7 @@ import { Plus, Search, AlertCircle, CheckCircle2, Loader } from 'lucide-react';
 import { getWidgetsByCategory, getWidgetMetadata } from '../../utils/widgetRegistry';
 import axios from 'axios';
 import logger from '../../utils/logger';
+import { useNotifications } from '../../context/NotificationContext';
 
 /**
  * Widget Gallery - Browse and add widgets to dashboard
@@ -13,6 +14,7 @@ const WidgetGallery = () => {
     const [integrations, setIntegrations] = useState({});
     const [loading, setLoading] = useState(true);
     const [addingWidget, setAddingWidget] = useState(null);
+    const { success: showSuccess, error: showError, warning: showWarning } = useNotifications();
 
     const widgetsByCategory = getWidgetsByCategory();
     const categories = ['all', ...Object.keys(widgetsByCategory)];
@@ -42,7 +44,7 @@ const WidgetGallery = () => {
             if (metadata.requiresIntegration) {
                 const integration = integrations[metadata.requiresIntegration];
                 if (!integration?.enabled || !integration?.url) {
-                    alert(`This widget requires ${metadata.requiresIntegration} integration to be configured. Please configure it in the Integrations tab first.`);
+                    showWarning('Integration Required', `This widget requires ${metadata.requiresIntegration} integration to be configured. Please configure it in the Integrations tab first.`);
                     setAddingWidget(null);
                     return;
                 }
@@ -76,10 +78,10 @@ const WidgetGallery = () => {
             // Save updated widgets
             await axios.put('/api/widgets', { widgets: updatedWidgets });
 
-            alert(`${metadata.name} added to your dashboard! Go to the Dashboard to see it.`);
+            showSuccess('Widget Added', `${metadata.name} added to your dashboard! Go to the Dashboard to see it.`);
         } catch (error) {
             logger.error('Failed to add widget:', error);
-            alert('Failed to add widget. Please try again.');
+            showError('Add Failed', 'Failed to add widget. Please try again.');
         } finally {
             setAddingWidget(null);
         }
