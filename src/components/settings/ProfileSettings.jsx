@@ -105,11 +105,13 @@ const ProfileSettings = () => {
                 }
             });
 
-            setProfilePicture(response.data.profilePicture);
+            // Add cache-busting timestamp to force browser refresh
+            const pictureUrl = `${response.data.profilePicture}?t=${Date.now()}`;
+            setProfilePicture(pictureUrl);
 
             // Dispatch event to notify Sidebar to refresh profile picture
             window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
-                detail: { profilePicture: response.data.profilePicture }
+                detail: { profilePicture: pictureUrl }
             }));
         } catch (error) {
             logger.error('Failed to upload profile picture:', error);
@@ -208,7 +210,7 @@ const ProfileSettings = () => {
                             disabled={uploadingPicture}
                             icon={Upload}
                         >
-                            {uploadingPicture ? 'Uploading...' : 'Upload Picture'}
+                            {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change Photo' : 'Upload Photo')}
                         </Button>
                         <p className="text-xs text-theme-tertiary mt-2">
                             JPG, PNG, GIF or WebP. Max 5MB.
