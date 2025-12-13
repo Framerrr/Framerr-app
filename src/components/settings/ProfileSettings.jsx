@@ -36,7 +36,10 @@ const ProfileSettings = () => {
 
                 setUsername(profileResponse.data.username || '');
                 setEmail(profileResponse.data.email || '');
-                setProfilePicture(profileResponse.data.profilePicture || null);
+
+                // Add cache-busting timestamp to profile picture to prevent stale cache
+                const picturePath = profileResponse.data.profilePicture;
+                setProfilePicture(picturePath ? `${picturePath}?t=${Date.now()}` : null);
             } catch (error) {
                 logger.error('Failed to load profile:', error);
             } finally {

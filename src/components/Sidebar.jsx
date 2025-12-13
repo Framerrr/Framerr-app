@@ -87,6 +87,10 @@ const Sidebar = () => {
                 });
                 if (response.ok) {
                     const data = await response.json();
+                    // Add cache-busting timestamp to profile picture
+                    if (data.profilePicture) {
+                        data.profilePicture = `${data.profilePicture}?t=${Date.now()}`;
+                    }
                     setCurrentUser(data);
                 }
             } catch (error) {
