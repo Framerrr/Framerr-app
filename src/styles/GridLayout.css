@@ -11,13 +11,12 @@
     transition: height 200ms ease;
 }
 
-/* Grid Items */
+/* Grid Items - No transition by default to prevent animation on page navigation */
 .react-grid-item {
-    transition: all 200ms ease;
-    transition-property: left, top, width, height;
     border-radius: 0.75rem;
     overflow: visible;
 }
+
 
 /* Prevent unwanted text selection while dragging */
 .react-grid-item.react-draggable-dragging {
@@ -31,8 +30,10 @@
     z-index: 100;
 }
 
-/* Edit Mode Styles */
+/* Edit Mode Styles - includes transition for smooth drag/drop */
 .react-grid-item.edit-mode {
+    transition: all 200ms ease;
+    transition-property: left, top, width, height;
     border: 2px dashed rgba(147, 51, 234, 0.4);
 }
 
