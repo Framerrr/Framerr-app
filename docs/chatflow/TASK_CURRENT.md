@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-13 01:19 EST  
+**Last Updated:** 2025-12-13 04:03 EST  
 **Branch:** `develop`
 
 ---
@@ -11,8 +11,8 @@
 |-------|-------|
 | **Last Released Version** | `1.1.10` |
 | **Release Status** | RELEASED |
-| **Draft Changelog** | (next version TBD) |
-| **Draft Status** | - |
+| **Draft Changelog** | `docs/versions/v1.1.11-draft.md` |
+| **Draft Status** | DRAFT |
 
 > **IMPORTANT FOR AGENTS:** If "Draft Status" is "DRAFT", do NOT create a new draft. Continue updating the existing draft changelog.
 
@@ -20,28 +20,27 @@
 
 ## Current State
 
-**Status:** ✅ v1.1.10 Released & Deployed
+**Status:** ✅ Bug fixes completed, session ending
 
-**What Was Released:**
-- Database migration system with auto-backup
-- Downgrade detection (prevents data loss)
-- JSON column utilities for flexible schema updates
-- CHATFLOW v2.0 agent workflow system
-- Documentation cleanup (~30K lines removed)
+**This Session:**
+- Fixed profile picture reactivity (sidebar updates immediately on upload/remove)
+- Added cache-busting timestamps to prevent stale cached images
+- Made upload button dynamic ("Upload Photo" vs "Change Photo")
+- Fixed "unknown group admin" warning spam (permissions.js group lookup)
+- Fixed scroll position bleeding between pages (separate scroll containers)
+- Reverted animation-related changes (kept scroll fix only)
+- Default application name changed to "Framerr"
+- Dashboard greeting now updates reactively
 
-**Docker Images:**
-- `pickels23/framerr:1.1.10`
-- `pickels23/framerr:latest`
-
-**Post-release fix:** Docker CRLF line ending issue fixed (added `sed` to Dockerfile)
+**Pending Known Issues:**
+- Widget animation on navigation (react-grid-layout re-measuring) - left as-is per user preference
 
 ---
 
 ## ✅ SESSION END
 
-- **Session ended:** 2025-12-13 01:19 EST
+- **Session ended:** 2025-12-13 04:03 EST
 - **Branch:** `develop`
-- **Commits this session:** Many (migration system, release, Docker fix)
-- **Status:** Production release complete, container running
-
+- **Next action:** Deploy to production when ready, or continue with next bug fixes
+- **Build status:** ✅ Passing
 
