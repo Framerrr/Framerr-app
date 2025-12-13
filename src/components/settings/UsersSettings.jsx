@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users as UsersIcon, Plus, Edit, Trash2, Key, X, Save, Loader } from 'lucide-react';
+import { Users as UsersIcon, Plus, Edit, Trash2, Key, X, Save, Loader, Check, Copy } from 'lucide-react';
 import { useSystemConfig } from '../../context/SystemConfigContext';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { useNotifications } from '../../context/NotificationContext';
 
 const UsersSettings = () => {
     const [users, setUsers] = useState([]);
@@ -12,6 +13,10 @@ const UsersSettings = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('create');
     const [selectedUser, setSelectedUser] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [confirmResetId, setConfirmResetId] = useState(null);
+    const [tempPassword, setTempPassword] = useState(null);
+    const { error: showError, success: showSuccess } = useNotifications();
 
     const { systemConfig } = useSystemConfig();
 
@@ -124,19 +129,15 @@ const UsersSettings = () => {
                 fetchUsers();
             } else {
                 const error = await response.json();
-                alert(error.error || 'Failed to save user');
+                showError('Save Failed', error.error || 'Failed to save user');
             }
         } catch (error) {
             logger.error('Error saving user:', error);
-            alert('Failed to save user');
+            showError('Save Failed', 'Failed to save user');
         }
     };
 
     const handleDeleteUser = async (userId, username) => {
-        if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
-            return;
-        }
-
         try {
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE',
@@ -144,22 +145,21 @@ const UsersSettings = () => {
             });
 
             if (response.ok) {
+                setConfirmDeleteId(null);
                 fetchUsers();
             } else {
                 const error = await response.json();
-                alert(error.error || 'Failed to delete user');
+                showError('Delete Failed', error.error || 'Failed to delete user');
+                setConfirmDeleteId(null);
             }
         } catch (error) {
             logger.error('Error deleting user:', error);
-            alert('Failed to delete user');
+            showError('Delete Failed', 'Failed to delete user');
+            setConfirmDeleteId(null);
         }
     };
 
     const handleResetPassword = async (userId, username) => {
-        if (!confirm(`Reset password for user "${username}"? They will need to set a new password on next login.`)) {
-            return;
-        }
-
         try {
             const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
                 method: 'POST',
@@ -168,14 +168,18 @@ const UsersSettings = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                alert(`Password reset successfully. New temporary password: ${data.tempPassword}`);
+                setTempPassword({ userId, password: data.tempPassword });
+                setConfirmResetId(null);
+                showSuccess('Password Reset', `New temporary password generated for ${username}`);
             } else {
                 const error = await response.json();
-                alert(error.error || 'Failed to reset password');
+                showError('Reset Failed', error.error || 'Failed to reset password');
+                setConfirmResetId(null);
             }
         } catch (error) {
             logger.error('Error resetting password:', error);
-            alert('Failed to reset password');
+            showError('Reset Failed', 'Failed to reset password');
+            setConfirmResetId(null);
         }
     };
 
@@ -244,7 +248,31 @@ const UsersSettings = () => {
                                         {user.createdAt ? new Date(user.createdAt * 1000).toLocaleDateString() : '-'}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="flex gap-2 justify-end">
+                                        <div className="flex gap-2 justify-end items-center">
+                                            {/* Show temp password if just reset */}
+                                            {tempPassword?.userId === user.id && (
+                                                <div className="flex items-center gap-2 bg-success/10 border border-success/20 px-2 py-1 rounded-lg text-xs">
+                                                    <span className="text-success font-mono">{tempPassword.password}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(tempPassword.password);
+                                                            showSuccess('Copied', 'Password copied to clipboard');
+                                                        }}
+                                                        className="text-success hover:text-success/80"
+                                                        title="Copy password"
+                                                    >
+                                                        <Copy size={12} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setTempPassword(null)}
+                                                        className="text-success hover:text-success/80"
+                                                        title="Dismiss"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+
                                             <Button
                                                 onClick={() => handleEditUser(user)}
                                                 variant="ghost"
@@ -254,24 +282,71 @@ const UsersSettings = () => {
                                             >
                                                 <Edit size={16} />
                                             </Button>
-                                            <Button
-                                                onClick={() => handleResetPassword(user.id, user.username)}
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-warning hover:bg-warning/10 hidden sm:flex"
-                                                title="Reset password"
-                                            >
-                                                <Key size={16} />
-                                            </Button>
-                                            <Button
-                                                onClick={() => handleDeleteUser(user.id, user.username)}
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-error hover:bg-error/10"
-                                                title="Delete user"
-                                            >
-                                                <Trash2 size={16} />
-                                            </Button>
+
+                                            {/* Reset Password - Inline Confirmation */}
+                                            {confirmResetId !== user.id ? (
+                                                <Button
+                                                    onClick={() => setConfirmResetId(user.id)}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-warning hover:bg-warning/10 hidden sm:flex"
+                                                    title="Reset password"
+                                                >
+                                                    <Key size={16} />
+                                                </Button>
+                                            ) : (
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        onClick={() => handleResetPassword(user.id, user.username)}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-warning bg-warning/20"
+                                                        title="Confirm reset"
+                                                    >
+                                                        <Check size={14} />
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => setConfirmResetId(null)}
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        title="Cancel"
+                                                    >
+                                                        <X size={14} />
+                                                    </Button>
+                                                </div>
+                                            )}
+
+                                            {/* Delete - Inline Confirmation */}
+                                            {confirmDeleteId !== user.id ? (
+                                                <Button
+                                                    onClick={() => setConfirmDeleteId(user.id)}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-error hover:bg-error/10"
+                                                    title="Delete user"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                            ) : (
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        onClick={() => handleDeleteUser(user.id, user.username)}
+                                                        variant="danger"
+                                                        size="sm"
+                                                        title="Confirm delete"
+                                                    >
+                                                        <Check size={14} />
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => setConfirmDeleteId(null)}
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        title="Cancel"
+                                                    >
+                                                        <X size={14} />
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
