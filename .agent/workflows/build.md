@@ -48,18 +48,23 @@ description: Build and deploy Docker images (develop or production)
    - **Major** (1.2.0 → 2.0.0): Breaking changes
 
 ### Changelog Finalization
-3. **Finalize draft changelog**
+3. **Finalize detailed version file**
    
-   a. Read draft: `docs/versions/[draft].md`
-   b. Update version in header if different from filename
-   c. **Change status from DRAFT to RELEASED**
-   d. Remove "DRAFT STATUS" warning at bottom
-   e. Rename file if version changed (e.g., 1.2.1.md → 1.3.0.md)
+   In `docs/versions/[version].md`:
+   - Update version in header
+   - **Change status from DRAFT to RELEASED**
+   - Remove "DRAFT STATUS" warning
+   - Keep technical details (this is the "info dump" version)
 
-4. **Copy to root CHANGELOG.md**
-   ```
-   Copy content of docs/versions/[version].md to /CHANGELOG.md
-   ```
+4. **Create polished CHANGELOG entry**
+   
+   **Prepend** to `/CHANGELOG.md` (after header, before previous version):
+   - Summarize key user-facing changes
+   - Less technical than the version file
+   - Follow existing CHANGELOG format
+   
+   For smaller releases: can be same as version file
+   For larger releases: distill to meaningful highlights
 
 ### Version Update
 5. **Update package.json versions**
