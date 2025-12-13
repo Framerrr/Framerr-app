@@ -20,10 +20,26 @@
 | File | Purpose | When to Read |
 |------|---------|--------------|
 | `.agent/AGENT.md` | This file - system hub | Every /start |
-| `docs/chatflow/TASK_CURRENT.md` | Session state, end markers | Every /start, update at /end |
+| `docs/chatflow/TASK_CURRENT.md` | Session state, version tracking | Every /start, update at /end |
 | `docs/chatflow/TASK_BACKLOG.md` | Planned future work | When choosing tasks |
 | `docs/chatflow/COMPLETED.md` | Historical work | Reference only |
-| `docs/project/STATUS.md` | Project overview | Optional context |
+| `docs/versions/[version].md` | Draft/released changelogs | Update at /end, finalize at /build |
+
+---
+
+## Version Tracking
+
+**Location:** `docs/chatflow/TASK_CURRENT.md` → Version Tracking section
+
+**Key fields:**
+- **Last Released Version:** The version in production
+- **Draft Changelog:** Path to current draft (e.g., `docs/versions/1.2.0.md`)
+- **Draft Status:** `DRAFT` = in development, `RELEASED` = finalized
+
+**Rules:**
+- ⚠️ If Draft Status is DRAFT → continue updating existing draft
+- ⚠️ NEVER create new draft if one exists with DRAFT status
+- At production push → finalize draft, copy to `/CHANGELOG.md`
 
 ---
 

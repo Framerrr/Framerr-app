@@ -1,54 +1,43 @@
 # Session State
 
-**Last Updated:** 2025-12-12 23:00 EST  
+**Last Updated:** 2025-12-12 23:28 EST  
 **Branch:** `feature/sqlite-migration`
+
+---
+
+## Version Tracking
+
+| Field | Value |
+|-------|-------|
+| **Last Released Version** | `1.1.9` |
+| **Release Status** | RELEASED |
+| **Draft Changelog** | `docs/versions/1.2.0.md` |
+| **Draft Status** | DRAFT - In Development |
+
+> **IMPORTANT FOR AGENTS:** If "Draft Status" is "DRAFT", do NOT create a new draft. Continue updating the existing draft changelog.
 
 ---
 
 ## Current State
 
-**Status:** ✅ CHATFLOW v2.0 Implementation Complete
+**Status:** ✅ CHATFLOW v2.0 + Changelog System Implementation
 
-**What Was Done This Session:**
-- Designed and planned CHATFLOW v2.0 system redesign
-- Created `.agent/AGENT.md` - master hub file
-- Created `docs/chatflow/` - session management directory
-- Created `docs/reference/` - architecture, theming, widgets refs
-- Updated workflows: start-session, end-session, check, build, recover
-- Deleted old files: OLDDOCS/, CHATFLOW.md, from-memory/
-- Committed: `feat(chatflow): implement CHATFLOW v2.0 system redesign`
-
-**Current State:**
-- New CHATFLOW system is live
-- 28 files changed, +1065/-2411 lines
-- Old system removed
+**This Session:**
+- Implemented CHATFLOW v2.0 system redesign
+- Massive cleanup: ~130 files deleted (~35K lines)
+- Added changelog tracking to workflow
 
 ---
 
 ## Next Step
 
-Continue CHATFLOW system implementation:
-1. Complete workflow updates (`/start-session`, `/end-session`, `/check`)
-2. Consolidate reference docs
-3. Delete old files (OLDDOCS, archived, etc.)
-4. Test the new system
-
----
-
-## Context for Next Agent
-
-The project is implementing a new documentation/workflow system called "CHATFLOW v2.0":
-- Master hub: `.agent/AGENT.md`
-- Session state: This file (`docs/chatflow/TASK_CURRENT.md`)
-- See `docs/chatflow/TASK_BACKLOG.md` for planned work
-
-The SQLite migration branch is still active but the migration itself is complete and tested.
+Test new CHATFLOW system with fresh `/start-session` in new chat.
 
 ---
 
 ## Session End Marker
 
 ✅ **SESSION END**
-- Session ended: 2025-12-12 21:41 EST (previous session)
+- Session ended: 2025-12-12 23:28 EST
 - Status: Ready for next session
-- Current session ongoing: CHATFLOW redesign implementation
+- Next: Test CHATFLOW v2.0 system
