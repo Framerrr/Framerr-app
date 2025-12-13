@@ -34,15 +34,27 @@ const DashboardOrTabs = () => {
         return () => window.removeEventListener('hashchange', checkHash);
     }, [location]);
 
-    // Always render both components, use display to toggle visibility
+    // Always render both components, use visibility to toggle
     // This keeps TabContainer (and its iframes) mounted when navigating to dashboard
-    // Each section has its own overflow-y-auto for independent scroll positions
+    // Using visibility instead of display prevents react-grid-layout from re-measuring
     return (
         <>
-            <div style={{ display: showTabs ? 'none' : 'flex', height: '100%', width: '100%', overflowY: 'auto' }}>
+            <div style={{
+                visibility: showTabs ? 'hidden' : 'visible',
+                position: showTabs ? 'absolute' : 'relative',
+                height: '100%',
+                width: '100%',
+                overflowY: 'auto'
+            }}>
                 <Dashboard />
             </div>
-            <div style={{ display: showTabs ? 'flex' : 'none', height: '100%', width: '100%', overflowY: 'auto' }}>
+            <div style={{
+                visibility: showTabs ? 'visible' : 'hidden',
+                position: showTabs ? 'relative' : 'absolute',
+                height: '100%',
+                width: '100%',
+                overflowY: 'auto'
+            }}>
                 <TabContainer />
             </div>
         </>
