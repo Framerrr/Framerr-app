@@ -4,6 +4,7 @@ import { Edit, Save, X as XIcon, Plus } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
+import { LAYOUT } from '../constants/layout';
 import { Button } from '../components/common/Button';
 import WidgetWrapper from '../components/widgets/WidgetWrapper';
 import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
@@ -626,7 +627,13 @@ const Dashboard = () => {
     // Empty state
     if (widgets.length === 0 && !editMode) {
         return (
-            <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+            <div
+                className="w-full min-h-screen max-w-[2000px] mx-auto fade-in"
+                style={{
+                    padding: 32,
+                    paddingBottom: LAYOUT.PAGE_MARGIN
+                }}
+            >
                 <header className="mb-12 flex items-center justify-between">
                     <div>
                         <h1 className="text-5xl font-bold mb-3 gradient-text">
@@ -652,7 +659,13 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+        <div
+            className="w-full min-h-screen max-w-[2000px] mx-auto fade-in"
+            style={{
+                padding: 32,
+                paddingBottom: LAYOUT.PAGE_MARGIN
+            }}
+        >
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
                 <div>

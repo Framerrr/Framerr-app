@@ -12,6 +12,9 @@ export const LAYOUT = {
     // Collapsed sidebar width in pixels (Tailwind pl-24 = 24 * 4px = 96px)
     SIDEBAR_WIDTH: 96,
 
-    // Mobile tab bar bottom padding in pixels
+    // Mobile tab bar bottom padding in pixels (full tab bar area)
     TABBAR_HEIGHT: 86,
+
+    // Page margin - matches sidebar/tabbar distance from screen edge (16px)
+    PAGE_MARGIN: 16,
 };
