@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-14 03:12 EST  
+**Last Updated:** 2025-12-14 05:26 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,38 +20,44 @@
 
 ## Current State
 
-**Status:** ✅ Session completed - UI refinements and settings standardization
+**Status:** ✅ Session completed - Admin vs Non-Admin access control fixes
 
 **This Session:**
 
-### Dashboard Bottom Padding Fix
-- Added `PAGE_MARGIN: 16` constant to `src/constants/layout.js`
-- Fixed dashboard bottom spacer to use 16px (matching sidebar/tabbar screen margin)
-- Removed hardcoded 100px/128px spacer in `Dashboard.jsx`
+### 403 Error Fixes for Non-Admin Users
+- Added `isAdmin` checks to prevent non-admins from calling admin-only endpoints:
+  - `SystemConfigContext.jsx` - Added user dependency + null check
+  - `AppDataContext.jsx` - Wrapped `/api/config/system` and `/api/integrations` calls
+  - `Dashboard.jsx` - Wrapped debug overlay config call
+  - `CustomizationSettings.jsx` - Protected system config loading
 
-### Sidebar Interaction Fixes
-- Fixed sidebar footer text (Back to Tabs, Profile) fading when mouse leaves while notification center is open
-- Fixed sidebar not collapsing when notification center is closed via X button or backdrop click
+### App Branding Sync for All Users
+- Extended `/api/config/app-name` endpoint to return icon (public, no auth)
+- Updated `AppDataContext` to fetch branding from public endpoint
+- Non-admin users now see correct app name/icon in sidebar
 
-### Settings Page Header Standardization
-- Audited all 11 settings pages for header consistency
-- Standardized 6 pages to use centered headers:
-  - `WidgetsSettings.jsx` - Added missing header
-  - `CustomizationSettings.jsx` - Centered
-  - `ThemeSettings.jsx` - Centered + replaced inline styles with theme classes
-  - `ProfileSettings.jsx` - Centered
-  - `NotificationSettings.jsx` - Centered
-  - `AuthSettings.jsx` - Centered
+### Customization Settings Access Control
+- Hidden "Application Branding" section for non-admins
+- Hidden "Favicon" subtab for non-admins
+- Changed FaviconInjector logs from INFO to DEBUG
+
+---
+
+## Remaining Work
+
+1. **More admin vs user polish** - User mentioned more to do
+2. **Shared widget integration** - Continue refinement
+3. **Overseerr webhook integration** - From previous session
 
 ---
 
 ## ✅ SESSION END
 
-- **Session ended:** 2025-12-14 03:12 EST
+- **Session ended:** 2025-12-14 05:26 EST
 - **Branch:** `feature/notification-integration`
 - **Build status:** ✅ Passing
 - **Next action:** 
-  1. Continue notification integration work or merge feature branch to develop
-  2. Visual verification of centered settings headers if desired
-
+  1. Continue polishing admin vs user access control
+  2. Test with non-admin user to verify all 403s are resolved
+  3. Verify app name/icon displays correctly in sidebar for non-admins
 
