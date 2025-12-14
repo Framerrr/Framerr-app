@@ -308,19 +308,19 @@ const SystemStatusWidget = ({ config }) => {
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
 
-    // Get integrations state from context
+    // Get integrations state from context - ONLY source of truth for access
     const { integrations } = useAppData();
-    const integration = integrations?.systemstatus;
 
-    // Check if integration is enabled
+    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    const integration = integrations?.systemstatus || { enabled: false };
+
+    // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && (
         (integration.backend === 'glances' && integration.glances?.url) ||
         (integration.backend === 'custom' && integration.custom?.url) ||
         (!integration.backend && integration.url) // Legacy format support
     );
 
-    // Extract config with defaults
-    const { enabled = false, url = '', token = '' } = config || {};
     const [statusData, setStatusData] = useState({ cpu: 0, memory: 0, temperature: 0, uptime: '--' });
     const [loading, setLoading] = useState(true);
 

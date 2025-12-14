@@ -63,13 +63,17 @@ router.get('/shared', requireAuth, async (req, res) => {
                     }
                 }
 
-                // Include config needed for widget to function
+                // Include ALL config needed for widget to function
+                // Spread the full serviceConfig to include all fields each widget needs:
+                // - Sonarr/Radarr/Overseerr: url, apiKey
+                // - Plex: url, token  
+                // - qBittorrent: url, username, password
+                // - SystemStatus: url, backend, glances, custom, token
+                const { sharing: _omit, ...configWithoutSharing } = serviceConfig;
                 sharedIntegrations.push({
-                    name: serviceName,  // 'name' for consistency with widget registry
-                    url: serviceConfig.url,
-                    apiKey: serviceConfig.apiKey,
-                    token: serviceConfig.token, // Plex uses token instead of apiKey
-                    enabled: true,
+                    name: serviceName,
+                    ...configWithoutSharing,  // Include all config fields
+                    enabled: true,  // Force enabled since it passed access check
                     sharedBy: sharedByName,
                     sharedAt: sharing.sharedAt || null
                 });

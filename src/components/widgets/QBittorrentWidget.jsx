@@ -13,22 +13,15 @@ const QBittorrentWidget = ({ config }) => {
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
 
-    // Get integrations state from context (available for admins)
+    // Get integrations state from context - ONLY source of truth for access
     const { integrations } = useAppData();
-    const contextIntegration = integrations?.qbittorrent;
 
-    // Memoize integration to prevent infinite loop from object recreation
-    const integration = useMemo(() => {
-        if (contextIntegration?.enabled) {
-            return contextIntegration;
-        }
-        return { enabled: config?.enabled, url: config?.url, username: config?.username, password: config?.password };
-    }, [contextIntegration, config?.enabled, config?.url, config?.username, config?.password]);
+    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    const integration = integrations?.qbittorrent || { enabled: false };
 
-    // Check if integration is enabled (from either source)
+    // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && integration?.url;
 
-    const { enabled = false, url = '', username = '', password = '' } = config || {};
     const [torrents, setTorrents] = useState([]);
     const [transferInfo, setTransferInfo] = useState(null);
     const [loading, setLoading] = useState(false);

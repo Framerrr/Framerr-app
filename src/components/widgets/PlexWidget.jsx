@@ -13,22 +13,16 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
 
-    // Get integrations state from context (available for admins)
+    // Get integrations state from context - ONLY source of truth for access
     const { integrations } = useAppData();
-    const contextIntegration = integrations?.plex;
 
-    // Memoize integration to prevent infinite loop from object recreation
-    const integration = useMemo(() => {
-        if (contextIntegration?.enabled) {
-            return contextIntegration;
-        }
-        return { enabled: config?.enabled, url: config?.url, token: config?.token };
-    }, [contextIntegration, config?.enabled, config?.url, config?.token]);
+    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    const integration = integrations?.plex || { enabled: false };
 
-    // Check if integration is enabled (from either source)
+    // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.token;
 
-    const { enabled = false, url = '', token = '', hideWhenEmpty = true } = config || {};
+    const { hideWhenEmpty = true } = config || {};
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
