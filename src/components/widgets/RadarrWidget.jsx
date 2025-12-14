@@ -119,11 +119,17 @@ const MoviePopover = ({ movie }) => {
 };
 
 const RadarrWidget = ({ config }) => {
-    // Get integrations state from context
+    // Get integrations state from context (available for admins)
     const { integrations } = useAppData();
-    const integration = integrations?.radarr;
+    const contextIntegration = integrations?.radarr;
 
-    // Check if integration is enabled
+    // For shared widgets (non-admins), integration config comes from the config prop
+    // For admins, it comes from the context
+    const integration = contextIntegration?.enabled
+        ? contextIntegration
+        : { enabled: config?.enabled, url: config?.url, apiKey: config?.apiKey };
+
+    // Check if integration is enabled (from either source)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
     const { enabled = false, url = '', apiKey = '' } = config || {};

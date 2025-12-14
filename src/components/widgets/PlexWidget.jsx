@@ -6,11 +6,17 @@ import { useAppData } from '../../context/AppDataContext';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
-    // Get integrations state from context
+    // Get integrations state from context (available for admins)
     const { integrations } = useAppData();
-    const integration = integrations?.plex;
+    const contextIntegration = integrations?.plex;
 
-    // Check if integration is enabled
+    // For shared widgets (non-admins), integration config comes from the config prop
+    // For admins, it comes from the context
+    const integration = contextIntegration?.enabled
+        ? contextIntegration
+        : { enabled: config?.enabled, url: config?.url, token: config?.token };
+
+    // Check if integration is enabled (from either source)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.token;
 
     const { enabled = false, url = '', token = '', hideWhenEmpty = true } = config || {};

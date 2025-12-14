@@ -4,11 +4,17 @@ import { useAppData } from '../../context/AppDataContext';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const OverseerrWidget = ({ config }) => {
-    // Get integrations state from context
+    // Get integrations state from context (available for admins)
     const { integrations } = useAppData();
-    const integration = integrations?.overseerr;
+    const contextIntegration = integrations?.overseerr;
 
-    // Check if integration is enabled
+    // For shared widgets (non-admins), integration config comes from the config prop
+    // For admins, it comes from the context
+    const integration = contextIntegration?.enabled
+        ? contextIntegration
+        : { enabled: config?.enabled, url: config?.url, apiKey: config?.apiKey };
+
+    // Check if integration is enabled (from either source)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
     const { enabled = false, url = '', apiKey = '' } = config || {};
