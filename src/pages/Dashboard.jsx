@@ -629,10 +629,7 @@ const Dashboard = () => {
         return (
             <div
                 className="w-full min-h-screen max-w-[2000px] mx-auto fade-in"
-                style={{
-                    padding: 32,
-                    paddingBottom: LAYOUT.PAGE_MARGIN
-                }}
+                style={{ padding: 32 }}
             >
                 <header className="mb-12 flex items-center justify-between">
                     <div>
@@ -661,10 +658,7 @@ const Dashboard = () => {
     return (
         <div
             className="w-full min-h-screen max-w-[2000px] mx-auto fade-in"
-            style={{
-                padding: 32,
-                paddingBottom: LAYOUT.PAGE_MARGIN
-            }}
+            style={{ padding: 32 }}
         >
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
@@ -849,8 +843,8 @@ const Dashboard = () => {
                 integrations={integrations}
             />
 
-            {/* Bottom Spacer - Prevents content cutoff */}
-            <div style={{ height: '100px' }} className="md:h-32" aria-hidden="true" />
+            {/* Bottom Spacer - Matches sidebar/tabbar margin from screen edge */}
+            <div style={{ height: LAYOUT.PAGE_MARGIN }} aria-hidden="true" />
         </div>
     );
 };
