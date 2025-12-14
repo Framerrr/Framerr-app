@@ -303,6 +303,11 @@ const Dashboard = () => {
     };
 
     const loadDebugOverlaySetting = async () => {
+        // Only admins can access system config
+        if (!userIsAdmin) {
+            return;
+        }
+
         try {
             const response = await axios.get('/api/system/config');
             if (response.data.config?.debug) {
