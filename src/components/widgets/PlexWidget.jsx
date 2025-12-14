@@ -88,7 +88,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
 
     // Notify dashboard when visibility changes (for hideWhenEmpty)
     useEffect(() => {
-        if (!onVisibilityChange || !enabled) return;
+        if (!onVisibilityChange || !isIntegrationEnabled) return;
 
         const sessions = data?.sessions || [];
         const shouldBeVisible = sessions.length > 0 || editMode;
@@ -101,7 +101,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
             previousVisibilityRef.current = isVisible;
             onVisibilityChange(widgetId, isVisible);
         }
-    }, [data, localHideWhenEmpty, editMode, widgetId, onVisibilityChange, enabled]);
+    }, [data, localHideWhenEmpty, editMode, widgetId, onVisibilityChange, isIntegrationEnabled]);
 
     const handleStopPlayback = async (session) => {
         if (stoppingSession === session.sessionKey) return;
