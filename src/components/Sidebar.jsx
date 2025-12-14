@@ -240,7 +240,10 @@ const Sidebar = () => {
                         <div className="flex-1 flex flex-col overflow-hidden">
                             <NotificationCenter
                                 isMobile={false}
-                                onClose={() => setShowNotificationCenter(false)}
+                                onClose={() => {
+                                    setShowNotificationCenter(false);
+                                    setIsExpanded(false);
+                                }}
                             />
                         </div>
                     ) : (
@@ -695,7 +698,10 @@ const Sidebar = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setShowNotificationCenter(false)}
+                            onClick={() => {
+                                setShowNotificationCenter(false);
+                                setIsExpanded(false);
+                            }}
                             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
                         />
                     )}
