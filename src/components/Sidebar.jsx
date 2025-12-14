@@ -21,7 +21,7 @@ const Sidebar = () => {
     const hoverTimeoutRef = React.useRef(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
-    const { unreadCount, info: showInfo } = useNotifications();
+    const { unreadCount } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -110,10 +110,9 @@ const Sidebar = () => {
     }, []);
 
     const handleLogout = async () => {
-        showInfo('Goodbye!', 'You have been logged out');
         await logout();
-        // Small delay to let toast render before navigation
-        setTimeout(() => navigate('/login'), 500);
+        // Pass state to login page so it can show the toast
+        navigate('/login', { state: { loggedOut: true } });
     };
 
     // Initialize all groups as expanded by default

@@ -12,11 +12,21 @@ const Login = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { login, isAuthenticated, loading: authLoading } = useAuth();
-    const { success: showSuccess } = useNotifications();
+    const { success: showSuccess, info: showInfo } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
 
     const from = location.state?.from?.pathname || '/';
+    const loggedOut = location.state?.loggedOut;
+
+    // Show logout message if coming from logout
+    useEffect(() => {
+        if (loggedOut) {
+            showInfo('Goodbye!', 'You have been logged out');
+            // Clear the state so it doesn't show again on refresh
+            navigate('/login', { replace: true, state: {} });
+        }
+    }, [loggedOut, showInfo, navigate]);
 
     // Redirect if already authenticated
     useEffect(() => {
