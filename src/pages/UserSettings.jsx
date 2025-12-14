@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid, Bell } from 'lucide-react';
+import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { isAdmin } from '../utils/permissions';
@@ -54,6 +54,7 @@ const UserSettings = () => {
     const userTabs = [
         { id: 'tabs', label: 'My Tabs', icon: Layout },
         ...(hasAdminAccess ? [{ id: 'tabgroups', label: 'Tab Groups', icon: FolderTree }] : []),
+        { id: 'integrations', label: 'Integrations', icon: Puzzle },
         { id: 'customization', label: 'Customization', icon: SettingsIcon },
         { id: 'profile', label: 'Profile', icon: User },
         { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -62,7 +63,6 @@ const UserSettings = () => {
     // Admin tabs (only for admins)
     const adminTabs = hasAdminAccess ? [
         { id: 'users', label: 'Users', icon: Users },
-        { id: 'widgets', label: 'Widgets', icon: LayoutGrid },
         { id: 'auth', label: 'Auth', icon: Shield },
         { id: 'advanced', label: 'Advanced', icon: Cpu },
     ] : [];
@@ -188,6 +188,17 @@ const UserSettings = () => {
                             <NotificationSettings />
                         </motion.div>
                     )}
+                    {activeTab === 'integrations' && (
+                        <motion.div
+                            key="integrations"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <WidgetsSettings />
+                        </motion.div>
+                    )}
 
                     {/* Admin Settings - only render if user has access */}
                     {hasAdminAccess && (
@@ -212,17 +223,6 @@ const UserSettings = () => {
                                     transition={contentSpring}
                                 >
                                     <TabGroupsSettings />
-                                </motion.div>
-                            )}
-                            {activeTab === 'widgets' && (
-                                <motion.div
-                                    key="widgets"
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={contentSpring}
-                                >
-                                    <WidgetsSettings />
                                 </motion.div>
                             )}
                             {activeTab === 'auth' && (

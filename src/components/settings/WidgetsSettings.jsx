@@ -1,21 +1,32 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Cpu, Activity } from 'lucide-react';
+import { LayoutGrid, Cpu, Activity, Link2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import WidgetGallery from './WidgetGallery';
 import IntegrationsSettings from './IntegrationsSettings';
 import ActiveWidgets from './ActiveWidgets';
+import LinkedAccountsSettings from './LinkedAccountsSettings';
 
 /**
- * Widgets Settings - Main wrapper with sub-tabs
- * Sub-tabs: Gallery (browse/add widgets), Integrations (configure services), Active (manage current widgets)
+ * Integrations Settings - Main wrapper with sub-tabs
+ * Sub-tabs: 
+ *   - Widget Gallery (all users)
+ *   - Active Widgets (all users)
+ *   - Service Settings (admin only - API keys, URLs)
+ *   - My Linked Accounts (all users - link Overseerr username, etc.)
  */
 const WidgetsSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('gallery');
+    const { user } = useAuth();
+    const hasAdminAccess = isAdmin(user);
 
+    // Build sub-tabs based on permissions
     const subTabs = [
-        { id: 'gallery', label: 'Widget Gallery', icon: LayoutGrid },
-        { id: 'integrations', label: 'Integrations', icon: Cpu },
-        { id: 'active', label: 'Active Widgets', icon: Activity }
+        { id: 'gallery', label: 'Widget Gallery', icon: LayoutGrid, adminOnly: false },
+        { id: 'active', label: 'Active Widgets', icon: Activity, adminOnly: false },
+        ...(hasAdminAccess ? [{ id: 'services', label: 'Service Settings', icon: Cpu, adminOnly: true }] : []),
+        { id: 'linked', label: 'My Linked Accounts', icon: Link2, adminOnly: false }
     ];
 
     // Spring config for sub-tab indicator
@@ -29,13 +40,18 @@ const WidgetsSettings = () => {
         <div className="fade-in">
             {/* Header */}
             <div className="mb-6 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">Widgets</h2>
-                <p className="text-theme-secondary text-sm">Configure dashboard widgets and service integrations</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">Integrations</h2>
+                <p className="text-theme-secondary text-sm">
+                    {hasAdminAccess
+                        ? 'Manage widgets, service connections, and linked accounts'
+                        : 'Manage your widgets and linked accounts'
+                    }
+                </p>
             </div>
 
             {/* Sub-Tab Navigation */}
             <div className="mb-6 border-b border-theme">
-                <div className="flex gap-1 relative">
+                <div className="flex gap-1 relative overflow-x-auto">
                     {subTabs.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeSubTab === tab.id;
@@ -43,7 +59,7 @@ const WidgetsSettings = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveSubTab(tab.id)}
-                                className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                                className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                             >
                                 <div className="flex items-center gap-2 relative z-10">
                                     <Icon size={18} className={isActive ? 'text-accent' : ''} />
@@ -53,7 +69,7 @@ const WidgetsSettings = () => {
                                 {/* Animated sliding indicator */}
                                 {isActive && (
                                     <motion.div
-                                        layoutId="widgetSubTabIndicator"
+                                        layoutId="integrationsSubTabIndicator"
                                         className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
                                         transition={tabSpring}
                                     />
@@ -81,19 +97,6 @@ const WidgetsSettings = () => {
 
                 <div
                     style={{
-                        opacity: activeSubTab === 'integrations' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'integrations' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'integrations' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
-                    <IntegrationsSettings context="widgets" />
-                </div>
-
-                <div
-                    style={{
                         opacity: activeSubTab === 'active' ? 1 : 0,
                         transition: 'opacity 0.3s ease',
                         position: activeSubTab === 'active' ? 'relative' : 'absolute',
@@ -104,9 +107,39 @@ const WidgetsSettings = () => {
                 >
                     <ActiveWidgets />
                 </div>
+
+                {/* Admin-only: Service Settings */}
+                {hasAdminAccess && (
+                    <div
+                        style={{
+                            opacity: activeSubTab === 'services' ? 1 : 0,
+                            transition: 'opacity 0.3s ease',
+                            position: activeSubTab === 'services' ? 'relative' : 'absolute',
+                            visibility: activeSubTab === 'services' ? 'visible' : 'hidden',
+                            width: '100%',
+                            top: 0
+                        }}
+                    >
+                        <IntegrationsSettings />
+                    </div>
+                )}
+
+                <div
+                    style={{
+                        opacity: activeSubTab === 'linked' ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        position: activeSubTab === 'linked' ? 'relative' : 'absolute',
+                        visibility: activeSubTab === 'linked' ? 'visible' : 'hidden',
+                        width: '100%',
+                        top: 0
+                    }}
+                >
+                    <LinkedAccountsSettings />
+                </div>
             </div>
         </div>
     );
 };
 
 export default WidgetsSettings;
+
