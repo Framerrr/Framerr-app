@@ -73,8 +73,8 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 },
-        breakpoints: { lg: 1024, md: 768, sm: 640, xs: 320, xxs: 0 },
+        cols: { lg: 24, md: 24, xs: 2, xxs: 2 },
+        breakpoints: { lg: 1024, md: 768, xs: 640, xxs: 0 },
         rowHeight: 100,
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
         preventCollision: false,
@@ -750,8 +750,8 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }}
-                            breakpoints={{ lg: 1024, md: 768, sm: 640, xs: 320, xxs: 0 }}
+                            cols={{ lg: 24, md: 24, xs: 2, xxs: 2 }}
+                            breakpoints={{ lg: 1024, md: 768, xs: 640, xxs: 0 }}
                             rowHeight={100}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
                             preventCollision={false}
