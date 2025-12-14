@@ -29,8 +29,8 @@ const Dashboard = () => {
     const [widgets, setWidgets] = useState([]);
     const [layouts, setLayouts] = useState({
         lg: [],
-        xs: [],
-        xxs: []
+        sm: [],
+        xs: []
     });
     const [editMode, setEditMode] = useState(false);
     const [isGlobalDragEnabled, setGlobalDragEnabled] = useState(true);
@@ -73,10 +73,10 @@ const Dashboard = () => {
     // Grid configuration - memoized to prevent recreation on every render
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 24, md: 24, xs: 2, xxs: 2 },
-        breakpoints: { lg: 1024, md: 768, xs: 640, xxs: 0 },
+        cols: { lg: 24, md: 24, sm: 2, xs: 2 },
+        breakpoints: { lg: 1024, md: 768, sm: 640, xs: 0 },
         rowHeight: 100,
-        compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
+        compactType: (currentBreakpoint === 'sm' || currentBreakpoint === 'xs') ? null : 'vertical',
         preventCollision: false,
         isDraggable: editMode && isGlobalDragEnabled,
         isResizable: editMode && isGlobalDragEnabled,
@@ -177,8 +177,8 @@ const Dashboard = () => {
                 // Update layouts for this widget
                 setLayouts(prev => ({
                     lg: prev.lg.map(l => l.i === widgetId ? enrichLayoutWithConstraints(updatedWidget, { i: widgetId, ...updatedWidget.layouts.lg }) : l),
-                    xs: prev.xs.map(l => l.i === widgetId && updatedWidget.layouts.xs ? { i: widgetId, ...updatedWidget.layouts.xs } : l),
-                    xxs: prev.xxs.map(l => l.i === widgetId && updatedWidget.layouts.xxs ? { i: widgetId, ...updatedWidget.layouts.xxs } : l)
+                    sm: prev.sm.map(l => l.i === widgetId && updatedWidget.layouts.sm ? { i: widgetId, ...updatedWidget.layouts.sm } : l),
+                    xs: prev.xs.map(l => l.i === widgetId && updatedWidget.layouts.xs ? { i: widgetId, ...updatedWidget.layouts.xs } : l)
                 }));
 
                 logger.debug('Widget refreshed:', widgetId);
@@ -219,7 +219,7 @@ const Dashboard = () => {
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 24; // xs/xxs=2 (full width), md/sm/lg=24
+        const cols = currentBreakpoint === 'sm' || currentBreakpoint === 'xs' ? 2 : 24; // sm/xs=2 (full width), md/lg=24
         const breakpoint = currentBreakpoint;
 
         logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
@@ -331,10 +331,8 @@ const Dashboard = () => {
             // Convert to react-grid-layout format for all breakpoints
             const initialLayouts = {
                 lg: fetchedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                md: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.md })),
                 sm: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.sm })),
-                xs: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.xxs }))
+                xs: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.xs }))
             };
 
             setLayouts(initialLayouts);
@@ -342,7 +340,7 @@ const Dashboard = () => {
         } catch (error) {
             logger.error('Failed to load widgets:', error);
             setWidgets([]);
-            setLayouts({ lg: [], xs: [], xxs: [] });
+            setLayouts({ lg: [], sm: [], xs: [] });
         } finally {
             setLoading(false);
         }
@@ -393,8 +391,8 @@ const Dashboard = () => {
         setWidgets(withMobileLayouts);
         setLayouts({
             lg: newLayout,
-            xs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-            xxs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            sm: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
+            xs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xs }))
         });
     };
 
@@ -411,8 +409,8 @@ const Dashboard = () => {
             // Update layouts from saved widgets
             setLayouts({
                 lg: savedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                xs: savedWidgets.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: savedWidgets.map(w => ({ i: w.id, ...w.layouts.xxs }))
+                sm: savedWidgets.map(w => ({ i: w.id, ...w.layouts.sm })),
+                xs: savedWidgets.map(w => ({ i: w.id, ...w.layouts.xs }))
             });
 
             setHasUnsavedChanges(false);
@@ -433,8 +431,8 @@ const Dashboard = () => {
         // Restore layouts from original
         setLayouts({
             lg: originalLayout.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-            xs: originalLayout.map(w => ({ i: w.id, ...w.layouts.xs })),
-            xxs: originalLayout.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            sm: originalLayout.map(w => ({ i: w.id, ...w.layouts.sm })),
+            xs: originalLayout.map(w => ({ i: w.id, ...w.layouts.xs }))
         });
 
         setHasUnsavedChanges(false);
@@ -464,8 +462,8 @@ const Dashboard = () => {
         setWidgets(withLayouts);
         setLayouts({
             lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-            xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-            xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
+            xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs }))
         });
 
         setHasUnsavedChanges(true);
@@ -520,8 +518,8 @@ const Dashboard = () => {
             setWidgets(withLayouts);
             setLayouts({
                 lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+                sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm })),
+                xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs }))
             });
 
             setHasUnsavedChanges(true);
@@ -750,10 +748,10 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 24, md: 24, xs: 2, xxs: 2 }}
-                            breakpoints={{ lg: 1024, md: 768, xs: 640, xxs: 0 }}
+                            cols={{ lg: 24, md: 24, sm: 2, xs: 2 }}
+                            breakpoints={{ lg: 1024, md: 768, sm: 640, xs: 0 }}
                             rowHeight={100}
-                            compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
+                            compactType={(currentBreakpoint === 'sm' || currentBreakpoint === 'xs') ? null : 'vertical'}
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
                             isResizable={editMode && isGlobalDragEnabled}
