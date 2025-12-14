@@ -146,11 +146,11 @@ const Sidebar = () => {
     };
 
     const handleMouseLeave = () => {
-        // Add small delay before clearing hover (150ms)
+        // Add small delay before clearing hover (350ms)
         hoverTimeoutRef.current = setTimeout(() => {
             setHoveredItem(null);
             hoverTimeoutRef.current = null;
-        }, 150);
+        }, 350);
     };
 
     const renderIcon = (iconValue, size = 20) => {
