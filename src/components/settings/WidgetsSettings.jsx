@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Cpu, Activity, Link2 } from 'lucide-react';
+import { LayoutGrid, Cpu, Activity, Link2, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
@@ -7,6 +7,7 @@ import WidgetGallery from './WidgetGallery';
 import IntegrationsSettings from './IntegrationsSettings';
 import ActiveWidgets from './ActiveWidgets';
 import LinkedAccountsSettings from './LinkedAccountsSettings';
+import SharedWidgetsSettings from './SharedWidgetsSettings';
 
 /**
  * Integrations Settings - Main wrapper with sub-tabs
@@ -25,7 +26,10 @@ const WidgetsSettings = () => {
     const subTabs = [
         { id: 'gallery', label: 'Widget Gallery', icon: LayoutGrid, adminOnly: false },
         { id: 'active', label: 'Active Widgets', icon: Activity, adminOnly: false },
-        ...(hasAdminAccess ? [{ id: 'services', label: 'Service Settings', icon: Cpu, adminOnly: true }] : []),
+        ...(hasAdminAccess ? [
+            { id: 'services', label: 'Service Settings', icon: Cpu, adminOnly: true },
+            { id: 'shared', label: 'Shared Widgets', icon: Share2, adminOnly: true }
+        ] : []),
         { id: 'linked', label: 'My Linked Accounts', icon: Link2, adminOnly: false }
     ];
 
@@ -121,6 +125,22 @@ const WidgetsSettings = () => {
                         }}
                     >
                         <IntegrationsSettings />
+                    </div>
+                )}
+
+                {/* Admin-only: Shared Widgets Management */}
+                {hasAdminAccess && (
+                    <div
+                        style={{
+                            opacity: activeSubTab === 'shared' ? 1 : 0,
+                            transition: 'opacity 0.3s ease',
+                            position: activeSubTab === 'shared' ? 'relative' : 'absolute',
+                            visibility: activeSubTab === 'shared' ? 'visible' : 'hidden',
+                            width: '100%',
+                            top: 0
+                        }}
+                    >
+                        <SharedWidgetsSettings />
                     </div>
                 )}
 
