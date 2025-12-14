@@ -46,14 +46,15 @@ router.put('/system', requireAdmin, async (req, res) => {
 
 /**
  * GET /api/config/app-name
- * Get application name (public, no auth required)
- * This endpoint is safe to be public as it only exposes the display name
+ * Get application branding (public, no auth required)
+ * This endpoint is safe to be public as it only exposes the display name and icon
  */
 router.get('/app-name', async (req, res) => {
     try {
         const config = await getSystemConfig();
         res.json({
-            name: config.server?.name || 'Framerr'
+            name: config.server?.name || 'Framerr',
+            icon: config.server?.icon || 'Server'
         });
     } catch (error) {
         logger.error('Failed to get app name', { error: error.message });

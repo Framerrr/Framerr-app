@@ -50,10 +50,19 @@ export const AppDataProvider = ({ children }) => {
                 setIntegrations({});
             }
 
-            // Set user settings with server name/icon from system config (or defaults)
+            // Fetch app branding (public endpoint - works for all users)
+            let appBranding = { name: 'Framerr', icon: 'Server' };
+            try {
+                const brandingRes = await axios.get('/api/config/app-name');
+                appBranding = brandingRes.data;
+            } catch (brandingError) {
+                logger.debug('App branding not available, using defaults');
+            }
+
+            // Set user settings with server name/icon from branding API
             setUserSettings({
-                serverName: systemConfig?.server?.name || 'Framerr',
-                serverIcon: systemConfig?.server?.icon || 'Server',
+                serverName: appBranding.name || 'Framerr',
+                serverIcon: appBranding.icon || 'Server',
                 ...userConfig.preferences
             });
 
