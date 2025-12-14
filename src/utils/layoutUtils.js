@@ -102,16 +102,14 @@ const calculateMobileHeight = (widget, breakpoint) => {
     const desktopHeight = widget.layouts?.lg?.h ?? widget.h ?? 2;
     const scaled = Math.ceil(desktopHeight * 0.75);
     const min = 2;
-    const max = breakpoint === 'xs' ? 4 : 6;
+    const max = 6;
     return Math.max(min, Math.min(max, scaled));
 };
 /**
- * Generate mobile layouts for stacking breakpoints: sm, xs
+ * Generate mobile layout for sm breakpoint
  */
 export const generateAllMobileLayouts = (widgets) => {
-    const withSm = generateMobileLayout(widgets, 'sm');
-    const withXs = generateMobileLayout(withSm, 'xs');
-    return withXs;
+    return generateMobileLayout(widgets, 'sm');
 };
 /**
  * Convert old widget format to new layouts format
