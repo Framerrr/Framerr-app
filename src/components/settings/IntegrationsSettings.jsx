@@ -340,9 +340,8 @@ const IntegrationsSettings = () => {
                                         animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
                                         transition={{ duration: 0.2 }}
-                                        className="overflow-hidden"
                                     >
-                                        <div className="px-6 pb-6 border-t border-theme pt-6 space-y-4">
+                                        <div className="px-6 pb-6 border-t border-theme pt-6 space-y-4 overflow-visible">
                                             {/* Configuration Fields */}
                                             {config.fields.map(field => (
                                                 <Input
