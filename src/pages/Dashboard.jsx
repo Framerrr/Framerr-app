@@ -45,6 +45,9 @@ const Dashboard = () => {
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
+    const [editDisclaimerDismissed, setEditDisclaimerDismissed] = useState(() => {
+        return localStorage.getItem('framerr_edit_disclaimer_dismissed') === 'true';
+    });
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -690,6 +693,25 @@ const Dashboard = () => {
                     )}
                 </div>
             </header>
+
+            {/* Edit Mode Desktop Disclaimer */}
+            {editMode && !editDisclaimerDismissed && (
+                <div className="mb-4 px-4 py-3 bg-info/10 border border-info/20 rounded-xl flex items-center justify-between gap-4">
+                    <p className="text-sm text-theme-secondary">
+                        💡 Dashboard editing is only available on desktop screens (≥1024px)
+                    </p>
+                    <button
+                        onClick={() => {
+                            setEditDisclaimerDismissed(true);
+                            localStorage.setItem('framerr_edit_disclaimer_dismissed', 'true');
+                        }}
+                        className="p-1.5 hover:bg-theme-hover rounded-lg transition-colors text-theme-tertiary hover:text-theme-primary"
+                        title="Dismiss"
+                    >
+                        <XIcon size={16} />
+                    </button>
+                </div>
+            )}
 
             {/* Grid Layout with Drop Support - Always rendered for drag-and-drop */}
             <div
