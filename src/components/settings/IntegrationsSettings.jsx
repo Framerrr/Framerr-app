@@ -5,7 +5,9 @@ import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import SystemHealthIntegration from './integrations/SystemHealthIntegration';
+import SharingDropdown from './SharingDropdown';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 const IntegrationsSettings = () => {
     const [integrations, setIntegrations] = useState({
@@ -23,6 +25,7 @@ const IntegrationsSettings = () => {
     const [testStates, setTestStates] = useState({});
     const [confirmReset, setConfirmReset] = useState({});
     const { success: showSuccess, error: showError } = useNotifications();
+    const { user } = useAuth();
 
     useEffect(() => {
         fetchIntegrations();
@@ -69,6 +72,19 @@ const IntegrationsSettings = () => {
             [service]: {
                 ...prev[service],
                 [field]: value
+            }
+        }));
+    };
+
+    const handleSharingChange = (service, sharingConfig) => {
+        setIntegrations(prev => ({
+            ...prev,
+            [service]: {
+                ...prev[service],
+                sharing: {
+                    ...sharingConfig,
+                    sharedBy: sharingConfig.enabled ? (sharingConfig.sharedBy || user?.id) : null
+                }
             }
         }));
     };
@@ -338,6 +354,14 @@ const IntegrationsSettings = () => {
                                                     placeholder={field.placeholder}
                                                 />
                                             ))}
+
+                                            {/* Widget Sharing */}
+                                            <SharingDropdown
+                                                service={config.id}
+                                                sharing={integrations[config.id]?.sharing}
+                                                onChange={(sharingConfig) => handleSharingChange(config.id, sharingConfig)}
+                                                disabled={!isConfigured(config.id)}
+                                            />
 
                                             {/* Test Connection & Reset */}
                                             <div className="flex items-center justify-between gap-3 pt-2">
