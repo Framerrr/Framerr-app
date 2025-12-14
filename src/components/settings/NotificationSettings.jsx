@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Volume2, VolumeX, ChevronDown, ChevronRight, Play } from 'lucide-react';
+import { Bell, Volume2, VolumeX, ChevronDown, Play, Tv, MonitorPlay, Film, Download, Star, Activity } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '../../context/NotificationContext';
@@ -152,7 +152,7 @@ const NotificationSettings = () => {
             id: 'plex',
             name: 'Plex',
             description: 'Media server notifications',
-            icon: '🎬',
+            icon: Tv,
             options: [
                 { key: 'sessionStart', label: 'Session started' },
                 { key: 'sessionEnd', label: 'Session ended' }
@@ -162,7 +162,7 @@ const NotificationSettings = () => {
             id: 'sonarr',
             name: 'Sonarr',
             description: 'TV show download notifications',
-            icon: '📺',
+            icon: MonitorPlay,
             options: [
                 { key: 'downloadComplete', label: 'Download complete' }
             ]
@@ -171,7 +171,7 @@ const NotificationSettings = () => {
             id: 'radarr',
             name: 'Radarr',
             description: 'Movie download notifications',
-            icon: '🎥',
+            icon: Film,
             options: [
                 { key: 'downloadComplete', label: 'Download complete' }
             ]
@@ -180,7 +180,7 @@ const NotificationSettings = () => {
             id: 'qbittorrent',
             name: 'qBittorrent',
             description: 'Torrent client notifications',
-            icon: '⬇️',
+            icon: Download,
             options: [
                 { key: 'downloadComplete', label: 'Download complete' }
             ]
@@ -189,7 +189,7 @@ const NotificationSettings = () => {
             id: 'overseerr',
             name: 'Overseerr',
             description: 'Media request notifications',
-            icon: '🎟️',
+            icon: Star,
             options: [
                 { key: 'requestApproved', label: 'Request approved' },
                 { key: 'requestAvailable', label: 'Media available' }
@@ -199,7 +199,7 @@ const NotificationSettings = () => {
             id: 'systemHealth',
             name: 'System Health',
             description: 'System resource alerts',
-            icon: '💻',
+            icon: Activity,
             options: [
                 { key: 'resourceAlerts', label: 'Resource alerts (high CPU/memory)' }
             ]
@@ -292,7 +292,7 @@ const NotificationSettings = () => {
                     </div>
 
                     {/* Test Notification */}
-                    <div className="p-4 bg-info/10 border border-info/30 rounded-lg">
+                    <div className="p-4 bg-theme-tertiary rounded-lg border border-theme">
                         <h4 className="text-sm font-medium text-theme-primary mb-2">
                             Test Notifications
                         </h4>
@@ -321,8 +321,9 @@ const NotificationSettings = () => {
                     Configure which integrations send you notifications. These require the corresponding integration to be enabled in Widgets → Integrations.
                 </p>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {integrations.map((integration) => {
+                        const Icon = integration.icon;
                         const isExpanded = expandedSections[integration.id];
                         const settings = integrationSettings[integration.id] || {};
                         const isEnabled = settings.enabled !== false;
@@ -330,33 +331,34 @@ const NotificationSettings = () => {
                         return (
                             <div
                                 key={integration.id}
-                                className="border border-theme rounded-lg overflow-hidden"
+                                className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow"
                             >
-                                {/* Integration Header */}
+                                {/* Integration Header - Clickable */}
                                 <button
                                     onClick={() => toggleSection(integration.id)}
-                                    className="w-full flex items-center justify-between p-4 bg-theme-secondary hover:bg-theme-hover transition-colors"
+                                    className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{integration.icon}</span>
-                                        <div className="text-left">
-                                            <div className="text-sm font-medium text-theme-primary">
-                                                {integration.name}
-                                            </div>
-                                            <div className="text-xs text-theme-tertiary">
-                                                {integration.description}
-                                            </div>
+                                    <div className="flex items-center gap-4 flex-1">
+                                        <Icon className="text-theme-secondary" size={20} />
+                                        <div className="flex-1 min-w-0 text-left">
+                                            <h3 className="font-semibold text-theme-primary">{integration.name}</h3>
+                                            <p className="text-sm text-theme-secondary">{integration.description}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <span className={`text-xs px-2 py-1 rounded ${isEnabled ? 'bg-success/20 text-success' : 'bg-theme-tertiary text-theme-tertiary'}`}>
-                                            {isEnabled ? 'Enabled' : 'Disabled'}
-                                        </span>
-                                        {isExpanded ? (
-                                            <ChevronDown size={18} className="text-theme-secondary" />
-                                        ) : (
-                                            <ChevronRight size={18} className="text-theme-secondary" />
-                                        )}
+                                        {/* Toggle Switch */}
+                                        <div
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleToggleIntegration(integration.id, 'enabled', !isEnabled);
+                                            }}
+                                            className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${isEnabled ? 'bg-success' : 'bg-theme-tertiary'}`}
+                                        >
+                                            <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                        </div>
+
+                                        {/* Chevron */}
+                                        <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                     </div>
                                 </button>
 
@@ -370,43 +372,22 @@ const NotificationSettings = () => {
                                             transition={{ duration: 0.2 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="p-4 bg-theme-tertiary border-t border-theme space-y-3">
-                                                {/* Master Toggle for Integration */}
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm text-theme-primary font-medium">
-                                                        Enable {integration.name} notifications
-                                                    </span>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isEnabled}
-                                                            onChange={(e) => handleToggleIntegration(integration.id, 'enabled', e.target.checked)}
-                                                            disabled={!notificationsEnabled}
-                                                            className="sr-only peer"
-                                                        />
-                                                        <div className="w-9 h-5 bg-theme-primary border border-theme rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-checked:border-accent peer-disabled:opacity-50"></div>
-                                                    </label>
-                                                </div>
-
+                                            <div className="px-6 pb-6 border-t border-theme pt-6 space-y-4">
                                                 {/* Individual notification type toggles */}
-                                                {isEnabled && integration.options.map((option) => (
+                                                {integration.options.map((option) => (
                                                     <div
                                                         key={option.key}
-                                                        className="flex items-center justify-between pl-4 border-l-2 border-theme"
+                                                        className="flex items-center justify-between"
                                                     >
                                                         <span className="text-sm text-theme-secondary">
                                                             {option.label}
                                                         </span>
-                                                        <label className="relative inline-flex items-center cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={settings[option.key] !== false}
-                                                                onChange={(e) => handleToggleIntegration(integration.id, option.key, e.target.checked)}
-                                                                disabled={!notificationsEnabled}
-                                                                className="sr-only peer"
-                                                            />
-                                                            <div className="w-9 h-5 bg-theme-primary border border-theme rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-checked:border-accent peer-disabled:opacity-50"></div>
-                                                        </label>
+                                                        <div
+                                                            onClick={() => handleToggleIntegration(integration.id, option.key, settings[option.key] === false)}
+                                                            className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${settings[option.key] !== false ? 'bg-success' : 'bg-theme-tertiary'} ${!notificationsEnabled || !isEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        >
+                                                            <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${settings[option.key] !== false ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
