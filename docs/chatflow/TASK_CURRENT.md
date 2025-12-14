@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-13 19:20 EST  
+**Last Updated:** 2025-12-13 23:42 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,26 +20,42 @@
 
 ## Current State
 
-**Status:** ✅ Notification integration in progress, session ending
+**Status:** ✅ Session completed - breakpoint/responsive work done, known issue documented
 
 **This Session:**
-- Fixed user deletion "not found" bug (`deleteUser` now returns boolean)
-- Added success toasts to 8 components (UsersSettings, ProfileSettings, CustomizationSettings, TabGroupsSettings, PermissionGroupsSettings, UserTabsSettings, LinkGridWidget_v2, ActiveWidgets)
-- Added login success toast ("Welcome!")
-- Added axios interceptor for global 401 session expiry errors
-- Attempted logout toast (not working - needs investigation)
+- **Notification Settings UI**: Aligned styling with IntegrationsSettings (glass-subtle, lucide-react icons, toggle switches)
+- **Integration Card Consistency**: Fixed test notification border from white/info to theme-compliant
+- **Dashboard Edit Button**: Hidden on mobile (`hidden md:flex`) 
+- **Edit Mode Disclaimer**: Added dismissible banner with server-side persistence via `/api/config/user`
+- **Breakpoint Simplification**: Reduced from 5 to 3 breakpoints (lg:1024, md:768, sm:0) to eliminate thrashing
+- **Breakpoint Naming**: Changed from lg/md/xs/xxs to lg/md/sm for consistency
 
-**Pending Known Issues:**
-- Logout toast not displaying on login page (navigation state approach not working)
-- Widget animation on navigation (react-grid-layout re-measuring) - left as-is
+---
+
+## Pending Known Issue: Breakpoint/Sidebar Alignment
+
+**Problem:** At viewport 768-863px, there's a mismatch:
+- Sidebar uses **viewport width** (`window.innerWidth < 768`)
+- Grid uses **container width** (768 - 96px sidebar = 672px)
+- At 768px viewport, sidebar shows but container is 672px = grid "sm"
+- Edit button shows (Tailwind md:flex uses viewport) but grid is in mobile mode
+
+**Proposed Solutions:**
+1. **React-state approach**: Hide edit button when `currentBreakpoint === 'sm'` (not Tailwind class)
+2. **Raise sidebar mobile threshold**: Change from `< 768` to `< 864`
+3. **Accept transitional zone**: Document as expected behavior
+
+**User preference unknown** - need decision before implementing.
 
 ---
 
 ## ✅ SESSION END
 
-- **Session ended:** 2025-12-13 19:20 EST
+- **Session ended:** 2025-12-13 23:42 EST
 - **Branch:** `feature/notification-integration`
 - **Next action:** 
-  1. Debug logout toast issue (investigate why navigation state isn't triggering toast)
-  2. Connect integrations to notification system (user's next priority)
+  1. Decide on breakpoint/sidebar alignment approach (see options above)
+  2. Debug logout toast issue (navigate state not triggering toast)
+  3. Connect integrations to notification system (original priority)
 - **Build status:** ✅ Passing
+
