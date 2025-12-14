@@ -15,7 +15,7 @@ const { httpsAgent } = require('../utils/httpsAgent');
 /**
  * GET /api/integrations/shared
  * Get integrations shared with the current user
- * Returns only integration names and sharedBy info, NOT sensitive config
+ * Returns integration name, config (url/apiKey), and sharedBy info
  */
 router.get('/shared', requireAuth, async (req, res) => {
     try {
@@ -63,15 +63,19 @@ router.get('/shared', requireAuth, async (req, res) => {
                     }
                 }
 
+                // Include config needed for widget to function
                 sharedIntegrations.push({
-                    service: serviceName,
+                    name: serviceName,  // 'name' for consistency with widget registry
+                    url: serviceConfig.url,
+                    apiKey: serviceConfig.apiKey,
+                    enabled: true,
                     sharedBy: sharedByName,
                     sharedAt: sharing.sharedAt || null
                 });
             }
         }
 
-        res.json({ sharedIntegrations });
+        res.json({ integrations: sharedIntegrations });
     } catch (error) {
         logger.error('Error fetching shared integrations:', error);
         res.status(500).json({ error: 'Failed to fetch shared integrations' });

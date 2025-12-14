@@ -50,7 +50,7 @@ const WidgetGallery = () => {
     const fetchSharedIntegrations = async () => {
         try {
             const response = await axios.get('/api/integrations/shared');
-            setSharedIntegrations(response.data.sharedIntegrations || []);
+            setSharedIntegrations(response.data.integrations || []);
         } catch (error) {
             logger.error('Failed to fetch shared integrations:', error);
         } finally {
@@ -73,14 +73,14 @@ const WidgetGallery = () => {
         // For regular users, check if integration is shared with them
         const requiredIntegration = widget.requiresIntegration;
         if (requiredIntegration) {
-            return sharedIntegrations.some(si => si.service === requiredIntegration);
+            return sharedIntegrations.some(si => si.name === requiredIntegration);
         }
 
         // For widgets requiring multiple integrations (like calendar)
         const requiredIntegrations = widget.requiresIntegrations;
         if (requiredIntegrations) {
             return requiredIntegrations.every(req =>
-                sharedIntegrations.some(si => si.service === req)
+                sharedIntegrations.some(si => si.name === req)
             );
         }
 
@@ -93,7 +93,7 @@ const WidgetGallery = () => {
 
         const requiredIntegration = widget.requiresIntegration;
         if (requiredIntegration) {
-            const shared = sharedIntegrations.find(si => si.service === requiredIntegration);
+            const shared = sharedIntegrations.find(si => si.name === requiredIntegration);
             return shared?.sharedBy;
         }
 
@@ -126,7 +126,7 @@ const WidgetGallery = () => {
             // For users: inject shared integration config
             else if (!hasAdminAccess && metadata.requiresIntegration) {
                 const sharedIntegration = sharedIntegrations.find(
-                    si => si.service === metadata.requiresIntegration
+                    si => si.name === metadata.requiresIntegration
                 );
                 if (sharedIntegration) {
                     widgetConfig = {
