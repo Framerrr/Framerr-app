@@ -29,6 +29,16 @@ const IntegrationsSettings = () => {
 
     useEffect(() => {
         fetchIntegrations();
+
+        // Listen for integration updates from SharedWidgetsSettings (revoke)
+        const handleIntegrationsUpdated = () => {
+            fetchIntegrations();
+        };
+        window.addEventListener('integrationsUpdated', handleIntegrationsUpdated);
+
+        return () => {
+            window.removeEventListener('integrationsUpdated', handleIntegrationsUpdated);
+        };
     }, []);
 
     const fetchIntegrations = async () => {

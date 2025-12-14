@@ -16,6 +16,16 @@ const SharedWidgetsSettings = () => {
 
     useEffect(() => {
         fetchIntegrations();
+
+        // Listen for integration updates from IntegrationsSettings
+        const handleIntegrationsUpdated = () => {
+            fetchIntegrations();
+        };
+        window.addEventListener('integrationsUpdated', handleIntegrationsUpdated);
+
+        return () => {
+            window.removeEventListener('integrationsUpdated', handleIntegrationsUpdated);
+        };
     }, []);
 
     const fetchIntegrations = async () => {
@@ -55,6 +65,9 @@ const SharedWidgetsSettings = () => {
             if (response.ok) {
                 setIntegrations(updatedIntegrations);
                 showSuccess('Sharing Revoked', `${serviceName} is no longer shared with users`);
+
+                // Dispatch event to notify other components (IntegrationsSettings, etc.)
+                window.dispatchEvent(new CustomEvent('integrationsUpdated'));
             } else {
                 showError('Failed', 'Could not revoke sharing');
             }
