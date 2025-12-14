@@ -110,6 +110,35 @@ const WidgetGallery = () => {
             const currentResponse = await axios.get('/api/widgets');
             const currentWidgets = currentResponse.data.widgets || [];
 
+            // Build widget config based on role
+            let widgetConfig = {
+                title: metadata.name
+            };
+
+            // For admins: copy full integration config
+            if (hasAdminAccess && metadata.requiresIntegration && integrations[metadata.requiresIntegration]) {
+                widgetConfig = {
+                    ...widgetConfig,
+                    enabled: true,
+                    ...integrations[metadata.requiresIntegration]
+                };
+            }
+            // For users: inject shared integration config
+            else if (!hasAdminAccess && metadata.requiresIntegration) {
+                const sharedIntegration = sharedIntegrations.find(
+                    si => si.service === metadata.requiresIntegration
+                );
+                if (sharedIntegration) {
+                    widgetConfig = {
+                        ...widgetConfig,
+                        enabled: true,
+                        // Include essential config from shared integration
+                        url: sharedIntegration.url,
+                        apiKey: sharedIntegration.apiKey
+                    };
+                }
+            }
+
             // Create new widget with defaults
             const newWidget = {
                 id: `widget-${Date.now()}`,
@@ -118,15 +147,7 @@ const WidgetGallery = () => {
                 y: Infinity, // Adds to bottom
                 w: metadata.defaultSize.w,
                 h: metadata.defaultSize.h,
-                config: {
-                    title: metadata.name,
-                    // If integration required, copy integration config (for admin)
-                    // Regular users get a reference, backend handles data access
-                    ...(metadata.requiresIntegration && hasAdminAccess && {
-                        enabled: true,
-                        ...integrations[metadata.requiresIntegration]
-                    })
-                }
+                config: widgetConfig
             };
 
             // Add to widgets array
@@ -134,6 +155,11 @@ const WidgetGallery = () => {
 
             // Save updated widgets
             await axios.put('/api/widgets', { widgets: updatedWidgets });
+
+            // Dispatch event so Dashboard can refresh without full page reload
+            window.dispatchEvent(new CustomEvent('widgets-added', {
+                detail: { widgetId: newWidget.id, widgetType }
+            }));
 
             showSuccess('Widget Added', `${metadata.name} added to your dashboard! Go to the Dashboard to see it.`);
         } catch (error) {

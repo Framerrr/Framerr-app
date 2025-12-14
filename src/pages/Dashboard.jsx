@@ -14,6 +14,7 @@ import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/w
 import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import DebugOverlay from '../components/debug/DebugOverlay';
+import { isAdmin } from '../utils/permissions';
 import axios from 'axios';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -44,10 +45,14 @@ const Dashboard = () => {
     const [greetingText, setGreetingText] = useState('Your personal dashboard');
     const [showAddModal, setShowAddModal] = useState(false);
     const [integrations, setIntegrations] = useState({});
+    const [sharedIntegrations, setSharedIntegrations] = useState([]); // For non-admins: integrations shared by admin
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
     const [editDisclaimerDismissed, setEditDisclaimerDismissed] = useState(false);
+
+    // Check if current user is admin
+    const userIsAdmin = isAdmin(user);
 
     // Load edit disclaimer preference from user config
     useEffect(() => {
@@ -222,6 +227,17 @@ const Dashboard = () => {
         return () => window.removeEventListener('widgets-modified', handleWidgetsModified);
     }, []);
 
+    // Listen for widgets added from Settings > Widget Gallery
+    useEffect(() => {
+        const handleWidgetsAdded = () => {
+            // Re-fetch widgets to get the newly added widget
+            fetchWidgets();
+        };
+
+        window.addEventListener('widgets-added', handleWidgetsAdded);
+        return () => window.removeEventListener('widgets-added', handleWidgetsAdded);
+    }, []);
+
     // Dynamically recompact mobile layouts when widget visibility changes
     useEffect(() => {
         if (!widgets.length) return;
@@ -301,8 +317,21 @@ const Dashboard = () => {
 
     const fetchIntegrations = async () => {
         try {
-            const response = await axios.get('/api/integrations');
-            setIntegrations(response.data.integrations || {});
+            // Admins get full integration config from /api/integrations
+            if (userIsAdmin) {
+                const response = await axios.get('/api/integrations');
+                setIntegrations(response.data.integrations || {});
+            } else {
+                // Non-admins get shared integrations from /api/integrations/shared
+                const response = await axios.get('/api/integrations/shared');
+                setSharedIntegrations(response.data.integrations || []);
+                // Also set integrations object for widget config injection
+                const integrationsObj = {};
+                (response.data.integrations || []).forEach(integration => {
+                    integrationsObj[integration.name] = integration;
+                });
+                setIntegrations(integrationsObj);
+            }
         } catch (error) {
             logger.error('Failed to fetch integrations:', error);
         }
@@ -841,6 +870,8 @@ const Dashboard = () => {
                 onClose={() => setShowAddModal(false)}
                 onAddWidget={handleAddWidgetFromModal}
                 integrations={integrations}
+                isAdmin={userIsAdmin}
+                sharedIntegrations={sharedIntegrations}
             />
 
             {/* Bottom Spacer - Matches sidebar/tabbar margin from screen edge */}

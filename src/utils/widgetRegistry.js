@@ -22,7 +22,6 @@ const OverseerrWidget = lazy(() => import('../components/widgets/OverseerrWidget
 const QBittorrentWidget = lazy(() => import('../components/widgets/QBittorrentWidget'));
 const WeatherWidget = lazy(() => import('../components/widgets/WeatherWidget'));
 const CalendarWidget = lazy(() => import('../components/widgets/CalendarWidget'));
-const UpcomingMediaWidget = lazy(() => import('../components/widgets/UpcomingMediaWidget'));
 const CustomHTMLWidget = lazy(() => import('../components/widgets/CustomHTMLWidget'));
 const LinkGridWidget = lazy(() => import('../components/widgets/LinkGridWidget_v2'));
 const ClockWidget = lazy(() => import('../components/widgets/ClockWidget'));
@@ -129,18 +128,6 @@ export const WIDGET_TYPES = {
         minSize: { w: 5, h: 5 }, // Calendar grid needs space for filters + 7-day grid
         maxSize: { h: 8 }, // No width limit
         requiresIntegrations: ['sonarr', 'radarr'] // Requires both integrations
-    },
-
-    'upcoming-media': {
-        component: UpcomingMediaWidget,
-        icon: Calendar,
-        name: 'Upcoming Media',
-        description: 'Upcoming TV shows and movies',
-        category: 'utility',
-        defaultSize: { w: 4, h: 3 },
-        minSize: { w: 3, h: 2 }, // List needs vertical space
-        maxSize: { h: 6 }, // No width limit
-        requiresIntegration: false
     },
 
     'custom-html': {
