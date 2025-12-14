@@ -1,0 +1,17 @@
+/**
+ * Layout Constants - Single source of truth for responsive layout values
+ * 
+ * All layout-related decisions should reference these constants
+ * to ensure consistency between sidebar, grid, and padding behavior.
+ */
+
+export const LAYOUT = {
+    // Viewport width below which = mobile mode (tab bar instead of sidebar)
+    MOBILE_THRESHOLD: 768,
+
+    // Collapsed sidebar width in pixels (Tailwind pl-24 = 24 * 4px = 96px)
+    SIDEBAR_WIDTH: 96,
+
+    // Mobile tab bar bottom padding in pixels
+    TABBAR_HEIGHT: 86,
+};

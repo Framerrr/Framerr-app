@@ -3,6 +3,7 @@ import { Responsive, WidthProvider } from 'react-grid-layout';
 import { Edit, Save, X as XIcon, Plus } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLayout } from '../context/LayoutContext';
 import { Button } from '../components/common/Button';
 import WidgetWrapper from '../components/widgets/WidgetWrapper';
 import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
@@ -23,6 +24,7 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const { isMobile } = useLayout();
     const { warning: showWarning, error: showError } = useNotifications();
 
     // State
@@ -70,19 +72,31 @@ const Dashboard = () => {
     };
 
     // Grid configuration - memoized to prevent recreation on every render
+    // When isMobile is true, force 2-column mode regardless of container width
+    const effectiveBreakpoint = isMobile ? 'sm' : currentBreakpoint;
+
+    // Override breakpoints and cols when mobile to force mobile layout
+    const gridBreakpoints = isMobile
+        ? { sm: 0 }
+        : { lg: 1024, md: 768, sm: 0 };
+
+    const gridCols = isMobile
+        ? { sm: 2 }
+        : { lg: 24, md: 24, sm: 2 };
+
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 24, md: 24, sm: 2 },
-        breakpoints: { lg: 1024, md: 768, sm: 0 },
+        cols: gridCols,
+        breakpoints: gridBreakpoints,
         rowHeight: 100,
-        compactType: currentBreakpoint === 'sm' ? null : 'vertical',
+        compactType: effectiveBreakpoint === 'sm' ? null : 'vertical',
         preventCollision: false,
-        isDraggable: editMode && isGlobalDragEnabled,
-        isResizable: editMode && isGlobalDragEnabled,
+        isDraggable: editMode && isGlobalDragEnabled && !isMobile,
+        isResizable: editMode && isGlobalDragEnabled && !isMobile,
         margin: [16, 16],
         containerPadding: [0, 0],
         onBreakpointChange: (breakpoint) => setCurrentBreakpoint(breakpoint)
-    }), [editMode, currentBreakpoint, isGlobalDragEnabled]);
+    }), [editMode, effectiveBreakpoint, isGlobalDragEnabled, isMobile, gridBreakpoints, gridCols]);
 
     // Helper: Apply minW/minH/maxH from widget metadata to layout items
     const enrichLayoutWithConstraints = (widget, layoutItem) => {
@@ -686,13 +700,16 @@ const Dashboard = () => {
                             </button>
                         </div>
                     ) : (
-                        <button
-                            onClick={handleToggleEdit}
-                            className="hidden md:flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
-                        >
-                            <Edit size={16} />
-                            Edit
-                        </button>
+                        // Edit button only visible on desktop/tablet (controlled by LayoutContext)
+                        !isMobile && (
+                            <button
+                                onClick={handleToggleEdit}
+                                className="flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
+                            >
+                                <Edit size={16} />
+                                Edit
+                            </button>
+                        )
                     )}
                 </div>
             </header>
@@ -740,18 +757,18 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 24, md: 24, sm: 2 }}
-                            breakpoints={{ lg: 1024, md: 768, sm: 0 }}
+                            cols={gridCols}
+                            breakpoints={gridBreakpoints}
                             rowHeight={100}
-                            compactType={currentBreakpoint === 'sm' ? null : 'vertical'}
+                            compactType={effectiveBreakpoint === 'sm' ? null : 'vertical'}
                             preventCollision={false}
-                            isDraggable={editMode && isGlobalDragEnabled}
-                            isResizable={editMode && isGlobalDragEnabled}
+                            isDraggable={editMode && isGlobalDragEnabled && !isMobile}
+                            isResizable={editMode && isGlobalDragEnabled && !isMobile}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
                             containerPadding={[0, 0]}
-                            layouts={layouts}
+                            layouts={isMobile ? { sm: layouts.sm } : layouts}
                             onLayoutChange={handleLayoutChange}
                             onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint)}
                         >

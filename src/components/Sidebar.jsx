@@ -6,13 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useLayout } from '../context/LayoutContext';
 import NotificationCenter from './notifications/NotificationCenter';
 import logger from '../utils/logger';
 
 const Sidebar = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    // isMobile now comes from LayoutContext - single source of truth
+    const { isMobile } = useLayout();
     const [expandedGroups, setExpandedGroups] = useState({});
     const [tabs, setTabs] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
@@ -126,14 +128,8 @@ const Sidebar = () => {
         }
     }, [groups]);
 
-    // Handle window resize
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    // Note: isMobile is now provided by LayoutContext (single source of truth)
+    // The resize handling is done there with debouncing
 
     // Delayed hover handlers to prevent snap-back when mouse crosses empty space
     const handleMouseEnter = (item) => {

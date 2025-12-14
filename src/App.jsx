@@ -7,6 +7,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SystemConfigProvider } from './context/SystemConfigContext';
 import { AppDataProvider } from './context/AppDataContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { LayoutProvider, useLayout } from './context/LayoutContext';
+import { LAYOUT } from './constants/layout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import FaviconInjector from './components/FaviconInjector';
@@ -49,6 +51,33 @@ const CustomColorLoader = ({ children }) => {
     return children;
 };
 
+// Main layout component that uses LayoutContext for responsive behavior
+const MainLayout = () => {
+    const { isMobile } = useLayout();
+
+    return (
+        <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+            <ProtectedRoute>
+                <div className="flex w-full h-screen">
+                    <Sidebar />
+                    <main
+                        className="flex-1 min-w-0"
+                        style={{
+                            paddingBottom: isMobile ? `${LAYOUT.TABBAR_HEIGHT}px` : 0,
+                            paddingLeft: isMobile ? 0 : `${LAYOUT.SIDEBAR_WIDTH}px`,
+                            backgroundColor: 'var(--bg-primary)'
+                        }}
+                    >
+                        <Routes>
+                            <Route path="/*" element={<MainContent />} />
+                        </Routes>
+                    </main>
+                </div>
+            </ProtectedRoute>
+        </div>
+    );
+};
+
 const App = () => {
     return (
         <AuthProvider>
@@ -59,28 +88,17 @@ const App = () => {
                     <SystemConfigProvider>
                         <AppDataProvider>
                             <NotificationProvider>
-                                <ToastContainer />
-                                <Routes>
-                                    <Route path="/login" element={<Login />} />
-                                    <Route path="/setup" element={<Setup />} />
-                                    <Route path="/animation-test" element={<AnimationTest />} />
+                                <LayoutProvider>
+                                    <ToastContainer />
+                                    <Routes>
+                                        <Route path="/login" element={<Login />} />
+                                        <Route path="/setup" element={<Setup />} />
+                                        <Route path="/animation-test" element={<AnimationTest />} />
 
-                                    {/* Protected Routes with Themed Wrapper */}
-                                    <Route path="/*" element={
-                                        <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                                            <ProtectedRoute>
-                                                <div className="flex w-full h-screen">
-                                                    <Sidebar />
-                                                    <main className="flex-1 min-w-0 pb-[86px] md:pb-0 md:pl-24" style={{ backgroundColor: 'var(--bg-primary)' }}>
-                                                        <Routes>
-                                                            <Route path="/*" element={<MainContent />} />
-                                                        </Routes>
-                                                    </main>
-                                                </div>
-                                            </ProtectedRoute>
-                                        </div>
-                                    } />
-                                </Routes>
+                                        {/* Protected Routes with Layout-aware Wrapper */}
+                                        <Route path="/*" element={<MainLayout />} />
+                                    </Routes>
+                                </LayoutProvider>
                             </NotificationProvider>
                         </AppDataProvider>
                     </SystemConfigProvider>
