@@ -112,7 +112,8 @@ const Sidebar = () => {
     const handleLogout = async () => {
         showInfo('Goodbye!', 'You have been logged out');
         await logout();
-        navigate('/login');
+        // Small delay to let toast render before navigation
+        setTimeout(() => navigate('/login'), 500);
     };
 
     // Initialize all groups as expanded by default
