@@ -4,6 +4,7 @@ import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 // Hardcoded permission groups - admin, user, guest
 const PERMISSION_GROUPS = [
@@ -22,6 +23,10 @@ const UsersSettings = () => {
     const [confirmResetId, setConfirmResetId] = useState(null);
     const [tempPassword, setTempPassword] = useState(null);
     const { error: showError, success: showSuccess } = useNotifications();
+    const { user: currentUser } = useAuth();
+
+    // Check if editing self (to prevent group demotion)
+    const isEditingSelf = modalMode === 'edit' && selectedUser?.id === currentUser?.id;
 
     const [formData, setFormData] = useState({
         username: '',
@@ -395,7 +400,8 @@ const UsersSettings = () => {
                                 <select
                                     value={formData.group}
                                     onChange={(e) => setFormData({ ...formData, group: e.target.value })}
-                                    className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                                    disabled={isEditingSelf}
+                                    className={`w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all ${isEditingSelf ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {PERMISSION_GROUPS.map(group => (
                                         <option key={group.id} value={group.id}>
@@ -404,7 +410,10 @@ const UsersSettings = () => {
                                     ))}
                                 </select>
                                 <p className="text-xs text-theme-tertiary mt-1">
-                                    Admin: Full access | User: Standard access | Guest: Read-only
+                                    {isEditingSelf
+                                        ? 'You cannot change your own permission group'
+                                        : 'Admin: Full access | User: Standard access | Guest: Read-only'
+                                    }
                                 </p>
                             </div>
 
