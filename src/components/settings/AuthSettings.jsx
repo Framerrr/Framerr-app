@@ -245,11 +245,11 @@ const AuthSettings = () => {
     return (
         <div className="space-y-6 fade-in">
             {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">
                     Authentication Settings
                 </h2>
-                <p className="text-sm text-theme-secondary">
+                <p className="text-theme-secondary text-sm">
                     Configure reverse proxy authentication and iframe OAuth
                 </p>
             </div>

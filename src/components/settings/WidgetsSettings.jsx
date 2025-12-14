@@ -27,6 +27,12 @@ const WidgetsSettings = () => {
 
     return (
         <div className="fade-in">
+            {/* Header */}
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">Widgets</h2>
+                <p className="text-theme-secondary text-sm">Configure dashboard widgets and service integrations</p>
+            </div>
+
             {/* Sub-Tab Navigation */}
             <div className="mb-6 border-b border-theme">
                 <div className="flex gap-1 relative">
