@@ -210,7 +210,10 @@ const Sidebar = () => {
                     }}
                     onMouseEnter={() => setIsExpanded(true)}
                     onMouseLeave={() => {
-                        setIsExpanded(false);
+                        // Don't collapse when notification center is open
+                        if (!showNotificationCenter) {
+                            setIsExpanded(false);
+                        }
                         // Clear any pending hover timeout when leaving sidebar
                         if (hoverTimeoutRef.current) {
                             clearTimeout(hoverTimeoutRef.current);
