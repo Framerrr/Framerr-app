@@ -68,6 +68,7 @@ router.get('/shared', requireAuth, async (req, res) => {
                     name: serviceName,  // 'name' for consistency with widget registry
                     url: serviceConfig.url,
                     apiKey: serviceConfig.apiKey,
+                    token: serviceConfig.token, // Plex uses token instead of apiKey
                     enabled: true,
                     sharedBy: sharedByName,
                     sharedAt: sharing.sharedAt || null

@@ -46,8 +46,29 @@ export const AppDataProvider = ({ children }) => {
                     setIntegrations({});
                 }
             } else {
-                // Non-admin defaults
-                setIntegrations({});
+                // Non-admin: fetch shared integrations that admin has granted access to
+                try {
+                    const sharedRes = await axios.get('/api/integrations/shared');
+                    const sharedList = sharedRes.data.integrations || [];
+
+                    // Convert array to object keyed by service name for widget compatibility
+                    const sharedIntegrations = {};
+                    for (const integration of sharedList) {
+                        sharedIntegrations[integration.name] = {
+                            enabled: integration.enabled,
+                            url: integration.url,
+                            apiKey: integration.apiKey,
+                            token: integration.token || integration.apiKey, // Plex uses 'token'
+                            // Include any additional fields
+                            ...integration
+                        };
+                    }
+                    setIntegrations(sharedIntegrations);
+                    logger.debug('Shared integrations loaded', { count: sharedList.length });
+                } catch (sharedError) {
+                    logger.debug('Shared integrations not available');
+                    setIntegrations({});
+                }
             }
 
             // Fetch app branding (public endpoint - works for all users)
