@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw, Check, X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
 import BackendSelector from './BackendSelector';
@@ -202,106 +202,103 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                 </div>
             </button>
 
-            {/* Configuration Panel - Collapsible */}
-            {config.enabled && isExpanded && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{
-                        type: 'spring',
-                        stiffness: 220,
-                        damping: 30
-                    }}
-                    className="border-t border-theme"
-                >
-                    <div className="p-6 space-y-6">
-                        {/* Backend Selector */}
-                        <BackendSelector
-                            selected={selectedBackend}
-                            onSelect={handleBackendChange}
-                            disabled={false}
-                        />
+            {/* Configuration Panel - Animated Collapsible */}
+            <AnimatePresence>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden">
+                        <div className="px-6 pb-6 border-t border-theme pt-6 space-y-6">
+                            {/* Backend Selector */}
+                            <BackendSelector
+                                selected={selectedBackend}
+                                onSelect={handleBackendChange}
+                                disabled={false}
+                            />
 
-                        {/* Backend-specific Configuration */}
-                        <div>
-                            {selectedBackend === 'glances' ? (
-                                <GlancesConfig
-                                    config={backendConfig}
-                                    onChange={handleConfigChange}
-                                />
-                            ) : (
-                                <CustomBackendConfig
-                                    config={backendConfig}
-                                    onChange={handleConfigChange}
-                                />
-                            )}
-                        </div>
-
-                        {/* Test Connection & Reset */}
-                        <div className="flex items-center justify-between gap-3 pt-2">
-                            <div className="flex items-center gap-3">
-                                <Button
-                                    onClick={handleTest}
-                                    disabled={testState?.loading || !isConfigured}
-                                    variant="secondary"
-                                    size="sm"
-                                    icon={testState?.loading ? Loader : TestTube}
-                                >
-                                    {testState?.loading ? 'Testing...' : 'Test Connection'}
-                                </Button>
-
-                                {/* Test Result */}
-                                {testState && !testState.loading && (
-                                    <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'
-                                        }`}>
-                                        {testState.success ? (
-                                            <CheckCircle2 size={16} />
-                                        ) : (
-                                            <AlertCircle size={16} />
-                                        )}
-                                        <span>{testState.message}</span>
-                                    </div>
+                            {/* Backend-specific Configuration */}
+                            <div>
+                                {selectedBackend === 'glances' ? (
+                                    <GlancesConfig
+                                        config={backendConfig}
+                                        onChange={handleConfigChange}
+                                    />
+                                ) : (
+                                    <CustomBackendConfig
+                                        config={backendConfig}
+                                        onChange={handleConfigChange}
+                                    />
                                 )}
                             </div>
 
-                            {/* Reset Integration Button with inline confirmation */}
-                            {config.enabled && (
-                                !confirmReset ? (
+                            {/* Test Connection & Reset */}
+                            <div className="flex items-center justify-between gap-3 pt-2">
+                                <div className="flex items-center gap-3">
                                     <Button
-                                        onClick={() => setConfirmReset(true)}
+                                        onClick={handleTest}
+                                        disabled={testState?.loading || !isConfigured}
                                         variant="secondary"
                                         size="sm"
-                                        className="text-error hover:bg-error/10 border-error/20"
+                                        icon={testState?.loading ? Loader : TestTube}
                                     >
-                                        Reset Integration
+                                        {testState?.loading ? 'Testing...' : 'Test Connection'}
                                     </Button>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-error">Reset?</span>
+
+                                    {/* Test Result */}
+                                    {testState && !testState.loading && (
+                                        <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'
+                                            }`}>
+                                            {testState.success ? (
+                                                <CheckCircle2 size={16} />
+                                            ) : (
+                                                <AlertCircle size={16} />
+                                            )}
+                                            <span>{testState.message}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Reset Integration Button with inline confirmation */}
+                                {config.enabled && (
+                                    !confirmReset ? (
                                         <Button
-                                            onClick={handleReset}
-                                            variant="danger"
-                                            size="sm"
-                                            icon={Check}
-                                        >
-                                            Yes
-                                        </Button>
-                                        <Button
-                                            onClick={() => setConfirmReset(false)}
+                                            onClick={() => setConfirmReset(true)}
                                             variant="secondary"
                                             size="sm"
-                                            icon={X}
+                                            className="text-error hover:bg-error/10 border-error/20"
                                         >
-                                            No
+                                            Reset Integration
                                         </Button>
-                                    </div>
-                                )
-                            )}
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-error">Reset?</span>
+                                            <Button
+                                                onClick={handleReset}
+                                                variant="danger"
+                                                size="sm"
+                                                icon={Check}
+                                            >
+                                                Yes
+                                            </Button>
+                                            <Button
+                                                onClick={() => setConfirmReset(false)}
+                                                variant="secondary"
+                                                size="sm"
+                                                icon={X}
+                                            >
+                                                No
+                                            </Button>
+                                        </div>
+                                    )
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </motion.div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
