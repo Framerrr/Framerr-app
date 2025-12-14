@@ -3,9 +3,16 @@ import { Film, Network, Info, ExternalLink, StopCircle, X, Loader2 } from 'lucid
 import PlaybackDataModal from './modals/PlaybackDataModal';
 import MediaInfoModal from './modals/MediaInfoModal';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 
 const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
     // Get integrations state from context (available for admins)
     const { integrations } = useAppData();
     const contextIntegration = integrations?.plex;
@@ -178,9 +185,12 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         }
     };
 
-    // Show integration disabled message if not enabled
+    // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        return <IntegrationDisabledMessage serviceName="Plex" />;
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="Plex" />
+            : <IntegrationNoAccessMessage serviceName="Plex" />;
     }
 
     if (loading && !data) return <div className="text-secondary">Loading Plex...</div>;

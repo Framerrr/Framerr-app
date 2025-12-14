@@ -4,7 +4,10 @@ import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 
 // Metric Graph Popover Component
 const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
@@ -301,6 +304,10 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
 };
 
 const SystemStatusWidget = ({ config }) => {
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
     // Get integrations state from context
     const { integrations } = useAppData();
     const integration = integrations?.systemstatus;
@@ -385,9 +392,12 @@ const SystemStatusWidget = ({ config }) => {
         }
     }, []);
 
-    // Show integration disabled message if not enabled
+    // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        return <IntegrationDisabledMessage serviceName="System Health" />;
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="System Health" />
+            : <IntegrationNoAccessMessage serviceName="System Health" />;
     }
 
     // Show loading state

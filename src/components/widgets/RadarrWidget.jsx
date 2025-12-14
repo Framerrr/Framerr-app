@@ -3,7 +3,10 @@ import { Film } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 
 // Movie Detail Popover Component
 const MoviePopover = ({ movie }) => {
@@ -119,6 +122,10 @@ const MoviePopover = ({ movie }) => {
 };
 
 const RadarrWidget = ({ config }) => {
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
     // Get integrations state from context (available for admins)
     const { integrations } = useAppData();
     const contextIntegration = integrations?.radarr;
@@ -168,9 +175,12 @@ const RadarrWidget = ({ config }) => {
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 
-    // Show integration disabled message if not enabled
+    // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        return <IntegrationDisabledMessage serviceName="Radarr" />;
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="Radarr" />
+            : <IntegrationNoAccessMessage serviceName="Radarr" />;
     }
 
     if (loading && !data) return <div className="text-secondary">Loading Calendar...</div>;

@@ -3,9 +3,16 @@ import { Download, ArrowDown, ArrowUp } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 
 const QBittorrentWidget = ({ config }) => {
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
     // Get integrations state from context (available for admins)
     const { integrations } = useAppData();
     const contextIntegration = integrations?.qbittorrent;
@@ -87,9 +94,12 @@ const QBittorrentWidget = ({ config }) => {
 
     const formatSpeed = (bytesPerSec) => formatBytes(bytesPerSec) + '/s';
 
-    // Show integration disabled message if not enabled
+    // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        return <IntegrationDisabledMessage serviceName="qBittorrent" />;
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="qBittorrent" />
+            : <IntegrationNoAccessMessage serviceName="qBittorrent" />;
     }
 
     if (loading && torrents.length === 0) {

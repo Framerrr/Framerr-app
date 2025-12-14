@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Star, Film, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 
 const OverseerrWidget = ({ config }) => {
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
     // Get integrations state from context (available for admins)
     const { integrations } = useAppData();
     const contextIntegration = integrations?.overseerr;
@@ -65,9 +72,12 @@ const OverseerrWidget = ({ config }) => {
         }
     };
 
-    // Show integration disabled message if not enabled
+    // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        return <IntegrationDisabledMessage serviceName="Overseerr" />;
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="Overseerr" />
+            : <IntegrationNoAccessMessage serviceName="Overseerr" />;
     }
 
     if (loading && !data) return <div className="text-theme-secondary">Loading Requests...</div>;
