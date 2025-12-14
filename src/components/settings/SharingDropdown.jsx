@@ -48,18 +48,14 @@ const SharingDropdown = ({
     const fetchUsersAndGroups = async () => {
         setLoadingData(true);
         try {
-            // Fetch users
-            const usersResponse = await fetch('/api/users', { credentials: 'include' });
+            // Fetch users from admin API
+            const usersResponse = await fetch('/api/admin/users', { credentials: 'include' });
             if (usersResponse.ok) {
                 const data = await usersResponse.json();
                 // Filter out admin users (they always have access)
                 setUsers(data.users?.filter(u => u.group !== 'admin') || []);
-            }
 
-            // Extract unique groups from users
-            const groupsResponse = await fetch('/api/users', { credentials: 'include' });
-            if (groupsResponse.ok) {
-                const data = await groupsResponse.json();
+                // Extract unique groups from users
                 const uniqueGroups = [...new Set(data.users?.map(u => u.group) || [])];
                 // Admin always has access, so only show non-admin groups
                 setGroups(uniqueGroups.filter(g => g !== 'admin'));
