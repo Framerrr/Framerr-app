@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Share2, Users, User, Globe, Lock, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
@@ -17,11 +18,25 @@ const SharingDropdown = ({
     const [users, setUsers] = useState([]);
     const [groups, setGroups] = useState([]);
     const [loadingData, setLoadingData] = useState(false);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+    const triggerRef = useRef(null);
 
     // Current sharing state (defaults to not shared)
     const currentMode = sharing?.enabled ? sharing.mode : 'none';
     const selectedGroups = sharing?.groups || [];
     const selectedUsers = sharing?.users || [];
+
+    // Calculate dropdown position when opened
+    useEffect(() => {
+        if (isOpen && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownPosition({
+                top: rect.bottom + window.scrollY + 4,
+                left: rect.left + window.scrollX,
+                width: rect.width
+            });
+        }
+    }, [isOpen]);
 
     // Fetch users and groups for selection
     useEffect(() => {
@@ -129,48 +144,30 @@ const SharingDropdown = ({
 
     const ModeIcon = getModeIcon();
 
-    return (
-        <div className="relative">
-            {/* Label */}
-            <label className="block text-sm font-medium text-theme-secondary mb-2">
-                <div className="flex items-center gap-2">
-                    <Share2 size={14} />
-                    Share Widget
-                </div>
-            </label>
-
-            {/* Dropdown Trigger */}
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                disabled={disabled}
-                className={`
-                    w-full flex items-center justify-between gap-2 px-4 py-2.5
-                    bg-theme-tertiary border border-theme rounded-lg
-                    text-sm text-theme-primary
-                    transition-colors
-                    ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-theme-hover cursor-pointer'}
-                `}
-            >
-                <div className="flex items-center gap-2">
-                    <ModeIcon size={16} className={currentMode !== 'none' ? 'text-success' : 'text-theme-secondary'} />
-                    <span>{getModeLabel()}</span>
-                </div>
-                <ChevronDown
-                    size={16}
-                    className={`text-theme-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                />
-            </button>
-
-            {/* Dropdown Menu */}
-            <AnimatePresence>
-                {isOpen && (
+    // Dropdown content rendered via portal
+    const dropdownContent = (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    {/* Backdrop to close */}
+                    <div
+                        className="fixed inset-0 z-[9998]"
+                        onClick={() => setIsOpen(false)}
+                    />
+                    {/* Dropdown menu */}
                     <motion.div
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute z-50 mt-1 w-full bg-theme-secondary border border-theme rounded-lg shadow-lg overflow-hidden"
+                        style={{
+                            position: 'absolute',
+                            top: dropdownPosition.top,
+                            left: dropdownPosition.left,
+                            width: dropdownPosition.width,
+                            zIndex: 9999
+                        }}
+                        className="bg-theme-secondary border border-theme rounded-lg shadow-lg overflow-hidden"
                     >
                         {/* Mode Options */}
                         <div className="py-1">
@@ -275,18 +272,50 @@ const SharingDropdown = ({
                             </div>
                         )}
                     </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Click outside to close */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsOpen(false)}
-                />
+                </>
             )}
+        </AnimatePresence>
+    );
+
+    return (
+        <div className="relative">
+            {/* Label */}
+            <label className="block text-sm font-medium text-theme-secondary mb-2">
+                <div className="flex items-center gap-2">
+                    <Share2 size={14} />
+                    Share Widget
+                </div>
+            </label>
+
+            {/* Dropdown Trigger */}
+            <button
+                ref={triggerRef}
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                disabled={disabled}
+                className={`
+                    w-full flex items-center justify-between gap-2 px-4 py-2.5
+                    bg-theme-tertiary border border-theme rounded-lg
+                    text-sm text-theme-primary
+                    transition-colors
+                    ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-theme-hover cursor-pointer'}
+                `}
+            >
+                <div className="flex items-center gap-2">
+                    <ModeIcon size={16} className={currentMode !== 'none' ? 'text-success' : 'text-theme-secondary'} />
+                    <span>{getModeLabel()}</span>
+                </div>
+                <ChevronDown
+                    size={16}
+                    className={`text-theme-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+            </button>
+
+            {/* Render dropdown via portal to escape card stacking context */}
+            {createPortal(dropdownContent, document.body)}
         </div>
     );
 };
 
 export default SharingDropdown;
+
