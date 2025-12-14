@@ -158,11 +158,14 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
 
     return (
         <div className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
-            {/* Header */}
-            <div className="p-6 flex items-center justify-between">
+            {/* Header - Clickable to expand */}
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
+            >
                 <div className="flex items-center gap-4 flex-1">
                     <Server className="text-theme-secondary" size={20} />
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-left">
                         <h3 className="font-semibold text-theme-primary">System Health</h3>
                         <p className="text-sm text-theme-secondary">
                             Server monitoring (CPU, Memory, Temperature)
@@ -184,27 +187,20 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                     )}
 
                     {/* Toggle Switch */}
-                    <button
-                        onClick={handleToggle}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${config.enabled ? 'bg-success' : 'bg-theme-tertiary'
-                            }`}
+                    <div
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggle();
+                        }}
+                        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${config.enabled ? 'bg-success' : 'bg-theme-tertiary'}`}
                     >
-                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-0'
-                            }`} />
-                    </button>
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </div>
 
-                    {/* Expand Button */}
-                    {config.enabled && (
-                        <button
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            className="text-theme-secondary hover:text-theme-primary transition-colors"
-                        >
-                            <ChevronDown size={20} className={`transition-transform ${isExpanded ? 'rotate-180' : ''
-                                }`} />
-                        </button>
-                    )}
+                    {/* Chevron */}
+                    <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
-            </div>
+            </button>
 
             {/* Configuration Panel - Collapsible */}
             {config.enabled && isExpanded && (

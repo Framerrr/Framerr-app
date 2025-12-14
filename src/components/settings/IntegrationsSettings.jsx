@@ -240,7 +240,7 @@ const IntegrationsSettings = () => {
             />
 
             {/* Other Integrations List */}
-            <div className="space-y-3 mt-4">
+            <div className="space-y-4 mt-4">
                 {integrationConfigs.map(config => {
                     const Icon = config.icon;
                     const isEnabled = integrations[config.id]?.enabled;
@@ -248,32 +248,33 @@ const IntegrationsSettings = () => {
                     const testState = testStates[config.id];
 
                     return (
-                        <div key={config.id} className="border border-theme rounded-xl overflow-hidden">
+                        <div key={config.id} className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
                             {/* Header - Clickable to expand */}
                             <button
                                 onClick={() => toggleSection(config.id)}
-                                className="w-full flex items-center justify-between p-4 bg-theme-secondary hover:bg-theme-hover transition-colors"
+                                className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
                             >
-                                <div className="flex items-center gap-3">
-                                    <Icon size={20} className="text-theme-secondary" />
-                                    <div className="text-left">
-                                        <div className="text-sm font-medium text-theme-primary">
-                                            {config.name}
-                                        </div>
-                                        <div className="text-xs text-theme-tertiary">
-                                            {config.description}
-                                        </div>
+                                <div className="flex items-center gap-4 flex-1">
+                                    <Icon className="text-theme-secondary" size={20} />
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <h3 className="font-semibold text-theme-primary">{config.name}</h3>
+                                        <p className="text-sm text-theme-secondary">{config.description}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className={`text-xs px-2 py-1 rounded ${isEnabled ? 'bg-success/20 text-success' : 'bg-theme-tertiary text-theme-tertiary'}`}>
-                                        {isEnabled ? 'Enabled' : 'Disabled'}
-                                    </span>
-                                    {isExpanded ? (
-                                        <ChevronDown size={18} className="text-theme-secondary" />
-                                    ) : (
-                                        <ChevronRight size={18} className="text-theme-secondary" />
-                                    )}
+                                    {/* Toggle Switch */}
+                                    <div
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggle(config.id);
+                                        }}
+                                        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${isEnabled ? 'bg-success' : 'bg-theme-tertiary'}`}
+                                    >
+                                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                    </div>
+
+                                    {/* Chevron */}
+                                    <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
                             </button>
 
@@ -287,63 +288,43 @@ const IntegrationsSettings = () => {
                                         transition={{ duration: 0.2 }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="p-4 bg-theme-tertiary border-t border-theme space-y-4">
-                                            {/* Enable Toggle */}
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-theme-primary font-medium">
-                                                    Enable {config.name}
-                                                </span>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleToggle(config.id);
-                                                    }}
-                                                    className={`relative w-11 h-6 rounded-full transition-colors ${isEnabled ? 'bg-success' : 'bg-theme-primary border border-theme'}`}
+                                        <div className="px-6 pb-6 border-t border-theme pt-6 space-y-4">
+                                            {/* Configuration Fields */}
+                                            {config.fields.map(field => (
+                                                <Input
+                                                    key={field.key}
+                                                    label={field.label}
+                                                    type={field.type}
+                                                    value={integrations[config.id][field.key] || ''}
+                                                    onChange={(e) => handleFieldChange(config.id, field.key, e.target.value)}
+                                                    placeholder={field.placeholder}
+                                                />
+                                            ))}
+
+                                            {/* Test Connection Button */}
+                                            <div className="flex items-center gap-3 pt-2">
+                                                <Button
+                                                    onClick={() => handleTest(config.id)}
+                                                    disabled={testState?.loading}
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    icon={testState?.loading ? Loader : TestTube}
                                                 >
-                                                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                </button>
-                                            </div>
+                                                    {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                                </Button>
 
-                                            {/* Configuration Fields - Only show when enabled */}
-                                            {isEnabled && (
-                                                <>
-                                                    {config.fields.map(field => (
-                                                        <Input
-                                                            key={field.key}
-                                                            label={field.label}
-                                                            type={field.type}
-                                                            value={integrations[config.id][field.key] || ''}
-                                                            onChange={(e) => handleFieldChange(config.id, field.key, e.target.value)}
-                                                            placeholder={field.placeholder}
-                                                        />
-                                                    ))}
-
-                                                    {/* Test Connection Button */}
-                                                    <div className="flex items-center gap-3 pt-2">
-                                                        <Button
-                                                            onClick={() => handleTest(config.id)}
-                                                            disabled={testState?.loading}
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            icon={testState?.loading ? Loader : TestTube}
-                                                        >
-                                                            {testState?.loading ? 'Testing...' : 'Test Connection'}
-                                                        </Button>
-
-                                                        {/* Test Result */}
-                                                        {testState && !testState.loading && (
-                                                            <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'}`}>
-                                                                {testState.success ? (
-                                                                    <CheckCircle2 size={16} />
-                                                                ) : (
-                                                                    <AlertCircle size={16} />
-                                                                )}
-                                                                <span>{testState.message}</span>
-                                                            </div>
+                                                {/* Test Result */}
+                                                {testState && !testState.loading && (
+                                                    <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'}`}>
+                                                        {testState.success ? (
+                                                            <CheckCircle2 size={16} />
+                                                        ) : (
+                                                            <AlertCircle size={16} />
                                                         )}
+                                                        <span>{testState.message}</span>
                                                     </div>
-                                                </>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
                                     </motion.div>
                                 )}
