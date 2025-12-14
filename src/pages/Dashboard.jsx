@@ -468,25 +468,8 @@ const Dashboard = () => {
         try {
             const metadata = getWidgetMetadata(widgetType);
 
-            // Check single integration requirement
-            if (metadata.requiresIntegration) {
-                const integration = integrations[metadata.requiresIntegration];
-                if (!integration?.enabled || !integration?.url) {
-                    showWarning('Integration Required', `This widget requires ${metadata.requiresIntegration} integration. Please configure it in Settings first.`);
-                    return;
-                }
-            }
-
-            // Check multiple integrations requirement
-            if (metadata.requiresIntegrations && Array.isArray(metadata.requiresIntegrations)) {
-                const missingIntegrations = metadata.requiresIntegrations.filter(
-                    key => !integrations[key]?.enabled || !integrations[key]?.url
-                );
-                if (missingIntegrations.length > 0) {
-                    showWarning('Integration Required', `This widget requires ${missingIntegrations.join(' and ')} integration${missingIntegrations.length > 1 ? 's' : ''}. Please configure in Settings first.`);
-                    return;
-                }
-            }
+            // Note: Integration checks removed - widgets can now be added without integration configured
+            // The widget itself will display IntegrationDisabledMessage if not configured
 
             // Create new widget
             const newWidget = {

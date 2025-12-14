@@ -40,15 +40,8 @@ const WidgetGallery = () => {
         try {
             const metadata = getWidgetMetadata(widgetType);
 
-            // Check if integration is required and configured
-            if (metadata.requiresIntegration) {
-                const integration = integrations[metadata.requiresIntegration];
-                if (!integration?.enabled || !integration?.url) {
-                    showWarning('Integration Required', `This widget requires ${metadata.requiresIntegration} integration to be configured. Please configure it in the Integrations tab first.`);
-                    setAddingWidget(null);
-                    return;
-                }
-            }
+            // Note: Integration check removed - widgets can now be added without integration configured
+            // The widget itself will display IntegrationDisabledMessage if not configured
 
             // Fetch current widgets
             const currentResponse = await axios.get('/api/widgets');
