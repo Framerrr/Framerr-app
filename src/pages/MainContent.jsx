@@ -27,10 +27,10 @@ const MainContent = () => {
     // Each page has its own overflow-y-auto for independent scroll positions
     return (
         <>
-            <div style={{ display: isSettings ? 'none' : 'flex', height: '100%', width: '100%', overflowY: 'auto' }}>
+            <div style={{ display: isSettings ? 'none' : 'flex', height: '100%', width: '100%', minWidth: 0, overflowY: 'auto' }}>
                 <DashboardOrTabs />
             </div>
-            <div style={{ display: isSettings ? 'flex' : 'none', height: '100%', width: '100%', overflowY: 'auto' }}>
+            <div style={{ display: isSettings ? 'flex' : 'none', height: '100%', width: '100%', minWidth: 0, overflowY: 'auto' }}>
                 <UserSettings />
             </div>
         </>
