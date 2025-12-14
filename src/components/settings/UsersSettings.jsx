@@ -1,14 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users as UsersIcon, Plus, Edit, Trash2, Key, X, Save, Loader, Check, Copy } from 'lucide-react';
-import { useSystemConfig } from '../../context/SystemConfigContext';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 
+// Hardcoded permission groups - admin, user, guest
+const PERMISSION_GROUPS = [
+    { id: 'admin', name: 'Admin' },
+    { id: 'user', name: 'User' },
+    { id: 'guest', name: 'Guest' }
+];
+
 const UsersSettings = () => {
     const [users, setUsers] = useState([]);
-    const [permissionGroups, setPermissionGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('create');
@@ -18,8 +23,6 @@ const UsersSettings = () => {
     const [tempPassword, setTempPassword] = useState(null);
     const { error: showError, success: showSuccess } = useNotifications();
 
-    const { systemConfig } = useSystemConfig();
-
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -27,25 +30,11 @@ const UsersSettings = () => {
         group: 'user'
     });
 
-    // Compute which groups have admin permissions
-    const adminGroups = useMemo(() => {
-        if (!systemConfig?.groups) return new Set(['admin']);
-
-        // Convert groups object to array: {"admin":{...}, "user":{...}} => [{id:"admin",...}, {id:"user",...}]
-        const groupsArray = Object.entries(systemConfig.groups || {}).map(([id, group]) => ({
-            id,
-            ...group
-        }));
-
-        const groups = groupsArray
-            .filter(g => g.permissions && g.permissions.includes('*'))
-            .map(g => g.id);
-        return new Set(groups);
-    }, [systemConfig]);
+    // Check if group is admin
+    const isAdminGroup = (group) => group === 'admin';
 
     useEffect(() => {
         fetchUsers();
-        fetchPermissionGroups();
     }, []);
 
     const fetchUsers = async () => {
@@ -62,25 +51,6 @@ const UsersSettings = () => {
             setUsers([]);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const fetchPermissionGroups = async () => {
-        try {
-            const response = await fetch('/api/config/system', {
-                credentials: 'include'
-            });
-            if (response.ok) {
-                const data = await response.json();
-                // Convert groups object to array for select options
-                const groupsArray = Object.entries(data.groups || {}).map(([id, group]) => ({
-                    id,
-                    name: group.name
-                }));
-                setPermissionGroups(groupsArray);
-            }
-        } catch (error) {
-            logger.error('Error fetching permission groups:', error);
         }
     };
 
@@ -242,7 +212,7 @@ const UsersSettings = () => {
                                         {user.email || '-'}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${adminGroups.has(user.group)
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${isAdminGroup(user.group)
                                             ? 'bg-accent/20 text-accent'
                                             : 'bg-theme-tertiary text-theme-secondary'
                                             }`}>
@@ -427,14 +397,14 @@ const UsersSettings = () => {
                                     onChange={(e) => setFormData({ ...formData, group: e.target.value })}
                                     className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                                 >
-                                    {permissionGroups.map(group => (
+                                    {PERMISSION_GROUPS.map(group => (
                                         <option key={group.id} value={group.id}>
                                             {group.name}
                                         </option>
                                     ))}
                                 </select>
                                 <p className="text-xs text-theme-tertiary mt-1">
-                                    Controls what this user can access (managed in Permission Groups tab)
+                                    Admin: Full access | User: Standard access | Guest: Read-only
                                 </p>
                             </div>
 
