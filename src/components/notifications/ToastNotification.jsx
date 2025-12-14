@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
@@ -32,56 +32,63 @@ const ToastNotification = ({
     action,
     onDismiss
 }) => {
-    const [isPaused, setIsPaused] = useState(false);
-    const [remainingTime, setRemainingTime] = useState(duration);
-    const timerRef = useRef(null);
-    const startTimeRef = useRef(Date.now());
+    const [progress, setProgress] = useState(100);
+    const isPausedRef = useRef(false);
+    const elapsedRef = useRef(0);
+    const lastTickRef = useRef(Date.now());
+    const rafRef = useRef(null);
 
     const Icon = ICONS[type] || Info;
 
-    // Handle the countdown timer
+    // Animation loop using requestAnimationFrame
+    const tick = useCallback(() => {
+        if (!duration) return;
+
+        const now = Date.now();
+
+        if (!isPausedRef.current) {
+            // Calculate time since last tick
+            const delta = now - lastTickRef.current;
+            elapsedRef.current += delta;
+
+            // Calculate remaining progress
+            const remaining = Math.max(0, 100 - (elapsedRef.current / duration) * 100);
+            setProgress(remaining);
+
+            // Check if complete
+            if (remaining <= 0) {
+                onDismiss(id);
+                return;
+            }
+        }
+
+        lastTickRef.current = now;
+        rafRef.current = requestAnimationFrame(tick);
+    }, [id, duration, onDismiss]);
+
+    // Start animation on mount
     useEffect(() => {
         if (!duration) return;
 
-        if (isPaused) {
-            // Clear timer when paused
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-                timerRef.current = null;
-            }
-            return;
-        }
-
-        // Start/resume timer with remaining time
-        startTimeRef.current = Date.now();
-        timerRef.current = setTimeout(() => {
-            onDismiss(id);
-        }, remainingTime);
+        lastTickRef.current = Date.now();
+        rafRef.current = requestAnimationFrame(tick);
 
         return () => {
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
+            if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current);
             }
         };
-    }, [id, duration, isPaused, remainingTime, onDismiss]);
+    }, [duration, tick]);
 
     const handleMouseEnter = () => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
-        }
-        // Calculate how much time has elapsed since last resume
-        const elapsed = Date.now() - startTimeRef.current;
-        setRemainingTime(prev => Math.max(0, prev - elapsed));
-        setIsPaused(true);
+        isPausedRef.current = true;
     };
 
     const handleMouseLeave = () => {
-        setIsPaused(false);
+        // Reset lastTick to now so we don't count pause time
+        lastTickRef.current = Date.now();
+        isPausedRef.current = false;
     };
-
-    // Calculate progress percentage based on remaining time
-    const progress = duration ? (remainingTime / duration) * 100 : 100;
 
     return (
         <motion.div
@@ -150,7 +157,7 @@ const ToastNotification = ({
                 </button>
             </div>
 
-            {/* Progress bar - smooth CSS transition */}
+            {/* Progress bar - smooth animation via requestAnimationFrame */}
             {duration && (
                 <div
                     className="h-1"
@@ -160,11 +167,10 @@ const ToastNotification = ({
                             to right, 
                             var(--${type}), 
                             var(--${type}-hover, var(--${type}))
-                        )`,
-                        transition: isPaused ? 'none' : `width ${remainingTime}ms linear`
+                        )`
                     }}
                     role="progressbar"
-                    aria-valuenow={progress}
+                    aria-valuenow={Math.round(progress)}
                     aria-valuemin="0"
                     aria-valuemax="100"
                 />
@@ -174,4 +180,3 @@ const ToastNotification = ({
 };
 
 export default ToastNotification;
-
