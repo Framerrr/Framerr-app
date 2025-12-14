@@ -73,7 +73,7 @@ const Dashboard = () => {
     const gridConfig = React.useMemo(() => ({
         className: "layout",
         cols: { lg: 24, md: 24, sm: 2 },
-        breakpoints: { lg: 1024, md: 672, sm: 0 },
+        breakpoints: { lg: 1024, md: 768, sm: 0 },
         rowHeight: 100,
         compactType: currentBreakpoint === 'sm' ? null : 'vertical',
         preventCollision: false,
@@ -741,7 +741,7 @@ const Dashboard = () => {
                         <ResponsiveGridLayout
                             className="layout"
                             cols={{ lg: 24, md: 24, sm: 2 }}
-                            breakpoints={{ lg: 1024, md: 672, sm: 0 }}
+                            breakpoints={{ lg: 1024, md: 768, sm: 0 }}
                             rowHeight={100}
                             compactType={currentBreakpoint === 'sm' ? null : 'vertical'}
                             preventCollision={false}
