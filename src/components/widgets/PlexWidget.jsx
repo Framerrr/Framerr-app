@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Film, Network, Info, ExternalLink, StopCircle, X, Loader2 } from 'lucide-react';
 import PlaybackDataModal from './modals/PlaybackDataModal';
 import MediaInfoModal from './modals/MediaInfoModal';
@@ -10,11 +10,13 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     const { integrations } = useAppData();
     const contextIntegration = integrations?.plex;
 
-    // For shared widgets (non-admins), integration config comes from the config prop
-    // For admins, it comes from the context
-    const integration = contextIntegration?.enabled
-        ? contextIntegration
-        : { enabled: config?.enabled, url: config?.url, token: config?.token };
+    // Memoize integration to prevent infinite loop from object recreation
+    const integration = useMemo(() => {
+        if (contextIntegration?.enabled) {
+            return contextIntegration;
+        }
+        return { enabled: config?.enabled, url: config?.url, token: config?.token };
+    }, [contextIntegration, config?.enabled, config?.url, config?.token]);
 
     // Check if integration is enabled (from either source)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.token;

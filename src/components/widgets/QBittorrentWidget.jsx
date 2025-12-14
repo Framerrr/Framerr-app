@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Download, ArrowDown, ArrowUp } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,11 +10,13 @@ const QBittorrentWidget = ({ config }) => {
     const { integrations } = useAppData();
     const contextIntegration = integrations?.qbittorrent;
 
-    // For shared widgets (non-admins), integration config comes from the config prop
-    // For admins, it comes from the context
-    const integration = contextIntegration?.enabled
-        ? contextIntegration
-        : { enabled: config?.enabled, url: config?.url, username: config?.username, password: config?.password };
+    // Memoize integration to prevent infinite loop from object recreation
+    const integration = useMemo(() => {
+        if (contextIntegration?.enabled) {
+            return contextIntegration;
+        }
+        return { enabled: config?.enabled, url: config?.url, username: config?.username, password: config?.password };
+    }, [contextIntegration, config?.enabled, config?.url, config?.username, config?.password]);
 
     // Check if integration is enabled (from either source)
     const isIntegrationEnabled = integration?.enabled && integration?.url;

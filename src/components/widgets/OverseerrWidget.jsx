@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Star, Film, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
@@ -8,11 +8,13 @@ const OverseerrWidget = ({ config }) => {
     const { integrations } = useAppData();
     const contextIntegration = integrations?.overseerr;
 
-    // For shared widgets (non-admins), integration config comes from the config prop
-    // For admins, it comes from the context
-    const integration = contextIntegration?.enabled
-        ? contextIntegration
-        : { enabled: config?.enabled, url: config?.url, apiKey: config?.apiKey };
+    // Memoize integration to prevent infinite loop from object recreation
+    const integration = useMemo(() => {
+        if (contextIntegration?.enabled) {
+            return contextIntegration;
+        }
+        return { enabled: config?.enabled, url: config?.url, apiKey: config?.apiKey };
+    }, [contextIntegration, config?.enabled, config?.url, config?.apiKey]);
 
     // Check if integration is enabled (from either source)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
