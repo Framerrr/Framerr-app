@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw, Check, X } from 'lucide-react';
+import { Activity, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
@@ -164,7 +164,7 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                 className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
             >
                 <div className="flex items-center gap-4 flex-1">
-                    <Server className="text-theme-secondary" size={20} />
+                    <Activity className="text-theme-secondary" size={20} />
                     <div className="flex-1 min-w-0 text-left">
                         <h3 className="font-semibold text-theme-primary">System Health</h3>
                         <p className="text-sm text-theme-secondary">

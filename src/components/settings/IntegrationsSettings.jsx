@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tv, MonitorPlay, Film, Download, Star, TestTube, ChevronDown, ChevronRight, AlertCircle, CheckCircle2, Loader, Save } from 'lucide-react';
+import { Tv, MonitorPlay, Film, Download, Star, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
@@ -21,6 +21,7 @@ const IntegrationsSettings = () => {
     const [saving, setSaving] = useState(false);
     const [expandedSections, setExpandedSections] = useState({});
     const [testStates, setTestStates] = useState({});
+    const [confirmReset, setConfirmReset] = useState({});
     const { success: showSuccess, error: showError } = useNotifications();
 
     useEffect(() => {
@@ -144,6 +145,28 @@ const IntegrationsSettings = () => {
         setExpandedSections(prev => ({ ...prev, [service]: !prev[service] }));
     };
 
+    const handleReset = (service, fields) => {
+        // Reset to default values
+        const resetData = { enabled: false };
+        fields.forEach(field => {
+            resetData[field.key] = '';
+        });
+        setIntegrations(prev => ({
+            ...prev,
+            [service]: resetData
+        }));
+        setConfirmReset(prev => ({ ...prev, [service]: false }));
+        setExpandedSections(prev => ({ ...prev, [service]: false }));
+    };
+
+    // Helper to check if integration is configured
+    const isConfigured = (service) => {
+        const config = integrations[service];
+        if (!config?.enabled) return false;
+        // Check if URL is filled (required for all integrations)
+        return !!config.url;
+    };
+
     const integrationConfigs = [
         {
             id: 'plex',
@@ -246,6 +269,8 @@ const IntegrationsSettings = () => {
                     const isEnabled = integrations[config.id]?.enabled;
                     const isExpanded = expandedSections[config.id];
                     const testState = testStates[config.id];
+                    const configuredStatus = isConfigured(config.id);
+                    const showConfirmReset = confirmReset[config.id];
 
                     return (
                         <div key={config.id} className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
@@ -262,6 +287,19 @@ const IntegrationsSettings = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                    {/* Status Badge (when not expanded and enabled) */}
+                                    {!isExpanded && isEnabled && (
+                                        <span className={`
+                                            px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
+                                            ${configuredStatus
+                                                ? 'bg-success/10 text-success border border-success/20'
+                                                : 'bg-warning/10 text-warning border border-warning/20'
+                                            }
+                                        `}>
+                                            {configuredStatus ? '🟢 Configured' : '🟡 Setup Required'}
+                                        </span>
+                                    )}
+
                                     {/* Toggle Switch */}
                                     <div
                                         onClick={(e) => {
@@ -301,28 +339,64 @@ const IntegrationsSettings = () => {
                                                 />
                                             ))}
 
-                                            {/* Test Connection Button */}
-                                            <div className="flex items-center gap-3 pt-2">
-                                                <Button
-                                                    onClick={() => handleTest(config.id)}
-                                                    disabled={testState?.loading}
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    icon={testState?.loading ? Loader : TestTube}
-                                                >
-                                                    {testState?.loading ? 'Testing...' : 'Test Connection'}
-                                                </Button>
+                                            {/* Test Connection & Reset */}
+                                            <div className="flex items-center justify-between gap-3 pt-2">
+                                                <div className="flex items-center gap-3">
+                                                    <Button
+                                                        onClick={() => handleTest(config.id)}
+                                                        disabled={testState?.loading}
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        icon={testState?.loading ? Loader : TestTube}
+                                                    >
+                                                        {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                                    </Button>
 
-                                                {/* Test Result */}
-                                                {testState && !testState.loading && (
-                                                    <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'}`}>
-                                                        {testState.success ? (
-                                                            <CheckCircle2 size={16} />
-                                                        ) : (
-                                                            <AlertCircle size={16} />
-                                                        )}
-                                                        <span>{testState.message}</span>
-                                                    </div>
+                                                    {/* Test Result */}
+                                                    {testState && !testState.loading && (
+                                                        <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'}`}>
+                                                            {testState.success ? (
+                                                                <CheckCircle2 size={16} />
+                                                            ) : (
+                                                                <AlertCircle size={16} />
+                                                            )}
+                                                            <span>{testState.message}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Reset Integration Button with inline confirmation */}
+                                                {isEnabled && (
+                                                    !showConfirmReset ? (
+                                                        <Button
+                                                            onClick={() => setConfirmReset(prev => ({ ...prev, [config.id]: true }))}
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            className="text-error hover:bg-error/10 border-error/20"
+                                                        >
+                                                            Reset Integration
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm text-error">Reset?</span>
+                                                            <Button
+                                                                onClick={() => handleReset(config.id, config.fields)}
+                                                                variant="danger"
+                                                                size="sm"
+                                                                icon={Check}
+                                                            >
+                                                                Yes
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => setConfirmReset(prev => ({ ...prev, [config.id]: false }))}
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                icon={X}
+                                                            >
+                                                                No
+                                                            </Button>
+                                                        </div>
+                                                    )
                                                 )}
                                             </div>
                                         </div>
