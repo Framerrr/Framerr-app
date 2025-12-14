@@ -172,21 +172,38 @@ const CustomizationSettings = () => {
                     setCustomColors(themeColors);
                 }
 
-                // Load system config for application name and icon
-                const systemResponse = await axios.get('/api/config/system', {
-                    withCredentials: true
-                });
+                // Load system config for application name and icon (admin only)
+                if (isAdmin(user)) {
+                    try {
+                        const systemResponse = await axios.get('/api/config/system', {
+                            withCredentials: true
+                        });
 
-                if (systemResponse.data?.server?.name) {
-                    const name = systemResponse.data.server.name;
-                    setApplicationName(name);
-                    setOriginalAppName(name);
-                }
+                        if (systemResponse.data?.server?.name) {
+                            const name = systemResponse.data.server.name;
+                            setApplicationName(name);
+                            setOriginalAppName(name);
+                        }
 
-                if (systemResponse.data?.server?.icon) {
-                    const icon = systemResponse.data.server.icon;
-                    setApplicationIcon(icon);
-                    setOriginalAppIcon(icon);
+                        if (systemResponse.data?.server?.icon) {
+                            const icon = systemResponse.data.server.icon;
+                            setApplicationIcon(icon);
+                            setOriginalAppIcon(icon);
+                        }
+
+                        // Load iframe auth settings from system config
+                        if (systemResponse.data?.iframeAuth) {
+                            const authConfig = systemResponse.data.iframeAuth;
+                            setIframeAuthEnabled(authConfig.enabled !== false); // Default true
+                            setAuthSensitivity(authConfig.sensitivity || 'balanced');
+                            setCustomAuthPatterns(authConfig.customPatterns || []);
+                        }
+                    } catch (error) {
+                        // Silently handle 403 (expected for non-admins after race condition)
+                        if (error.response?.status !== 403) {
+                            logger.error('Failed to load system config:', error);
+                        }
+                    }
                 }
 
                 // Load flatten UI preference
@@ -198,14 +215,6 @@ const CustomizationSettings = () => {
                     if (shouldFlatten) {
                         document.documentElement.classList.add('flatten-ui');
                     }
-                }
-
-                // Load iframe auth settings from system config
-                if (systemResponse.data?.iframeAuth) {
-                    const authConfig = systemResponse.data.iframeAuth;
-                    setIframeAuthEnabled(authConfig.enabled !== false); // Default true
-                    setAuthSensitivity(authConfig.sensitivity || 'balanced');
-                    setCustomAuthPatterns(authConfig.customPatterns || []);
                 }
 
                 // Load greeting preferences

@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { isAdmin } from '../utils/permissions';
 import logger from '../utils/logger';
 
 export const AppDataContext = createContext(null);
 
 export const AppDataProvider = ({ children }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [userSettings, setUserSettings] = useState({});
     const [services, setServices] = useState([]);
     const [groups, setGroups] = useState([]);
@@ -26,23 +27,26 @@ export const AppDataProvider = ({ children }) => {
             const userConfigRes = await axios.get('/api/config/user');
             const userConfig = userConfigRes.data;
 
-            // Try to fetch system config (admin-only, will 403 for regular users)
+            // Only fetch admin-only endpoints for admins
             let systemConfig = {};
-            try {
-                const systemConfigRes = await axios.get('/api/config/system');
-                systemConfig = systemConfigRes.data;
-            } catch (sysError) {
-                // Non-admins will get 403 - that's expected, use defaults
-                logger.debug('System config not available (user may not be admin)');
-            }
+            if (isAdmin(user)) {
+                try {
+                    const systemConfigRes = await axios.get('/api/config/system');
+                    systemConfig = systemConfigRes.data;
+                } catch (sysError) {
+                    logger.debug('System config not available');
+                }
 
-            // Try to fetch integrations config (admin-only)
-            try {
-                const integrationsRes = await axios.get('/api/integrations');
-                setIntegrations(integrationsRes.data.integrations || {});
-            } catch (intError) {
-                // Non-admins will get 403, they'll use shared integrations instead
-                logger.debug('Full integrations not available (user may not be admin)');
+                // Fetch integrations config (admin-only)
+                try {
+                    const integrationsRes = await axios.get('/api/integrations');
+                    setIntegrations(integrationsRes.data.integrations || {});
+                } catch (intError) {
+                    logger.debug('Full integrations not available');
+                    setIntegrations({});
+                }
+            } else {
+                // Non-admin defaults
                 setIntegrations({});
             }
 
