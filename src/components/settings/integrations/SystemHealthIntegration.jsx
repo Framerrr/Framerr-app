@@ -23,12 +23,8 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
     const [testState, setTestState] = useState(null);
     const [confirmReset, setConfirmReset] = useState(false);
 
-    // Auto-expand when enabled
-    useEffect(() => {
-        if (config.enabled) {
-            setIsExpanded(true);
-        }
-    }, [config.enabled]);
+    // Auto-expand behavior removed - section should stay collapsed on page load
+    // It will expand when user clicks the toggle or the header
 
     const handleToggle = () => {
         const newConfig = { ...config, enabled: !config.enabled };
