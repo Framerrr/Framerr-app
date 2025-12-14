@@ -701,8 +701,8 @@ const Dashboard = () => {
                             </button>
                         </div>
                     ) : (
-                        // Edit button only visible on desktop/tablet (controlled by LayoutContext)
-                        !isMobile && (
+                        // Edit button only visible when not in sm breakpoint (sm = stacked, no editing)
+                        effectiveBreakpoint !== 'sm' && (
                             <button
                                 onClick={handleToggleEdit}
                                 className="flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
