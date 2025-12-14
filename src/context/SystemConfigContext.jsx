@@ -17,6 +17,12 @@ export const SystemConfigProvider = ({ children }) => {
             return;
         }
 
+        // Wait for user data to be available before checking admin status
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
         // Only admins can access system config
         if (!isAdmin(user)) {
             setSystemConfig({ groups: [], tabGroups: [] });
@@ -44,7 +50,7 @@ export const SystemConfigProvider = ({ children }) => {
 
     useEffect(() => {
         fetchSystemConfig();
-    }, [isAuthenticated]);
+    }, [isAuthenticated, user]);
 
     return (
         <SystemConfigContext.Provider value={{

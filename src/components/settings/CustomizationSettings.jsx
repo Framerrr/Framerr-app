@@ -553,22 +553,24 @@ const CustomizationSettings = () => {
                         />
                     )}
                 </button>
-                <button
-                    onClick={() => setActiveSubTab('favicon')}
-                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
-                >
-                    <div className="flex items-center gap-2 relative z-10">
-                        <ImageIcon size={18} className={activeSubTab === 'favicon' ? 'text-accent' : ''} />
-                        <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
-                    </div>
-                    {activeSubTab === 'favicon' && (
-                        <motion.div
-                            layoutId="customizationSubTabIndicator"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-                        />
-                    )}
-                </button>
+                {userIsAdmin && (
+                    <button
+                        onClick={() => setActiveSubTab('favicon')}
+                        className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                    >
+                        <div className="flex items-center gap-2 relative z-10">
+                            <ImageIcon size={18} className={activeSubTab === 'favicon' ? 'text-accent' : ''} />
+                            <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
+                        </div>
+                        {activeSubTab === 'favicon' && (
+                            <motion.div
+                                layoutId="customizationSubTabIndicator"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                                transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                            />
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Content - CrossFade between tabs */}
@@ -584,40 +586,33 @@ const CustomizationSettings = () => {
                     }}
                 >
                     <div className="space-y-6">
-                        {/* Application Branding Section */}
-                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
-                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
-                                Application Branding
-                            </h3>
-                            <p className="text-sm text-theme-secondary mb-4">
-                                Customize the application name and icon displayed throughout the dashboard.
-                                {!userIsAdmin && (
-                                    <span className="block mt-2 text-warning">
-                                        ⚠️ This setting requires admin privileges
-                                    </span>
-                                )}
-                            </p>
-                            <div className="space-y-4">
-                                <Input
-                                    label="Application Name"
-                                    value={applicationName}
-                                    onChange={(e) => setApplicationName(e.target.value)}
-                                    disabled={!userIsAdmin}
-                                    maxLength={50}
-                                    placeholder="Framerr"
-                                    helperText={`${applicationName.length}/50 characters`}
-                                />
-                                <div>
-                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
-                                        Application Icon
-                                    </label>
-                                    <IconPicker
-                                        value={applicationIcon}
-                                        onChange={(icon) => setApplicationIcon(icon)}
-                                        disabled={!userIsAdmin}
+                        {/* Application Branding Section - Admin Only */}
+                        {userIsAdmin && (
+                            <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                                <h3 className="text-lg font-semibold text-theme-primary mb-4">
+                                    Application Branding
+                                </h3>
+                                <p className="text-sm text-theme-secondary mb-4">
+                                    Customize the application name and icon displayed throughout the dashboard.
+                                </p>
+                                <div className="space-y-4">
+                                    <Input
+                                        label="Application Name"
+                                        value={applicationName}
+                                        onChange={(e) => setApplicationName(e.target.value)}
+                                        maxLength={50}
+                                        placeholder="Framerr"
+                                        helperText={`${applicationName.length}/50 characters`}
                                     />
-                                </div>
-                                {userIsAdmin && (
+                                    <div>
+                                        <label className="block mb-2 font-medium text-theme-secondary text-sm">
+                                            Application Icon
+                                        </label>
+                                        <IconPicker
+                                            value={applicationIcon}
+                                            onChange={(icon) => setApplicationIcon(icon)}
+                                        />
+                                    </div>
                                     <Button
                                         onClick={handleSaveApplicationName}
                                         disabled={!hasAppNameChanges || savingAppName}
@@ -625,9 +620,9 @@ const CustomizationSettings = () => {
                                     >
                                         {savingAppName ? 'Saving...' : 'Save Application Name & Icon'}
                                     </Button>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Dashboard Greeting Section */}
                         <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
