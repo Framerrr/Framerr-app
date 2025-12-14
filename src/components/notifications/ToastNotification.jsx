@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
@@ -19,7 +19,7 @@ const ICONS = {
  * @param {string} props.type - Type: 'success' | 'error' | 'warning' | 'info'
  * @param {string} props.title - Toast title
  * @param {string} props.message - Toast message
- * @param {number} props.duration - Auto-dismiss duration in ms (default 5000)
+ * @param {number} props.duration - Auto-dismiss duration in ms (default 10000)
  * @param {Object} props.action - Optional action button { label, onClick }
  * @param {Function} props.onDismiss - Callback when dismissed
  */
@@ -28,43 +28,60 @@ const ToastNotification = ({
     type = 'info',
     title,
     message,
-    duration = 5000,
+    duration = 10000,
     action,
     onDismiss
 }) => {
-    const [progress, setProgress] = useState(100);
     const [isPaused, setIsPaused] = useState(false);
-    const [startTime] = useState(Date.now());
-    const [pausedTime, setPausedTime] = useState(null);
+    const [remainingTime, setRemainingTime] = useState(duration);
+    const timerRef = useRef(null);
+    const startTimeRef = useRef(Date.now());
 
     const Icon = ICONS[type] || Info;
 
+    // Handle the countdown timer
     useEffect(() => {
-        if (isPaused || !duration) return;
+        if (!duration) return;
 
-        const interval = setInterval(() => {
-            const elapsed = Date.now() - startTime - (pausedTime || 0);
-            const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
-
-            setProgress(remaining);
-
-            if (remaining <= 0) {
-                onDismiss(id);
+        if (isPaused) {
+            // Clear timer when paused
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
             }
-        }, 16); // ~60fps
+            return;
+        }
 
-        return () => clearInterval(interval);
-    }, [id, duration, isPaused, startTime, pausedTime, onDismiss]);
+        // Start/resume timer with remaining time
+        startTimeRef.current = Date.now();
+        timerRef.current = setTimeout(() => {
+            onDismiss(id);
+        }, remainingTime);
+
+        return () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
+        };
+    }, [id, duration, isPaused, remainingTime, onDismiss]);
 
     const handleMouseEnter = () => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+        // Calculate how much time has elapsed since last resume
+        const elapsed = Date.now() - startTimeRef.current;
+        setRemainingTime(prev => Math.max(0, prev - elapsed));
         setIsPaused(true);
-        setPausedTime(Date.now() - startTime);
     };
 
     const handleMouseLeave = () => {
         setIsPaused(false);
-        setPausedTime(null);
     };
+
+    // Calculate progress percentage based on remaining time
+    const progress = duration ? (remainingTime / duration) * 100 : 100;
 
     return (
         <motion.div
@@ -133,17 +150,18 @@ const ToastNotification = ({
                 </button>
             </div>
 
-            {/* Progress bar */}
+            {/* Progress bar - smooth CSS transition */}
             {duration && (
                 <div
-                    className="h-1 transition-all duration-100"
+                    className="h-1"
                     style={{
                         width: `${progress}%`,
                         background: `linear-gradient(
                             to right, 
                             var(--${type}), 
                             var(--${type}-hover, var(--${type}))
-                        )`
+                        )`,
+                        transition: isPaused ? 'none' : `width ${remainingTime}ms linear`
                     }}
                     role="progressbar"
                     aria-valuenow={progress}
@@ -156,3 +174,4 @@ const ToastNotification = ({
 };
 
 export default ToastNotification;
+
