@@ -45,9 +45,22 @@ const Dashboard = () => {
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
-    const [editDisclaimerDismissed, setEditDisclaimerDismissed] = useState(() => {
-        return localStorage.getItem('framerr_edit_disclaimer_dismissed') === 'true';
-    });
+    const [editDisclaimerDismissed, setEditDisclaimerDismissed] = useState(false);
+
+    // Load edit disclaimer preference from user config
+    useEffect(() => {
+        const loadUserPreferences = async () => {
+            try {
+                const response = await axios.get('/api/config/user', { withCredentials: true });
+                if (response.data?.preferences?.editDisclaimerDismissed) {
+                    setEditDisclaimerDismissed(true);
+                }
+            } catch (error) {
+                logger.debug('Could not load user preferences for disclaimer:', error.message);
+            }
+        };
+        loadUserPreferences();
+    }, []);
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -61,7 +74,7 @@ const Dashboard = () => {
     const gridConfig = React.useMemo(() => ({
         className: "layout",
         cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 },
-        breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
+        breakpoints: { lg: 1024, md: 768, sm: 640, xs: 480, xxs: 0 },
         rowHeight: 100,
         compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
         preventCollision: false,
@@ -685,7 +698,7 @@ const Dashboard = () => {
                     ) : (
                         <button
                             onClick={handleToggleEdit}
-                            className="hidden lg:flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
+                            className="hidden md:flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
                         >
                             <Edit size={16} />
                             Edit
@@ -698,12 +711,18 @@ const Dashboard = () => {
             {editMode && !editDisclaimerDismissed && (
                 <div className="mb-4 px-4 py-3 bg-info/10 border border-info/20 rounded-xl flex items-center justify-between gap-4">
                     <p className="text-sm text-theme-secondary">
-                        💡 Dashboard editing is only available on desktop screens (≥1024px)
+                        💡 Dashboard editing is only available on tablet and desktop (≥768px)
                     </p>
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                             setEditDisclaimerDismissed(true);
-                            localStorage.setItem('framerr_edit_disclaimer_dismissed', 'true');
+                            try {
+                                await axios.put('/api/config/user', {
+                                    preferences: { editDisclaimerDismissed: true }
+                                }, { withCredentials: true });
+                            } catch (error) {
+                                logger.error('Failed to save disclaimer preference:', error);
+                            }
                         }}
                         className="p-1.5 hover:bg-theme-hover rounded-lg transition-colors text-theme-tertiary hover:text-theme-primary"
                         title="Dismiss"
@@ -732,7 +751,7 @@ const Dashboard = () => {
                         <ResponsiveGridLayout
                             className="layout"
                             cols={{ lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }}
-                            breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
+                            breakpoints={{ lg: 1024, md: 768, sm: 640, xs: 480, xxs: 0 }}
                             rowHeight={100}
                             compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
                             preventCollision={false}
