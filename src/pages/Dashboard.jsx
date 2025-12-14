@@ -76,13 +76,14 @@ const Dashboard = () => {
     const effectiveBreakpoint = isMobile ? 'sm' : currentBreakpoint;
 
     // Override breakpoints and cols when mobile to force mobile layout
+    // Simplified: only lg and sm (no md) since we only have lg and sm layouts
     const gridBreakpoints = isMobile
         ? { sm: 0 }
-        : { lg: 1024, md: 768, sm: 0 };
+        : { lg: 768, sm: 0 };  // lg starts at 768 (same as sidebar threshold)
 
     const gridCols = isMobile
         ? { sm: 2 }
-        : { lg: 24, md: 24, sm: 2 };
+        : { lg: 24, sm: 2 };
 
     const gridConfig = React.useMemo(() => ({
         className: "layout",
