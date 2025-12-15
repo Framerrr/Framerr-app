@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Upload, Check } from 'lucide-react';
@@ -79,12 +79,21 @@ const IconPicker = ({ value, onChange }) => {
     const [uploadedIcons, setUploadedIcons] = useState([]);
     const [loadingIcons, setLoadingIcons] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [triggerWidth, setTriggerWidth] = useState(0);
+    const triggerRef = useRef(null);
     const { error: showError } = useNotifications();
 
     // Fetch uploaded icons when component mounts
     useEffect(() => {
         fetchUploadedIcons();
     }, []);
+
+    // Measure trigger width when popover opens
+    useEffect(() => {
+        if (isOpen && triggerRef.current) {
+            setTriggerWidth(triggerRef.current.offsetWidth);
+        }
+    }, [isOpen]);
 
     const fetchUploadedIcons = async () => {
         try {
@@ -232,6 +241,7 @@ const IconPicker = ({ value, onChange }) => {
         <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
             <Popover.Trigger asChild>
                 <button
+                    ref={triggerRef}
                     type="button"
                     className="flex items-center gap-2 px-4 py-2.5 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors w-full"
                     title={getIconDisplayName()}
@@ -258,8 +268,8 @@ const IconPicker = ({ value, onChange }) => {
                                 exit={{ opacity: 0, scale: 0.96 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 style={{
-                                    width: window.innerWidth < 768 ? 'calc(100vw - 48px)' : '24rem',
-                                    maxWidth: window.innerWidth < 768 ? 'calc(100vw - 48px)' : '24rem',
+                                    width: window.innerWidth < 768 ? (triggerWidth > 0 ? triggerWidth : 'auto') : '24rem',
+                                    minWidth: '200px',
                                     zIndex: 9999
                                 }}
                                 className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[50vh] overflow-y-auto"
