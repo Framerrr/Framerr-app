@@ -505,6 +505,7 @@ const NotificationSettings = () => {
                                 onCopyWebhookUrl={() => copyWebhookUrl(integration.id)}
                                 onGenerateToken={() => generateWebhookToken(integration.id)}
                                 disabled={!notificationsEnabled}
+                                webhookBaseUrl={webhookBaseUrl}
                             />
                         ))}
                     </div>
@@ -539,7 +540,8 @@ const IntegrationCard = ({
     onSaveUserSettings,
     onCopyWebhookUrl,
     onGenerateToken,
-    disabled
+    disabled,
+    webhookBaseUrl
 }) => {
     const Icon = integration.icon;
     const events = INTEGRATION_EVENTS[integration.id] || [];
@@ -672,7 +674,7 @@ const IntegrationCard = ({
                                             <div className="space-y-3">
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex-1 px-3 py-2 bg-theme-primary border border-theme rounded-lg text-xs font-mono text-theme-secondary truncate">
-                                                        {`${window.location.origin}/api/webhooks/${integration.id}/${webhookToken.substring(0, 8)}...`}
+                                                        {`${webhookBaseUrl || window.location.origin}/api/webhooks/${integration.id}/${webhookToken.substring(0, 8)}...`}
                                                     </div>
                                                     <button
                                                         onClick={onCopyWebhookUrl}
