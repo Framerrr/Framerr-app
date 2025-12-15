@@ -17,6 +17,9 @@ const { getSystemConfig, updateSystemConfig } = require('../db/systemConfig');
 // Plex API base URLs
 const PLEX_TV_API = 'https://plex.tv/api/v2';
 
+// Module-level cache for client identifier (prevents regeneration race condition)
+let cachedClientIdentifier = null;
+
 // Standard headers for Plex API requests
 const getPlexHeaders = (clientId, token = null) => {
     const headers = {
@@ -34,25 +37,39 @@ const getPlexHeaders = (clientId, token = null) => {
 
 /**
  * Get or create a persistent client identifier for this Framerr instance
+ * Uses module-level cache to prevent race conditions with DB cache invalidation
  */
 async function getClientIdentifier() {
+    // Return cached value if we have it
+    if (cachedClientIdentifier) {
+        return cachedClientIdentifier;
+    }
+
     const config = await getSystemConfig();
 
-    // Check if we already have a client ID stored
+    // Check if we already have a client ID stored in DB
     if (config.plexSSO?.clientIdentifier) {
-        return config.plexSSO.clientIdentifier;
+        cachedClientIdentifier = config.plexSSO.clientIdentifier;
+        logger.debug('[Plex] Using existing client identifier from DB');
+        return cachedClientIdentifier;
     }
 
     // Generate a new one and store it
     const clientId = `framerr-${uuidv4()}`;
+
+    // Save to DB
     await updateSystemConfig('plexSSO', {
         ...(config.plexSSO || {}),
         clientIdentifier: clientId
     });
 
+    // Cache it in memory
+    cachedClientIdentifier = clientId;
+
     logger.info('[Plex] Generated new client identifier:', clientId);
     return clientId;
 }
+
 
 /**
  * POST /api/plex/auth/pin
@@ -64,6 +81,8 @@ router.post('/auth/pin', async (req, res) => {
         const clientId = await getClientIdentifier();
         const { forwardUrl } = req.body;
 
+        logger.info('[Plex] Generating PIN with clientId:', clientId);
+
         // Generate PIN from Plex
         const pinResponse = await axios.post(
             `${PLEX_TV_API}/pins`,
@@ -72,6 +91,12 @@ router.post('/auth/pin', async (req, res) => {
         );
 
         const { id: pinId, code } = pinResponse.data;
+
+        logger.info('[Plex] PIN generated successfully:', {
+            pinId,
+            code: code?.substring(0, 4) + '...',
+            clientId: clientId.substring(0, 20) + '...'
+        });
 
         // Construct the Plex auth URL
         const authParams = new URLSearchParams({
@@ -86,8 +111,6 @@ router.post('/auth/pin', async (req, res) => {
 
         const authUrl = `https://app.plex.tv/auth#?${authParams.toString()}`;
 
-        logger.debug('[Plex] Generated PIN', { pinId, code: code.substring(0, 2) + '...' });
-
         res.json({
             pinId,
             code,
@@ -99,6 +122,7 @@ router.post('/auth/pin', async (req, res) => {
         res.status(500).json({ error: 'Failed to generate Plex PIN' });
     }
 });
+
 
 /**
  * GET /api/plex/auth/token
@@ -116,15 +140,23 @@ router.get('/auth/token', async (req, res) => {
 
         const clientId = await getClientIdentifier();
 
-        // Check PIN status
+        logger.debug('[Plex] Checking PIN status', { pinId, clientId: clientId.substring(0, 20) + '...' });
+
+        // Check PIN status from Plex
         const pinResponse = await axios.get(
             `${PLEX_TV_API}/pins/${pinId}`,
             { headers: getPlexHeaders(clientId) }
         );
 
+        logger.debug('[Plex] PIN response received', {
+            hasAuthToken: !!pinResponse.data.authToken,
+            expiresAt: pinResponse.data.expiresAt
+        });
+
         const { authToken } = pinResponse.data;
 
         if (!authToken) {
+            // PIN exists but user hasn't authenticated yet
             return res.json({ pending: true });
         }
 
@@ -149,7 +181,11 @@ router.get('/auth/token', async (req, res) => {
             user
         });
     } catch (error) {
-        logger.error('[Plex] Failed to check PIN:', error.message);
+        logger.error('[Plex] Failed to check PIN:', {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data
+        });
 
         if (error.response?.status === 404) {
             return res.status(404).json({ error: 'PIN expired or invalid' });
@@ -158,6 +194,7 @@ router.get('/auth/token', async (req, res) => {
         res.status(500).json({ error: 'Failed to check Plex PIN' });
     }
 });
+
 
 /**
  * GET /api/plex/resources
