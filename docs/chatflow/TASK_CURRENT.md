@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-14 05:26 EST  
+**Last Updated:** 2025-12-14 21:30 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,44 +20,63 @@
 
 ## Current State
 
-**Status:** ✅ Session completed - Admin vs Non-Admin access control fixes
+**Status:** ✅ Session completed - Plex SSO Authentication System Fixes
 
 **This Session:**
 
-### 403 Error Fixes for Non-Admin Users
-- Added `isAdmin` checks to prevent non-admins from calling admin-only endpoints:
-  - `SystemConfigContext.jsx` - Added user dependency + null check
-  - `AppDataContext.jsx` - Wrapped `/api/config/system` and `/api/integrations` calls
-  - `Dashboard.jsx` - Wrapped debug overlay config call
-  - `CustomizationSettings.jsx` - Protected system config loading
+### Plex SSO Configuration Persistence
+- Fixed `systemConfig.js` to handle `plexSSO` key in database persistence
+- Fixed `updateSystemConfig` calls in `plex.js` to use object syntax `{ plexSSO: {...} }`
 
-### App Branding Sync for All Users
-- Extended `/api/config/app-name` endpoint to return icon (public, no auth)
-- Updated `AppDataContext` to fetch branding from public endpoint
-- Non-admin users now see correct app name/icon in sidebar
+### Plex User Verification (Library Access)
+- Changed from `/api/v2/friends` (social connections) to `/api/users` (library access)
+- Added `xml2js` library to parse XML responses from Plex API
+- Users with library access can now correctly login via SSO
 
-### Customization Settings Access Control
-- Hidden "Application Branding" section for non-admins
-- Hidden "Favicon" subtab for non-admins
-- Changed FaviconInjector logs from INFO to DEBUG
+### Plex Admin User Mapping
+- Added `linkedUserId` field to SSO config
+- Added UI dropdown to select which Framerr user the Plex admin maps to
+- Plex admin now correctly logs in as linked Framerr user
+
+### Plex SSO Login UX (Safari Compatibility)
+- Changed from popup window to full page redirect
+- Stores PIN in localStorage for redirect callback handling
+
+### Server List Persistence
+- Added `/api/plex/admin-resources` endpoint for fetching servers
+- Server list now loads on page refresh
+
+---
+
+## Key Files Modified
+
+| File | Changes |
+|------|---------|
+| `server/db/systemConfig.js` | Added `plexSSO` handling |
+| `server/routes/plex.js` | Fixed config calls, XML parsing, admin-resources endpoint |
+| `server/routes/auth.js` | XML parsing, admin user mapping, library access check |
+| `src/pages/Login.jsx` | Full page redirect flow |
+| `src/components/settings/PlexAuthSettings.jsx` | Admin user dropdown, server fetch |
+| `package.json` | Added `xml2js` dependency |
 
 ---
 
 ## Remaining Work
 
-1. **More admin vs user polish** - User mentioned more to do
-2. **Shared widget integration** - Continue refinement
-3. **Overseerr webhook integration** - From previous session
+1. **Plex SSO Testing** - User has verified working, may need edge case testing
+2. **Overseerr webhook integration** - From previous session
+3. **Shared widget refinement** - From previous session
 
 ---
 
 ## ✅ SESSION END
 
-- **Session ended:** 2025-12-14 05:26 EST
+- **Session ended:** 2025-12-14 21:30 EST
 - **Branch:** `feature/notification-integration`
 - **Build status:** ✅ Passing
+- **Docker:** User has deployed latest to `pickels23/framerr:develop`
 - **Next action:** 
-  1. Continue polishing admin vs user access control
-  2. Test with non-admin user to verify all 403s are resolved
-  3. Verify app name/icon displays correctly in sidebar for non-admins
+  1. Continue testing Plex SSO with various user scenarios
+  2. Continue with Overseerr webhook integration if needed
+  3. Eventually merge feature branch to develop when stable
 
