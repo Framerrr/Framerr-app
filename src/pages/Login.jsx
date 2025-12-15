@@ -91,11 +91,8 @@ const Login = () => {
 
             const { pinId, authUrl } = pinResponse.data;
 
-            const popup = window.open(
-                authUrl,
-                'PlexAuth',
-                'width=600,height=700,menubar=no,toolbar=no,location=no,status=no'
-            );
+            // Open in new tab (better compatibility with Safari and popup blockers)
+            const authTab = window.open(authUrl, '_blank');
 
             pollIntervalRef.current = setInterval(async () => {
                 try {
@@ -104,7 +101,7 @@ const Login = () => {
                     if (tokenResponse.data.authToken) {
                         clearInterval(pollIntervalRef.current);
                         pollIntervalRef.current = null;
-                        popup?.close();
+                        authTab?.close();
 
                         const { authToken, user } = tokenResponse.data;
                         const result = await loginWithPlex(authToken, user.id);
