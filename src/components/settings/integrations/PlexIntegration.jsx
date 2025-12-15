@@ -1,0 +1,373 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Tv, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, ExternalLink, RefreshCw, Server } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import logger from '../../../utils/logger';
+import { Button } from '../../common/Button';
+import { Input } from '../../common/Input';
+import { useNotifications } from '../../../context/NotificationContext';
+
+/**
+ * PlexIntegration - Plex integration configuration with OAuth
+ * Allows users to connect their Plex account and select a server
+ */
+const PlexIntegration = ({ integration, onUpdate }) => {
+    const { success: showSuccess, error: showError } = useNotifications();
+    const pollIntervalRef = useRef(null);
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [config, setConfig] = useState(integration || {
+        enabled: false,
+        url: '',
+        token: '',
+        machineId: ''
+    });
+    const [testState, setTestState] = useState(null);
+    const [authenticating, setAuthenticating] = useState(false);
+    const [servers, setServers] = useState([]);
+    const [loadingServers, setLoadingServers] = useState(false);
+    const [plexUser, setPlexUser] = useState(null);
+
+    useEffect(() => {
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
+    }, []);
+
+    const handleToggle = () => {
+        const newConfig = { ...config, enabled: !config.enabled };
+        setConfig(newConfig);
+        onUpdate(newConfig);
+
+        if (!config.enabled) {
+            setIsExpanded(true);
+        }
+    };
+
+    const handleConfigChange = (field, value) => {
+        const newConfig = { ...config, [field]: value };
+        setConfig(newConfig);
+        onUpdate(newConfig);
+    };
+
+    const handlePlexLogin = async () => {
+        setAuthenticating(true);
+        try {
+            const pinResponse = await axios.post('/api/plex/auth/pin', {
+                forwardUrl: `${window.location.origin}/settings/integrations`
+            }, { withCredentials: true });
+
+            const { pinId, authUrl } = pinResponse.data;
+
+            const popup = window.open(
+                authUrl,
+                'PlexAuth',
+                'width=600,height=700,menubar=no,toolbar=no,location=no,status=no'
+            );
+
+            pollIntervalRef.current = setInterval(async () => {
+                try {
+                    const tokenResponse = await axios.get(`/api/plex/auth/token?pinId=${pinId}`, {
+                        withCredentials: true
+                    });
+
+                    if (tokenResponse.data.authToken) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                        popup?.close();
+
+                        const { authToken, user } = tokenResponse.data;
+                        setPlexUser(user);
+
+                        // Update config with token
+                        const newConfig = { ...config, token: authToken };
+                        setConfig(newConfig);
+                        onUpdate(newConfig);
+
+                        // Fetch servers
+                        await fetchServers(authToken);
+
+                        showSuccess('Plex Connected', `Connected as ${user.username}`);
+                        setAuthenticating(false);
+                    }
+                } catch (error) {
+                    if (error.response?.status === 404) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                        showError('Plex Auth Failed', 'PIN expired. Please try again.');
+                        setAuthenticating(false);
+                    }
+                }
+            }, 2000);
+
+            setTimeout(() => {
+                if (pollIntervalRef.current) {
+                    clearInterval(pollIntervalRef.current);
+                    pollIntervalRef.current = null;
+                    setAuthenticating(false);
+                }
+            }, 300000);
+
+        } catch (error) {
+            logger.error('[PlexIntegration] OAuth error:', error.message);
+            showError('Plex Auth Failed', error.message);
+            setAuthenticating(false);
+        }
+    };
+
+    const fetchServers = async (token) => {
+        setLoadingServers(true);
+        try {
+            const response = await axios.get(`/api/plex/resources?token=${token}`, {
+                withCredentials: true
+            });
+            setServers(response.data);
+
+            // Auto-select first owned server if none selected
+            if (!config.machineId && response.data.length > 0) {
+                const ownedServer = response.data.find(s => s.owned) || response.data[0];
+                const newConfig = {
+                    ...config,
+                    machineId: ownedServer.machineId,
+                    url: ownedServer.connections?.find(c => c.local)?.uri || ownedServer.connections?.[0]?.uri || ''
+                };
+                setConfig(newConfig);
+                onUpdate(newConfig);
+            }
+        } catch (error) {
+            logger.error('[PlexIntegration] Failed to fetch servers:', error.message);
+        } finally {
+            setLoadingServers(false);
+        }
+    };
+
+    const handleServerChange = (machineId) => {
+        const server = servers.find(s => s.machineId === machineId);
+        const url = server?.connections?.find(c => c.local)?.uri || server?.connections?.[0]?.uri || '';
+
+        const newConfig = { ...config, machineId, url };
+        setConfig(newConfig);
+        onUpdate(newConfig);
+    };
+
+    const handleTest = async () => {
+        setTestState({ loading: true });
+
+        try {
+            const response = await axios.get('/api/plex/test', {
+                params: {
+                    url: config.url,
+                    token: config.token
+                },
+                withCredentials: true
+            });
+
+            if (response.data.success) {
+                setTestState({
+                    loading: false,
+                    success: true,
+                    message: `Connected to ${response.data.serverName}`
+                });
+            } else {
+                setTestState({
+                    loading: false,
+                    success: false,
+                    message: response.data.error || 'Connection failed'
+                });
+            }
+        } catch (error) {
+            logger.error('[PlexIntegration] Test error:', error);
+            setTestState({
+                loading: false,
+                success: false,
+                message: error.response?.data?.error || 'Connection failed'
+            });
+        }
+    };
+
+    return (
+        <div className="glass-subtle rounded-xl border border-theme overflow-hidden">
+            {/* Header */}
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full p-4 flex items-center justify-between hover:bg-theme-hover transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#e5a00d]/20">
+                        <Tv size={20} className="text-[#e5a00d]" />
+                    </div>
+                    <div className="text-left">
+                        <h3 className="font-medium text-theme-primary">Plex</h3>
+                        <p className="text-sm text-theme-secondary">Media server integration</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    {/* Status indicator */}
+                    {config.enabled && config.token && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-success/20 text-success">
+                            Connected
+                        </span>
+                    )}
+                    {/* Enable toggle */}
+                    <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                        <input
+                            type="checkbox"
+                            checked={config.enabled}
+                            onChange={handleToggle}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
+                    </label>
+                    {/* Expand arrow */}
+                    <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <ChevronDown size={20} className="text-theme-secondary" />
+                    </motion.div>
+                </div>
+            </button>
+
+            {/* Expanded Content */}
+            <AnimatePresence>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="p-4 pt-0 space-y-4 border-t border-theme">
+                            {/* Plex Login Button */}
+                            <div className="p-4 rounded-lg border border-theme bg-theme-tertiary">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        {config.token ? (
+                                            <>
+                                                <CheckCircle2 size={20} className="text-success" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-theme-primary">Connected to Plex</p>
+                                                    <p className="text-xs text-theme-secondary">
+                                                        {plexUser?.username || 'Token configured'}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <AlertCircle size={20} className="text-warning" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-theme-primary">Not Connected</p>
+                                                    <p className="text-xs text-theme-secondary">Login with Plex to auto-configure</p>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={handlePlexLogin}
+                                        disabled={authenticating}
+                                        className="flex items-center gap-2 px-4 py-2 bg-[#e5a00d] hover:bg-[#c88a0b] text-black font-medium rounded-lg transition-all disabled:opacity-50"
+                                    >
+                                        {authenticating ? (
+                                            <>
+                                                <Loader className="animate-spin" size={16} />
+                                                Connecting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ExternalLink size={16} />
+                                                {config.token ? 'Reconnect' : 'Login with Plex'}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Server Selection */}
+                            {config.token && (
+                                <div>
+                                    <label className="block text-sm font-medium text-theme-primary mb-2">
+                                        <Server size={16} className="inline mr-2" />
+                                        Select Server
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={config.machineId || ''}
+                                            onChange={(e) => handleServerChange(e.target.value)}
+                                            className="flex-1 px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
+                                        >
+                                            <option value="">Select a server...</option>
+                                            {servers.map(server => (
+                                                <option key={server.machineId} value={server.machineId}>
+                                                    {server.name} {server.owned ? '(Owner)' : '(Shared)'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            onClick={() => fetchServers(config.token)}
+                                            disabled={loadingServers}
+                                            className="px-3 py-2 border border-theme rounded-lg text-theme-secondary hover:bg-theme-hover transition-all"
+                                            title="Refresh servers"
+                                        >
+                                            <RefreshCw size={18} className={loadingServers ? 'animate-spin' : ''} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Manual URL input (advanced) */}
+                            <Input
+                                label="Plex Server URL"
+                                type="text"
+                                value={config.url}
+                                onChange={(e) => handleConfigChange('url', e.target.value)}
+                                placeholder="http://192.168.1.x:32400"
+                                helperText="Auto-filled from server selection, or enter manually"
+                            />
+
+                            {/* Token input (hidden, advanced) */}
+                            <div>
+                                <label className="block text-sm font-medium text-theme-primary mb-2">
+                                    Plex Token
+                                </label>
+                                <input
+                                    type="password"
+                                    value={config.token}
+                                    onChange={(e) => handleConfigChange('token', e.target.value)}
+                                    placeholder="Auto-filled via Plex login"
+                                    className="w-full px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
+                                />
+                                <p className="text-xs text-theme-tertiary mt-1">
+                                    Auto-filled when you login with Plex, or enter manually
+                                </p>
+                            </div>
+
+                            {/* Test Connection */}
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    onClick={handleTest}
+                                    disabled={!config.url || !config.token || testState?.loading}
+                                    icon={testState?.loading ? Loader : TestTube}
+                                    variant="secondary"
+                                >
+                                    {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                </Button>
+
+                                {testState && !testState.loading && (
+                                    <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'}`}>
+                                        {testState.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                        {testState.message}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+export default PlexIntegration;

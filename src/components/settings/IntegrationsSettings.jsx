@@ -5,6 +5,7 @@ import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import SystemHealthIntegration from './integrations/SystemHealthIntegration';
+import PlexIntegration from './integrations/PlexIntegration';
 import SharingDropdown from './SharingDropdown';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -193,17 +194,8 @@ const IntegrationsSettings = () => {
         return !!config.url;
     };
 
+    // Define integration configuration metadata - excludes systemstatus and plex (handled separately)
     const integrationConfigs = [
-        {
-            id: 'plex',
-            name: 'Plex',
-            description: 'Media server integration',
-            icon: Tv,
-            fields: [
-                { key: 'url', label: 'Plex URL', placeholder: 'http://192.168.1.5:32400', type: 'text' },
-                { key: 'token', label: 'X-Plex-Token', placeholder: 'Your Plex token', type: 'password' }
-            ]
-        },
         {
             id: 'sonarr',
             name: 'Sonarr',
@@ -284,6 +276,17 @@ const IntegrationsSettings = () => {
                     setIntegrations(prev => ({
                         ...prev,
                         systemstatus: updated
+                    }));
+                }}
+            />
+
+            {/* Plex Integration - Special OAuth Component */}
+            <PlexIntegration
+                integration={integrations.plex}
+                onUpdate={(updated) => {
+                    setIntegrations(prev => ({
+                        ...prev,
+                        plex: updated
                     }));
                 }}
             />

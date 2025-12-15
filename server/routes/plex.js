@@ -392,4 +392,46 @@ router.get('/sso/status', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/plex/test
+ * Test Plex server connection
+ * Query: ?url=xxx&token=xxx
+ */
+router.get('/test', async (req, res) => {
+    try {
+        const { url, token } = req.query;
+
+        if (!url || !token) {
+            return res.status(400).json({ error: 'url and token are required' });
+        }
+
+        const clientId = await getClientIdentifier();
+
+        // Test connection to the Plex server
+        const response = await axios.get(`${url}/`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Plex-Token': token,
+                'X-Plex-Client-Identifier': clientId
+            }
+        });
+
+        const serverName = response.data?.MediaContainer?.friendlyName || 'Plex Server';
+
+        logger.debug('[Plex] Test connection successful:', serverName);
+
+        res.json({
+            success: true,
+            serverName
+        });
+    } catch (error) {
+        logger.error('[Plex] Test connection failed:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.error || 'Connection failed'
+        });
+    }
+});
+
 module.exports = router;
+
