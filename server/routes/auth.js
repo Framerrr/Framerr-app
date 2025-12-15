@@ -5,6 +5,7 @@ const { createUserSession, validateSession } = require('../auth/session');
 const { getUser, getUserById, listUsers } = require('../db/users');
 const { getSystemConfig } = require('../db/systemConfig');
 const logger = require('../utils/logger');
+const xml2js = require('xml2js');
 // Get auth config helper
 // In real app this would come from system config
 const getAuthConfig = async () => {
@@ -178,47 +179,43 @@ router.post('/plex-login', async (req, res) => {
         if (!isPlexAdmin) {
             // Verify user has library access on admin's Plex server
             // Use the /api/users endpoint which returns users with library sharing access
-            // (not /api/v2/friends which is just social connections)
+            // Note: This endpoint returns XML, not JSON
             const usersResponse = await axios.get('https://plex.tv/api/users', {
                 headers: {
-                    'Accept': 'application/json',
                     'X-Plex-Token': ssoConfig.adminToken
                 }
             });
 
-            // Log raw response structure for debugging
-            logger.info('[PlexSSO] Raw API response keys:', Object.keys(usersResponse.data || {}));
+            // Parse XML response
+            let usersList = [];
+            try {
+                const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+                const parsed = await parser.parseStringPromise(usersResponse.data);
 
-            // The response could have different structures depending on Plex API version
-            const sharedUsers = usersResponse.data?.MediaContainer?.User ||
-                usersResponse.data?.User ||
-                usersResponse.data ||
-                [];
+                // Extract users from MediaContainer.User
+                const users = parsed?.MediaContainer?.User;
+                if (users) {
+                    usersList = Array.isArray(users) ? users : [users];
+                }
 
-            // Ensure sharedUsers is an array (single user case)
-            const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
-
-            // Log detailed user info for debugging
-            logger.info('[PlexSSO] Shared users response:', {
-                count: usersList.length,
-                sampleUser: usersList[0] ? JSON.stringify(usersList[0]).substring(0, 300) : 'none',
-                lookingForId: plexUser.id,
-                lookingForUsername: plexUser.username
-            });
+                logger.info('[PlexSSO] Parsed shared users:', {
+                    count: usersList.length,
+                    usernames: usersList.map(u => u.username || u.title).slice(0, 5).join(', '),
+                    lookingForId: plexUser.id,
+                    lookingForUsername: plexUser.username
+                });
+            } catch (parseError) {
+                logger.error('[PlexSSO] Failed to parse users XML:', parseError.message);
+                return res.status(500).json({ error: 'Failed to verify Plex access' });
+            }
 
             const hasLibraryAccess = usersList.some(sharedUser => {
-                // Try multiple possible ID locations based on response format
-                const userId = sharedUser?.['$']?.id ||
-                    sharedUser?.id ||
-                    sharedUser?.['@_id'] ||
-                    sharedUser?.userId;
+                const userId = sharedUser?.id;
                 const matches = userId?.toString() === plexUser.id.toString();
-                if (userId) {
-                    logger.debug('[PlexSSO] Comparing user:', {
+                if (matches) {
+                    logger.debug('[PlexSSO] Found matching user:', {
                         sharedUserId: userId,
-                        sharedUsername: sharedUser?.['$']?.username || sharedUser?.username || sharedUser?.title,
-                        loginUserId: plexUser.id,
-                        matches
+                        sharedUsername: sharedUser?.username || sharedUser?.title
                     });
                 }
                 return matches;

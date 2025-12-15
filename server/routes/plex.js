@@ -13,6 +13,7 @@ const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { getSystemConfig, updateSystemConfig } = require('../db/systemConfig');
+const xml2js = require('xml2js');
 
 // Plex API base URLs
 const PLEX_TV_API = 'https://plex.tv/api/v2';
@@ -306,24 +307,27 @@ router.get('/users', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'token is required' });
         }
 
-        // Get users with library access from Plex.tv (not friends)
-        // This endpoint returns users who have been invited to access server libraries
+        // Get users with library access from Plex.tv
+        // Note: This endpoint returns XML, not JSON
         const response = await axios.get('https://plex.tv/api/users', {
             headers: {
-                'Accept': 'application/json',
                 'X-Plex-Token': token
             }
         });
 
-        // Parse the response - structure is MediaContainer.User[]
-        const sharedUsers = response.data?.MediaContainer?.User || [];
-        const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
+        // Parse XML response
+        const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+        const parsed = await parser.parseStringPromise(response.data);
 
-        const users = usersList.filter(u => u).map(user => ({
-            id: user['$']?.id || user.id,
-            username: user['$']?.username || user['$']?.title || user.username || user.title,
-            email: user['$']?.email || user.email,
-            thumb: user['$']?.thumb || user.thumb
+        // Extract users from MediaContainer.User
+        const rawUsers = parsed?.MediaContainer?.User;
+        const usersList = rawUsers ? (Array.isArray(rawUsers) ? rawUsers : [rawUsers]) : [];
+
+        const users = usersList.map(user => ({
+            id: user.id,
+            username: user.username || user.title,
+            email: user.email,
+            thumb: user.thumb
         }));
 
         logger.debug('[Plex] Found shared users:', users.length);
@@ -365,20 +369,22 @@ router.post('/verify-user', async (req, res) => {
         let hasLibraryAccess = false;
 
         if (!isAdmin) {
-            // Get users with library access from Plex.tv
+            // Get users with library access from Plex.tv (XML response)
             const usersResponse = await axios.get('https://plex.tv/api/users', {
                 headers: {
-                    'Accept': 'application/json',
                     'X-Plex-Token': ssoConfig.adminToken
                 }
             });
 
-            const sharedUsers = usersResponse.data?.MediaContainer?.User || [];
-            const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
+            // Parse XML response
+            const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+            const parsed = await parser.parseStringPromise(usersResponse.data);
+
+            const rawUsers = parsed?.MediaContainer?.User;
+            const usersList = rawUsers ? (Array.isArray(rawUsers) ? rawUsers : [rawUsers]) : [];
 
             hasLibraryAccess = usersList.some(
-                sharedUser => (sharedUser?.['$']?.id?.toString() === plexUserId.toString()) ||
-                    (sharedUser?.id?.toString() === plexUserId.toString())
+                sharedUser => sharedUser?.id?.toString() === plexUserId.toString()
             );
         }
 
