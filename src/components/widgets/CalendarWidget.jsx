@@ -3,6 +3,11 @@ import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Filter, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 
 // Event Popover Component
 const EventPopover = ({ event }) => {
@@ -105,9 +110,22 @@ const EventPopover = ({ event }) => {
 };
 
 const CombinedCalendarWidget = ({ config }) => {
-    // Get integration configs from props (passed by Dashboard)
-    const sonarrConfig = config?.sonarr || {};
-    const radarrConfig = config?.radarr || {};
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
+    // Get integrations from context - ONLY source of truth for access
+    const { integrations } = useAppData();
+
+    // Get Sonarr and Radarr configs from context (not widget config)
+    const sonarrConfig = integrations?.sonarr || {};
+    const radarrConfig = integrations?.radarr || {};
+
+    // Check if either integration is available
+    const hasSonarr = sonarrConfig.enabled && sonarrConfig.url && sonarrConfig.apiKey;
+    const hasRadarr = radarrConfig.enabled && radarrConfig.url && radarrConfig.apiKey;
+    const hasAnyIntegration = hasSonarr || hasRadarr;
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState({});
     const [loading, setLoading] = useState(false);
@@ -122,12 +140,8 @@ const CombinedCalendarWidget = ({ config }) => {
 
     useEffect(() => {
         const fetchEvents = async () => {
-            // Check integrations FIRST before doing anything async
-            const hasSonarr = sonarrConfig.enabled && sonarrConfig.url && sonarrConfig.apiKey;
-            const hasRadarr = radarrConfig.enabled && radarrConfig.url && radarrConfig.apiKey;
-
-            if (!hasSonarr && !hasRadarr) {
-                setError('No calendar services enabled. Please configure Sonarr or Radarr in Integrations.');
+            // Skip if no integrations available (handled by early return in render)
+            if (!hasAnyIntegration) {
                 setLoading(false);
                 return;
             }
@@ -182,8 +196,9 @@ const CombinedCalendarWidget = ({ config }) => {
         fetchEvents();
     }, [
         currentDate,
-        sonarrConfig.enabled, sonarrConfig.url, sonarrConfig.apiKey,
-        radarrConfig.enabled, radarrConfig.url, radarrConfig.apiKey,
+        hasAnyIntegration, hasSonarr, hasRadarr,
+        sonarrConfig.url, sonarrConfig.apiKey,
+        radarrConfig.url, radarrConfig.apiKey,
         startDateStr, endDateStr
     ]); // Primitive dependencies - stable!
 
@@ -205,6 +220,14 @@ const CombinedCalendarWidget = ({ config }) => {
         if (filter === 'movies') return dayEvents.filter(ev => ev.type === 'radarr');
         return dayEvents;
     };
+
+    // Show appropriate message based on user role when no integrations
+    if (!hasAnyIntegration) {
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="Calendar (Sonarr/Radarr)" />
+            : <IntegrationNoAccessMessage serviceName="Calendar" />;
+    }
 
     return (
         <div className="flex flex-col h-full gap-2 relative">
