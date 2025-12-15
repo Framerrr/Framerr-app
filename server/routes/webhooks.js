@@ -27,7 +27,10 @@ const OVERSEERR_EVENT_MAP = {
     'issue.created': 'issueReported',
     'issue.comment': 'issueComment',
     'issue.resolved': 'issueResolved',
-    'issue.reopened': 'issueReopened'
+    'issue.reopened': 'issueReopened',
+    // Test events
+    'test': 'test',
+    'Test Notification': 'test'
 };
 
 const SONARR_EVENT_MAP = {
@@ -43,7 +46,8 @@ const SONARR_EVENT_MAP = {
     'Health': 'healthIssue', // Will check payload for restored
     'HealthRestored': 'healthRestored',
     'ApplicationUpdate': 'applicationUpdate',
-    'ManualInteractionRequired': 'manualInteractionRequired'
+    'ManualInteractionRequired': 'manualInteractionRequired',
+    'Test': 'test'
 };
 
 const RADARR_EVENT_MAP = {
@@ -59,7 +63,8 @@ const RADARR_EVENT_MAP = {
     'Health': 'healthIssue',
     'HealthRestored': 'healthRestored',
     'ApplicationUpdate': 'applicationUpdate',
-    'ManualInteractionRequired': 'manualInteractionRequired'
+    'ManualInteractionRequired': 'manualInteractionRequired',
+    'Test': 'test'
 };
 
 /**
@@ -258,7 +263,37 @@ router.post('/radarr/:token', async (req, res) => {
  */
 async function processWebhookNotification({ service, eventKey, username, title, message, webhookConfig, adminOnly = false }) {
     const notificationsSent = [];
-    const config = await getSystemConfig();
+
+    // Test events bypass all preference checks and go to all admins
+    const isTestEvent = eventKey === 'test';
+
+    logger.info('[Webhook] Processing notification', {
+        service,
+        eventKey,
+        username,
+        isTestEvent,
+        adminOnly
+    });
+
+    if (isTestEvent) {
+        // Test notifications - send to all admins regardless of settings
+        const { listUsers } = require('../db/users');
+        const users = await listUsers();
+        const admins = users.filter(u => u.group === 'admin');
+
+        for (const admin of admins) {
+            await createNotification({
+                userId: admin.id,
+                type: 'success',
+                title: `[Test] ${title}`,
+                message: message || 'Test notification received successfully!'
+            });
+            notificationsSent.push({ userId: admin.id, username: admin.username, test: true });
+        }
+
+        logger.info('[Webhook] Test notifications sent to admins', { count: notificationsSent.length });
+        return { notificationsSent: notificationsSent.length };
+    }
 
     if (!adminOnly && username) {
         // Try to find the user who triggered this event
@@ -267,6 +302,13 @@ async function processWebhookNotification({ service, eventKey, username, title, 
         if (user) {
             const isAdmin = user.group === 'admin';
             const wantsEvent = await userWantsEvent(user.id, service, eventKey, isAdmin, webhookConfig);
+
+            logger.debug('[Webhook] User event check', {
+                userId: user.id,
+                isAdmin,
+                wantsEvent,
+                eventKey
+            });
 
             if (wantsEvent) {
                 await createNotification({
@@ -280,6 +322,7 @@ async function processWebhookNotification({ service, eventKey, username, title, 
             }
         } else {
             // No user match - send to admins with receiveUnmatched
+            logger.debug('[Webhook] No user match, checking admins with receiveUnmatched');
             const admins = await getAdminsWithReceiveUnmatched();
 
             for (const admin of admins) {
