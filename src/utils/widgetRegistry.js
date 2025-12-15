@@ -123,7 +123,7 @@ export const WIDGET_TYPES = {
         icon: Calendar,
         name: 'Calendar',
         description: 'Combined Sonarr and Radarr calendar',
-        category: 'utility',
+        category: 'media',
         defaultSize: { w: 6, h: 5 },
         minSize: { w: 5, h: 5 }, // Calendar grid needs space for filters + 7-day grid
         maxSize: { h: 8 }, // No width limit
