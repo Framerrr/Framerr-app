@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-14 21:30 EST  
+**Last Updated:** 2025-12-14 22:26 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,31 +20,23 @@
 
 ## Current State
 
-**Status:** ✅ Session completed - Plex SSO Authentication System Fixes
+**Status:** ✅ Session completed - Bug Fixes and Polish
 
 **This Session:**
 
-### Plex SSO Configuration Persistence
-- Fixed `systemConfig.js` to handle `plexSSO` key in database persistence
-- Fixed `updateSystemConfig` calls in `plex.js` to use object syntax `{ plexSSO: {...} }`
+### Display Name Feature
+- Added editable "Display Name" field to Profile Settings
+- Added `PUT /api/profile` endpoint to save displayName to preferences
+- Updated auth routes (`login`, `/me`) to include displayName from preferences
+- Dashboard greeting now shows custom display name without page refresh
 
-### Plex User Verification (Library Access)
-- Changed from `/api/v2/friends` (social connections) to `/api/users` (library access)
-- Added `xml2js` library to parse XML responses from Plex API
-- Users with library access can now correctly login via SSO
+### Plex SSO Double Toast Fix
+- Added `hasCompleted` guard to prevent useEffect from running twice
+- Removed dependencies from effect to run only once on mount
 
-### Plex Admin User Mapping
-- Added `linkedUserId` field to SSO config
-- Added UI dropdown to select which Framerr user the Plex admin maps to
-- Plex admin now correctly logs in as linked Framerr user
-
-### Plex SSO Login UX (Safari Compatibility)
-- Changed from popup window to full page redirect
-- Stores PIN in localStorage for redirect callback handling
-
-### Server List Persistence
-- Added `/api/plex/admin-resources` endpoint for fetching servers
-- Server list now loads on page refresh
+### IconPicker Mobile Layout Fixes
+- Fixed popover width overflow on mobile (now matches trigger button width)
+- Lowered z-index from 9999 to 20 so popover appears below sidebar/tab bar
 
 ---
 
@@ -52,31 +44,81 @@
 
 | File | Changes |
 |------|---------|
-| `server/db/systemConfig.js` | Added `plexSSO` handling |
-| `server/routes/plex.js` | Fixed config calls, XML parsing, admin-resources endpoint |
-| `server/routes/auth.js` | XML parsing, admin user mapping, library access check |
-| `src/pages/Login.jsx` | Full page redirect flow |
-| `src/components/settings/PlexAuthSettings.jsx` | Admin user dropdown, server fetch |
-| `package.json` | Added `xml2js` dependency |
+| `server/routes/profile.js` | Added PUT endpoint for displayName |
+| `server/routes/auth.js` | Added getUserConfig import, displayName from preferences |
+| `src/components/settings/ProfileSettings.jsx` | Display Name field, save button, checkAuth call |
+| `src/pages/Login.jsx` | hasCompleted guard for Plex auth useEffect |
+| `src/components/IconPicker.jsx` | triggerRef for width, mobile width fix, z-index lowered |
 
 ---
 
-## Remaining Work
+## Next Session: Integration Notifications
 
-1. **Plex SSO Testing** - User has verified working, may need edge case testing
-2. **Overseerr webhook integration** - From previous session
-3. **Shared widget refinement** - From previous session
+### Overview
+Implement webhook-based integration notifications so users receive alerts when:
+- Overseerr: New requests, approvals, availability
+- Radarr/Sonarr: Download complete, grabbed, upgraded
+- Plex: Now playing, new media added
+
+### Implementation Plan
+
+#### Phase 1: Backend Infrastructure
+1. **Webhook Receiver Endpoints**
+   - `POST /api/webhooks/overseerr` - Receives Overseerr webhooks
+   - `POST /api/webhooks/radarr` - Receives Radarr webhooks
+   - `POST /api/webhooks/sonarr` - Receives Sonarr webhooks
+   - `POST /api/webhooks/plex` - Receives Plex webhooks (if applicable)
+
+2. **Webhook URL Configuration**
+   - Generate unique webhook URLs per integration
+   - Display webhook URLs in integration settings card
+   - Copy-to-clipboard functionality
+
+3. **Notification Storage**
+   - Already have `notifications` table in SQLite schema
+   - Already have notification context and UI on frontend
+   - Need: Process webhooks → Create user notifications
+
+#### Phase 2: Webhook Processing
+1. **Payload Parsers**
+   - Parse Overseerr webhook format
+   - Parse Radarr webhook format
+   - Parse Sonarr webhook format
+
+2. **Event Types to Support**
+   - Overseerr: `media.pending`, `media.approved`, `media.available`, `media.declined`
+   - Radarr/Sonarr: `Grab`, `Download`, `Upgrade`, `Health`
+
+3. **Notification Creation**
+   - Map webhook events to user notifications
+   - Include relevant metadata (title, poster, etc.)
+   - Determine which users should receive notification (admin? all users?)
+
+#### Phase 3: Frontend Integration
+1. **Settings UI**
+   - Display webhook URLs in integration cards
+   - Toggle for enabling/disabling webhook notifications
+   - Per-event-type toggles (optional)
+
+2. **Notification Display**
+   - Rich notification cards with media info
+   - Poster thumbnails
+   - Links to Overseerr/Plex/etc.
+
+### Key Decisions Needed
+- [ ] Webhook authentication (secret tokens vs. unique URLs)
+- [ ] Who receives notifications (admin only? all users with integration access?)
+- [ ] Real-time push vs. polling based notifications
 
 ---
 
 ## ✅ SESSION END
 
-- **Session ended:** 2025-12-14 21:30 EST
+- **Session ended:** 2025-12-14 22:26 EST
 - **Branch:** `feature/notification-integration`
 - **Build status:** ✅ Passing
 - **Docker:** User has deployed latest to `pickels23/framerr:develop`
 - **Next action:** 
-  1. Continue testing Plex SSO with various user scenarios
-  2. Continue with Overseerr webhook integration if needed
+  1. Begin integration notifications implementation (Phase 1)
+  2. Start with webhook receiver endpoints
   3. Eventually merge feature branch to develop when stable
-
