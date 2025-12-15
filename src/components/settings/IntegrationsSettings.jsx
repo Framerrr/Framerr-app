@@ -280,6 +280,8 @@ const IntegrationsSettings = () => {
                             systemstatus: updated
                         }));
                     }}
+                    sharing={integrations.systemstatus?.sharing}
+                    onSharingChange={(sharingConfig) => handleSharingChange('systemstatus', sharingConfig)}
                 />
 
                 {/* Plex Integration - Special OAuth Component */}
@@ -291,6 +293,8 @@ const IntegrationsSettings = () => {
                             plex: updated
                         }));
                     }}
+                    sharing={integrations.plex?.sharing}
+                    onSharingChange={(sharingConfig) => handleSharingChange('plex', sharingConfig)}
                 />
 
                 {/* Other Integrations */}

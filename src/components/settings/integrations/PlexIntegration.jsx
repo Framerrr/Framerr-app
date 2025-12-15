@@ -5,13 +5,14 @@ import axios from 'axios';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
 import { Input } from '../../common/Input';
+import SharingDropdown from '../SharingDropdown';
 import { useNotifications } from '../../../context/NotificationContext';
 
 /**
  * PlexIntegration - Plex integration configuration with OAuth
  * Allows users to connect their Plex account and select a server
  */
-const PlexIntegration = ({ integration, onUpdate }) => {
+const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) => {
     const { success: showSuccess, error: showError } = useNotifications();
     const pollIntervalRef = useRef(null);
 
@@ -362,6 +363,14 @@ const PlexIntegration = ({ integration, onUpdate }) => {
                                     Auto-filled when you login with Plex, or enter manually
                                 </p>
                             </div>
+
+                            {/* Widget Sharing */}
+                            <SharingDropdown
+                                service="plex"
+                                sharing={sharing}
+                                onChange={onSharingChange}
+                                disabled={!isConfigured}
+                            />
 
                             {/* Test Connection */}
                             <div className="flex items-center gap-3">

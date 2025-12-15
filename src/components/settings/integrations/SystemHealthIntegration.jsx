@@ -6,12 +6,13 @@ import { Button } from '../../common/Button';
 import BackendSelector from './BackendSelector';
 import GlancesConfig from './backends/GlancesConfig';
 import CustomBackendConfig from './backends/CustomBackendConfig';
+import SharingDropdown from '../SharingDropdown';
 
 /**
  * SystemHealthIntegration - Multi-backend System Status configuration
  * Replaces the generic System Health section in IntegrationsSettings
  */
-const SystemHealthIntegration = ({ integration, onUpdate }) => {
+const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChange }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedBackend, setSelectedBackend] = useState(integration?.backend || 'glances');
     const [config, setConfig] = useState(integration || {
@@ -229,6 +230,14 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                                     />
                                 )}
                             </div>
+
+                            {/* Widget Sharing */}
+                            <SharingDropdown
+                                service="systemstatus"
+                                sharing={sharing}
+                                onChange={onSharingChange}
+                                disabled={!isConfigured}
+                            />
 
                             {/* Test Connection & Reset */}
                             <div className="flex items-center justify-between gap-3 pt-2">

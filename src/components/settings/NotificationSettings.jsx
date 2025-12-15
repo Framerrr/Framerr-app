@@ -220,18 +220,15 @@ const NotificationSettings = () => {
             icon: Activity,
             options: [
                 { key: 'resourceAlerts', label: 'Resource alerts (high CPU/memory)' }
-            ],
-            alwaysVisible: true // System health is available to all users
+            ]
         }
     ];
 
     // Filter integrations based on user access
-    // Admins see all integrations, non-admins only see shared ones (+ always-visible ones)
+    // Admins see all integrations, non-admins only see shared ones
     const filteredIntegrations = hasAdminAccess
         ? integrations
         : integrations.filter(integration => {
-            // Always show integrations marked as alwaysVisible
-            if (integration.alwaysVisible) return true;
             // Check if this integration is shared with the user
             return sharedIntegrations.some(si => si.name === integration.id);
         });
