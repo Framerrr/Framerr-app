@@ -58,9 +58,11 @@ async function getClientIdentifier() {
     const clientId = `framerr-${uuidv4()}`;
 
     // Save to DB
-    await updateSystemConfig('plexSSO', {
-        ...(config.plexSSO || {}),
-        clientIdentifier: clientId
+    await updateSystemConfig({
+        plexSSO: {
+            ...(config.plexSSO || {}),
+            clientIdentifier: clientId
+        }
     });
 
     // Cache it in memory
@@ -370,7 +372,7 @@ router.post('/sso/config', requireAuth, requireAdmin, async (req, res) => {
             defaultGroup: defaultGroup ?? existingConfig.defaultGroup ?? 'user'
         };
 
-        await updateSystemConfig('plexSSO', newConfig);
+        await updateSystemConfig({ plexSSO: newConfig });
 
         logger.info('[Plex] SSO config updated', { enabled: newConfig.enabled });
 

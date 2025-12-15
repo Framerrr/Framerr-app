@@ -113,6 +113,9 @@ function buildConfigFromKeyValues(rows) {
             case 'favicon':
                 config.favicon = parsed;
                 break;
+            case 'plexSSO':
+                config.plexSSO = parsed;
+                break;
         }
     }
 
@@ -181,7 +184,8 @@ async function updateSystemConfig(updates) {
         favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon, // Support null to delete
         groups: currentConfig.groups,  // Always preserve locked groups
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
-        tabGroups: updates.tabGroups || currentConfig.tabGroups
+        tabGroups: updates.tabGroups || currentConfig.tabGroups,
+        plexSSO: updates.plexSSO ? { ...currentConfig.plexSSO, ...updates.plexSSO } : currentConfig.plexSSO
     };
 
     try {
@@ -223,6 +227,9 @@ async function updateSystemConfig(updates) {
             }
             if (updates.tabGroups) {
                 upsert.run('tabGroups', JSON.stringify(newConfig.tabGroups));
+            }
+            if (updates.plexSSO) {
+                upsert.run('plexSSO', JSON.stringify(newConfig.plexSSO));
             }
         });
 
