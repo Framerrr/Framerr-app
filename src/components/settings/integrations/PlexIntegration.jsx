@@ -52,7 +52,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
     const isConfigured = config.enabled && config.token && config.url;
 
     const handleToggle = () => {
-        const newConfig = { ...config, enabled: !config.enabled };
+        const newConfig = { ...config, enabled: !config.enabled, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
 
@@ -62,7 +62,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
     };
 
     const handleConfigChange = (field, value) => {
-        const newConfig = { ...config, [field]: value };
+        const newConfig = { ...config, [field]: value, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
     };
@@ -97,7 +97,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                         setPlexUser(user);
 
                         // Update config with token
-                        const newConfig = { ...config, token: authToken };
+                        const newConfig = { ...config, token: authToken, sharing };
                         setConfig(newConfig);
                         onUpdate(newConfig);
 
@@ -142,7 +142,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
             setServers(fetchedServers);
 
             // Save servers to config for persistence
-            let newConfig = { ...config, servers: fetchedServers };
+            let newConfig = { ...config, servers: fetchedServers, sharing };
 
             // Auto-select first owned server if none selected
             if (!config.machineId && fetchedServers.length > 0) {
@@ -167,7 +167,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
         const server = servers.find(s => s.machineId === machineId);
         const url = server?.connections?.find(c => c.local)?.uri || server?.connections?.[0]?.uri || '';
 
-        const newConfig = { ...config, machineId, url };
+        const newConfig = { ...config, machineId, url, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
     };

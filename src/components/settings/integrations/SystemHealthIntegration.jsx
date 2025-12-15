@@ -28,7 +28,7 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
     // It will expand when user clicks the toggle or the header
 
     const handleToggle = () => {
-        const newConfig = { ...config, enabled: !config.enabled };
+        const newConfig = { ...config, enabled: !config.enabled, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
 
@@ -38,7 +38,7 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
     };
 
     const handleBackendChange = (backend) => {
-        const newConfig = { ...config, backend };
+        const newConfig = { ...config, backend, sharing };
         setSelectedBackend(backend);
         setConfig(newConfig);
         onUpdate(newConfig);
@@ -50,7 +50,8 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
             [selectedBackend]: {
                 ...config[selectedBackend],
                 [field]: value
-            }
+            },
+            sharing
         };
         setConfig(newConfig);
         onUpdate(newConfig);
