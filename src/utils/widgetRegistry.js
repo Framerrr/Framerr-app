@@ -41,7 +41,7 @@ export const WIDGET_TYPES = {
         defaultSize: { w: 4, h: 3 },
         minSize: { w: 4, h: 3 }, // Needs space for all 4 metrics + bars
         maxSize: { h: 4 }, // No width limit, max height only
-        requiresIntegration: 'systemHealth'
+        requiresIntegration: 'systemstatus'
     },
 
     // Media Widgets
