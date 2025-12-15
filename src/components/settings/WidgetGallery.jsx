@@ -272,11 +272,24 @@ const WidgetGallery = () => {
                                 const integration = hasAdminAccess && isIntegrationRequired
                                     ? integrations[widget.requiresIntegration]
                                     : null;
-                                const isIntegrationReady = !isIntegrationRequired ||
-                                    (hasAdminAccess
-                                        ? (integration?.enabled && integration?.url)
-                                        : sharedIntegrations.some(si => si.service === widget.requiresIntegration)
-                                    );
+
+                                // Check if integration is ready - handle special cases
+                                let isIntegrationReady = !isIntegrationRequired;
+                                if (isIntegrationRequired && hasAdminAccess) {
+                                    if (widget.requiresIntegration === 'systemstatus') {
+                                        // SystemStatus uses backend with glances/custom config
+                                        isIntegrationReady = integration?.enabled && (
+                                            (integration.backend === 'glances' && integration.glances?.url) ||
+                                            (integration.backend === 'custom' && integration.custom?.url) ||
+                                            (!integration.backend && integration.url) // legacy
+                                        );
+                                    } else {
+                                        // Standard integrations use url directly
+                                        isIntegrationReady = integration?.enabled && integration?.url;
+                                    }
+                                } else if (isIntegrationRequired && !hasAdminAccess) {
+                                    isIntegrationReady = sharedIntegrations.some(si => si.name === widget.requiresIntegration);
+                                }
                                 const sharedBy = getSharedByInfo(widget);
 
                                 return (

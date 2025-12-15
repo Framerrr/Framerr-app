@@ -198,7 +198,29 @@ const AddWidgetModal = ({
                                         const Icon = widget.icon;
                                         const isIntegrationRequired = widget.requiresIntegration || widget.requiresIntegrations;
                                         const integration = widget.requiresIntegration ? integrations[widget.requiresIntegration] : null;
-                                        const isIntegrationReady = !isIntegrationRequired || (integration?.enabled && integration?.url);
+
+                                        // Check if integration is ready - handle special cases
+                                        let isIntegrationReady = !isIntegrationRequired;
+                                        if (isIntegrationRequired && widget.requiresIntegration) {
+                                            if (widget.requiresIntegration === 'systemstatus') {
+                                                // SystemStatus uses backend with glances/custom config
+                                                isIntegrationReady = integration?.enabled && (
+                                                    (integration.backend === 'glances' && integration.glances?.url) ||
+                                                    (integration.backend === 'custom' && integration.custom?.url) ||
+                                                    (!integration.backend && integration.url) // legacy
+                                                );
+                                            } else {
+                                                // Standard integrations use url directly
+                                                isIntegrationReady = integration?.enabled && integration?.url;
+                                            }
+                                        } else if (isIntegrationRequired && widget.requiresIntegrations) {
+                                            // Multi-integration widgets (calendar) - check if any integration is configured
+                                            isIntegrationReady = widget.requiresIntegrations.some(intName => {
+                                                const intConfig = integrations[intName];
+                                                return intConfig?.enabled && intConfig?.url;
+                                            });
+                                        }
+
                                         const sharedByInfo = !isAdmin ? getSharedByInfo(widget) : null;
 
                                         return (
