@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +18,6 @@ const Login = () => {
     const { success: showSuccess, info: showInfo, error: showError } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
-    const pollIntervalRef = useRef(null);
 
     const from = location.state?.from?.pathname || '/';
     const loggedOut = location.state?.loggedOut;
@@ -36,15 +35,6 @@ const Login = () => {
         checkPlexSSO();
     }, []);
 
-    // Cleanup polling on unmount
-    useEffect(() => {
-        return () => {
-            if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
-            }
-        };
-    }, []);
-
     // Show logout message if coming from logout
     useEffect(() => {
         if (loggedOut) {
@@ -59,6 +49,50 @@ const Login = () => {
             navigate(from, { replace: true });
         }
     }, [isAuthenticated, navigate, from]);
+
+    // Check for pending Plex auth on page load (redirect flow)
+    useEffect(() => {
+        const completePlexAuth = async () => {
+            const pendingPinId = localStorage.getItem('plexPendingPinId');
+            if (!pendingPinId) return;
+
+            setPlexLoading(true);
+
+            try {
+                // Check if the PIN has been claimed
+                const tokenResponse = await axios.get(`/api/plex/auth/token?pinId=${pendingPinId}`);
+
+                if (tokenResponse.data.authToken) {
+                    const { authToken, user } = tokenResponse.data;
+                    const result = await loginWithPlex(authToken, user.id);
+
+                    localStorage.removeItem('plexPendingPinId');
+
+                    if (result.success) {
+                        showSuccess('Welcome!', `Signed in as ${user.username}`);
+                        navigate(from, { replace: true });
+                    } else {
+                        setError(result.error || 'Plex login failed');
+                    }
+                } else {
+                    // Token not ready yet - this shouldn't happen with the redirect flow
+                    localStorage.removeItem('plexPendingPinId');
+                    setError('Plex authentication incomplete. Please try again.');
+                }
+            } catch (error) {
+                localStorage.removeItem('plexPendingPinId');
+                if (error.response?.status === 404) {
+                    setError('Plex authentication expired. Please try again.');
+                } else {
+                    setError(error.response?.data?.error || 'Failed to complete Plex login');
+                }
+            } finally {
+                setPlexLoading(false);
+            }
+        };
+
+        completePlexAuth();
+    }, [loginWithPlex, navigate, from, showSuccess]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -91,46 +125,11 @@ const Login = () => {
 
             const { pinId, authUrl } = pinResponse.data;
 
-            // Open in new tab (better compatibility with Safari and popup blockers)
-            const authTab = window.open(authUrl, '_blank');
+            // Store PIN ID for when we return from Plex
+            localStorage.setItem('plexPendingPinId', pinId.toString());
 
-            pollIntervalRef.current = setInterval(async () => {
-                try {
-                    const tokenResponse = await axios.get(`/api/plex/auth/token?pinId=${pinId}`);
-
-                    if (tokenResponse.data.authToken) {
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
-                        authTab?.close();
-
-                        const { authToken, user } = tokenResponse.data;
-                        const result = await loginWithPlex(authToken, user.id);
-
-                        if (result.success) {
-                            showSuccess('Welcome!', `Signed in as ${user.username}`);
-                            navigate(from, { replace: true });
-                        } else {
-                            setError(result.error || 'Plex login failed');
-                        }
-                        setPlexLoading(false);
-                    }
-                } catch (error) {
-                    if (error.response?.status === 404) {
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
-                        setError('Plex authentication timed out. Please try again.');
-                        setPlexLoading(false);
-                    }
-                }
-            }, 2000);
-
-            setTimeout(() => {
-                if (pollIntervalRef.current) {
-                    clearInterval(pollIntervalRef.current);
-                    pollIntervalRef.current = null;
-                    setPlexLoading(false);
-                }
-            }, 300000);
+            // Redirect to Plex (no popup, full page redirect)
+            window.location.href = authUrl;
 
         } catch (error) {
             setError(error.response?.data?.error || 'Failed to connect to Plex');
