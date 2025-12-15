@@ -1,0 +1,363 @@
+/**
+ * PlexAuthSettings Component
+ * Plex SSO configuration for AuthSettings
+ * 
+ * Features:
+ * - Plex OAuth login button for admin setup
+ * - Machine (server) selector
+ * - Auto-create users toggle
+ * - Default group selector
+ */
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
+import { Tv, Save, Loader, RefreshCw, Users, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { Input } from '../common/Input';
+import { useNotifications } from '../../context/NotificationContext';
+import logger from '../../utils/logger';
+
+const PlexAuthSettings = ({ onSaveNeeded }) => {
+    const { success: showSuccess, error: showError } = useNotifications();
+    const pollIntervalRef = useRef(null);
+
+    // Config state
+    const [config, setConfig] = useState({
+        enabled: false,
+        adminEmail: '',
+        machineId: '',
+        autoCreateUsers: false,
+        defaultGroup: 'user',
+        hasToken: false
+    });
+
+    // UI state
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [authenticating, setAuthenticating] = useState(false);
+    const [servers, setServers] = useState([]);
+    const [loadingServers, setLoadingServers] = useState(false);
+    const [groups, setGroups] = useState([]);
+
+    useEffect(() => {
+        fetchConfig();
+        fetchGroups();
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
+    }, []);
+
+    const fetchConfig = async () => {
+        try {
+            const response = await axios.get('/api/plex/sso/config', { withCredentials: true });
+            setConfig(response.data);
+        } catch (error) {
+            logger.error('[PlexAuth] Failed to fetch config:', error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchGroups = async () => {
+        try {
+            const response = await axios.get('/api/config/system', { withCredentials: true });
+            if (response.data.groups) {
+                setGroups(Object.keys(response.data.groups));
+            }
+        } catch (error) {
+            logger.error('[PlexAuth] Failed to fetch groups:', error.message);
+        }
+    };
+
+    const handlePlexLogin = async () => {
+        setAuthenticating(true);
+        try {
+            // Generate PIN
+            const pinResponse = await axios.post('/api/plex/auth/pin', {
+                forwardUrl: `${window.location.origin}/settings/auth`
+            }, { withCredentials: true });
+
+            const { pinId, authUrl } = pinResponse.data;
+
+            // Open Plex auth in popup
+            const popup = window.open(
+                authUrl,
+                'PlexAuth',
+                'width=600,height=700,menubar=no,toolbar=no,location=no,status=no'
+            );
+
+            // Poll for token
+            pollIntervalRef.current = setInterval(async () => {
+                try {
+                    const tokenResponse = await axios.get(`/api/plex/auth/token?pinId=${pinId}`, {
+                        withCredentials: true
+                    });
+
+                    if (tokenResponse.data.authToken) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                        popup?.close();
+
+                        // Save token to config
+                        const { authToken, user } = tokenResponse.data;
+
+                        await axios.post('/api/plex/sso/config', {
+                            adminToken: authToken,
+                            adminEmail: user.email,
+                            adminPlexId: user.id
+                        }, { withCredentials: true });
+
+                        // Fetch servers
+                        await fetchServers(authToken);
+
+                        setConfig(prev => ({
+                            ...prev,
+                            hasToken: true,
+                            adminEmail: user.email
+                        }));
+
+                        showSuccess('Plex Connected', `Connected as ${user.username}`);
+                        setAuthenticating(false);
+                    }
+                } catch (error) {
+                    if (error.response?.status === 404) {
+                        // PIN expired
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                        showError('Plex Auth Failed', 'PIN expired. Please try again.');
+                        setAuthenticating(false);
+                    }
+                }
+            }, 2000);
+
+            // Stop polling after 5 minutes
+            setTimeout(() => {
+                if (pollIntervalRef.current) {
+                    clearInterval(pollIntervalRef.current);
+                    pollIntervalRef.current = null;
+                    setAuthenticating(false);
+                }
+            }, 300000);
+
+        } catch (error) {
+            logger.error('[PlexAuth] OAuth error:', error.message);
+            showError('Plex Auth Failed', error.message);
+            setAuthenticating(false);
+        }
+    };
+
+    const fetchServers = async (token) => {
+        setLoadingServers(true);
+        try {
+            const response = await axios.get(`/api/plex/resources?token=${token}`, {
+                withCredentials: true
+            });
+            setServers(response.data);
+        } catch (error) {
+            logger.error('[PlexAuth] Failed to fetch servers:', error.message);
+        } finally {
+            setLoadingServers(false);
+        }
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await axios.post('/api/plex/sso/config', {
+                enabled: config.enabled,
+                machineId: config.machineId,
+                autoCreateUsers: config.autoCreateUsers,
+                defaultGroup: config.defaultGroup
+            }, { withCredentials: true });
+
+            showSuccess('Settings Saved', 'Plex SSO configuration updated');
+        } catch (error) {
+            logger.error('[PlexAuth] Failed to save:', error.message);
+            showError('Save Failed', error.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleChange = (field, value) => {
+        setConfig(prev => ({ ...prev, [field]: value }));
+        if (onSaveNeeded) onSaveNeeded(true);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <Loader className="animate-spin text-accent" size={32} />
+            </div>
+        );
+    }
+
+    return (
+        <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6 space-y-6">
+            {/* Header with Enable Toggle */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
+                        <Tv size={20} className="text-accent" />
+                        Plex SSO
+                    </h3>
+                    <p className="text-sm text-theme-secondary mt-1">
+                        Allow users to sign in with their Plex account
+                    </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={config.enabled}
+                        onChange={(e) => handleChange('enabled', e.target.checked)}
+                        disabled={!config.hasToken}
+                        className="sr-only peer"
+                    />
+                    <div className={`w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent ${!config.hasToken ? 'opacity-50' : ''}`}></div>
+                </label>
+            </div>
+
+            {/* Plex Connection Status */}
+            <div className="p-4 rounded-lg border border-theme bg-theme-tertiary">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {config.hasToken ? (
+                            <>
+                                <CheckCircle size={20} className="text-success" />
+                                <div>
+                                    <p className="text-sm font-medium text-theme-primary">Connected to Plex</p>
+                                    <p className="text-xs text-theme-secondary">{config.adminEmail}</p>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <AlertCircle size={20} className="text-warning" />
+                                <div>
+                                    <p className="text-sm font-medium text-theme-primary">Not Connected</p>
+                                    <p className="text-xs text-theme-secondary">Login with Plex to configure SSO</p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    <button
+                        onClick={handlePlexLogin}
+                        disabled={authenticating}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#e5a00d] hover:bg-[#c88a0b] text-black font-medium rounded-lg transition-all disabled:opacity-50"
+                    >
+                        {authenticating ? (
+                            <>
+                                <Loader className="animate-spin" size={16} />
+                                Connecting...
+                            </>
+                        ) : (
+                            <>
+                                <ExternalLink size={16} />
+                                {config.hasToken ? 'Reconnect' : 'Login with Plex'}
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Server Selection */}
+            {config.hasToken && (
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-theme-primary mb-2">
+                            Plex Server
+                        </label>
+                        <div className="flex gap-2">
+                            <select
+                                value={config.machineId || ''}
+                                onChange={(e) => handleChange('machineId', e.target.value)}
+                                className="flex-1 px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
+                            >
+                                <option value="">Select a server...</option>
+                                {servers.map(server => (
+                                    <option key={server.machineId} value={server.machineId}>
+                                        {server.name} {server.owned ? '(Owner)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={() => fetchServers(config.adminToken)}
+                                disabled={loadingServers}
+                                className="px-3 py-2 border border-theme rounded-lg text-theme-secondary hover:bg-theme-hover transition-all"
+                                title="Refresh servers"
+                            >
+                                <RefreshCw size={18} className={loadingServers ? 'animate-spin' : ''} />
+                            </button>
+                        </div>
+                        <p className="text-xs text-theme-tertiary mt-1">
+                            Only users shared with this server can log in via Plex SSO
+                        </p>
+                    </div>
+
+                    {/* Auto-create Users */}
+                    <div className="flex items-center justify-between pt-4 border-t border-theme">
+                        <div>
+                            <label className="text-sm font-medium text-theme-secondary">
+                                Auto-create Users
+                            </label>
+                            <p className="text-xs text-theme-tertiary mt-1">
+                                Automatically create Framerr accounts for new Plex users
+                            </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={config.autoCreateUsers}
+                                onChange={(e) => handleChange('autoCreateUsers', e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
+                        </label>
+                    </div>
+
+                    {/* Default Group */}
+                    {config.autoCreateUsers && (
+                        <div>
+                            <label className="block text-sm font-medium text-theme-primary mb-2">
+                                Default Group for New Users
+                            </label>
+                            <select
+                                value={config.defaultGroup}
+                                onChange={(e) => handleChange('defaultGroup', e.target.value)}
+                                className="w-full px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
+                            >
+                                {groups.map(group => (
+                                    <option key={group} value={group}>
+                                        {group.charAt(0).toUpperCase() + group.slice(1)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Save Button */}
+            <div className="pt-4 border-t border-theme">
+                <button
+                    onClick={handleSave}
+                    disabled={saving || !config.hasToken}
+                    className="flex items-center gap-2 px-6 py-2 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {saving ? (
+                        <>
+                            <Loader className="animate-spin" size={18} />
+                            Saving...
+                        </>
+                    ) : (
+                        <>
+                            <Save size={18} />
+                            Save Plex SSO Settings
+                        </>
+                    )}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default PlexAuthSettings;

@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
+import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X, Tv } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
+import PlexAuthSettings from './PlexAuthSettings';
 
 const AuthSettings = () => {
     const { error: showError, warning: showWarning } = useNotifications();
 
     // Subtab state
-    const [activeTab, setActiveTab] = useState('proxy'); // 'proxy' or 'iframe'
+    const [activeTab, setActiveTab] = useState('proxy'); // 'proxy', 'plex', or 'iframe'
 
     const tabSpring = {
         type: 'spring',
@@ -273,6 +274,22 @@ const AuthSettings = () => {
                     )}
                 </button>
                 <button
+                    onClick={() => setActiveTab('plex')}
+                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                >
+                    <div className="flex items-center gap-2 relative z-10">
+                        <Tv size={18} className={activeTab === 'plex' ? 'text-accent' : ''} />
+                        <span className={activeTab === 'plex' ? 'text-accent' : ''}>Plex</span>
+                    </div>
+                    {activeTab === 'plex' && (
+                        <motion.div
+                            layoutId="authSubTabIndicator"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                            transition={tabSpring}
+                        />
+                    )}
+                </button>
+                <button
                     onClick={() => setActiveTab('iframe')}
                     className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
@@ -379,6 +396,11 @@ const AuthSettings = () => {
                         />
                     )}
                 </div>
+            )}
+
+            {/* Plex SSO Tab */}
+            {activeTab === 'plex' && (
+                <PlexAuthSettings />
             )}
 
             {/* iFrame Auth Tab */}
