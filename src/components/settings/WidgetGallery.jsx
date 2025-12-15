@@ -77,9 +77,10 @@ const WidgetGallery = () => {
         }
 
         // For widgets requiring multiple integrations (like calendar)
+        // Show if ANY of the required integrations is shared
         const requiredIntegrations = widget.requiresIntegrations;
         if (requiredIntegrations) {
-            return requiredIntegrations.every(req =>
+            return requiredIntegrations.some(req =>
                 sharedIntegrations.some(si => si.name === req)
             );
         }

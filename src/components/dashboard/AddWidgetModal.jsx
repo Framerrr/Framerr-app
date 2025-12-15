@@ -39,10 +39,16 @@ const AddWidgetModal = ({
             return true;
         }
 
-        // Integration widgets - check if shared
-        const requiredIntegration = widget.requiresIntegration || (widget.requiresIntegrations?.[0]);
-        if (requiredIntegration) {
-            return sharedIntegrations.some(si => si.name === requiredIntegration);
+        // Single integration widgets - check if shared
+        if (widget.requiresIntegration) {
+            return sharedIntegrations.some(si => si.name === widget.requiresIntegration);
+        }
+
+        // Multi-integration widgets (like calendar) - show if ANY required integration is shared
+        if (widget.requiresIntegrations) {
+            return widget.requiresIntegrations.some(req =>
+                sharedIntegrations.some(si => si.name === req)
+            );
         }
 
         return false;
@@ -52,11 +58,22 @@ const AddWidgetModal = ({
      * Get share info for a widget (for badge display)
      */
     const getSharedByInfo = (widget) => {
-        const requiredIntegration = widget.requiresIntegration || (widget.requiresIntegrations?.[0]);
-        if (!requiredIntegration) return null;
+        if (widget.requiresIntegration) {
+            const shared = sharedIntegrations.find(si => si.name === widget.requiresIntegration);
+            return shared?.sharedBy || null;
+        }
 
-        const shared = sharedIntegrations.find(si => si.name === requiredIntegration);
-        return shared?.sharedBy || null;
+        if (widget.requiresIntegrations) {
+            // Find the first shared integration among the required ones
+            for (const reqIntegrationName of widget.requiresIntegrations) {
+                const shared = sharedIntegrations.find(si => si.name === reqIntegrationName);
+                if (shared) {
+                    return shared.sharedBy || null;
+                }
+            }
+        }
+
+        return null;
     };
 
     // Filter widgets based on search, category, and permissions
