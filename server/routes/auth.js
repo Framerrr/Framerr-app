@@ -3,6 +3,7 @@ const router = express.Router();
 const { hashPassword, verifyPassword } = require('../auth/password');
 const { createUserSession, validateSession } = require('../auth/session');
 const { getUser, getUserById, listUsers } = require('../db/users');
+const { getUserConfig } = require('../db/userConfig');
 const { getSystemConfig } = require('../db/systemConfig');
 const logger = require('../utils/logger');
 const xml2js = require('xml2js');
@@ -46,11 +47,16 @@ router.post('/login', async (req, res) => {
             maxAge: expiresIn
         });
         logger.info(`User logged in: ${username}`);
+
+        // Fetch displayName from preferences
+        const config = await getUserConfig(user.id);
+        const displayName = config.preferences?.displayName || user.displayName || user.username;
+
         res.json({
             user: {
                 id: user.id,
                 username: user.username,
-                displayName: user.displayName,
+                displayName,
                 group: user.group,
                 preferences: user.preferences
             }
@@ -97,11 +103,16 @@ router.get('/me', async (req, res) => {
             // Log authentication method accurately
             const authMethod = req.proxyAuth ? 'proxy auth' : 'session';
             logger.debug(`[Auth] /me: Authenticated user via ${authMethod}`, { username: req.user.username });
+
+            // Fetch displayName from preferences
+            const config = await getUserConfig(req.user.id);
+            const displayName = config.preferences?.displayName || req.user.displayName || req.user.username;
+
             return res.json({
                 user: {
                     id: req.user.id,
                     username: req.user.username,
-                    displayName: req.user.displayName,
+                    displayName,
                     group: req.user.group,
                     preferences: req.user.preferences
                 }
@@ -123,11 +134,16 @@ router.get('/me', async (req, res) => {
         }
         // Attach user to request for middleware use (if this was middleware)
         req.user = user;
+
+        // Fetch displayName from preferences
+        const config = await getUserConfig(user.id);
+        const displayName = config.preferences?.displayName || user.displayName || user.username;
+
         res.json({
             user: {
                 id: user.id,
                 username: user.username,
-                displayName: user.displayName,
+                displayName,
                 group: user.group,
                 preferences: user.preferences
             }
@@ -313,7 +329,7 @@ router.post('/plex-login', async (req, res) => {
             user: {
                 id: user.id,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.displayName || user.username,
                 group: user.group,
                 preferences: user.preferences
             }
