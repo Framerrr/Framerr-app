@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Volume2, VolumeX, ChevronDown, Play, Copy, Zap, Star, Film, Tv, Check, AlertTriangle } from 'lucide-react';
+import { Bell, Volume2, VolumeX, ChevronDown, Play, Copy, Zap, Star, Film, Tv, Check, AlertTriangle, RefreshCw, Link } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '../../context/NotificationContext';
@@ -32,6 +32,7 @@ const NotificationSettings = () => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [notificationSound, setNotificationSound] = useState(false);
     const [receiveUnmatched, setReceiveUnmatched] = useState(true);
+    const [webhookBaseUrl, setWebhookBaseUrl] = useState('');
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -80,6 +81,11 @@ const NotificationSettings = () => {
                 // Admin: Load full integration config
                 const integrationsResponse = await axios.get('/api/integrations', { withCredentials: true });
                 setIntegrations(integrationsResponse.data.integrations || {});
+
+                // Load webhook base URL from systemConfig (global setting)
+                const sysConfigResponse = await axios.get('/api/config/system', { withCredentials: true });
+                const savedBaseUrl = sysConfigResponse.data?.webhookBaseUrl;
+                setWebhookBaseUrl(savedBaseUrl || window.location.origin);
             } else {
                 // Non-admin: Load shared integrations
                 const sharedResponse = await axios.get('/api/integrations/shared', { withCredentials: true });
@@ -232,10 +238,30 @@ const NotificationSettings = () => {
     const copyWebhookUrl = (integrationId) => {
         const webhookConfig = integrations[integrationId]?.webhookConfig;
         if (webhookConfig?.webhookToken) {
-            const url = `${window.location.origin}/api/webhooks/${integrationId}/${webhookConfig.webhookToken}`;
+            const baseUrl = webhookBaseUrl || window.location.origin;
+            const url = `${baseUrl}/api/webhooks/${integrationId}/${webhookConfig.webhookToken}`;
             navigator.clipboard.writeText(url);
             showSuccess('Copied', 'Webhook URL copied to clipboard');
         }
+    };
+
+    const saveWebhookBaseUrl = async (url) => {
+        try {
+            await axios.put('/api/config/system', {
+                webhookBaseUrl: url
+            }, { withCredentials: true });
+            setWebhookBaseUrl(url);
+            showSuccess('Saved', 'Webhook base URL updated');
+        } catch (error) {
+            logger.error('Failed to save webhook base URL:', error);
+            showError('Error', 'Failed to save webhook base URL');
+        }
+    };
+
+    const resetWebhookBaseUrl = () => {
+        const browserUrl = window.location.origin;
+        setWebhookBaseUrl(browserUrl);
+        saveWebhookBaseUrl(browserUrl);
     };
 
     const generateWebhookToken = async (integrationId) => {
@@ -420,6 +446,39 @@ const NotificationSettings = () => {
                         ? 'Configure webhook notifications from your integrations. Set which events you receive and which events users can opt into.'
                         : 'Choose which notifications you want to receive from shared integrations.'}
                 </p>
+
+                {/* Webhook Base URL Config - Admin Only */}
+                {hasAdminAccess && (
+                    <div className="p-4 bg-theme-tertiary rounded-lg border border-theme mb-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Link size={16} className="text-theme-secondary" />
+                            <h4 className="text-sm font-medium text-theme-primary">
+                                Webhook Base URL
+                            </h4>
+                        </div>
+                        <p className="text-xs text-theme-secondary mb-3">
+                            Set the base URL for webhook endpoints. Use internal Docker hostnames (e.g., http://framerr:3001) for container-to-container communication.
+                        </p>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={webhookBaseUrl}
+                                onChange={(e) => setWebhookBaseUrl(e.target.value)}
+                                onBlur={(e) => saveWebhookBaseUrl(e.target.value)}
+                                placeholder="http://framerr:3001"
+                                className="flex-1 px-3 py-2 text-sm bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:ring-2 focus:ring-accent"
+                            />
+                            <Button
+                                onClick={resetWebhookBaseUrl}
+                                variant="secondary"
+                                icon={RefreshCw}
+                                title="Reset to browser URL"
+                            >
+                                Reset
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
                 {visibleIntegrations.length === 0 ? (
                     <div className="text-center py-8">
