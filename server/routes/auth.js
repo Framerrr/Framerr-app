@@ -173,9 +173,9 @@ router.post('/plex-login', async (req, res) => {
         const plexUser = userResponse.data;
 
         // Check if this Plex user is the admin or on admin's friend list
-        const isAdmin = plexUser.id.toString() === ssoConfig.adminPlexId?.toString();
+        const isPlexAdmin = plexUser.id.toString() === ssoConfig.adminPlexId?.toString();
 
-        if (!isAdmin) {
+        if (!isPlexAdmin) {
             // Verify user is on admin's Plex server
             const friendsResponse = await axios.get('https://plex.tv/api/v2/friends', {
                 headers: {
@@ -195,16 +195,32 @@ router.post('/plex-login', async (req, res) => {
             }
         }
 
-        // Check if user already exists with linked Plex account
+        // Find or create Framerr user for this Plex user
         const { findUserByExternalId, linkAccount } = require('../db/linkedAccounts');
-        let userId = findUserByExternalId('plex', plexUser.id.toString());
         let user;
 
-        if (userId) {
-            // Existing linked user
-            user = await getUserById(userId);
+        // Check if user already has a linked Plex account
+        const linkedUserId = findUserByExternalId('plex', plexUser.id.toString());
+
+        if (linkedUserId) {
+            // Existing linked user - use that account
+            user = await getUserById(linkedUserId);
+            logger.debug('[PlexSSO] Found existing linked account', { plexUsername: plexUser.username, framerUser: user?.username });
+        } else if (isPlexAdmin && ssoConfig.linkedUserId) {
+            // Plex admin logging in - map to the configured Framerr admin user
+            user = await getUserById(ssoConfig.linkedUserId);
+            if (user) {
+                // Link this Plex account to the Framerr admin
+                linkAccount(user.id, 'plex', {
+                    externalId: plexUser.id.toString(),
+                    externalUsername: plexUser.username,
+                    externalEmail: plexUser.email,
+                    metadata: { thumb: plexUser.thumb }
+                });
+                logger.info('[PlexSSO] Linked Plex admin to Framerr user', { plexUsername: plexUser.username, framerUser: user.username });
+            }
         } else {
-            // Check if username matches existing user
+            // Try to find existing user by username match
             user = await getUser(plexUser.username);
 
             if (!user && ssoConfig.autoCreateUsers) {
@@ -227,17 +243,19 @@ router.post('/plex-login', async (req, res) => {
                 logger.info('[PlexSSO] Created new user', { username: plexUser.username });
             }
 
-            if (!user) {
-                return res.status(403).json({ error: 'No matching user found and auto-creation is disabled' });
+            if (user) {
+                // Link Plex account to user
+                linkAccount(user.id, 'plex', {
+                    externalId: plexUser.id.toString(),
+                    externalUsername: plexUser.username,
+                    externalEmail: plexUser.email,
+                    metadata: { thumb: plexUser.thumb }
+                });
             }
+        }
 
-            // Link Plex account to user
-            linkAccount(user.id, 'plex', {
-                externalId: plexUser.id.toString(),
-                externalUsername: plexUser.username,
-                externalEmail: plexUser.email,
-                metadata: { thumb: plexUser.thumb }
-            });
+        if (!user) {
+            return res.status(403).json({ error: 'No matching user found and auto-creation is disabled' });
         }
 
         // Create session
