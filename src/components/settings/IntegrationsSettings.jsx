@@ -269,30 +269,31 @@ const IntegrationsSettings = () => {
                 </div>
             </div>
 
-            {/* System Health Integration - Special Multi-Backend Component */}
-            <SystemHealthIntegration
-                integration={integrations.systemstatus}
-                onUpdate={(updated) => {
-                    setIntegrations(prev => ({
-                        ...prev,
-                        systemstatus: updated
-                    }));
-                }}
-            />
+            {/* Integration Cards */}
+            <div className="space-y-4">
+                {/* System Health Integration - Special Multi-Backend Component */}
+                <SystemHealthIntegration
+                    integration={integrations.systemstatus}
+                    onUpdate={(updated) => {
+                        setIntegrations(prev => ({
+                            ...prev,
+                            systemstatus: updated
+                        }));
+                    }}
+                />
 
-            {/* Plex Integration - Special OAuth Component */}
-            <PlexIntegration
-                integration={integrations.plex}
-                onUpdate={(updated) => {
-                    setIntegrations(prev => ({
-                        ...prev,
-                        plex: updated
-                    }));
-                }}
-            />
+                {/* Plex Integration - Special OAuth Component */}
+                <PlexIntegration
+                    integration={integrations.plex}
+                    onUpdate={(updated) => {
+                        setIntegrations(prev => ({
+                            ...prev,
+                            plex: updated
+                        }));
+                    }}
+                />
 
-            {/* Other Integrations List */}
-            <div className="space-y-4 mt-4">
+                {/* Other Integrations */}
                 {integrationConfigs.map(config => {
                     const Icon = config.icon;
                     const isEnabled = integrations[config.id]?.enabled;
