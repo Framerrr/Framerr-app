@@ -186,25 +186,43 @@ router.post('/plex-login', async (req, res) => {
                 }
             });
 
-            // The response is XML by default, but we requested JSON
-            // Check if the user is in the shared users list
-            const sharedUsers = usersResponse.data?.MediaContainer?.User || [];
+            // Log raw response structure for debugging
+            logger.info('[PlexSSO] Raw API response keys:', Object.keys(usersResponse.data || {}));
+
+            // The response could have different structures depending on Plex API version
+            const sharedUsers = usersResponse.data?.MediaContainer?.User ||
+                usersResponse.data?.User ||
+                usersResponse.data ||
+                [];
 
             // Ensure sharedUsers is an array (single user case)
             const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
 
-            // Log shared users for debugging
-            const sharedUsernames = usersList.map(u => u?.['$']?.username || u?.username || 'unknown').join(', ');
-            logger.debug('[PlexSSO] Shared users on server:', {
+            // Log detailed user info for debugging
+            logger.info('[PlexSSO] Shared users response:', {
                 count: usersList.length,
-                usernames: sharedUsernames,
-                lookingFor: plexUser.username
+                sampleUser: usersList[0] ? JSON.stringify(usersList[0]).substring(0, 300) : 'none',
+                lookingForId: plexUser.id,
+                lookingForUsername: plexUser.username
             });
 
-            const hasLibraryAccess = usersList.some(
-                sharedUser => sharedUser?.['$']?.id?.toString() === plexUser.id.toString() ||
-                    sharedUser?.id?.toString() === plexUser.id.toString()
-            );
+            const hasLibraryAccess = usersList.some(sharedUser => {
+                // Try multiple possible ID locations based on response format
+                const userId = sharedUser?.['$']?.id ||
+                    sharedUser?.id ||
+                    sharedUser?.['@_id'] ||
+                    sharedUser?.userId;
+                const matches = userId?.toString() === plexUser.id.toString();
+                if (userId) {
+                    logger.debug('[PlexSSO] Comparing user:', {
+                        sharedUserId: userId,
+                        sharedUsername: sharedUser?.['$']?.username || sharedUser?.username || sharedUser?.title,
+                        loginUserId: plexUser.id,
+                        matches
+                    });
+                }
+                return matches;
+            });
 
             if (!hasLibraryAccess) {
                 logger.warn('[PlexSSO] User does not have library access', {
