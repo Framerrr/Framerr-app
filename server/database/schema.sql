@@ -181,7 +181,26 @@ CREATE INDEX IF NOT EXISTS idx_linked_accounts_external_id ON linked_accounts(ex
 CREATE UNIQUE INDEX IF NOT EXISTS idx_linked_accounts_user_service ON linked_accounts(user_id, service);
 
 -- ============================================================================
+-- TABLE 10: push_subscriptions
+-- Stores Web Push notification subscriptions per user per device
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    device_name TEXT,
+    last_used INTEGER,
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON push_subscriptions(endpoint);
+
+-- ============================================================================
 -- SCHEMA VERSION
 -- ============================================================================
--- Schema version 2: Added linked_accounts table
-PRAGMA user_version = 2;
+-- Schema version 3: Added push_subscriptions table
+PRAGMA user_version = 3;

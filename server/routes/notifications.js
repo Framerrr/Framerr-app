@@ -220,4 +220,163 @@ router.delete('/:id', requireAuth, async (req, res) => {
     }
 });
 
+// =============================================================================
+// WEB PUSH NOTIFICATION ENDPOINTS
+// =============================================================================
+
+const {
+    createSubscription,
+    getSubscriptionsByUser,
+    deleteSubscriptionById
+} = require('../db/pushSubscriptions');
+
+/**
+ * GET /api/notifications/push/vapid-key
+ * Get the VAPID public key for push subscription
+ */
+router.get('/push/vapid-key', requireAuth, async (req, res) => {
+    try {
+        const publicKey = await notificationEmitter.getVapidPublicKey();
+
+        if (!publicKey) {
+            return res.status(500).json({ error: 'Web Push not configured' });
+        }
+
+        res.json({ publicKey });
+    } catch (error) {
+        logger.error('Failed to get VAPID key', { error: error.message });
+        res.status(500).json({ error: 'Failed to get VAPID key' });
+    }
+});
+
+/**
+ * POST /api/notifications/push/subscribe
+ * Subscribe to push notifications
+ */
+router.post('/push/subscribe', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { subscription, deviceName } = req.body;
+
+        if (!subscription || !subscription.endpoint || !subscription.keys) {
+            return res.status(400).json({
+                error: 'Invalid subscription. Required: endpoint and keys'
+            });
+        }
+
+        if (!subscription.keys.p256dh || !subscription.keys.auth) {
+            return res.status(400).json({
+                error: 'Invalid subscription keys. Required: p256dh and auth'
+            });
+        }
+
+        const result = createSubscription(userId, subscription, deviceName || null);
+
+        logger.info('[WebPush] Subscription created', {
+            userId,
+            subscriptionId: result.id,
+            deviceName
+        });
+
+        res.status(201).json({
+            success: true,
+            subscription: {
+                id: result.id,
+                deviceName: result.device_name,
+                createdAt: result.created_at
+            }
+        });
+    } catch (error) {
+        logger.error('Failed to create push subscription', { error: error.message });
+        res.status(500).json({ error: 'Failed to create push subscription' });
+    }
+});
+
+/**
+ * GET /api/notifications/push/subscriptions
+ * Get all push subscriptions for the current user
+ */
+router.get('/push/subscriptions', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const subscriptions = getSubscriptionsByUser(userId);
+
+        // Map to client-friendly format (don't expose keys)
+        const result = subscriptions.map(sub => ({
+            id: sub.id,
+            deviceName: sub.device_name,
+            lastUsed: sub.last_used,
+            createdAt: sub.created_at
+        }));
+
+        res.json({ subscriptions: result });
+    } catch (error) {
+        logger.error('Failed to get push subscriptions', { error: error.message });
+        res.status(500).json({ error: 'Failed to get push subscriptions' });
+    }
+});
+
+/**
+ * DELETE /api/notifications/push/subscriptions/:id
+ * Remove a push subscription
+ */
+router.delete('/push/subscriptions/:id', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const subscriptionId = req.params.id;
+
+        const deleted = deleteSubscriptionById(subscriptionId, userId);
+
+        if (!deleted) {
+            return res.status(404).json({ error: 'Subscription not found' });
+        }
+
+        logger.info('[WebPush] Subscription deleted', { userId, subscriptionId });
+
+        res.status(204).send();
+    } catch (error) {
+        logger.error('Failed to delete push subscription', { error: error.message });
+        res.status(500).json({ error: 'Failed to delete push subscription' });
+    }
+});
+
+/**
+ * POST /api/notifications/push/test
+ * Send a test push notification to the current user
+ * Forces Web Push even if SSE is connected
+ */
+router.post('/push/test', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Check if user has any subscriptions
+        const subscriptions = getSubscriptionsByUser(userId);
+        if (subscriptions.length === 0) {
+            return res.status(400).json({
+                error: 'No push subscriptions found. Enable push notifications first.'
+            });
+        }
+
+        // Create a test notification
+        const testNotification = {
+            id: 'test-' + Date.now(),
+            title: 'Test Push Notification',
+            message: 'Web Push is working! 🎉',
+            type: 'info',
+            userId
+        };
+
+        // Force Web Push (bypass SSE check)
+        await notificationEmitter.sendNotification(userId, testNotification, { forceWebPush: true });
+
+        logger.info('[WebPush] Test notification sent', { userId });
+
+        res.json({ success: true, message: 'Test notification sent' });
+    } catch (error) {
+        logger.error('Failed to send test push', { error: error.message });
+        res.status(500).json({ error: 'Failed to send test push notification' });
+    }
+});
+
 module.exports = router;
+
