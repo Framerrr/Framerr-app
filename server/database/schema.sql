@@ -160,7 +160,28 @@ BEGIN
 END;
 
 -- ============================================================================
+-- TABLE 9: linked_accounts
+-- Stores user's linked external service accounts (Plex, Overseerr, etc.)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS linked_accounts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    service TEXT NOT NULL,
+    external_id TEXT NOT NULL,
+    external_username TEXT,
+    external_email TEXT,
+    metadata TEXT DEFAULT '{}',
+    linked_at INTEGER DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_linked_accounts_user_id ON linked_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_linked_accounts_service ON linked_accounts(service);
+CREATE INDEX IF NOT EXISTS idx_linked_accounts_external_id ON linked_accounts(external_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_linked_accounts_user_service ON linked_accounts(user_id, service);
+
+-- ============================================================================
 -- SCHEMA VERSION
 -- ============================================================================
--- Schema version 1: Initial SQLite migration
-PRAGMA user_version = 1;
+-- Schema version 2: Added linked_accounts table
+PRAGMA user_version = 2;
