@@ -3,6 +3,8 @@ import { Bell, Volume2, VolumeX, ChevronDown, Play, Tv, MonitorPlay, Film, Downl
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import { Button } from '../common/Button';
 import logger from '../../utils/logger';
 
@@ -14,15 +16,22 @@ import logger from '../../utils/logger';
  * - Enable/disable notification sounds
  * - Test notifications button
  * - Per-integration notification toggles (expandable sections)
+ * 
+ * For non-admin users, only shows integrations that are shared with them.
  */
 const NotificationSettings = () => {
     const { info: showInfoToast, addNotification } = useNotifications();
+    const { user } = useAuth();
+    const hasAdminAccess = isAdmin(user);
 
     // General settings
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [notificationSound, setNotificationSound] = useState(false);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Shared integrations for non-admin users
+    const [sharedIntegrations, setSharedIntegrations] = useState([]);
 
     // Integration notification settings
     const [integrationSettings, setIntegrationSettings] = useState({
@@ -37,10 +46,11 @@ const NotificationSettings = () => {
     // Expanded sections state
     const [expandedSections, setExpandedSections] = useState({});
 
-    // Load settings on mount
+    // Load settings and shared integrations on mount
     useEffect(() => {
-        const loadSettings = async () => {
+        const loadData = async () => {
             try {
+                // Load user notification preferences
                 const response = await axios.get('/api/config/user', {
                     withCredentials: true
                 });
@@ -57,6 +67,14 @@ const NotificationSettings = () => {
                         }));
                     }
                 }
+
+                // For non-admin users, fetch which integrations are shared with them
+                if (!hasAdminAccess) {
+                    const sharedResponse = await axios.get('/api/integrations/shared', {
+                        withCredentials: true
+                    });
+                    setSharedIntegrations(sharedResponse.data.integrations || []);
+                }
             } catch (error) {
                 logger.error('Failed to load notification settings:', error);
             } finally {
@@ -64,8 +82,8 @@ const NotificationSettings = () => {
             }
         };
 
-        loadSettings();
-    }, []);
+        loadData();
+    }, [hasAdminAccess]);
 
     // Save settings when changed
     const saveSettings = async (updates) => {
@@ -202,9 +220,21 @@ const NotificationSettings = () => {
             icon: Activity,
             options: [
                 { key: 'resourceAlerts', label: 'Resource alerts (high CPU/memory)' }
-            ]
+            ],
+            alwaysVisible: true // System health is available to all users
         }
     ];
+
+    // Filter integrations based on user access
+    // Admins see all integrations, non-admins only see shared ones (+ always-visible ones)
+    const filteredIntegrations = hasAdminAccess
+        ? integrations
+        : integrations.filter(integration => {
+            // Always show integrations marked as alwaysVisible
+            if (integration.alwaysVisible) return true;
+            // Check if this integration is shared with the user
+            return sharedIntegrations.some(si => si.name === integration.id);
+        });
 
     if (loading) {
         return (
@@ -318,11 +348,13 @@ const NotificationSettings = () => {
                     Integration Notifications
                 </h3>
                 <p className="text-sm text-theme-secondary mb-6">
-                    Configure which integrations send you notifications. These require the corresponding integration to be enabled in Widgets → Integrations.
+                    {hasAdminAccess
+                        ? 'Configure which integrations send you notifications. These require the corresponding integration to be enabled in Widgets → Integrations.'
+                        : 'Configure notifications for the integrations shared with you by your administrator.'}
                 </p>
 
                 <div className="space-y-4">
-                    {integrations.map((integration) => {
+                    {filteredIntegrations.map((integration) => {
                         const Icon = integration.icon;
                         const isExpanded = expandedSections[integration.id];
                         const settings = integrationSettings[integration.id] || {};
@@ -399,12 +431,14 @@ const NotificationSettings = () => {
                     })}
                 </div>
 
-                {/* Info Note */}
-                <div className="mt-6 p-4 bg-warning/10 border border-warning/30 rounded-lg">
-                    <p className="text-xs text-theme-secondary">
-                        <strong className="text-warning">Note:</strong> Integration notifications require the corresponding service to be configured in the Widgets → Integrations settings. Notifications will only appear when those integrations are enabled and connected.
-                    </p>
-                </div>
+                {/* Info Note - Admin only */}
+                {hasAdminAccess && (
+                    <div className="mt-6 p-4 bg-warning/10 border border-warning/30 rounded-lg">
+                        <p className="text-xs text-theme-secondary">
+                            <strong className="text-warning">Note:</strong> Integration notifications require the corresponding service to be configured in the Widgets → Integrations settings. Notifications will only appear when those integrations are enabled and connected.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );
