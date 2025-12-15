@@ -169,6 +169,8 @@ app.use('/api/custom-icons', require('./routes/custom-icons'));
 app.use('/api/advanced', require('./routes/advanced'));
 app.use('/api/diagnostics', require('./routes/diagnostics'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/plex', require('./routes/plex'));
+
 
 
 // Proxy routes for widgets (require authentication)
