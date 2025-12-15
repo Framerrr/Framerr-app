@@ -130,8 +130,9 @@ const EventSelectDropdown = ({
                             {events.map(event => {
                                 const isSelected = selectedEvents.includes(event.key);
                                 return (
-                                    <label
+                                    <div
                                         key={event.key}
+                                        onClick={() => handleToggleEvent(event.key)}
                                         className="flex items-center gap-3 px-3 py-2 hover:bg-theme-hover cursor-pointer"
                                     >
                                         <div
@@ -146,7 +147,7 @@ const EventSelectDropdown = ({
                                             {isSelected && <Check size={12} className="text-white" />}
                                         </div>
                                         <span className="text-sm text-theme-primary">{event.label}</span>
-                                    </label>
+                                    </div>
                                 );
                             })}
                         </div>
