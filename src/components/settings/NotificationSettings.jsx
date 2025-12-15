@@ -83,17 +83,28 @@ const NotificationSettings = () => {
             } else {
                 // Non-admin: Load shared integrations
                 const sharedResponse = await axios.get('/api/integrations/shared', { withCredentials: true });
-                setSharedIntegrations(sharedResponse.data.integrations || []);
+                const sharedList = sharedResponse.data.integrations || [];
+                setSharedIntegrations(sharedList);
 
-                // Also need to get the webhookConfig for display purposes (what events are allowed)
-                // This comes from the shared integrations data
+                // Build integrations data from shared integrations for webhookConfig access
                 const integrationsData = {};
-                (sharedResponse.data.integrations || []).forEach(si => {
-                    if (si.webhookConfig) {
-                        integrationsData[si.name] = { webhookConfig: si.webhookConfig };
-                    }
+                sharedList.forEach(si => {
+                    // Include all integration data, especially webhookConfig
+                    integrationsData[si.name] = {
+                        enabled: si.enabled,
+                        webhookConfig: si.webhookConfig || null
+                    };
                 });
                 setIntegrations(integrationsData);
+
+                logger.debug('User shared integrations loaded:', {
+                    count: sharedList.length,
+                    integrations: sharedList.map(si => ({
+                        name: si.name,
+                        hasWebhookConfig: !!si.webhookConfig,
+                        userEventsCount: si.webhookConfig?.userEvents?.length || 0
+                    }))
+                });
             }
         } catch (error) {
             logger.error('Failed to load notification settings:', error);
