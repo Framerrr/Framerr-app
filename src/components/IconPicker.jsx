@@ -270,7 +270,7 @@ const IconPicker = ({ value, onChange }) => {
                                 style={{
                                     width: window.innerWidth < 768 ? (triggerWidth > 0 ? triggerWidth : 'auto') : '24rem',
                                     minWidth: '200px',
-                                    zIndex: 9999
+                                    zIndex: 20
                                 }}
                                 className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[50vh] overflow-y-auto"
                             >
