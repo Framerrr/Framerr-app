@@ -12,6 +12,7 @@ const ProfileSettings = () => {
     // User info
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
+    const [displayName, setDisplayName] = useState('');
     const [profilePicture, setProfilePicture] = useState(null);
     const fileInputRef = useRef(null);
 
@@ -28,6 +29,7 @@ const ProfileSettings = () => {
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState(false);
     const [confirmRemovePicture, setConfirmRemovePicture] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
 
     // Load user profile and preferences on mount
     useEffect(() => {
@@ -40,6 +42,7 @@ const ProfileSettings = () => {
 
                 setUsername(profileResponse.data.username || '');
                 setEmail(profileResponse.data.email || '');
+                setDisplayName(profileResponse.data.displayName || profileResponse.data.username || '');
 
                 // Add cache-busting timestamp to profile picture to prevent stale cache
                 const picturePath = profileResponse.data.profilePicture;
@@ -53,6 +56,23 @@ const ProfileSettings = () => {
 
         loadProfile();
     }, []);
+
+    const handleSaveProfile = async () => {
+        setSavingProfile(true);
+        try {
+            await axios.put('/api/profile', {
+                displayName
+            }, {
+                withCredentials: true
+            });
+            showSuccess('Profile Saved', 'Your display name has been updated');
+        } catch (error) {
+            logger.error('Failed to save profile:', error);
+            showError('Save Failed', error.response?.data?.error || 'Failed to save profile');
+        } finally {
+            setSavingProfile(false);
+        }
+    };
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
@@ -265,6 +285,18 @@ const ProfileSettings = () => {
                             <User size={18} />
                             <span>{username}</span>
                         </div>
+                        <p className="text-xs text-theme-tertiary mt-1">Username cannot be changed</p>
+                    </div>
+
+                    {/* Display Name (editable) */}
+                    <div>
+                        <Input
+                            label="Display Name"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            placeholder={username}
+                            helperText="This name is shown in greetings and throughout the app"
+                        />
                     </div>
 
                     {/* Email (read-only) */}
@@ -277,6 +309,15 @@ const ProfileSettings = () => {
                             <span>{email || 'Not set'}</span>
                         </div>
                     </div>
+
+                    {/* Save Button */}
+                    <Button
+                        onClick={handleSaveProfile}
+                        disabled={savingProfile}
+                        icon={Save}
+                    >
+                        {savingProfile ? 'Saving...' : 'Save Profile'}
+                    </Button>
                 </div>
             </div>
 
