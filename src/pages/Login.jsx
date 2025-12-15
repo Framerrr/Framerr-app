@@ -52,10 +52,13 @@ const Login = () => {
 
     // Check for pending Plex auth on page load (redirect flow)
     useEffect(() => {
+        let hasCompleted = false;
+
         const completePlexAuth = async () => {
             const pendingPinId = localStorage.getItem('plexPendingPinId');
-            if (!pendingPinId) return;
+            if (!pendingPinId || hasCompleted) return;
 
+            hasCompleted = true;
             setPlexLoading(true);
 
             try {
@@ -92,7 +95,8 @@ const Login = () => {
         };
 
         completePlexAuth();
-    }, [loginWithPlex, navigate, from, showSuccess]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

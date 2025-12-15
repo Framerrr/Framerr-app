@@ -258,7 +258,8 @@ const IconPicker = ({ value, onChange }) => {
                                 exit={{ opacity: 0, scale: 0.96 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 style={{
-                                    width: window.innerWidth < 768 ? '100%' : '24rem',
+                                    width: window.innerWidth < 768 ? 'calc(100vw - 48px)' : '24rem',
+                                    maxWidth: window.innerWidth < 768 ? 'calc(100vw - 48px)' : '24rem',
                                     zIndex: 9999
                                 }}
                                 className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[50vh] overflow-y-auto"
