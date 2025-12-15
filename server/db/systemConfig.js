@@ -119,6 +119,9 @@ function buildConfigFromKeyValues(rows) {
             case 'webhookBaseUrl':
                 config.webhookBaseUrl = parsed;
                 break;
+            case 'vapidKeys':
+                config.vapidKeys = parsed;
+                break;
         }
     }
 
@@ -219,7 +222,8 @@ async function updateSystemConfig(updates) {
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
         tabGroups: updates.tabGroups || currentConfig.tabGroups,
         plexSSO: updates.plexSSO ? { ...currentConfig.plexSSO, ...updates.plexSSO } : currentConfig.plexSSO,
-        webhookBaseUrl: updates.webhookBaseUrl !== undefined ? updates.webhookBaseUrl : currentConfig.webhookBaseUrl
+        webhookBaseUrl: updates.webhookBaseUrl !== undefined ? updates.webhookBaseUrl : currentConfig.webhookBaseUrl,
+        vapidKeys: updates.vapidKeys ? { ...currentConfig.vapidKeys, ...updates.vapidKeys } : currentConfig.vapidKeys
     };
 
     try {
@@ -267,6 +271,9 @@ async function updateSystemConfig(updates) {
             }
             if (updates.webhookBaseUrl !== undefined) {
                 upsert.run('webhookBaseUrl', JSON.stringify(newConfig.webhookBaseUrl));
+            }
+            if (updates.vapidKeys) {
+                upsert.run('vapidKeys', JSON.stringify(newConfig.vapidKeys));
             }
         });
 
