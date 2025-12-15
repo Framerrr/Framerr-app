@@ -20,13 +20,24 @@ const PlexIntegration = ({ integration, onUpdate }) => {
         enabled: false,
         url: '',
         token: '',
-        machineId: ''
+        machineId: '',
+        servers: []
     });
     const [testState, setTestState] = useState(null);
     const [authenticating, setAuthenticating] = useState(false);
-    const [servers, setServers] = useState([]);
+    const [servers, setServers] = useState(integration?.servers || []);
     const [loadingServers, setLoadingServers] = useState(false);
     const [plexUser, setPlexUser] = useState(null);
+
+    // Load servers from saved config on mount
+    useEffect(() => {
+        if (integration?.servers?.length > 0) {
+            setServers(integration.servers);
+        } else if (integration?.token && servers.length === 0) {
+            // If we have a token but no saved servers, fetch them
+            fetchServers(integration.token);
+        }
+    }, [integration?.token]);
 
     useEffect(() => {
         return () => {
@@ -35,6 +46,9 @@ const PlexIntegration = ({ integration, onUpdate }) => {
             }
         };
     }, []);
+
+    // Helper to check if configured
+    const isConfigured = config.enabled && config.token && config.url;
 
     const handleToggle = () => {
         const newConfig = { ...config, enabled: !config.enabled };
@@ -123,19 +137,24 @@ const PlexIntegration = ({ integration, onUpdate }) => {
             const response = await axios.get(`/api/plex/resources?token=${token}`, {
                 withCredentials: true
             });
-            setServers(response.data);
+            const fetchedServers = response.data;
+            setServers(fetchedServers);
+
+            // Save servers to config for persistence
+            let newConfig = { ...config, servers: fetchedServers };
 
             // Auto-select first owned server if none selected
-            if (!config.machineId && response.data.length > 0) {
-                const ownedServer = response.data.find(s => s.owned) || response.data[0];
-                const newConfig = {
-                    ...config,
+            if (!config.machineId && fetchedServers.length > 0) {
+                const ownedServer = fetchedServers.find(s => s.owned) || fetchedServers[0];
+                newConfig = {
+                    ...newConfig,
                     machineId: ownedServer.machineId,
                     url: ownedServer.connections?.find(c => c.local)?.uri || ownedServer.connections?.[0]?.uri || ''
                 };
-                setConfig(newConfig);
-                onUpdate(newConfig);
             }
+
+            setConfig(newConfig);
+            onUpdate(newConfig);
         } catch (error) {
             logger.error('[PlexIntegration] Failed to fetch servers:', error.message);
         } finally {
@@ -188,45 +207,46 @@ const PlexIntegration = ({ integration, onUpdate }) => {
     };
 
     return (
-        <div className="glass-subtle rounded-xl border border-theme overflow-hidden">
+        <div className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
             {/* Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full p-4 flex items-center justify-between hover:bg-theme-hover transition-colors"
+                className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
             >
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-[#e5a00d]/20">
-                        <Tv size={20} className="text-[#e5a00d]" />
-                    </div>
-                    <div className="text-left">
-                        <h3 className="font-medium text-theme-primary">Plex</h3>
+                <div className="flex items-center gap-4 flex-1">
+                    <Tv className="text-theme-secondary" size={20} />
+                    <div className="flex-1 min-w-0 text-left">
+                        <h3 className="font-semibold text-theme-primary">Plex</h3>
                         <p className="text-sm text-theme-secondary">Media server integration</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Status indicator */}
-                    {config.enabled && config.token && (
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-success/20 text-success">
-                            Connected
+                    {/* Connection status badge (when not expanded) */}
+                    {!isExpanded && config.enabled && (
+                        <span className={`
+                            px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
+                            ${isConfigured
+                                ? 'bg-success/10 text-success border border-success/20'
+                                : 'bg-warning/10 text-warning border border-warning/20'
+                            }
+                        `}>
+                            {isConfigured ? '🟢 Configured' : '🟡 Setup Required'}
                         </span>
                     )}
-                    {/* Enable toggle */}
-                    <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                        <input
-                            type="checkbox"
-                            checked={config.enabled}
-                            onChange={handleToggle}
-                            className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
-                    </label>
-                    {/* Expand arrow */}
-                    <motion.div
-                        animate={{ rotate: isExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
+
+                    {/* Toggle Switch */}
+                    <div
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggle();
+                        }}
+                        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${config.enabled ? 'bg-success' : 'bg-theme-tertiary'}`}
                     >
-                        <ChevronDown size={20} className="text-theme-secondary" />
-                    </motion.div>
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </div>
+
+                    {/* Chevron */}
+                    <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
             </button>
 
@@ -234,13 +254,12 @@ const PlexIntegration = ({ integration, onUpdate }) => {
             <AnimatePresence>
                 {isExpanded && (
                     <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="p-4 pt-0 space-y-4 border-t border-theme">
+                        className="overflow-hidden">
+                        <div className="px-6 pb-6 border-t border-theme pt-6 space-y-4">
                             {/* Plex Login Button */}
                             <div className="p-4 rounded-lg border border-theme bg-theme-tertiary">
                                 <div className="flex items-center justify-between">
