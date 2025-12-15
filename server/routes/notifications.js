@@ -10,6 +10,42 @@ const {
 } = require('../db/notifications');
 const { requireAuth } = require('../middleware/auth');
 const logger = require('../utils/logger');
+const notificationEmitter = require('../services/notificationEmitter');
+
+/**
+ * GET /api/notifications/stream
+ * SSE endpoint for real-time notifications
+ */
+router.get('/stream', requireAuth, (req, res) => {
+    const userId = req.user.id;
+
+    logger.info('[SSE] New connection', { userId, username: req.user.username });
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    res.flushHeaders();
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: 'connected', userId })}\n\n`);
+
+    // Register connection
+    notificationEmitter.addConnection(userId, res);
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+        res.write(': heartbeat\n\n');
+    }, 30000);
+
+    // Clean up on close
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        notificationEmitter.removeConnection(userId, res);
+        logger.info('[SSE] Connection closed', { userId });
+    });
+});
 
 /**
  * GET /api/notifications

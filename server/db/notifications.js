@@ -2,6 +2,15 @@ const { db } = require('../database/db');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
 
+// Lazy-load notificationEmitter to avoid circular dependency
+let notificationEmitter = null;
+function getEmitter() {
+    if (!notificationEmitter) {
+        notificationEmitter = require('../services/notificationEmitter');
+    }
+    return notificationEmitter;
+}
+
 /**
  * Create a notification
  * @param {object} notificationData - Notification data
@@ -36,6 +45,13 @@ async function createNotification(notificationData) {
         );
 
         logger.debug('Notification created', { id: notification.id, userId: notification.userId, type: notification.type });
+
+        // Send real-time notification via SSE
+        try {
+            getEmitter().sendNotification(notification.userId, notification);
+        } catch (sseError) {
+            logger.debug('SSE emit failed (no active connections)', { error: sseError.message });
+        }
 
         return notification;
     } catch (error) {

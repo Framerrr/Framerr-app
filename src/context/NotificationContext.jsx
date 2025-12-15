@@ -193,15 +193,68 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [isAuthenticated, user, fetchNotifications]);
 
-    // Cleanup event source on unmount
+    // SSE connection for real-time notifications
     useEffect(() => {
-        return () => {
+        if (!isAuthenticated || !user) {
+            // Close existing connection if not authenticated
             if (eventSource) {
                 eventSource.close();
-                logger.debug('SSE connection closed on unmount');
+                setEventSource(null);
+                setConnected(false);
+            }
+            return;
+        }
+
+        // Create SSE connection
+        const source = new EventSource('/api/notifications/stream', { withCredentials: true });
+
+        source.onopen = () => {
+            logger.info('[SSE] Connection established');
+            setConnected(true);
+        };
+
+        source.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'connected') {
+                    logger.debug('[SSE] Connected message received', { userId: data.userId });
+                    return;
+                }
+
+                // Real notification received
+                logger.info('[SSE] Notification received', { id: data.id, title: data.title });
+
+                // Add to notification list
+                addNotification(data);
+
+                // Show toast for the notification
+                showToast(data.type || 'info', data.title, data.message);
+            } catch (error) {
+                logger.error('[SSE] Failed to parse message', { error: error.message });
             }
         };
-    }, [eventSource]);
+
+        source.onerror = (err) => {
+            logger.error('[SSE] Connection error', { error: err });
+            setConnected(false);
+
+            // EventSource automatically reconnects, but we update state
+            if (source.readyState === EventSource.CLOSED) {
+                logger.info('[SSE] Connection closed, will not reconnect');
+            }
+        };
+
+        setEventSource(source);
+
+        // Cleanup on unmount or auth change
+        return () => {
+            logger.info('[SSE] Closing connection');
+            source.close();
+            setEventSource(null);
+            setConnected(false);
+        };
+    }, [isAuthenticated, user, addNotification, showToast]);
 
     const value = {
         // Toast state
