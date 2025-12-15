@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-14 22:26 EST  
+**Last Updated:** 2025-12-15 02:25 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,23 +20,31 @@
 
 ## Current State
 
-**Status:** ✅ Session completed - Bug Fixes and Polish
+**Status:** 🔄 Active - Integration Notifications Feature
 
-**This Session:**
+**Current Session:**
 
-### Display Name Feature
-- Added editable "Display Name" field to Profile Settings
-- Added `PUT /api/profile` endpoint to save displayName to preferences
-- Updated auth routes (`login`, `/me`) to include displayName from preferences
-- Dashboard greeting now shows custom display name without page refresh
+### Phase 1: UI Foundation
 
-### Plex SSO Double Toast Fix
-- Added `hasCompleted` guard to prevent useEffect from running twice
-- Removed dependencies from effect to run only once on mount
+#### Completed ✅
+1. **Enhanced LinkedAccountsSettings**
+   - Added Plex SSO status display (read-only, shows linked status from database)
+   - Shows Plex username/email if linked via SSO
+   - Helper text suggests Overseerr username often matches Plex
 
-### IconPicker Mobile Layout Fixes
-- Fixed popover width overflow on mobile (now matches trigger button width)
-- Lowered z-index from 9999 to 20 so popover appears below sidebar/tab bar
+2. **New API Endpoint**
+   - `GET /api/linked-accounts/me` - Fetches user's database-stored linked accounts
+   - Returns Plex SSO links automatically created during Plex login
+
+3. **Widget/Calendar Fixes** (earlier this session)
+   - Fixed CalendarWidget to use AppDataContext for integrations
+   - Fixed SystemStatus integration badge detection in WidgetGallery and AddWidgetModal
+
+#### In Progress 🔄
+4. **NotificationSettings Enhancements**
+   - Admin controls for allowed event types (TODO)
+   - Webhook URL display with copy button (TODO)
+   - Two-tier permissions (admin allows, user can mute) (TODO)
 
 ---
 
@@ -44,81 +52,75 @@
 
 | File | Changes |
 |------|---------|
-| `server/routes/profile.js` | Added PUT endpoint for displayName |
-| `server/routes/auth.js` | Added getUserConfig import, displayName from preferences |
-| `src/components/settings/ProfileSettings.jsx` | Display Name field, save button, checkAuth call |
-| `src/pages/Login.jsx` | hasCompleted guard for Plex auth useEffect |
-| `src/components/IconPicker.jsx` | triggerRef for width, mobile width fix, z-index lowered |
+| `server/routes/linkedAccounts.js` | NEW - API for fetching linked accounts |
+| `server/index.js` | Registered new linkedAccounts route |
+| `src/components/settings/LinkedAccountsSettings.jsx` | Shows Plex SSO status, enhanced UI |
+| `docs/reference/notifications.md` | NEW - Full architecture documentation |
 
 ---
 
-## Next Session: Integration Notifications
+## Reference Documentation
 
-### Overview
-Implement webhook-based integration notifications so users receive alerts when:
-- Overseerr: New requests, approvals, availability
-- Radarr/Sonarr: Download complete, grabbed, upgraded
-- Plex: Now playing, new media added
+**MUST READ before continuing this feature:**
+- `docs/reference/notifications.md` - Full architecture, user matching, webhook formats, phases
 
-### Implementation Plan
+---
 
-#### Phase 1: Backend Infrastructure
-1. **Webhook Receiver Endpoints**
-   - `POST /api/webhooks/overseerr` - Receives Overseerr webhooks
-   - `POST /api/webhooks/radarr` - Receives Radarr webhooks
-   - `POST /api/webhooks/sonarr` - Receives Sonarr webhooks
-   - `POST /api/webhooks/plex` - Receives Plex webhooks (if applicable)
+## Next Steps (For Next Session)
 
-2. **Webhook URL Configuration**
-   - Generate unique webhook URLs per integration
-   - Display webhook URLs in integration settings card
-   - Copy-to-clipboard functionality
+### Complete Phase 1
+1. Enhance `NotificationSettings.jsx`:
+   - Add "Receive unmatched alerts" toggle for admins
+   - Add per-integration "Allow users" checkboxes
+   - Add webhook URL display section
+   - Add test webhook button
 
-3. **Notification Storage**
-   - Already have `notifications` table in SQLite schema
-   - Already have notification context and UI on frontend
-   - Need: Process webhooks → Create user notifications
+### Begin Phase 2
+2. Create webhook receiver endpoints:
+   - `POST /api/webhooks/overseerr/:token`
+   - Token generation and storage in systemConfig
 
-#### Phase 2: Webhook Processing
-1. **Payload Parsers**
-   - Parse Overseerr webhook format
-   - Parse Radarr webhook format
-   - Parse Sonarr webhook format
+3. Create user resolution service:
+   - `server/services/webhookProcessor.js`
+   - Cascade: manual link → Plex SSO → username match → admin fallback
 
-2. **Event Types to Support**
-   - Overseerr: `media.pending`, `media.approved`, `media.available`, `media.declined`
-   - Radarr/Sonarr: `Grab`, `Download`, `Upgrade`, `Health`
+---
 
-3. **Notification Creation**
-   - Map webhook events to user notifications
-   - Include relevant metadata (title, poster, etc.)
-   - Determine which users should receive notification (admin? all users?)
+## Architecture Notes
 
-#### Phase 3: Frontend Integration
-1. **Settings UI**
-   - Display webhook URLs in integration cards
-   - Toggle for enabling/disabling webhook notifications
-   - Per-event-type toggles (optional)
+### User Matching Cascade
+```
+1. Check user_preferences.linkedAccounts.overseerr.username
+2. Check linked_accounts WHERE service='plex' AND external_username=X
+3. Check users.username
+4. Fallback to admins with receiveUnmatched=true
+```
 
-2. **Notification Display**
-   - Rich notification cards with media info
-   - Poster thumbnails
-   - Links to Overseerr/Plex/etc.
+### Settings Structure
+- **System level:** `systemConfig.integrations.[service].webhookConfig` (what users CAN receive)
+- **User level:** `user_preferences.notifications.integrations` (what user WANTS to receive)
 
-### Key Decisions Needed
-- [ ] Webhook authentication (secret tokens vs. unique URLs)
-- [ ] Who receives notifications (admin only? all users with integration access?)
-- [ ] Real-time push vs. polling based notifications
+---
+
+## Session Notes
+
+- Calendar widget was using stale config instead of AppDataContext - fixed
+- SystemStatus badge check was looking for `url` but SystemStatus uses `backend` + `glances.url` - fixed
+- LinkedAccountsSettings now shows Plex SSO status from `linked_accounts` table
+- Full documentation created at `docs/reference/notifications.md`
 
 ---
 
 ## ✅ SESSION END
 
-- **Session ended:** 2025-12-14 22:26 EST
+- **Session ended:** 2025-12-15 02:25 EST
 - **Branch:** `feature/notification-integration`
 - **Build status:** ✅ Passing
-- **Docker:** User has deployed latest to `pickels23/framerr:develop`
+- **Commits:** 
+  - `fix(calendar): use AppDataContext for integrations and add no-access handling`
+  - `fix(widgets): correctly detect SystemStatus config for integration badge`
+  - `feat(linked-accounts): add Plex SSO status display and API endpoint`
 - **Next action:** 
-  1. Begin integration notifications implementation (Phase 1)
-  2. Start with webhook receiver endpoints
-  3. Eventually merge feature branch to develop when stable
+  1. Continue Phase 1 - enhance NotificationSettings.jsx
+  2. Begin Phase 2 - webhook receiver endpoints
+  3. Reference `docs/reference/notifications.md` for architecture
