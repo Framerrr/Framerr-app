@@ -116,6 +116,9 @@ function buildConfigFromKeyValues(rows) {
             case 'plexSSO':
                 config.plexSSO = parsed;
                 break;
+            case 'webhookBaseUrl':
+                config.webhookBaseUrl = parsed;
+                break;
         }
     }
 
@@ -209,14 +212,14 @@ async function updateSystemConfig(updates) {
             proxy: { ...currentConfig.auth?.proxy, ...(updates.auth?.proxy || {}) },
             iframe: { ...currentConfig.auth?.iframe, ...(updates.auth?.iframe || {}) }
         },
-        // Deep merge integrations to preserve nested properties like webhookConfig
         integrations: deepMergeIntegrations(currentConfig.integrations, updates.integrations),
         debug: { ...currentConfig.debug, ...(updates.debug || {}) },
         favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon, // Support null to delete
         groups: currentConfig.groups,  // Always preserve locked groups
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
         tabGroups: updates.tabGroups || currentConfig.tabGroups,
-        plexSSO: updates.plexSSO ? { ...currentConfig.plexSSO, ...updates.plexSSO } : currentConfig.plexSSO
+        plexSSO: updates.plexSSO ? { ...currentConfig.plexSSO, ...updates.plexSSO } : currentConfig.plexSSO,
+        webhookBaseUrl: updates.webhookBaseUrl !== undefined ? updates.webhookBaseUrl : currentConfig.webhookBaseUrl
     };
 
     try {
@@ -261,6 +264,9 @@ async function updateSystemConfig(updates) {
             }
             if (updates.plexSSO) {
                 upsert.run('plexSSO', JSON.stringify(newConfig.plexSSO));
+            }
+            if (updates.webhookBaseUrl !== undefined) {
+                upsert.run('webhookBaseUrl', JSON.stringify(newConfig.webhookBaseUrl));
             }
         });
 
