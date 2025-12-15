@@ -193,6 +193,14 @@ router.post('/plex-login', async (req, res) => {
             // Ensure sharedUsers is an array (single user case)
             const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
 
+            // Log shared users for debugging
+            const sharedUsernames = usersList.map(u => u?.['$']?.username || u?.username || 'unknown').join(', ');
+            logger.debug('[PlexSSO] Shared users on server:', {
+                count: usersList.length,
+                usernames: sharedUsernames,
+                lookingFor: plexUser.username
+            });
+
             const hasLibraryAccess = usersList.some(
                 sharedUser => sharedUser?.['$']?.id?.toString() === plexUser.id.toString() ||
                     sharedUser?.id?.toString() === plexUser.id.toString()
@@ -201,12 +209,13 @@ router.post('/plex-login', async (req, res) => {
             if (!hasLibraryAccess) {
                 logger.warn('[PlexSSO] User does not have library access', {
                     plexUserId: plexUser.id,
-                    plexUsername: plexUser.username
+                    plexUsername: plexUser.username,
+                    sharedUserCount: usersList.length
                 });
                 return res.status(403).json({ error: 'You do not have access to this Plex server' });
             }
 
-            logger.debug('[PlexSSO] User has library access', { plexUsername: plexUser.username });
+            logger.info('[PlexSSO] User has library access', { plexUsername: plexUser.username });
         }
 
         // Find or create Framerr user for this Plex user
