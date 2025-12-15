@@ -106,6 +106,21 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const loginWithPlex = async (plexToken, plexUserId) => {
+        try {
+            const response = await axios.post('/api/auth/plex-login', {
+                plexToken,
+                plexUserId
+            });
+            setUser(response.data.user);
+            return { success: true };
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Plex login failed';
+            setError(msg);
+            return { success: false, error: msg };
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -113,6 +128,7 @@ export const AuthProvider = ({ children }) => {
             error,
             needsSetup,
             login,
+            loginWithPlex,
             logout,
             checkAuth,
             checkSetupStatus,
@@ -123,6 +139,7 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+
 
 export const useAuth = () => {
     const context = useContext(AuthContext);

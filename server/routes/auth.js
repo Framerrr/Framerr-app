@@ -136,4 +136,138 @@ router.get('/me', async (req, res) => {
         res.status(500).json({ error: 'Auth check failed' });
     }
 });
+
+/**
+ * POST /api/auth/plex-login
+ * Login with Plex SSO
+ */
+router.post('/plex-login', async (req, res) => {
+    try {
+        const { plexToken, plexUserId } = req.body;
+
+        if (!plexToken || !plexUserId) {
+            return res.status(400).json({ error: 'Plex token and user ID are required' });
+        }
+
+        // Get SSO config
+        const systemConfig = await getSystemConfig();
+        const ssoConfig = systemConfig.plexSSO;
+
+        if (!ssoConfig?.enabled) {
+            return res.status(403).json({ error: 'Plex SSO is not enabled' });
+        }
+
+        // Verify user is on admin's Plex server
+        const axios = require('axios');
+        const clientId = ssoConfig.clientIdentifier;
+
+        // Get user info from Plex
+        const userResponse = await axios.get('https://plex.tv/api/v2/user', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Plex-Token': plexToken,
+                'X-Plex-Client-Identifier': clientId
+            }
+        });
+
+        const plexUser = userResponse.data;
+
+        // Check if this Plex user is the admin or on admin's friend list
+        const isAdmin = plexUser.id.toString() === ssoConfig.adminPlexId?.toString();
+
+        if (!isAdmin) {
+            // Verify user is on admin's Plex server
+            const friendsResponse = await axios.get('https://plex.tv/api/v2/friends', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Plex-Token': ssoConfig.adminToken,
+                    'X-Plex-Client-Identifier': clientId
+                }
+            });
+
+            const isFriend = friendsResponse.data.some(
+                friend => friend.id.toString() === plexUser.id.toString()
+            );
+
+            if (!isFriend) {
+                logger.warn('[PlexSSO] User not on Plex server', { plexUserId: plexUser.id });
+                return res.status(403).json({ error: 'You are not authorized to access this server' });
+            }
+        }
+
+        // Check if user already exists with linked Plex account
+        const { findUserByExternalId, linkAccount } = require('../db/linkedAccounts');
+        let userId = findUserByExternalId('plex', plexUser.id.toString());
+        let user;
+
+        if (userId) {
+            // Existing linked user
+            user = await getUserById(userId);
+        } else {
+            // Check if username matches existing user
+            user = await getUser(plexUser.username);
+
+            if (!user && ssoConfig.autoCreateUsers) {
+                // Auto-create new user
+                const { createUser } = require('../db/users');
+                const { hashPassword } = require('../auth/password');
+                const { v4: uuidv4 } = require('uuid');
+
+                // Generate random password (user will log in via Plex)
+                const passwordHash = await hashPassword(uuidv4());
+
+                user = await createUser({
+                    username: plexUser.username,
+                    email: plexUser.email || `${plexUser.username}@plex.local`,
+                    passwordHash,
+                    displayName: plexUser.username,
+                    group: ssoConfig.defaultGroup || 'user'
+                });
+
+                logger.info('[PlexSSO] Created new user', { username: plexUser.username });
+            }
+
+            if (!user) {
+                return res.status(403).json({ error: 'No matching user found and auto-creation is disabled' });
+            }
+
+            // Link Plex account to user
+            linkAccount(user.id, 'plex', {
+                externalId: plexUser.id.toString(),
+                externalUsername: plexUser.username,
+                externalEmail: plexUser.email,
+                metadata: { thumb: plexUser.thumb }
+            });
+        }
+
+        // Create session
+        const expiresIn = systemConfig.auth?.session?.timeout || 86400000;
+        const session = await createUserSession(user, req, expiresIn);
+
+        res.cookie('sessionId', session.id, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            maxAge: expiresIn
+        });
+
+        logger.info(`[PlexSSO] User logged in: ${user.username}`);
+
+        res.json({
+            user: {
+                id: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                group: user.group,
+                preferences: user.preferences
+            }
+        });
+
+    } catch (error) {
+        logger.error('[PlexSSO] Login error', { error: error.message });
+        res.status(500).json({ error: 'Plex login failed' });
+    }
+});
+
 module.exports = router;
+
