@@ -83,8 +83,8 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get('/api/users', { withCredentials: true });
-            setUsers(response.data);
+            const response = await axios.get('/api/admin/users', { withCredentials: true });
+            setUsers(response.data.users || []);
         } catch (error) {
             logger.error('[PlexAuth] Failed to fetch users:', error.message);
         }
