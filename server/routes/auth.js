@@ -172,27 +172,41 @@ router.post('/plex-login', async (req, res) => {
 
         const plexUser = userResponse.data;
 
-        // Check if this Plex user is the admin or on admin's friend list
+        // Check if this Plex user is the admin or has library access
         const isPlexAdmin = plexUser.id.toString() === ssoConfig.adminPlexId?.toString();
 
         if (!isPlexAdmin) {
-            // Verify user is on admin's Plex server
-            const friendsResponse = await axios.get('https://plex.tv/api/v2/friends', {
+            // Verify user has library access on admin's Plex server
+            // Use the /api/users endpoint which returns users with library sharing access
+            // (not /api/v2/friends which is just social connections)
+            const usersResponse = await axios.get('https://plex.tv/api/users', {
                 headers: {
                     'Accept': 'application/json',
-                    'X-Plex-Token': ssoConfig.adminToken,
-                    'X-Plex-Client-Identifier': clientId
+                    'X-Plex-Token': ssoConfig.adminToken
                 }
             });
 
-            const isFriend = friendsResponse.data.some(
-                friend => friend.id.toString() === plexUser.id.toString()
+            // The response is XML by default, but we requested JSON
+            // Check if the user is in the shared users list
+            const sharedUsers = usersResponse.data?.MediaContainer?.User || [];
+
+            // Ensure sharedUsers is an array (single user case)
+            const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
+
+            const hasLibraryAccess = usersList.some(
+                sharedUser => sharedUser?.['$']?.id?.toString() === plexUser.id.toString() ||
+                    sharedUser?.id?.toString() === plexUser.id.toString()
             );
 
-            if (!isFriend) {
-                logger.warn('[PlexSSO] User not on Plex server', { plexUserId: plexUser.id });
-                return res.status(403).json({ error: 'You are not authorized to access this server' });
+            if (!hasLibraryAccess) {
+                logger.warn('[PlexSSO] User does not have library access', {
+                    plexUserId: plexUser.id,
+                    plexUsername: plexUser.username
+                });
+                return res.status(403).json({ error: 'You do not have access to this Plex server' });
             }
+
+            logger.debug('[PlexSSO] User has library access', { plexUsername: plexUser.username });
         }
 
         // Find or create Framerr user for this Plex user

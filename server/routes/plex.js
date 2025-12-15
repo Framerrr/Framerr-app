@@ -294,35 +294,39 @@ router.get('/admin-resources', requireAuth, requireAdmin, async (req, res) => {
 
 /**
  * GET /api/plex/users
- * Get server's shared users (friends)
- * Requires admin Plex token and server URL
- * Query: ?serverUrl=xxx&token=xxx
+ * Get users with library access on this Plex server
+ * Query: ?token=xxx
  * Returns: [{ id, username, email, thumb }]
  */
 router.get('/users', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, token } = req.query;
+        const { token } = req.query;
 
-        if (!serverUrl || !token) {
-            return res.status(400).json({ error: 'serverUrl and token are required' });
+        if (!token) {
+            return res.status(400).json({ error: 'token is required' });
         }
 
-        const clientId = await getClientIdentifier();
+        // Get users with library access from Plex.tv (not friends)
+        // This endpoint returns users who have been invited to access server libraries
+        const response = await axios.get('https://plex.tv/api/users', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Plex-Token': token
+            }
+        });
 
-        // Get friends from Plex.tv (not from server directly)
-        const response = await axios.get(
-            `${PLEX_TV_API}/friends`,
-            { headers: getPlexHeaders(clientId, token) }
-        );
+        // Parse the response - structure is MediaContainer.User[]
+        const sharedUsers = response.data?.MediaContainer?.User || [];
+        const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
 
-        const users = response.data.map(friend => ({
-            id: friend.id,
-            username: friend.username || friend.title,
-            email: friend.email,
-            thumb: friend.thumb
+        const users = usersList.filter(u => u).map(user => ({
+            id: user['$']?.id || user.id,
+            username: user['$']?.username || user['$']?.title || user.username || user.title,
+            email: user['$']?.email || user.email,
+            thumb: user['$']?.thumb || user.thumb
         }));
 
-        logger.debug('[Plex] Found users:', users.length);
+        logger.debug('[Plex] Found shared users:', users.length);
 
         res.json(users);
     } catch (error) {
@@ -333,7 +337,7 @@ router.get('/users', requireAuth, async (req, res) => {
 
 /**
  * POST /api/plex/verify-user
- * Verify a Plex user is on the admin's server
+ * Verify a Plex user has library access on the admin's server
  * Body: { plexUserId }
  * Returns: { valid: boolean, user }
  */
@@ -355,21 +359,32 @@ router.post('/verify-user', async (req, res) => {
 
         const clientId = await getClientIdentifier();
 
-        // Get admin's friends list
-        const friendsResponse = await axios.get(
-            `${PLEX_TV_API}/friends`,
-            { headers: getPlexHeaders(clientId, ssoConfig.adminToken) }
-        );
-
-        // Check if the Plex user is in the friends list OR is the admin themselves
+        // Check if the Plex user is the admin themselves
         const isAdmin = plexUserId.toString() === ssoConfig.adminPlexId?.toString();
-        const isFriend = friendsResponse.data.some(
-            friend => friend.id.toString() === plexUserId.toString()
-        );
 
-        if (!isAdmin && !isFriend) {
-            logger.warn('[Plex] User not found on server:', plexUserId);
-            return res.json({ valid: false, reason: 'User not on this Plex server' });
+        let hasLibraryAccess = false;
+
+        if (!isAdmin) {
+            // Get users with library access from Plex.tv
+            const usersResponse = await axios.get('https://plex.tv/api/users', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Plex-Token': ssoConfig.adminToken
+                }
+            });
+
+            const sharedUsers = usersResponse.data?.MediaContainer?.User || [];
+            const usersList = Array.isArray(sharedUsers) ? sharedUsers : [sharedUsers];
+
+            hasLibraryAccess = usersList.some(
+                sharedUser => (sharedUser?.['$']?.id?.toString() === plexUserId.toString()) ||
+                    (sharedUser?.id?.toString() === plexUserId.toString())
+            );
+        }
+
+        if (!isAdmin && !hasLibraryAccess) {
+            logger.warn('[Plex] User does not have library access:', plexUserId);
+            return res.json({ valid: false, reason: 'User does not have access to this Plex server' });
         }
 
         // Get user details if we have their token
@@ -387,7 +402,7 @@ router.post('/verify-user', async (req, res) => {
             };
         }
 
-        logger.info('[Plex] User verified on server:', plexUserId);
+        logger.info('[Plex] User verified with library access:', plexUserId);
 
         res.json({ valid: true, isAdmin, user });
     } catch (error) {
