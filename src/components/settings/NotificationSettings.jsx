@@ -464,10 +464,17 @@ const NotificationSettings = () => {
                                 type="text"
                                 value={webhookBaseUrl}
                                 onChange={(e) => setWebhookBaseUrl(e.target.value)}
-                                onBlur={(e) => saveWebhookBaseUrl(e.target.value)}
                                 placeholder="http://framerr:3001"
                                 className="flex-1 px-3 py-2 text-sm bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:ring-2 focus:ring-accent"
                             />
+                            <Button
+                                onClick={() => saveWebhookBaseUrl(webhookBaseUrl)}
+                                variant="secondary"
+                                icon={Check}
+                                title="Save webhook base URL"
+                            >
+                                Save
+                            </Button>
                             <Button
                                 onClick={resetWebhookBaseUrl}
                                 variant="secondary"
