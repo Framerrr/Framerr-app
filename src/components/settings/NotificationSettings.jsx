@@ -214,7 +214,7 @@ const NotificationSettings = () => {
             ]
         },
         {
-            id: 'systemHealth',
+            id: 'systemstatus',
             name: 'System Health',
             description: 'System resource alerts',
             icon: Activity,
