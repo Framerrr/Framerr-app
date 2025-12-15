@@ -5,9 +5,11 @@ import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ProfileSettings = () => {
     const { error: showError, success: showSuccess } = useNotifications();
+    const { checkAuth } = useAuth();
 
     // User info
     const [username, setUsername] = useState('');
@@ -65,6 +67,10 @@ const ProfileSettings = () => {
             }, {
                 withCredentials: true
             });
+
+            // Refresh auth context to update dashboard greeting immediately
+            await checkAuth();
+
             showSuccess('Profile Saved', 'Your display name has been updated');
         } catch (error) {
             logger.error('Failed to save profile:', error);
