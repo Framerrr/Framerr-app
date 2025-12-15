@@ -631,13 +631,13 @@ const NotificationSettings = () => {
                         <p className="text-xs text-theme-secondary mb-3">
                             Set the base URL for webhook endpoints. Use internal Docker hostnames (e.g., http://framerr:3001) for container-to-container communication.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex flex-col gap-2">
                             <input
                                 type="text"
                                 value={webhookBaseUrl}
                                 onChange={(e) => setWebhookBaseUrl(e.target.value)}
                                 placeholder="http://framerr:3001"
-                                className="flex-1 px-3 py-2 text-sm bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:ring-2 focus:ring-accent"
+                                className="w-full px-3 py-2 text-sm bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:ring-2 focus:ring-accent"
                             />
                             <div className="flex gap-2">
                                 <Button
@@ -645,6 +645,7 @@ const NotificationSettings = () => {
                                     variant="secondary"
                                     icon={Check}
                                     title="Save webhook base URL"
+                                    className="flex-1 sm:flex-none"
                                 >
                                     Save
                                 </Button>
@@ -653,6 +654,7 @@ const NotificationSettings = () => {
                                     variant="secondary"
                                     icon={RefreshCw}
                                     title="Reset to browser URL"
+                                    className="flex-1 sm:flex-none"
                                 >
                                     Reset
                                 </Button>

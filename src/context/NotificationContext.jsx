@@ -164,12 +164,35 @@ export const NotificationProvider = ({ children }) => {
             });
 
             setPushSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
+
+            // Check if we removed the current browser's subscription
+            if (swRegistration) {
+                const currentSub = await swRegistration.pushManager.getSubscription();
+                if (!currentSub) {
+                    // No subscription exists anymore for this browser
+                    setPushEnabled(false);
+                } else {
+                    // Check if any remaining subscriptions match current endpoint
+                    // If the one we deleted was this browser's, the backend won't have it
+                    // We need to re-check by looking at current subscriptions
+                    const updatedSubs = await axios.get('/api/notifications/push/subscriptions', {
+                        withCredentials: true
+                    });
+                    const stillExists = updatedSubs.data.subscriptions?.some(s =>
+                        currentSub.endpoint.includes(s.id) || s.endpoint === currentSub.endpoint
+                    );
+                    if (!stillExists) {
+                        setPushEnabled(false);
+                    }
+                }
+            }
+
             logger.info('[Push] Subscription removed', { subscriptionId });
         } catch (error) {
             logger.error('[Push] Failed to remove subscription', { error: error.message });
             throw error;
         }
-    }, []);
+    }, [swRegistration]);
 
     // Send test push notification
     const testPushNotification = useCallback(async () => {
