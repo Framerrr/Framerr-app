@@ -30,7 +30,8 @@ const OVERSEERR_EVENT_MAP = {
     'issue.reopened': 'issueReopened',
     // Test events
     'test': 'test',
-    'Test Notification': 'test'
+    'Test Notification': 'test',
+    'TEST_NOTIFICATION': 'test'
 };
 
 const SONARR_EVENT_MAP = {
@@ -108,9 +109,18 @@ router.post('/overseerr/:token', async (req, res) => {
 
     try {
         // Map Overseerr event to Framerr event key
-        const eventKey = OVERSEERR_EVENT_MAP[payload.event];
+        // Overseerr may use different field names depending on version/config
+        const eventType = payload.event || payload.notification_type || payload.notificationType || payload.type;
+        const eventKey = OVERSEERR_EVENT_MAP[eventType];
+
+        logger.debug('[Webhook] Overseerr event details', {
+            eventType,
+            eventKey,
+            payloadKeys: Object.keys(payload)
+        });
+
         if (!eventKey) {
-            logger.debug('[Webhook] Unknown Overseerr event type', { event: payload.event });
+            logger.debug('[Webhook] Unknown Overseerr event type', { eventType, payloadKeys: Object.keys(payload) });
             return res.status(200).json({ status: 'ignored', reason: 'Unknown event type' });
         }
 
