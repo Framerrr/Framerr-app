@@ -246,6 +246,53 @@ router.get('/resources', async (req, res) => {
 });
 
 /**
+ * GET /api/plex/admin-resources
+ * Get admin's Plex servers using stored token (for UI refresh)
+ * Requires admin authentication
+ */
+router.get('/admin-resources', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const config = await getSystemConfig();
+        const ssoConfig = config.plexSSO;
+
+        if (!ssoConfig?.adminToken) {
+            return res.status(400).json({ error: 'No Plex token configured' });
+        }
+
+        const clientId = await getClientIdentifier();
+
+        const response = await axios.get(
+            `${PLEX_TV_API}/resources`,
+            {
+                headers: getPlexHeaders(clientId, ssoConfig.adminToken),
+                params: { includeHttps: 1, includeRelay: 1 }
+            }
+        );
+
+        // Filter to only server devices
+        const servers = response.data
+            .filter(device => device.provides?.includes('server'))
+            .map(device => ({
+                name: device.name,
+                machineId: device.clientIdentifier,
+                owned: device.owned,
+                connections: device.connections?.map(conn => ({
+                    uri: conn.uri,
+                    local: conn.local,
+                    relay: conn.relay
+                })) || []
+            }));
+
+        logger.debug('[Plex] Found admin servers:', servers.length);
+
+        res.json(servers);
+    } catch (error) {
+        logger.error('[Plex] Failed to get admin resources:', error.message);
+        res.status(500).json({ error: 'Failed to get Plex servers' });
+    }
+});
+
+/**
  * GET /api/plex/users
  * Get server's shared users (friends)
  * Requires admin Plex token and server URL
@@ -352,11 +399,11 @@ router.post('/verify-user', async (req, res) => {
 /**
  * POST /api/plex/sso/config
  * Save Plex SSO configuration (admin only)
- * Body: { enabled, adminToken, adminEmail, machineId, autoCreateUsers, defaultGroup }
+ * Body: { enabled, adminToken, adminEmail, machineId, autoCreateUsers, defaultGroup, linkedUserId }
  */
 router.post('/sso/config', requireAuth, requireAdmin, async (req, res) => {
     try {
-        const { enabled, adminToken, adminEmail, adminPlexId, machineId, autoCreateUsers, defaultGroup } = req.body;
+        const { enabled, adminToken, adminEmail, adminPlexId, machineId, autoCreateUsers, defaultGroup, linkedUserId } = req.body;
 
         const config = await getSystemConfig();
         const existingConfig = config.plexSSO || {};
@@ -369,7 +416,8 @@ router.post('/sso/config', requireAuth, requireAdmin, async (req, res) => {
             adminPlexId: adminPlexId ?? existingConfig.adminPlexId,
             machineId: machineId ?? existingConfig.machineId,
             autoCreateUsers: autoCreateUsers ?? existingConfig.autoCreateUsers ?? false,
-            defaultGroup: defaultGroup ?? existingConfig.defaultGroup ?? 'user'
+            defaultGroup: defaultGroup ?? existingConfig.defaultGroup ?? 'user',
+            linkedUserId: linkedUserId ?? existingConfig.linkedUserId
         };
 
         await updateSystemConfig({ plexSSO: newConfig });
@@ -405,7 +453,8 @@ router.get('/sso/config', requireAuth, requireAdmin, async (req, res) => {
             autoCreateUsers: ssoConfig.autoCreateUsers || false,
             defaultGroup: ssoConfig.defaultGroup || 'user',
             hasToken: !!ssoConfig.adminToken,
-            clientIdentifier: ssoConfig.clientIdentifier
+            clientIdentifier: ssoConfig.clientIdentifier,
+            linkedUserId: ssoConfig.linkedUserId || ''
         });
     } catch (error) {
         logger.error('[Plex] Failed to get SSO config:', error.message);

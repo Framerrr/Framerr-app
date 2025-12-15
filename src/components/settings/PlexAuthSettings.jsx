@@ -26,7 +26,8 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
         machineId: '',
         autoCreateUsers: false,
         defaultGroup: 'user',
-        hasToken: false
+        hasToken: false,
+        linkedUserId: ''
     });
 
     // UI state
@@ -37,15 +38,26 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
     const [loadingServers, setLoadingServers] = useState(false);
     const [groups, setGroups] = useState([]);
 
+    // State for admin user linking
+    const [users, setUsers] = useState([]);
+
     useEffect(() => {
         fetchConfig();
         fetchGroups();
+        fetchUsers();
         return () => {
             if (pollIntervalRef.current) {
                 clearInterval(pollIntervalRef.current);
             }
         };
     }, []);
+
+    // Fetch servers when config is loaded and has token
+    useEffect(() => {
+        if (config.hasToken && servers.length === 0) {
+            fetchAdminServers();
+        }
+    }, [config.hasToken]);
 
     const fetchConfig = async () => {
         try {
@@ -66,6 +78,27 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
             }
         } catch (error) {
             logger.error('[PlexAuth] Failed to fetch groups:', error.message);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const response = await axios.get('/api/users', { withCredentials: true });
+            setUsers(response.data);
+        } catch (error) {
+            logger.error('[PlexAuth] Failed to fetch users:', error.message);
+        }
+    };
+
+    const fetchAdminServers = async () => {
+        setLoadingServers(true);
+        try {
+            const response = await axios.get('/api/plex/admin-resources', { withCredentials: true });
+            setServers(response.data);
+        } catch (error) {
+            logger.debug('[PlexAuth] Failed to fetch admin servers:', error.message);
+        } finally {
+            setLoadingServers(false);
         }
     };
 
@@ -167,7 +200,8 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
                 enabled: config.enabled,
                 machineId: config.machineId,
                 autoCreateUsers: config.autoCreateUsers,
-                defaultGroup: config.defaultGroup
+                defaultGroup: config.defaultGroup,
+                linkedUserId: config.linkedUserId
             }, { withCredentials: true });
 
             showSuccess('Settings Saved', 'Plex SSO configuration updated');
@@ -262,6 +296,29 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
             {/* Server Selection */}
             {config.hasToken && (
                 <div className="space-y-4">
+                    {/* Link to Framerr User */}
+                    <div>
+                        <label className="block text-sm font-medium text-theme-primary mb-2">
+                            Link Plex Account to User
+                        </label>
+                        <select
+                            value={config.linkedUserId || ''}
+                            onChange={(e) => handleChange('linkedUserId', e.target.value)}
+                            className="w-full px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
+                        >
+                            <option value="">No user linked (optional)</option>
+                            {users.filter(u => u.group === 'admin').map(user => (
+                                <option key={user.id} value={user.id}>
+                                    {user.displayName || user.username} (Admin)
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-theme-tertiary mt-1">
+                            Link this Plex account to a specific Framerr admin user
+                        </p>
+                    </div>
+
+                    {/* Server Selector */}
                     <div>
                         <label className="block text-sm font-medium text-theme-primary mb-2">
                             Plex Server
@@ -280,7 +337,7 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
                                 ))}
                             </select>
                             <button
-                                onClick={() => fetchServers(config.adminToken)}
+                                onClick={fetchAdminServers}
                                 disabled={loadingServers}
                                 className="px-3 py-2 border border-theme rounded-lg text-theme-secondary hover:bg-theme-hover transition-all"
                                 title="Refresh servers"
