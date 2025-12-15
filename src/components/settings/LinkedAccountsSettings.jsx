@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link2, Save, Loader, CheckCircle2, AlertCircle, Star, Info } from 'lucide-react';
+import { Link2, Save, Loader, CheckCircle2, Star, Info, Tv } from 'lucide-react';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -8,34 +8,49 @@ import logger from '../../utils/logger';
 
 /**
  * LinkedAccountsSettings - User's linked external service accounts
+ * Shows Plex SSO status (read-only) and editable Overseerr username
  * Allows users to link their Overseerr username for notification matching
  */
 const LinkedAccountsSettings = () => {
     const { user } = useAuth();
     const { success: showSuccess, error: showError } = useNotifications();
 
-    const [linkedAccounts, setLinkedAccounts] = useState({
+    // Database-stored linked accounts (e.g., Plex via SSO)
+    const [dbLinkedAccounts, setDbLinkedAccounts] = useState({});
+
+    // User preference-based linked accounts (editable, e.g., Overseerr)
+    const [prefLinkedAccounts, setPrefLinkedAccounts] = useState({
         overseerr: { username: '' }
     });
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Load user's linked accounts from preferences
+    // Load both database-stored links and preference-based links
     useEffect(() => {
-        fetchLinkedAccounts();
+        fetchAllLinkedAccounts();
     }, []);
 
-    const fetchLinkedAccounts = async () => {
+    const fetchAllLinkedAccounts = async () => {
         try {
-            const response = await fetch('/api/config/user', {
+            // Fetch database-stored linked accounts (Plex SSO, etc.)
+            const dbResponse = await fetch('/api/linked-accounts/me', {
                 credentials: 'include'
             });
-            if (response.ok) {
-                const data = await response.json();
-                // Extract linked accounts from preferences
+            if (dbResponse.ok) {
+                const data = await dbResponse.json();
+                setDbLinkedAccounts(data.accounts || {});
+            }
+
+            // Fetch user preferences for editable linked accounts
+            const prefResponse = await fetch('/api/config/user', {
+                credentials: 'include'
+            });
+            if (prefResponse.ok) {
+                const data = await prefResponse.json();
                 const accounts = data.preferences?.linkedAccounts || { overseerr: { username: '' } };
-                setLinkedAccounts(accounts);
+                setPrefLinkedAccounts(accounts);
             }
         } catch (error) {
             logger.error('Error fetching linked accounts:', error);
@@ -45,7 +60,7 @@ const LinkedAccountsSettings = () => {
     };
 
     const handleFieldChange = (service, field, value) => {
-        setLinkedAccounts(prev => ({
+        setPrefLinkedAccounts(prev => ({
             ...prev,
             [service]: {
                 ...prev[service],
@@ -64,7 +79,7 @@ const LinkedAccountsSettings = () => {
                 credentials: 'include',
                 body: JSON.stringify({
                     preferences: {
-                        linkedAccounts
+                        linkedAccounts: prefLinkedAccounts
                     }
                 })
             });
@@ -87,6 +102,10 @@ const LinkedAccountsSettings = () => {
     if (loading) {
         return <div className="text-center py-16 text-theme-secondary">Loading linked accounts...</div>;
     }
+
+    // Check if Plex is linked (from database - SSO login)
+    const plexAccount = dbLinkedAccounts.plex;
+    const isPlexLinked = !!plexAccount?.linked;
 
     return (
         <div>
@@ -117,7 +136,43 @@ const LinkedAccountsSettings = () => {
 
             {/* Linked Accounts List */}
             <div className="space-y-4">
-                {/* Overseerr Account */}
+                {/* Plex Account (read-only - linked via SSO) */}
+                <div className={`glass-subtle shadow-medium rounded-xl p-6 border ${isPlexLinked ? 'border-success/30' : 'border-theme'} card-glow`}>
+                    <div className="flex items-start gap-4">
+                        <div className={`p-3 rounded-lg ${isPlexLinked ? 'bg-success/20' : 'bg-theme-tertiary'}`}>
+                            <Tv className={isPlexLinked ? 'text-success' : 'text-theme-secondary'} size={24} />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-theme-primary">Plex</h3>
+                                {isPlexLinked && (
+                                    <span className="flex items-center gap-1 text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">
+                                        <CheckCircle2 size={12} />
+                                        Linked via SSO
+                                    </span>
+                                )}
+                            </div>
+
+                            {isPlexLinked ? (
+                                <div className="text-sm text-theme-secondary">
+                                    <p className="mb-2">Your Plex account is automatically linked through Single Sign-On.</p>
+                                    <div className="bg-theme-tertiary/50 rounded-lg p-3 space-y-1">
+                                        <p><span className="text-theme-tertiary">Username:</span> <span className="text-theme-primary">{plexAccount.externalUsername || 'Unknown'}</span></p>
+                                        {plexAccount.externalEmail && (
+                                            <p><span className="text-theme-tertiary">Email:</span> <span className="text-theme-primary">{plexAccount.externalEmail}</span></p>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-theme-secondary">
+                                    Log in with Plex to automatically link your account for notifications
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Overseerr Account (editable) */}
                 <div className="glass-subtle shadow-medium rounded-xl p-6 border border-theme card-glow">
                     <div className="flex items-start gap-4">
                         <div className="p-3 bg-theme-tertiary rounded-lg">
@@ -131,10 +186,14 @@ const LinkedAccountsSettings = () => {
 
                             <Input
                                 label="Overseerr Username"
-                                value={linkedAccounts.overseerr?.username || ''}
+                                value={prefLinkedAccounts.overseerr?.username || ''}
                                 onChange={(e) => handleFieldChange('overseerr', 'username', e.target.value)}
-                                placeholder="Your Overseerr username"
-                                helperText="This should match your username in Overseerr exactly"
+                                placeholder={isPlexLinked && plexAccount.externalUsername
+                                    ? `Often same as Plex: ${plexAccount.externalUsername}`
+                                    : 'Your Overseerr username'}
+                                helperText={isPlexLinked
+                                    ? "This is often the same as your Plex username shown above"
+                                    : "This should match your username in Overseerr exactly"}
                             />
                         </div>
                     </div>
