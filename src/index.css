@@ -16,9 +16,9 @@ body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
 
-    /* Prevent horizontal page overflow (native app-like behavior) */
+    /* Prevent page overflow and iOS bounce (native app-like behavior) */
     overflow-x: hidden;
-    overscroll-behavior-x: none;
+    overscroll-behavior: none;
 }
 
 /* Touch action - disable pinch-zoom while allowing pan/scroll */
