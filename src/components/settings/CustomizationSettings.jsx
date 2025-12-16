@@ -508,7 +508,7 @@ const CustomizationSettings = () => {
     };
 
     return (
-        <div className="space-y-6 fade-in">
+        <div className="space-y-6 fade-in scroll-contain-x">
             {/* Header */}
             <div className="mb-6 text-center">
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">

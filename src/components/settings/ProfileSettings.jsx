@@ -188,7 +188,7 @@ const ProfileSettings = () => {
     }
 
     return (
-        <div className="space-y-6 fade-in">
+        <div className="space-y-6 fade-in scroll-contain-x">
             {/* Header */}
             <div className="mb-6 text-center">
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">
@@ -265,9 +265,11 @@ const ProfileSettings = () => {
                             disabled={uploadingPicture}
                             icon={Upload}
                         >
-                            {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change Photo' : 'Upload Photo')}
+                            <span className="hidden sm:inline">
+                                {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change Photo' : 'Upload Photo')}
+                            </span>
                         </Button>
-                        <p className="text-xs text-theme-tertiary mt-2">
+                        <p className="hidden sm:block text-xs text-theme-tertiary mt-2">
                             JPG, PNG, GIF or WebP. Max 5MB.
                         </p>
                     </div>
