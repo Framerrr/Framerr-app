@@ -326,8 +326,8 @@ const IntegrationsSettings = () => {
                                         <span className={`
                                             px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
                                             ${configuredStatus
-                                                ? 'bg-success/10 text-success border border-success/20'
-                                                : 'bg-warning/10 text-warning border border-warning/20'
+                                                ? 'bg-success/10 text-success sm:border sm:border-success/20'
+                                                : 'bg-warning/10 text-warning sm:border sm:border-warning/20'
                                             }
                                         `}>
                                             <span>{configuredStatus ? '🟢' : '🟡'}</span>

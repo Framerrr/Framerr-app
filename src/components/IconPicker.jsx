@@ -72,7 +72,7 @@ const POPULAR_ICONS = [
     'Code', 'Code2', 'Terminal', 'Box', 'Layout', 'LayoutGrid'
 ];
 
-const IconPicker = ({ value, onChange }) => {
+const IconPicker = ({ value, onChange, compact = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState('icons'); // 'icons' or 'upload'
@@ -243,12 +243,19 @@ const IconPicker = ({ value, onChange }) => {
                 <button
                     ref={triggerRef}
                     type="button"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors w-full"
+                    className={compact
+                        ? "flex items-center justify-center p-2 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors"
+                        : "flex items-center gap-2 px-4 py-2.5 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors w-full"
+                    }
                     title={getIconDisplayName()}
                 >
-                    <CurrentIcon size={20} />
-                    <span className="flex-1 text-left truncate">{getIconDisplayName()}</span>
-                    <Search size={16} className="text-theme-secondary" />
+                    <CurrentIcon size={compact ? 18 : 20} />
+                    {!compact && (
+                        <>
+                            <span className="flex-1 text-left truncate">{getIconDisplayName()}</span>
+                            <Search size={16} className="text-theme-secondary" />
+                        </>
+                    )}
                 </button>
             </Popover.Trigger>
 
