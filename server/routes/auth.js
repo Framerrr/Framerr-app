@@ -6,7 +6,6 @@ const { getUser, getUserById, listUsers } = require('../db/users');
 const { getUserConfig } = require('../db/userConfig');
 const { getSystemConfig } = require('../db/systemConfig');
 const logger = require('../utils/logger');
-const xml2js = require('xml2js');
 // Get auth config helper
 // In real app this would come from system config
 const getAuthConfig = async () => {
@@ -193,57 +192,60 @@ router.post('/plex-login', async (req, res) => {
         const isPlexAdmin = plexUser.id.toString() === ssoConfig.adminPlexId?.toString();
 
         if (!isPlexAdmin) {
-            // Verify user has library access on admin's Plex server
-            // Use the /api/users endpoint which returns users with library sharing access
-            // Note: This endpoint returns XML, not JSON
-            const usersResponse = await axios.get('https://plex.tv/api/users', {
-                headers: {
-                    'X-Plex-Token': ssoConfig.adminToken
-                }
-            });
+            // Verify user has library access on the specific Plex server
+            // Use /api/v2/shared_servers/{machineId} which returns ONLY users with library access
+            // NOT /api/users which returns ALL friends (including those without library access)
 
-            // Parse XML response
-            let usersList = [];
-            try {
-                const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
-                const parsed = await parser.parseStringPromise(usersResponse.data);
-
-                // Extract users from MediaContainer.User
-                const users = parsed?.MediaContainer?.User;
-                if (users) {
-                    usersList = Array.isArray(users) ? users : [users];
-                }
-
-                logger.info('[PlexSSO] Parsed shared users:', {
-                    count: usersList.length,
-                    usernames: usersList.map(u => u.username || u.title).slice(0, 5).join(', '),
-                    lookingForId: plexUser.id,
-                    lookingForUsername: plexUser.username
-                });
-            } catch (parseError) {
-                logger.error('[PlexSSO] Failed to parse users XML:', parseError.message);
-                return res.status(500).json({ error: 'Failed to verify Plex access' });
+            if (!ssoConfig.machineId) {
+                logger.error('[PlexSSO] No machine ID configured');
+                return res.status(500).json({ error: 'Plex server not configured' });
             }
 
-            const hasLibraryAccess = usersList.some(sharedUser => {
-                const userId = sharedUser?.id;
-                const matches = userId?.toString() === plexUser.id.toString();
+            const sharedServersResponse = await axios.get(
+                `https://plex.tv/api/v2/shared_servers/${ssoConfig.machineId}`,
+                {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Plex-Token': ssoConfig.adminToken
+                    }
+                }
+            );
+
+            // Response is an array of shared server entries
+            // Each entry has: id, invitedId, invitedEmail, username, etc.
+            const sharedUsers = Array.isArray(sharedServersResponse.data)
+                ? sharedServersResponse.data
+                : [];
+
+            logger.info('[PlexSSO] Checking library access:', {
+                machineId: ssoConfig.machineId,
+                sharedUserCount: sharedUsers.length,
+                sharedUsernames: sharedUsers.map(u => u.username || u.invitedEmail).slice(0, 5).join(', '),
+                lookingForId: plexUser.id,
+                lookingForUsername: plexUser.username
+            });
+
+            // Check if logging-in user has library access on this server
+            const hasLibraryAccess = sharedUsers.some(sharedUser => {
+                // invitedId is the Plex user ID of the shared user
+                const matches = sharedUser.invitedId?.toString() === plexUser.id.toString();
                 if (matches) {
-                    logger.debug('[PlexSSO] Found matching user:', {
-                        sharedUserId: userId,
-                        sharedUsername: sharedUser?.username || sharedUser?.title
+                    logger.debug('[PlexSSO] Found matching shared user:', {
+                        invitedId: sharedUser.invitedId,
+                        username: sharedUser.username || sharedUser.invitedEmail
                     });
                 }
                 return matches;
             });
 
             if (!hasLibraryAccess) {
-                logger.warn('[PlexSSO] User does not have library access', {
+                logger.warn('[PlexSSO] User does not have library access on this server', {
                     plexUserId: plexUser.id,
                     plexUsername: plexUser.username,
-                    sharedUserCount: usersList.length
+                    machineId: ssoConfig.machineId,
+                    sharedUserCount: sharedUsers.length
                 });
-                return res.status(403).json({ error: 'You do not have access to this Plex server' });
+                return res.status(403).json({ error: 'You do not have library access on this Plex server' });
             }
 
             logger.info('[PlexSSO] User has library access', { plexUsername: plexUser.username });
