@@ -44,3 +44,10 @@ body {
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
 }
+
+/* Container query for profile button - hide text when container is narrow */
+@container (max-width: 280px) {
+    .profile-btn-text {
+        display: none;
+    }
+}

@@ -200,7 +200,7 @@ const ProfileSettings = () => {
             </div>
 
             {/* Profile Picture Section */}
-            <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6">
+            <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6 @container">
                 <h3 className="text-lg font-semibold text-theme-primary mb-8 flex items-center gap-2">
                     <UserCircle size={20} />
                     Profile Picture
@@ -265,7 +265,9 @@ const ProfileSettings = () => {
                             disabled={uploadingPicture}
                             icon={Upload}
                         >
-                            {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change' : 'Upload')}
+                            <span className="profile-btn-text">
+                                {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change' : 'Upload')}
+                            </span>
                         </Button>
                         <p className="hidden sm:block text-xs text-theme-tertiary mt-2">
                             JPG, PNG, GIF or WebP. Max 5MB.
