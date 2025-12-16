@@ -877,8 +877,8 @@ const Dashboard = () => {
                 sharedIntegrations={sharedIntegrations}
             />
 
-            {/* Bottom Spacer - Matches sidebar/tabbar margin from screen edge */}
-            <div style={{ height: LAYOUT.PAGE_MARGIN }} aria-hidden="true" />
+            {/* Bottom Spacer - On mobile: accounts for tab bar + gap. On desktop: just page margin */}
+            <div style={{ height: isMobile ? LAYOUT.TABBAR_HEIGHT + LAYOUT.PAGE_MARGIN : LAYOUT.PAGE_MARGIN }} aria-hidden="true" />
         </div>
     );
 };

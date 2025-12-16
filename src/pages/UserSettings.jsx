@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useLayout } from '../context/LayoutContext';
+import { LAYOUT } from '../constants/layout';
 import { isAdmin } from '../utils/permissions';
 import { Card } from '../components/common/Card';
 
@@ -21,6 +23,7 @@ import AdvancedSettings from '../components/settings/AdvancedSettings';
 const UserSettings = () => {
     const [activeTab, setActiveTab] = useState('tabs');
     const { user } = useAuth();
+    const { isMobile } = useLayout();
 
     // Parse query params from hash manually 
     // (useSearchParams doesn't work with hash-based routing!)
@@ -252,8 +255,8 @@ const UserSettings = () => {
                 </AnimatePresence>
             </Card>
 
-            {/* Bottom Spacer - Prevents content cutoff */}
-            <div style={{ height: '100px' }} className="md:h-32" aria-hidden="true" />
+            {/* Bottom Spacer - On mobile: accounts for tab bar + gap. On desktop: just page margin */}
+            <div style={{ height: isMobile ? LAYOUT.TABBAR_HEIGHT + LAYOUT.PAGE_MARGIN : LAYOUT.PAGE_MARGIN }} aria-hidden="true" />
         </div>
     );
 };

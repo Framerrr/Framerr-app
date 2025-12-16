@@ -63,7 +63,6 @@ const MainLayout = () => {
                     <main
                         className="flex-1 min-w-0"
                         style={{
-                            paddingBottom: isMobile ? `${LAYOUT.TABBAR_HEIGHT}px` : 0,
                             paddingLeft: isMobile ? 0 : `${LAYOUT.SIDEBAR_WIDTH}px`,
                             backgroundColor: 'var(--bg-primary)'
                         }}
