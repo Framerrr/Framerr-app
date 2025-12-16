@@ -265,14 +265,14 @@ class NotificationEmitter extends EventEmitter {
             return;
         }
 
-        // Check for SSE connection first
+        // TEMPORARY: Send BOTH SSE and Web Push for all notifications
+        // This helps debug Safari push issues
+        // TODO: Revert to selective routing after Safari issue is resolved
         if (this.hasConnection(userId)) {
-            // User has tab open - send SSE only
             this.sendSSE(userId, notification);
-        } else {
-            // No SSE connection - send Web Push
-            await this.sendWebPush(userId, notification);
         }
+        // Always send Web Push too (for testing)
+        await this.sendWebPush(userId, notification);
     }
 
     /**
