@@ -46,7 +46,7 @@ body {
 }
 
 /* Container query for profile button - hide text when container is narrow */
-@container (max-width: 320px) {
+@container (max-width: 240px) {
     .profile-btn-text {
         display: none;
     }
