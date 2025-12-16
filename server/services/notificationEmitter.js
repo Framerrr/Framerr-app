@@ -184,6 +184,12 @@ class NotificationEmitter extends EventEmitter {
                 return;
             }
 
+            logger.info('[WebPush] Sending to subscriptions', {
+                userId,
+                count: subscriptions.length,
+                endpoints: subscriptions.map(s => s.endpoint.slice(-30))
+            });
+
             const payload = JSON.stringify({
                 title: notification.title,
                 body: notification.message,
@@ -191,6 +197,8 @@ class NotificationEmitter extends EventEmitter {
                 id: notification.id,
                 timestamp: Date.now()
             });
+
+            logger.debug('[WebPush] Payload', { payload });
 
             const pushPromises = subscriptions.map(async (sub) => {
                 const pushSubscription = {
@@ -201,19 +209,34 @@ class NotificationEmitter extends EventEmitter {
                     }
                 };
 
+                logger.debug('[WebPush] Attempting push', {
+                    endpoint: sub.endpoint.slice(-30),
+                    hasP256dh: !!sub.p256dh,
+                    hasAuth: !!sub.auth,
+                    p256dhLength: sub.p256dh?.length,
+                    authLength: sub.auth?.length
+                });
+
                 try {
-                    await webpush.sendNotification(pushSubscription, payload);
+                    const result = await webpush.sendNotification(pushSubscription, payload);
                     updateLastUsed(sub.endpoint);
-                    logger.debug('[WebPush] Notification sent', { userId, endpoint: sub.endpoint.slice(-20) });
+                    logger.info('[WebPush] Push sent successfully', {
+                        userId,
+                        endpoint: sub.endpoint.slice(-30),
+                        statusCode: result?.statusCode,
+                        headers: result?.headers
+                    });
                 } catch (pushError) {
                     // Handle expired/invalid subscriptions
                     if (pushError.statusCode === 404 || pushError.statusCode === 410) {
-                        logger.info('[WebPush] Subscription expired, removing', { endpoint: sub.endpoint.slice(-20) });
+                        logger.info('[WebPush] Subscription expired, removing', { endpoint: sub.endpoint.slice(-30) });
                         deleteSubscriptionByEndpoint(sub.endpoint);
                     } else {
                         logger.error('[WebPush] Failed to send', {
                             userId,
+                            endpoint: sub.endpoint.slice(-30),
                             statusCode: pushError.statusCode,
+                            body: pushError.body,
                             error: pushError.message
                         });
                     }
@@ -222,7 +245,7 @@ class NotificationEmitter extends EventEmitter {
 
             await Promise.allSettled(pushPromises);
         } catch (error) {
-            logger.error('[WebPush] Error sending push notifications', { error: error.message, userId });
+            logger.error('[WebPush] Error sending push notifications', { error: error.message, stack: error.stack, userId });
         }
     }
 
