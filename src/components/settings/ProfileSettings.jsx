@@ -201,12 +201,12 @@ const ProfileSettings = () => {
 
             {/* Profile Picture Section */}
             <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6">
-                <h3 className="text-lg font-semibold text-theme-primary mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-theme-primary mb-6 flex items-center gap-2">
                     <UserCircle size={20} />
                     Profile Picture
                 </h3>
 
-                <div className="flex items-center gap-12">
+                <div className="flex items-center gap-6">
                     {/* Picture Display */}
                     <div className="relative">
                         {profilePicture ? (
