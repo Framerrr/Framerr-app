@@ -26,12 +26,12 @@ router.post('/login', async (req, res) => {
         const user = await getUser(username);
         if (!user) {
             logger.warn(`Login failed: User not found`, { username });
-            return res.status(401).json({ error: 'Invalid username or password' });
+            return res.status(401).json({ error: 'Login failed. Please check your credentials and try again.' });
         }
         const isValid = await verifyPassword(password, user.passwordHash);
         if (!isValid) {
             logger.warn(`Login failed: Invalid password`, { username });
-            return res.status(401).json({ error: 'Invalid username or password' });
+            return res.status(401).json({ error: 'Login failed. Please check your credentials and try again.' });
         }
         // Create session
         const expiresIn = rememberMe
@@ -191,6 +191,14 @@ router.post('/plex-login', async (req, res) => {
         // Check if this Plex user is the admin or has library access
         const isPlexAdmin = plexUser.id.toString() === ssoConfig.adminPlexId?.toString();
 
+        logger.info('[PlexSSO] Checking user access:', {
+            plexUserId: plexUser.id,
+            plexUsername: plexUser.username,
+            adminPlexId: ssoConfig.adminPlexId,
+            isPlexAdmin,
+            machineId: ssoConfig.machineId
+        });
+
         if (!isPlexAdmin) {
             // Verify user has library access on the specific Plex server
             // Use /api/v2/shared_servers/{machineId} which returns ONLY users with library access
@@ -201,38 +209,77 @@ router.post('/plex-login', async (req, res) => {
                 return res.status(500).json({ error: 'Plex server not configured' });
             }
 
-            const sharedServersResponse = await axios.get(
-                `https://plex.tv/api/v2/shared_servers/${ssoConfig.machineId}`,
-                {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Plex-Token': ssoConfig.adminToken
+            let sharedUsers = [];
+            try {
+                // Correct URL: /api/servers/{machineId}/shared_servers (NOT /api/v2/shared_servers/{machineId})
+                const sharedServersResponse = await axios.get(
+                    `https://plex.tv/api/servers/${ssoConfig.machineId}/shared_servers`,
+                    {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Plex-Token': ssoConfig.adminToken,
+                            'X-Plex-Client-Identifier': clientId
+                        }
                     }
-                }
-            );
+                );
 
-            // Response is an array of shared server entries
-            // Each entry has: id, invitedId, invitedEmail, username, etc.
-            const sharedUsers = Array.isArray(sharedServersResponse.data)
-                ? sharedServersResponse.data
-                : [];
+                // Log raw response for debugging - using INFO level to ensure visibility
+                const responseData = sharedServersResponse.data;
+                logger.info('[PlexSSO] shared_servers raw response:', {
+                    status: sharedServersResponse.status,
+                    dataType: typeof responseData,
+                    sampleData: (typeof responseData === 'string' ? responseData : JSON.stringify(responseData)).substring(0, 500)
+                });
+
+                // API returns XML, not JSON - need to parse it
+                if (typeof responseData === 'string' && responseData.includes('<?xml')) {
+                    const xml2js = require('xml2js');
+                    const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+                    const parsed = await parser.parseStringPromise(responseData);
+
+                    // Extract SharedServer entries from MediaContainer
+                    const sharedServers = parsed?.MediaContainer?.SharedServer;
+                    if (sharedServers) {
+                        sharedUsers = Array.isArray(sharedServers) ? sharedServers : [sharedServers];
+                    }
+
+                    logger.info('[PlexSSO] Parsed XML shared users:', {
+                        count: sharedUsers.length,
+                        userIds: sharedUsers.map(u => u.userID).slice(0, 10).join(', ')
+                    });
+                } else if (responseData?.MediaContainer?.SharedServer) {
+                    // JSON response (fallback)
+                    const sharedServers = responseData.MediaContainer.SharedServer;
+                    sharedUsers = Array.isArray(sharedServers) ? sharedServers : [sharedServers];
+                }
+            } catch (apiError) {
+                logger.error('[PlexSSO] Failed to fetch shared servers:', {
+                    error: apiError.message,
+                    status: apiError.response?.status,
+                    data: JSON.stringify(apiError.response?.data || {}).substring(0, 500)
+                });
+                return res.status(500).json({ error: 'Failed to verify library access' });
+            }
 
             logger.info('[PlexSSO] Checking library access:', {
                 machineId: ssoConfig.machineId,
                 sharedUserCount: sharedUsers.length,
-                sharedUsernames: sharedUsers.map(u => u.username || u.invitedEmail).slice(0, 5).join(', '),
+                sharedUsernames: sharedUsers.map(u => u.username || u.email).slice(0, 5).join(', '),
                 lookingForId: plexUser.id,
-                lookingForUsername: plexUser.username
+                lookingForUsername: plexUser.username,
+                // Log first user structure for debugging
+                firstUserFields: sharedUsers.length > 0 ? Object.keys(sharedUsers[0]).join(', ') : 'none'
             });
 
             // Check if logging-in user has library access on this server
             const hasLibraryAccess = sharedUsers.some(sharedUser => {
-                // invitedId is the Plex user ID of the shared user
-                const matches = sharedUser.invitedId?.toString() === plexUser.id.toString();
+                // Different API versions use different field names: userID, invitedId, or id
+                const sharedUserId = sharedUser.userID || sharedUser.invitedId || sharedUser.id;
+                const matches = sharedUserId?.toString() === plexUser.id.toString();
                 if (matches) {
                     logger.debug('[PlexSSO] Found matching shared user:', {
-                        invitedId: sharedUser.invitedId,
-                        username: sharedUser.username || sharedUser.invitedEmail
+                        userId: sharedUserId,
+                        username: sharedUser.username || sharedUser.email
                     });
                 }
                 return matches;
@@ -245,10 +292,12 @@ router.post('/plex-login', async (req, res) => {
                     machineId: ssoConfig.machineId,
                     sharedUserCount: sharedUsers.length
                 });
-                return res.status(403).json({ error: 'You do not have library access on this Plex server' });
+                return res.status(403).json({ error: 'Login failed. Please check your credentials and try again.' });
             }
 
             logger.info('[PlexSSO] User has library access', { plexUsername: plexUser.username });
+        } else {
+            logger.info('[PlexSSO] User is Plex admin, skipping library access check', { plexUsername: plexUser.username });
         }
 
         // Find or create Framerr user for this Plex user
@@ -311,7 +360,8 @@ router.post('/plex-login', async (req, res) => {
         }
 
         if (!user) {
-            return res.status(403).json({ error: 'No matching user found and auto-creation is disabled' });
+            logger.warn('[PlexSSO] No matching user found and auto-creation is disabled', { plexUsername: plexUser.username });
+            return res.status(403).json({ error: 'Login failed. Please check your credentials and try again.' });
         }
 
         // Create session
