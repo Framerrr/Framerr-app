@@ -5,7 +5,7 @@
  */
 
 // VERSION - Update this to force new SW installation
-const SW_VERSION = '1.0.4';
+const SW_VERSION = '1.0.5';
 
 // Cache name for app shell resources
 const CACHE_NAME = 'framerr-cache-v2';
@@ -106,9 +106,10 @@ self.addEventListener('push', (event) => {
         console.warn('[SW] Parse failed, using fallback:', e.message);
     }
 
-    // Safari: Keep options MINIMAL - just body and data
+    // Safari: Include icon - iOS may require this
     const options = {
         body: body,
+        icon: '/favicon-default/web-app-manifest-192x192.png',
         data: notificationData
     };
 
