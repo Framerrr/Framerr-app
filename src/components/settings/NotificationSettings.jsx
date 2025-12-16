@@ -35,6 +35,7 @@ const NotificationSettings = () => {
         pushEnabled,
         pushSubscriptions,
         subscribeToPush,
+        unsubscribeFromPush,
         removePushSubscription,
         testPushNotification,
         fetchPushSubscriptions
@@ -506,26 +507,22 @@ const NotificationSettings = () => {
                 ) : (
                     // Supported and permission not denied
                     <div className="space-y-4">
-                        {/* Enable Push Toggle / Request Permission */}
+                        {/* This Device Enable/Disable Toggle */}
                         <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
                             <div className="flex-1 flex items-center gap-3">
                                 {pushEnabled ? (
                                     <ShieldCheck size={20} className="text-success" />
-                                ) : pushPermission === 'granted' ? (
-                                    <Shield size={20} className="text-theme-tertiary" />
                                 ) : (
-                                    <Shield size={20} className="text-warning" />
+                                    <Shield size={20} className="text-theme-tertiary" />
                                 )}
                                 <div>
                                     <div className="text-sm font-medium text-theme-primary mb-1">
-                                        {pushEnabled ? 'Push Enabled' : pushPermission === 'granted' ? 'Enable Push' : 'Request Permission'}
+                                        Push Notifications on This Device
                                     </div>
                                     <div className="text-xs text-theme-tertiary">
                                         {pushEnabled
-                                            ? 'You will receive push notifications on this device'
-                                            : pushPermission === 'granted'
-                                                ? 'Click to subscribe this device to push notifications'
-                                                : 'Allow Framerr to send you push notifications'}
+                                            ? 'This device will receive push notifications'
+                                            : 'Enable to receive push notifications when Framerr is closed'}
                                     </div>
                                 </div>
                             </div>
@@ -533,19 +530,26 @@ const NotificationSettings = () => {
                                 onClick={async () => {
                                     setPushLoading(true);
                                     try {
-                                        await subscribeToPush();
-                                        showSuccess('Push Enabled', 'This device will now receive push notifications');
+                                        if (pushEnabled) {
+                                            // Disable - unsubscribe this device
+                                            await unsubscribeFromPush();
+                                            showSuccess('Push Disabled', 'This device will no longer receive push notifications');
+                                        } else {
+                                            // Enable - subscribe this device
+                                            await subscribeToPush();
+                                            showSuccess('Push Enabled', 'This device will now receive push notifications');
+                                        }
                                     } catch (err) {
-                                        showError('Error', err.message || 'Failed to enable push notifications');
+                                        showError('Error', err.message || 'Failed to update push settings');
                                     } finally {
                                         setPushLoading(false);
                                     }
                                 }}
-                                variant={pushEnabled ? 'secondary' : 'primary'}
-                                disabled={pushEnabled || pushLoading || !notificationsEnabled}
-                                icon={pushLoading ? undefined : (pushEnabled ? Check : Shield)}
+                                variant={pushEnabled ? 'danger' : 'primary'}
+                                disabled={pushLoading || !notificationsEnabled}
+                                icon={pushLoading ? undefined : (pushEnabled ? ShieldOff : Shield)}
                             >
-                                {pushLoading ? 'Enabling...' : (pushEnabled ? 'Enabled' : (pushPermission === 'granted' ? 'Enable' : 'Allow'))}
+                                {pushLoading ? (pushEnabled ? 'Disabling...' : 'Enabling...') : (pushEnabled ? 'Disable' : 'Enable')}
                             </Button>
                         </div>
 

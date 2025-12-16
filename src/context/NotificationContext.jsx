@@ -138,18 +138,40 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [pushSupported, swRegistration, pushPermission, requestPushPermission, fetchPushSubscriptions]);
 
-    // Unsubscribe from push notifications
+    // Unsubscribe THIS device from push notifications
     const unsubscribeFromPush = useCallback(async () => {
         if (!swRegistration) return;
 
         try {
             const subscription = await swRegistration.pushManager.getSubscription();
             if (subscription) {
+                // Find matching subscription on server by endpoint
+                const endpoint = subscription.endpoint;
+
+                // First, find the subscription ID that matches this endpoint
+                const response = await axios.get('/api/notifications/push/subscriptions', {
+                    withCredentials: true
+                });
+                const subs = response.data.subscriptions || [];
+
+                // Find subscription with matching endpoint (endpoints are unique)
+                // Server stores partial endpoint in id field
+                const matchingSub = subs.find(s => endpoint.includes(s.id) || s.endpoint === endpoint);
+
+                // Unsubscribe from browser
                 await subscription.unsubscribe();
+
+                // Delete from server if found
+                if (matchingSub) {
+                    await axios.delete(`/api/notifications/push/subscriptions/${matchingSub.id}`, {
+                        withCredentials: true
+                    });
+                    setPushSubscriptions(prev => prev.filter(s => s.id !== matchingSub.id));
+                }
             }
 
             setPushEnabled(false);
-            logger.info('[Push] Unsubscribed successfully');
+            logger.info('[Push] Unsubscribed this device successfully');
         } catch (error) {
             logger.error('[Push] Unsubscribe failed', { error: error.message });
             throw error;
@@ -163,35 +185,25 @@ export const NotificationProvider = ({ children }) => {
                 withCredentials: true
             });
 
-            setPushSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
+            // Update local state
+            setPushSubscriptions(prev => {
+                const remaining = prev.filter(s => s.id !== subscriptionId);
 
-            // After deleting, re-check if this browser still has a valid subscription on server
-            if (swRegistration) {
-                const currentSub = await swRegistration.pushManager.getSubscription();
-                if (currentSub) {
-                    // This browser has a subscription - check if it's still on server
-                    try {
-                        // Try to verify subscription still exists via register endpoint
-                        // If we get back the same subscription, it's still valid
-                        const response = await axios.get('/api/notifications/push/subscriptions', {
-                            withCredentials: true
-                        });
-                        const subs = response.data.subscriptions || [];
-
-                        // If no subscriptions left, this browser's sub was deleted
-                        if (subs.length === 0) {
-                            // Unsubscribe the browser too to keep in sync
-                            await currentSub.unsubscribe();
-                            setPushEnabled(false);
-                        }
-                    } catch (err) {
-                        // If check fails, just reset state to be safe
-                        setPushEnabled(false);
-                    }
-                } else {
+                // If this was the last subscription OR we deleted any subscription,
+                // reset pushEnabled to allow re-subscription
+                if (remaining.length === 0) {
                     setPushEnabled(false);
+
+                    // Also unsubscribe browser's push manager to keep in sync
+                    if (swRegistration) {
+                        swRegistration.pushManager.getSubscription().then(sub => {
+                            if (sub) sub.unsubscribe();
+                        });
+                    }
                 }
-            }
+
+                return remaining;
+            });
 
             logger.info('[Push] Subscription removed', { subscriptionId });
         } catch (error) {
