@@ -27,6 +27,7 @@ export const NotificationProvider = ({ children }) => {
     const [pushEnabled, setPushEnabled] = useState(false);
     const [pushSubscriptions, setPushSubscriptions] = useState([]);
     const [swRegistration, setSwRegistration] = useState(null);
+    const [currentEndpoint, setCurrentEndpoint] = useState(null);  // This device's push endpoint
 
     // Check if Web Push is supported
     useEffect(() => {
@@ -47,10 +48,11 @@ export const NotificationProvider = ({ children }) => {
                 logger.info('[Push] Service Worker registered');
                 setSwRegistration(registration);
 
-                // Check if already subscribed
+                // Check if already subscribed and store endpoint
                 registration.pushManager.getSubscription()
                     .then((subscription) => {
                         setPushEnabled(!!subscription);
+                        setCurrentEndpoint(subscription?.endpoint || null);
                     });
             })
             .catch((error) => {
@@ -127,6 +129,7 @@ export const NotificationProvider = ({ children }) => {
             });
 
             setPushEnabled(true);
+            setCurrentEndpoint(subscription.endpoint);  // Track this device's endpoint
             await fetchPushSubscriptions();
 
             logger.info('[Push] Subscribed successfully', { deviceName: autoDeviceName });
@@ -145,20 +148,12 @@ export const NotificationProvider = ({ children }) => {
         try {
             const subscription = await swRegistration.pushManager.getSubscription();
             if (subscription) {
-                // Find matching subscription on server by endpoint
                 const endpoint = subscription.endpoint;
 
-                // First, find the subscription ID that matches this endpoint
-                const response = await axios.get('/api/notifications/push/subscriptions', {
-                    withCredentials: true
-                });
-                const subs = response.data.subscriptions || [];
+                // Find matching subscription on server by exact endpoint
+                const matchingSub = pushSubscriptions.find(s => s.endpoint === endpoint);
 
-                // Find subscription with matching endpoint (endpoints are unique)
-                // Server stores partial endpoint in id field
-                const matchingSub = subs.find(s => endpoint.includes(s.id) || s.endpoint === endpoint);
-
-                // Unsubscribe from browser
+                // Unsubscribe from browser first
                 await subscription.unsubscribe();
 
                 // Delete from server if found
@@ -171,46 +166,50 @@ export const NotificationProvider = ({ children }) => {
             }
 
             setPushEnabled(false);
+            setCurrentEndpoint(null);
             logger.info('[Push] Unsubscribed this device successfully');
         } catch (error) {
             logger.error('[Push] Unsubscribe failed', { error: error.message });
             throw error;
         }
-    }, [swRegistration]);
+    }, [swRegistration, pushSubscriptions]);
 
     // Remove a specific push subscription
     const removePushSubscription = useCallback(async (subscriptionId) => {
         try {
+            // Find the subscription being removed to check if it's THIS device
+            const subToRemove = pushSubscriptions.find(s => s.id === subscriptionId);
+            const isThisDevice = subToRemove && subToRemove.endpoint === currentEndpoint;
+
             await axios.delete(`/api/notifications/push/subscriptions/${subscriptionId}`, {
                 withCredentials: true
             });
 
             // Update local state
-            setPushSubscriptions(prev => {
-                const remaining = prev.filter(s => s.id !== subscriptionId);
+            setPushSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
 
-                // If this was the last subscription OR we deleted any subscription,
-                // reset pushEnabled to allow re-subscription
-                if (remaining.length === 0) {
-                    setPushEnabled(false);
+            // If we removed THIS device, update pushEnabled and unsubscribe browser
+            if (isThisDevice) {
+                setPushEnabled(false);
+                setCurrentEndpoint(null);
 
-                    // Also unsubscribe browser's push manager to keep in sync
-                    if (swRegistration) {
-                        swRegistration.pushManager.getSubscription().then(sub => {
-                            if (sub) sub.unsubscribe();
-                        });
+                // Unsubscribe browser's push manager to keep in sync
+                if (swRegistration) {
+                    const browserSub = await swRegistration.pushManager.getSubscription();
+                    if (browserSub) {
+                        await browserSub.unsubscribe();
                     }
                 }
 
-                return remaining;
-            });
-
-            logger.info('[Push] Subscription removed', { subscriptionId });
+                logger.info('[Push] This device subscription removed');
+            } else {
+                logger.info('[Push] Other device subscription removed', { subscriptionId });
+            }
         } catch (error) {
             logger.error('[Push] Failed to remove subscription', { error: error.message });
             throw error;
         }
-    }, [swRegistration]);
+    }, [swRegistration, pushSubscriptions, currentEndpoint]);
 
     // Send test push notification
     const testPushNotification = useCallback(async () => {
@@ -501,6 +500,7 @@ export const NotificationProvider = ({ children }) => {
         pushPermission,
         pushEnabled,
         pushSubscriptions,
+        currentEndpoint,  // This device's push endpoint for identifying "this device"
 
         // Web Push actions
         requestPushPermission,

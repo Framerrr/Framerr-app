@@ -301,9 +301,10 @@ router.get('/push/subscriptions', requireAuth, async (req, res) => {
         const userId = req.user.id;
         const subscriptions = getSubscriptionsByUser(userId);
 
-        // Map to client-friendly format (don't expose keys)
+        // Map to client-friendly format (include endpoint for matching, don't expose keys)
         const result = subscriptions.map(sub => ({
             id: sub.id,
+            endpoint: sub.endpoint,  // Needed for client to identify "this device"
             deviceName: sub.device_name,
             lastUsed: sub.last_used,
             createdAt: sub.created_at

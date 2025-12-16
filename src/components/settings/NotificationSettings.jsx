@@ -34,6 +34,7 @@ const NotificationSettings = () => {
         pushPermission,
         pushEnabled,
         pushSubscriptions,
+        currentEndpoint,
         subscribeToPush,
         unsubscribeFromPush,
         removePushSubscription,
@@ -587,42 +588,55 @@ const NotificationSettings = () => {
                                     Subscribed Devices ({pushSubscriptions.length})
                                 </h4>
                                 <div className="space-y-2">
-                                    {pushSubscriptions.map((sub) => (
-                                        <div
-                                            key={sub.id}
-                                            className="flex items-center justify-between p-3 bg-theme-primary rounded-lg border border-theme"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Smartphone size={18} className="text-theme-secondary" />
-                                                <div>
-                                                    <div className="text-sm font-medium text-theme-primary">
-                                                        {sub.deviceName || 'Unknown Device'}
-                                                    </div>
-                                                    <div className="text-xs text-theme-tertiary">
-                                                        {sub.lastUsed
-                                                            ? `Last used: ${new Date(sub.lastUsed * 1000).toLocaleDateString()}`
-                                                            : `Added: ${new Date(sub.createdAt * 1000).toLocaleDateString()}`
-                                                        }
+                                    {pushSubscriptions.map((sub) => {
+                                        const isThisDevice = sub.endpoint === currentEndpoint;
+                                        return (
+                                            <div
+                                                key={sub.id}
+                                                className={`flex items-center justify-between p-3 rounded-lg border ${isThisDevice
+                                                        ? 'bg-accent/5 border-accent/30'
+                                                        : 'bg-theme-primary border-theme'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Smartphone size={18} className={isThisDevice ? 'text-accent' : 'text-theme-secondary'} />
+                                                    <div>
+                                                        <div className="text-sm font-medium text-theme-primary flex items-center gap-2">
+                                                            {sub.deviceName || 'Unknown Device'}
+                                                            {isThisDevice && (
+                                                                <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
+                                                                    This Device
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-theme-tertiary">
+                                                            {sub.lastUsed
+                                                                ? `Last used: ${new Date(sub.lastUsed * 1000).toLocaleDateString()}`
+                                                                : `Added: ${new Date(sub.createdAt * 1000).toLocaleDateString()}`
+                                                            }
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            await removePushSubscription(sub.id);
+                                                            showSuccess('Removed', isThisDevice
+                                                                ? 'Push notifications disabled for this device'
+                                                                : 'Device removed from push notifications'
+                                                            );
+                                                        } catch (err) {
+                                                            showError('Error', 'Failed to remove device');
+                                                        }
+                                                    }}
+                                                    className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+                                                    title={isThisDevice ? 'Disable push on this device' : 'Remove device'}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        await removePushSubscription(sub.id);
-                                                        await fetchPushSubscriptions();
-                                                        showSuccess('Removed', 'Device removed from push notifications');
-                                                    } catch (err) {
-                                                        showError('Error', 'Failed to remove device');
-                                                    }
-                                                }}
-                                                className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
-                                                title="Remove device"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
