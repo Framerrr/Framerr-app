@@ -33,6 +33,12 @@ export function LayoutProvider({ children }) {
     const [mode, setMode] = useState(getInitialMode);
 
     useEffect(() => {
+        // Immediately set the correct mode on mount (handles SSR mismatch)
+        const correctMode = window.innerWidth < LAYOUT.MOBILE_THRESHOLD ? 'mobile' : 'desktop';
+        if (correctMode !== mode) {
+            setMode(correctMode);
+        }
+
         let timeoutId;
 
         const handleResize = () => {
