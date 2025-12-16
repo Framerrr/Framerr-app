@@ -4,12 +4,17 @@
  * Handles Web Push notifications and app shell caching for faster loads.
  */
 
+// VERSION - Update this to force new SW installation
+const SW_VERSION = '1.0.1';
+
 // Cache name for app shell resources
-const CACHE_NAME = 'framerr-cache-v1';
+const CACHE_NAME = 'framerr-cache-v2';
 const STATIC_ASSETS = [
     '/',
     '/index.html'
 ];
+
+console.log('[SW] Framerr Service Worker version', SW_VERSION);
 
 // Install event - cache app shell
 self.addEventListener('install', (event) => {
@@ -71,7 +76,8 @@ self.addEventListener('fetch', (event) => {
 
 // Push event - handle incoming push notifications
 self.addEventListener('push', (event) => {
-    console.log('[SW] Push notification received');
+    console.log('[SW v' + SW_VERSION + '] Push notification received!');
+    console.log('[SW] Push event data exists:', !!event.data);
 
     let data = {
         title: 'Framerr',
@@ -81,7 +87,10 @@ self.addEventListener('push', (event) => {
 
     try {
         if (event.data) {
-            data = event.data.json();
+            const rawData = event.data.text();
+            console.log('[SW] Raw push data:', rawData);
+            data = JSON.parse(rawData);
+            console.log('[SW] Parsed push data:', data);
         }
     } catch (error) {
         console.error('[SW] Failed to parse push data:', error);
@@ -102,9 +111,18 @@ self.addEventListener('push', (event) => {
         }
     };
 
+    console.log('[SW] Showing notification with title:', data.title);
+    console.log('[SW] Notification options:', JSON.stringify(options));
+
     // IMPORTANT: Safari requires immediate notification display
     event.waitUntil(
         self.registration.showNotification(data.title, options)
+            .then(() => {
+                console.log('[SW] Notification displayed successfully!');
+            })
+            .catch((err) => {
+                console.error('[SW] Failed to show notification:', err);
+            })
     );
 });
 
