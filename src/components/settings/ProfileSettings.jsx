@@ -206,7 +206,7 @@ const ProfileSettings = () => {
                     Profile Picture
                 </h3>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-6 pt-2">
                     {/* Picture Display */}
                     <div className="relative">
                         {profilePicture ? (
