@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-16 12:55 EST  
+**Last Updated:** 2025-12-16 15:48 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,61 +20,48 @@
 
 ## Current State
 
-**Status:** ✅ Completed - Mobile Responsiveness Refinements
+**Status:** ✅ Completed - Global Web Push Toggle Implementation
 
 **This Session Summary:**
 
-### Mobile Scroll Containment ✅
-- Added global page lock (`overflow-x: hidden`, `overscroll-behavior-x: none`) in `index.css`
-- Created `.scroll-contain-x` utility class for horizontal scroll containment
-- Applied to: UserSettings, WidgetsSettings, AdvancedSettings, CustomizationSettings, AuthSettings, UsersSettings, DebugSettings, OverseerrWidget
+### Global Web Push Admin Toggle ✅
+- Added `webPushEnabled` setting to `systemConfig.js` (default: true)
+- Created `/api/config/web-push-status` endpoint for users to check status
+- Updated subscription endpoint to return 403 when globally disabled
+- Updated `notificationEmitter.js` to skip push delivery when disabled
+- Added `globalPushEnabled` state and `fetchGlobalPushStatus` to NotificationContext
+- Added admin toggle switch in Web Push section header
+- Section completely hidden for non-admin users when disabled
 
-### Widgets Page Mobile Responsiveness ✅
-- **ActiveWidgets**: Stats cards now inline 3-col (Total/Types/Avg Size), info row wraps, compact IconPicker on mobile
-- **IntegrationsSettings**: Service description hidden on mobile, configured badge shows emoji-only (🟢/🟡), no border on mobile
-- **SharedWidgets**: Revoke Access button shows trash icon only on mobile
-- **LinkedAccounts**: Plex SSO card cleaned up - tighter spacing, smaller text, icon hidden on tiny screens
-- **SystemHealthIntegration & PlexIntegration**: Same responsive treatment as IntegrationsSettings
-- **Test buttons**: Show result inline (icon changes to ✓/✗, text hidden on mobile)
-
-### IconPicker Improvements ✅
-- Added `compact` prop for icon-only button mode (used on mobile in ActiveWidgets)
-- Responsive popover sizing: `calc(100vw - 48px)` on mobile, 280px min, 24rem max
-- Increased z-index to 60 (now appears above modals which use z-50)
+### Files Modified
+| File | Changes |
+|------|---------|
+| `server/db/systemConfig.js` | Added `webPushEnabled` config key |
+| `server/routes/config.js` | Added `/api/config/web-push-status` endpoint |
+| `server/routes/notifications.js` | Block subscriptions when disabled |
+| `server/services/notificationEmitter.js` | Skip push when disabled |
+| `src/context/NotificationContext.jsx` | Added global status state & fetch |
+| `src/components/settings/NotificationSettings.jsx` | Admin toggle, conditional visibility |
 
 ### Build & Commits ✅
 - All changes committed to `feature/notification-integration`
-- Latest commit: `fix(IconPicker): increase z-index to 60 for modal compatibility`
-
----
-
-## Key Files Modified This Session
-
-| File | Changes |
-|------|---------|
-| `src/index.css` | Global page lock, `.scroll-contain-x` utility |
-| `src/components/IconPicker.jsx` | `compact` prop, responsive sizing, z-60 |
-| `src/components/settings/ActiveWidgets.jsx` | Stats inline, compact IconPicker, cleaner layout |
-| `src/components/settings/IntegrationsSettings.jsx` | Description hidden, badge emoji-only, test inline |
-| `src/components/settings/SharedWidgetsSettings.jsx` | Revoke button icon-only on mobile |
-| `src/components/settings/LinkedAccountsSettings.jsx` | Plex SSO card mobile cleanup |
-| `src/components/settings/integrations/SystemHealthIntegration.jsx` | Same responsive treatment |
-| `src/components/settings/integrations/PlexIntegration.jsx` | Same responsive treatment |
-| Multiple settings files | Added `scroll-contain-x` class |
+- Latest commit: `feat(notifications): add global Web Push toggle for admin control`
 
 ---
 
 ## Next Step
 
-**Continue mobile responsiveness review** - Test on actual mobile devices and address any remaining UI issues found. Consider reviewing other settings pages for similar mobile refinements.
+**Manual Testing** - Verify global toggle functionality:
+1. Toggle switch as admin → verify setting persists
+2. Disable → log in as non-admin → verify section is hidden
+3. Re-enable → verify section reappears for users
 
 ---
 
 ## TODO (Future Sessions)
 
 1. **Revert to selective routing** - Currently sending both SSE and Web Push for testing (on back burner per user)
-2. **Global admin toggle** - Add admin setting to disable Web Push feature entirely
-3. **Additional mobile testing** - Verify all changes on actual devices
+2. **Additional mobile testing** - Verify all changes on actual devices
 
 ---
 
