@@ -474,15 +474,34 @@ const NotificationSettings = () => {
                         </p>
                     </div>
                 ) : pushPermission === 'denied' ? (
-                    // Permission denied
+                    // Permission denied - show instructions and retry option
                     <div className="p-4 bg-error/10 border border-error/30 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                             <ShieldOff size={18} className="text-error" />
-                            <span className="text-sm font-medium text-theme-primary">Permission Denied</span>
+                            <span className="text-sm font-medium text-theme-primary">Notifications Blocked</span>
                         </div>
-                        <p className="text-xs text-theme-secondary">
-                            You've blocked push notifications. To enable them, click the lock icon in your browser's address bar and allow notifications.
+                        <p className="text-xs text-theme-secondary mb-3">
+                            {navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
+                                ? 'Safari: Open Safari Preferences → Websites → Notifications → Find this site and allow.'
+                                : 'Click the lock/site info icon in your address bar, find Notifications, and change to "Allow".'}
                         </p>
+                        <Button
+                            onClick={() => {
+                                // Force re-check permission state
+                                const currentPerm = Notification.permission;
+                                if (currentPerm !== 'denied') {
+                                    // Permission was reset, update state
+                                    window.location.reload();
+                                } else {
+                                    showError('Still Blocked', 'Please update your browser notification settings first, then try again.');
+                                }
+                            }}
+                            variant="secondary"
+                            size="sm"
+                            icon={RefreshCw}
+                        >
+                            Check Again
+                        </Button>
                     </div>
                 ) : (
                     // Supported and permission not denied

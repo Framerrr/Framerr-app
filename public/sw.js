@@ -5,7 +5,7 @@
  */
 
 // VERSION - Update this to force new SW installation
-const SW_VERSION = '1.0.3';
+const SW_VERSION = '1.0.4';
 
 // Cache name for app shell resources
 const CACHE_NAME = 'framerr-cache-v2';
@@ -74,52 +74,59 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Push event - handle incoming push notifications
+// Push event - Safari-robust handling
+// Safari WILL REVOKE subscription if showNotification fails 3 times
 self.addEventListener('push', (event) => {
-    console.log('[SW v' + SW_VERSION + '] Push notification received!');
-    console.log('[SW] Push event data exists:', !!event.data);
+    console.log('[SW v' + SW_VERSION + '] Push received');
 
-    let data = {
+    // Fallback notification - ALWAYS used if parsing fails
+    const fallback = {
         title: 'Framerr',
-        body: 'You have a new notification',
-        type: 'info'
+        body: 'New notification'
     };
 
+    let title = fallback.title;
+    let body = fallback.body;
+    let notificationData = {};
+
+    // Try to parse push data, but gracefully fallback
     try {
         if (event.data) {
-            const rawData = event.data.text();
-            console.log('[SW] Raw push data:', rawData);
-            data = JSON.parse(rawData);
-            console.log('[SW] Parsed push data:', data);
+            const payload = event.data.json();
+            title = payload.title || fallback.title;
+            body = payload.body || payload.message || fallback.body;
+            notificationData = {
+                url: '/',
+                notificationId: payload.id,
+                type: payload.type
+            };
+            console.log('[SW] Parsed:', title, body);
         }
-    } catch (error) {
-        console.error('[SW] Failed to parse push data:', error);
+    } catch (e) {
+        console.warn('[SW] Parse failed, using fallback:', e.message);
     }
 
-    // Notification options - Safari-compatible (minimal options)
+    // Safari: Keep options MINIMAL - just body and data
     const options = {
-        body: data.body || 'New notification',
-        // Safari doesn't support many notification options, keep it simple
-        data: {
-            url: '/',
-            notificationId: data.id,
-            type: data.type
-        }
+        body: body,
+        data: notificationData
     };
 
-    console.log('[SW] Showing notification with title:', data.title);
-    console.log('[SW] Notification options:', JSON.stringify(options));
+    // CRITICAL: This promise MUST resolve with a notification shown
+    // Safari revokes subscription after 3 failures
+    const showPromise = self.registration.showNotification(title, options)
+        .then(() => {
+            console.log('[SW] ✓ Notification shown');
+        })
+        .catch((err) => {
+            console.error('[SW] Primary notification failed:', err);
+            // Last resort - try with absolute minimum
+            return self.registration.showNotification('Framerr', { body: 'New notification' })
+                .then(() => console.log('[SW] ✓ Fallback notification shown'))
+                .catch((e) => console.error('[SW] ✗ All notifications failed:', e));
+        });
 
-    // IMPORTANT: Safari requires immediate notification display
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-            .then(() => {
-                console.log('[SW] Notification displayed successfully!');
-            })
-            .catch((err) => {
-                console.error('[SW] Failed to show notification:', err);
-            })
-    );
+    event.waitUntil(showPromise);
 });
 
 // Notification click event - navigate to app
