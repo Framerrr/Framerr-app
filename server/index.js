@@ -183,6 +183,15 @@ if (NODE_ENV === 'production') {
     const path = require('path');
     const distPath = path.join(__dirname, '../dist');
 
+    // Service Worker - prevent caching to ensure updates are picked up
+    app.get('/sw.js', (req, res) => {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Content-Type', 'application/javascript');
+        res.sendFile(path.join(distPath, 'sw.js'));
+    });
+
     // Serve static files
     app.use(express.static(distPath));
 
