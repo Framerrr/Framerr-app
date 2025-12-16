@@ -61,10 +61,12 @@ const MainLayout = () => {
                 <div className="flex w-full h-screen">
                     <Sidebar />
                     <main
-                        className="flex-1 min-w-0"
+                        className="flex-1 min-w-0 overflow-y-auto"
                         style={{
                             paddingLeft: isMobile ? 0 : `${LAYOUT.SIDEBAR_WIDTH}px`,
-                            backgroundColor: 'var(--bg-primary)'
+                            backgroundColor: 'var(--bg-primary)',
+                            overscrollBehavior: 'none',
+                            WebkitOverflowScrolling: 'auto'
                         }}
                     >
                         <Routes>
