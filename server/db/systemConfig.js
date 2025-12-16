@@ -65,7 +65,8 @@ const DEFAULT_CONFIG = {
         { id: 'media', name: 'Media', order: 0 },
         { id: 'downloads', name: 'Downloads', order: 1 },
         { id: 'system', name: 'System', order: 2 }
-    ]
+    ],
+    webPushEnabled: true  // Global toggle for Web Push notifications
 };
 
 /**
@@ -121,6 +122,9 @@ function buildConfigFromKeyValues(rows) {
                 break;
             case 'vapidKeys':
                 config.vapidKeys = parsed;
+                break;
+            case 'webPushEnabled':
+                config.webPushEnabled = parsed;
                 break;
         }
     }
@@ -223,7 +227,8 @@ async function updateSystemConfig(updates) {
         tabGroups: updates.tabGroups || currentConfig.tabGroups,
         plexSSO: updates.plexSSO ? { ...currentConfig.plexSSO, ...updates.plexSSO } : currentConfig.plexSSO,
         webhookBaseUrl: updates.webhookBaseUrl !== undefined ? updates.webhookBaseUrl : currentConfig.webhookBaseUrl,
-        vapidKeys: updates.vapidKeys ? { ...currentConfig.vapidKeys, ...updates.vapidKeys } : currentConfig.vapidKeys
+        vapidKeys: updates.vapidKeys ? { ...currentConfig.vapidKeys, ...updates.vapidKeys } : currentConfig.vapidKeys,
+        webPushEnabled: updates.webPushEnabled !== undefined ? updates.webPushEnabled : currentConfig.webPushEnabled
     };
 
     try {
@@ -274,6 +279,9 @@ async function updateSystemConfig(updates) {
             }
             if (updates.vapidKeys) {
                 upsert.run('vapidKeys', JSON.stringify(newConfig.vapidKeys));
+            }
+            if (updates.webPushEnabled !== undefined) {
+                upsert.run('webPushEnabled', JSON.stringify(newConfig.webPushEnabled));
             }
         });
 

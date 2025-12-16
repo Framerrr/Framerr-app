@@ -63,6 +63,23 @@ router.get('/app-name', async (req, res) => {
 });
 
 /**
+ * GET /api/config/web-push-status
+ * Get Web Push enabled status (public, requires auth)
+ * Users need to know if Web Push is globally enabled to show/hide the section
+ */
+router.get('/web-push-status', requireAuth, async (req, res) => {
+    try {
+        const config = await getSystemConfig();
+        res.json({
+            enabled: config.webPushEnabled !== false // Default true if not set
+        });
+    } catch (error) {
+        logger.error('Failed to get web push status', { error: error.message });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
  * GET /api/config/user
  * Get current user's configuration
  */

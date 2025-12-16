@@ -39,10 +39,13 @@ const NotificationSettings = () => {
         unsubscribeFromPush,
         removePushSubscription,
         testPushNotification,
-        fetchPushSubscriptions
+        fetchPushSubscriptions,
+        globalPushEnabled,
+        fetchGlobalPushStatus
     } = useNotifications();
     const { user } = useAuth();
     const [pushLoading, setPushLoading] = useState(false);
+    const [globalPushSaving, setGlobalPushSaving] = useState(false);
     const hasAdminAccess = isAdmin(user);
 
     // General settings
@@ -452,204 +455,243 @@ const NotificationSettings = () => {
                 </div>
             </div>
 
-            {/* Web Push Notifications Section */}
-            <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
-                <h3 className="text-lg font-semibold text-theme-primary mb-2 flex items-center gap-2">
-                    <Smartphone size={20} />
-                    Web Push Notifications
-                </h3>
-                <p className="text-sm text-theme-secondary mb-6">
-                    Receive notifications even when Framerr isn't open in your browser.
-                </p>
-
-                {!pushSupported ? (
-                    // Not supported
-                    <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                            <ShieldOff size={18} className="text-warning" />
-                            <span className="text-sm font-medium text-theme-primary">Not Supported</span>
-                        </div>
-                        <p className="text-xs text-theme-secondary">
-                            {navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
-                                ? 'Safari on iOS requires this app to be added to your home screen first. On macOS Safari 16+, push should work natively.'
-                                : 'Web Push notifications require HTTPS and a modern browser. Push is not available in this environment.'}
-                        </p>
-                    </div>
-                ) : pushPermission === 'denied' ? (
-                    // Permission denied - show instructions and retry option
-                    <div className="p-4 bg-error/10 border border-error/30 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                            <ShieldOff size={18} className="text-error" />
-                            <span className="text-sm font-medium text-theme-primary">Notifications Blocked</span>
-                        </div>
-                        <p className="text-xs text-theme-secondary mb-3">
-                            {navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
-                                ? 'Safari: Open Safari Preferences → Websites → Notifications → Find this site and allow.'
-                                : 'Click the lock/site info icon in your address bar, find Notifications, and change to "Allow".'}
-                        </p>
-                        <Button
-                            onClick={() => {
-                                // Force re-check permission state
-                                const currentPerm = Notification.permission;
-                                if (currentPerm !== 'denied') {
-                                    // Permission was reset, update state
-                                    window.location.reload();
-                                } else {
-                                    showError('Still Blocked', 'Please update your browser notification settings first, then try again.');
-                                }
-                            }}
-                            variant="secondary"
-                            size="sm"
-                            icon={RefreshCw}
-                        >
-                            Check Again
-                        </Button>
-                    </div>
-                ) : (
-                    // Supported and permission not denied
-                    <div className="space-y-4">
-                        {/* This Device Enable/Disable Toggle */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-theme-tertiary rounded-lg border border-theme">
+            {/* Web Push Notifications Section - Hide for non-admin if globally disabled */}
+            {(hasAdminAccess || globalPushEnabled) && (
+                <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+                        <h3 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
+                            <Smartphone size={20} />
+                            Web Push Notifications
+                        </h3>
+                        {/* Admin-only global toggle */}
+                        {hasAdminAccess && (
                             <div className="flex items-center gap-3">
-                                {pushEnabled ? (
-                                    <ShieldCheck size={20} className="text-success flex-shrink-0" />
-                                ) : (
-                                    <Shield size={20} className="text-theme-tertiary flex-shrink-0" />
-                                )}
-                                <div>
-                                    <div className="text-sm font-medium text-theme-primary mb-1">
-                                        Push Notifications on This Device
-                                    </div>
-                                    <div className="text-xs text-theme-tertiary">
-                                        {pushEnabled
-                                            ? 'This device will receive push notifications'
-                                            : 'Enable to receive push notifications when Framerr is closed'}
-                                    </div>
-                                </div>
-                            </div>
-                            <Button
-                                onClick={async () => {
-                                    setPushLoading(true);
-                                    try {
-                                        if (pushEnabled) {
-                                            // Disable - unsubscribe this device
-                                            await unsubscribeFromPush();
-                                            showSuccess('Push Disabled', 'This device will no longer receive push notifications');
-                                        } else {
-                                            // Enable - subscribe this device
-                                            await subscribeToPush();
-                                            showSuccess('Push Enabled', 'This device will now receive push notifications');
+                                <span className="text-sm text-theme-secondary">
+                                    {globalPushEnabled ? 'Enabled for all users' : 'Disabled for all users'}
+                                </span>
+                                <button
+                                    onClick={async () => {
+                                        setGlobalPushSaving(true);
+                                        try {
+                                            await axios.put('/api/config/system', {
+                                                webPushEnabled: !globalPushEnabled
+                                            }, { withCredentials: true });
+                                            await fetchGlobalPushStatus();
+                                            showSuccess(
+                                                globalPushEnabled ? 'Web Push Disabled' : 'Web Push Enabled',
+                                                globalPushEnabled
+                                                    ? 'Web Push is now disabled for all users'
+                                                    : 'Web Push is now enabled for all users'
+                                            );
+                                        } catch (err) {
+                                            showError('Error', 'Failed to update Web Push setting');
+                                        } finally {
+                                            setGlobalPushSaving(false);
                                         }
-                                    } catch (err) {
-                                        showError('Error', err.message || 'Failed to update push settings');
-                                    } finally {
-                                        setPushLoading(false);
+                                    }}
+                                    disabled={globalPushSaving}
+                                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${globalPushEnabled ? 'bg-success' : 'bg-theme-tertiary'
+                                        } ${globalPushSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${globalPushEnabled ? 'translate-x-6' : 'translate-x-0'
+                                        }`} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-sm text-theme-secondary mb-6">
+                        Receive notifications even when Framerr isn't open in your browser.
+                    </p>
+
+                    {!pushSupported ? (
+                        // Not supported
+                        <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <ShieldOff size={18} className="text-warning" />
+                                <span className="text-sm font-medium text-theme-primary">Not Supported</span>
+                            </div>
+                            <p className="text-xs text-theme-secondary">
+                                {navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
+                                    ? 'Safari on iOS requires this app to be added to your home screen first. On macOS Safari 16+, push should work natively.'
+                                    : 'Web Push notifications require HTTPS and a modern browser. Push is not available in this environment.'}
+                            </p>
+                        </div>
+                    ) : pushPermission === 'denied' ? (
+                        // Permission denied - show instructions and retry option
+                        <div className="p-4 bg-error/10 border border-error/30 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <ShieldOff size={18} className="text-error" />
+                                <span className="text-sm font-medium text-theme-primary">Notifications Blocked</span>
+                            </div>
+                            <p className="text-xs text-theme-secondary mb-3">
+                                {navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
+                                    ? 'Safari: Open Safari Preferences → Websites → Notifications → Find this site and allow.'
+                                    : 'Click the lock/site info icon in your address bar, find Notifications, and change to "Allow".'}
+                            </p>
+                            <Button
+                                onClick={() => {
+                                    // Force re-check permission state
+                                    const currentPerm = Notification.permission;
+                                    if (currentPerm !== 'denied') {
+                                        // Permission was reset, update state
+                                        window.location.reload();
+                                    } else {
+                                        showError('Still Blocked', 'Please update your browser notification settings first, then try again.');
                                     }
                                 }}
-                                variant={pushEnabled ? 'danger' : 'primary'}
-                                disabled={pushLoading || !notificationsEnabled}
-                                icon={pushLoading ? undefined : (pushEnabled ? ShieldOff : Shield)}
-                                className="w-full sm:w-auto flex-shrink-0"
+                                variant="secondary"
+                                size="sm"
+                                icon={RefreshCw}
                             >
-                                {pushLoading ? (pushEnabled ? 'Disabling...' : 'Enabling...') : (pushEnabled ? 'Disable' : 'Enable')}
+                                Check Again
                             </Button>
                         </div>
-
-                        {/* Test Push - Only show when enabled */}
-                        {pushEnabled && pushSubscriptions.length > 0 && (
+                    ) : (
+                        // Supported and permission not denied
+                        <div className="space-y-4">
+                            {/* This Device Enable/Disable Toggle */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-theme-tertiary rounded-lg border border-theme">
                                 <div className="flex items-center gap-3">
-                                    <Send size={20} className="text-accent flex-shrink-0" />
+                                    {pushEnabled ? (
+                                        <ShieldCheck size={20} className="text-success flex-shrink-0" />
+                                    ) : (
+                                        <Shield size={20} className="text-theme-tertiary flex-shrink-0" />
+                                    )}
                                     <div>
                                         <div className="text-sm font-medium text-theme-primary mb-1">
-                                            Test Push Notification
+                                            Push Notifications on This Device
                                         </div>
                                         <div className="text-xs text-theme-tertiary">
-                                            Send a test push notification to all your subscribed devices
+                                            {pushEnabled
+                                                ? 'This device will receive push notifications'
+                                                : 'Enable to receive push notifications when Framerr is closed'}
                                         </div>
                                     </div>
                                 </div>
                                 <Button
                                     onClick={async () => {
+                                        setPushLoading(true);
                                         try {
-                                            await testPushNotification();
-                                            showSuccess('Test Sent', 'Check your device for the push notification');
+                                            if (pushEnabled) {
+                                                // Disable - unsubscribe this device
+                                                await unsubscribeFromPush();
+                                                showSuccess('Push Disabled', 'This device will no longer receive push notifications');
+                                            } else {
+                                                // Enable - subscribe this device
+                                                await subscribeToPush();
+                                                showSuccess('Push Enabled', 'This device will now receive push notifications');
+                                            }
                                         } catch (err) {
-                                            showError('Error', err.message || 'Failed to send test push');
+                                            showError('Error', err.message || 'Failed to update push settings');
+                                        } finally {
+                                            setPushLoading(false);
                                         }
                                     }}
-                                    variant="secondary"
-                                    icon={Send}
+                                    variant={pushEnabled ? 'danger' : 'primary'}
+                                    disabled={pushLoading || !notificationsEnabled}
+                                    icon={pushLoading ? undefined : (pushEnabled ? ShieldOff : Shield)}
                                     className="w-full sm:w-auto flex-shrink-0"
                                 >
-                                    Send Test
+                                    {pushLoading ? (pushEnabled ? 'Disabling...' : 'Enabling...') : (pushEnabled ? 'Disable' : 'Enable')}
                                 </Button>
                             </div>
-                        )}
 
-                        {/* Subscribed Devices */}
-                        {pushSubscriptions.length > 0 && (
-                            <div className="mt-4">
-                                <h4 className="text-sm font-medium text-theme-primary mb-3 flex items-center gap-2">
-                                    <Smartphone size={16} />
-                                    Subscribed Devices ({pushSubscriptions.length})
-                                </h4>
-                                <div className="space-y-2">
-                                    {pushSubscriptions.map((sub) => {
-                                        const isThisDevice = sub.endpoint === currentEndpoint;
-                                        return (
-                                            <div
-                                                key={sub.id}
-                                                className={`flex items-center justify-between p-3 rounded-lg border ${isThisDevice
-                                                    ? 'bg-accent/5 border-accent/30'
-                                                    : 'bg-theme-primary border-theme'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <Smartphone size={18} className={isThisDevice ? 'text-accent' : 'text-theme-secondary'} />
-                                                    <div>
-                                                        <div className="text-sm font-medium text-theme-primary flex items-center gap-2">
-                                                            {sub.deviceName || 'Unknown Device'}
-                                                            {isThisDevice && (
-                                                                <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
-                                                                    This Device
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-xs text-theme-tertiary">
-                                                            {sub.lastUsed
-                                                                ? `Last used: ${new Date(sub.lastUsed * 1000).toLocaleDateString()}`
-                                                                : `Added: ${new Date(sub.createdAt * 1000).toLocaleDateString()}`
-                                                            }
+                            {/* Test Push - Only show when enabled */}
+                            {pushEnabled && pushSubscriptions.length > 0 && (
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-theme-tertiary rounded-lg border border-theme">
+                                    <div className="flex items-center gap-3">
+                                        <Send size={20} className="text-accent flex-shrink-0" />
+                                        <div>
+                                            <div className="text-sm font-medium text-theme-primary mb-1">
+                                                Test Push Notification
+                                            </div>
+                                            <div className="text-xs text-theme-tertiary">
+                                                Send a test push notification to all your subscribed devices
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={async () => {
+                                            try {
+                                                await testPushNotification();
+                                                showSuccess('Test Sent', 'Check your device for the push notification');
+                                            } catch (err) {
+                                                showError('Error', err.message || 'Failed to send test push');
+                                            }
+                                        }}
+                                        variant="secondary"
+                                        icon={Send}
+                                        className="w-full sm:w-auto flex-shrink-0"
+                                    >
+                                        Send Test
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Subscribed Devices */}
+                            {pushSubscriptions.length > 0 && (
+                                <div className="mt-4">
+                                    <h4 className="text-sm font-medium text-theme-primary mb-3 flex items-center gap-2">
+                                        <Smartphone size={16} />
+                                        Subscribed Devices ({pushSubscriptions.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {pushSubscriptions.map((sub) => {
+                                            const isThisDevice = sub.endpoint === currentEndpoint;
+                                            return (
+                                                <div
+                                                    key={sub.id}
+                                                    className={`flex items-center justify-between p-3 rounded-lg border ${isThisDevice
+                                                        ? 'bg-accent/5 border-accent/30'
+                                                        : 'bg-theme-primary border-theme'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Smartphone size={18} className={isThisDevice ? 'text-accent' : 'text-theme-secondary'} />
+                                                        <div>
+                                                            <div className="text-sm font-medium text-theme-primary flex items-center gap-2">
+                                                                {sub.deviceName || 'Unknown Device'}
+                                                                {isThisDevice && (
+                                                                    <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
+                                                                        This Device
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-xs text-theme-tertiary">
+                                                                {sub.lastUsed
+                                                                    ? `Last used: ${new Date(sub.lastUsed * 1000).toLocaleDateString()}`
+                                                                    : `Added: ${new Date(sub.createdAt * 1000).toLocaleDateString()}`
+                                                                }
+                                                            </div>
                                                         </div>
                                                     </div>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await removePushSubscription(sub.id);
+                                                                showSuccess('Removed', isThisDevice
+                                                                    ? 'Push notifications disabled for this device'
+                                                                    : 'Device removed from push notifications'
+                                                                );
+                                                            } catch (err) {
+                                                                showError('Error', 'Failed to remove device');
+                                                            }
+                                                        }}
+                                                        className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+                                                        title={isThisDevice ? 'Disable push on this device' : 'Remove device'}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    onClick={async () => {
-                                                        try {
-                                                            await removePushSubscription(sub.id);
-                                                            showSuccess('Removed', isThisDevice
-                                                                ? 'Push notifications disabled for this device'
-                                                                : 'Device removed from push notifications'
-                                                            );
-                                                        } catch (err) {
-                                                            showError('Error', 'Failed to remove device');
-                                                        }
-                                                    }}
-                                                    className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
-                                                    title={isThisDevice ? 'Disable push on this device' : 'Remove device'}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Integration Notifications Section */}
             <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">

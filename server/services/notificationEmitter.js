@@ -168,6 +168,18 @@ class NotificationEmitter extends EventEmitter {
      * @param {object} notification - Notification object
      */
     async sendWebPush(userId, notification) {
+        // Check if Web Push is globally enabled
+        try {
+            const { getSystemConfig } = getSystemConfigDb();
+            const config = await getSystemConfig();
+            if (config.webPushEnabled === false) {
+                logger.debug('[WebPush] Web Push globally disabled, skipping');
+                return;
+            }
+        } catch (configError) {
+            logger.warn('[WebPush] Could not check global config, proceeding', { error: configError.message });
+        }
+
         await this.initializeVapid();
 
         if (!this.vapidInitialized) {

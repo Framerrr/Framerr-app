@@ -255,6 +255,15 @@ router.get('/push/vapid-key', requireAuth, async (req, res) => {
  */
 router.post('/push/subscribe', requireAuth, async (req, res) => {
     try {
+        // Check if Web Push is globally enabled
+        const { getSystemConfig } = require('../db/systemConfig');
+        const systemConfig = await getSystemConfig();
+        if (systemConfig.webPushEnabled === false) {
+            return res.status(403).json({
+                error: 'Web Push notifications are disabled by the administrator'
+            });
+        }
+
         const userId = req.user.id;
         const { subscription, deviceName } = req.body;
 

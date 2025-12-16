@@ -28,6 +28,7 @@ export const NotificationProvider = ({ children }) => {
     const [pushSubscriptions, setPushSubscriptions] = useState([]);
     const [swRegistration, setSwRegistration] = useState(null);
     const [currentEndpoint, setCurrentEndpoint] = useState(null);  // This device's push endpoint
+    const [globalPushEnabled, setGlobalPushEnabled] = useState(true);  // Admin global toggle
 
     // Check if Web Push is supported
     useEffect(() => {
@@ -71,6 +72,22 @@ export const NotificationProvider = ({ children }) => {
             setPushSubscriptions(response.data.subscriptions || []);
         } catch (error) {
             logger.error('[Push] Failed to fetch subscriptions', { error: error.message });
+        }
+    }, [isAuthenticated]);
+
+    // Fetch global push status
+    const fetchGlobalPushStatus = useCallback(async () => {
+        if (!isAuthenticated) return;
+
+        try {
+            const response = await axios.get('/api/config/web-push-status', {
+                withCredentials: true
+            });
+            setGlobalPushEnabled(response.data.enabled !== false);
+        } catch (error) {
+            logger.error('[Push] Failed to fetch global push status', { error: error.message });
+            // Default to true if fetch fails
+            setGlobalPushEnabled(true);
         }
     }, [isAuthenticated]);
 
@@ -225,14 +242,16 @@ export const NotificationProvider = ({ children }) => {
         }
     }, []);
 
-    // Load push subscriptions when authenticated
+    // Load push subscriptions and global status when authenticated
     useEffect(() => {
         if (isAuthenticated && user) {
             fetchPushSubscriptions();
+            fetchGlobalPushStatus();
         } else {
             setPushSubscriptions([]);
+            setGlobalPushEnabled(true);
         }
-    }, [isAuthenticated, user, fetchPushSubscriptions]);
+    }, [isAuthenticated, user, fetchPushSubscriptions, fetchGlobalPushStatus]);
 
     // Fetch notifications from backend
     const fetchNotifications = useCallback(async (filters = {}) => {
@@ -501,6 +520,7 @@ export const NotificationProvider = ({ children }) => {
         pushEnabled,
         pushSubscriptions,
         currentEndpoint,  // This device's push endpoint for identifying "this device"
+        globalPushEnabled,  // Admin global toggle status
 
         // Web Push actions
         requestPushPermission,
@@ -509,6 +529,7 @@ export const NotificationProvider = ({ children }) => {
         removePushSubscription,
         testPushNotification,
         fetchPushSubscriptions,
+        fetchGlobalPushStatus,  // Refresh global status
 
         // Internal state setters (for SSE)
         setConnected,
