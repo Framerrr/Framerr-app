@@ -74,7 +74,15 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
         try {
             const response = await axios.get('/api/config/system', { withCredentials: true });
             if (response.data.groups) {
-                setGroups(Object.keys(response.data.groups));
+                // Groups can be array of {id, name, ...} or object {groupId: {...}}
+                const groupsData = response.data.groups;
+                if (Array.isArray(groupsData)) {
+                    // Array format: extract IDs
+                    setGroups(groupsData.map(g => g.id));
+                } else {
+                    // Object format: use keys
+                    setGroups(Object.keys(groupsData));
+                }
             }
         } catch (error) {
             logger.error('[PlexAuth] Failed to fetch groups:', error.message);
@@ -253,19 +261,19 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
 
             {/* Plex Connection Status */}
             <div className="p-4 rounded-lg border border-theme bg-theme-tertiary">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         {config.hasToken ? (
                             <>
-                                <CheckCircle size={20} className="text-success" />
+                                <CheckCircle size={20} className="text-success flex-shrink-0" />
                                 <div>
                                     <p className="text-sm font-medium text-theme-primary">Connected to Plex</p>
-                                    <p className="text-xs text-theme-secondary">{config.adminEmail}</p>
+                                    <p className="text-xs text-theme-secondary break-all">{config.adminEmail}</p>
                                 </div>
                             </>
                         ) : (
                             <>
-                                <AlertCircle size={20} className="text-warning" />
+                                <AlertCircle size={20} className="text-warning flex-shrink-0" />
                                 <div>
                                     <p className="text-sm font-medium text-theme-primary">Not Connected</p>
                                     <p className="text-xs text-theme-secondary">Login with Plex to configure SSO</p>
@@ -276,7 +284,7 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
                     <button
                         onClick={handlePlexLogin}
                         disabled={authenticating}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#e5a00d] hover:bg-[#c88a0b] text-black font-medium rounded-lg transition-all disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-[#e5a00d] hover:bg-[#c88a0b] text-black font-medium rounded-lg transition-all disabled:opacity-50 flex-shrink-0"
                     >
                         {authenticating ? (
                             <>
