@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X, Tv } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -48,6 +48,10 @@ const AuthSettings = () => {
     const [showAuthentikInstructions, setShowAuthentikInstructions] = useState(false);
     const [testingOAuth, setTestingOAuth] = useState(false);
 
+    // Plex SSO integration
+    const [plexHasChanges, setPlexHasChanges] = useState(false);
+    const plexSaveRef = useRef(null);
+
     useEffect(() => {
         fetchSettings();
     }, []);
@@ -75,7 +79,9 @@ const AuthSettings = () => {
             authDetectionSensitivity,
             customAuthPatterns
         };
-        setHasChanges(JSON.stringify(current) !== JSON.stringify(originalSettings));
+        // hasChanges for proxy/iframe tabs only (Plex has its own tracking)
+        const proxyIframeChanged = JSON.stringify(current) !== JSON.stringify(originalSettings);
+        setHasChanges(proxyIframeChanged);
     }, [proxyEnabled, headerName, emailHeaderName, whitelist, overrideLogout, logoutUrl,
         iframeEnabled, oauthEndpoint, clientId, redirectUri, scopes,
         authDetectionSensitivity, customAuthPatterns, originalSettings]);
@@ -136,6 +142,12 @@ const AuthSettings = () => {
     };
 
     const handleSave = async () => {
+        // If on Plex tab, delegate to PlexAuthSettings save
+        if (activeTab === 'plex' && plexSaveRef.current) {
+            await plexSaveRef.current();
+            return;
+        }
+
         setSaving(true);
         try {
             const whitelistArray = whitelist
@@ -400,7 +412,10 @@ const AuthSettings = () => {
 
             {/* Plex SSO Tab */}
             {activeTab === 'plex' && (
-                <PlexAuthSettings />
+                <PlexAuthSettings
+                    onSaveNeeded={setPlexHasChanges}
+                    onSave={plexSaveRef}
+                />
             )}
 
             {/* iFrame Auth Tab */}
@@ -661,7 +676,7 @@ const AuthSettings = () => {
             <div className="flex gap-3">
                 <Button
                     onClick={handleSave}
-                    disabled={!hasChanges || saving}
+                    disabled={activeTab === 'plex' ? !plexHasChanges : (!hasChanges || saving)}
                     icon={saving ? Loader : Save}
                 >
                     {saving ? 'Saving...' : 'Save Settings'}

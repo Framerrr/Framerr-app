@@ -15,7 +15,7 @@ import { Input } from '../common/Input';
 import { useNotifications } from '../../context/NotificationContext';
 import logger from '../../utils/logger';
 
-const PlexAuthSettings = ({ onSaveNeeded }) => {
+const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
     const { success: showSuccess, error: showError } = useNotifications();
     const pollIntervalRef = useRef(null);
 
@@ -41,6 +41,9 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
     // State for admin user linking
     const [users, setUsers] = useState([]);
 
+    // Change tracking
+    const [originalConfig, setOriginalConfig] = useState(null);
+
     useEffect(() => {
         fetchConfig();
         fetchGroups();
@@ -63,6 +66,7 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
         try {
             const response = await axios.get('/api/plex/sso/config', { withCredentials: true });
             setConfig(response.data);
+            setOriginalConfig(response.data);
         } catch (error) {
             logger.error('[PlexAuth] Failed to fetch config:', error.message);
         } finally {
@@ -213,6 +217,8 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
             }, { withCredentials: true });
 
             showSuccess('Settings Saved', 'Plex SSO configuration updated');
+            setOriginalConfig(config); // Reset change tracking
+            if (onSaveNeeded) onSaveNeeded(false);
         } catch (error) {
             logger.error('[PlexAuth] Failed to save:', error.message);
             showError('Save Failed', error.message);
@@ -220,6 +226,27 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
             setSaving(false);
         }
     };
+
+    // Expose save function to parent
+    useEffect(() => {
+        if (onSave) {
+            onSave.current = handleSave;
+        }
+    }, [config]);
+
+    // Track changes and notify parent
+    useEffect(() => {
+        if (!originalConfig || !onSaveNeeded) return;
+
+        const hasChanges =
+            config.enabled !== originalConfig.enabled ||
+            config.machineId !== originalConfig.machineId ||
+            config.autoCreateUsers !== originalConfig.autoCreateUsers ||
+            config.defaultGroup !== originalConfig.defaultGroup ||
+            config.linkedUserId !== originalConfig.linkedUserId;
+
+        onSaveNeeded(hasChanges);
+    }, [config, originalConfig]);
 
     const handleChange = (field, value) => {
         setConfig(prev => ({ ...prev, [field]: value }));
@@ -400,27 +427,6 @@ const PlexAuthSettings = ({ onSaveNeeded }) => {
                     )}
                 </div>
             )}
-
-            {/* Save Button */}
-            <div className="pt-4 border-t border-theme">
-                <button
-                    onClick={handleSave}
-                    disabled={saving || !config.hasToken}
-                    className="flex items-center gap-2 px-6 py-2 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {saving ? (
-                        <>
-                            <Loader className="animate-spin" size={18} />
-                            Saving...
-                        </>
-                    ) : (
-                        <>
-                            <Save size={18} />
-                            Save Plex SSO Settings
-                        </>
-                    )}
-                </button>
-            </div>
         </div>
     );
 };
