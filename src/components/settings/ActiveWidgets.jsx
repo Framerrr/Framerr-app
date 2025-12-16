@@ -153,26 +153,26 @@ const ActiveWidgets = () => {
 
     return (
         <div className="fade-in">
-            {/* Stats */}
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="glass-subtle shadow-medium rounded-xl p-4 border border-theme">
-                    <div className="text-2xl font-bold text-theme-primary">{stats.total}</div>
-                    <div className="text-sm text-theme-secondary">Total Widgets</div>
+            {/* Stats - Inline on mobile */}
+            <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="glass-subtle shadow-medium rounded-xl p-3 sm:p-4 border border-theme text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-theme-primary">{stats.total}</div>
+                    <div className="text-xs sm:text-sm text-theme-secondary">Total</div>
                 </div>
-                <div className="glass-subtle shadow-medium rounded-xl p-4 border border-theme">
-                    <div className="text-2xl font-bold text-theme-primary">{Object.keys(stats.byType).length}</div>
-                    <div className="text-sm text-theme-secondary">Widget Types</div>
+                <div className="glass-subtle shadow-medium rounded-xl p-3 sm:p-4 border border-theme text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-theme-primary">{Object.keys(stats.byType).length}</div>
+                    <div className="text-xs sm:text-sm text-theme-secondary">Types</div>
                 </div>
-                <div className="glass-subtle shadow-medium rounded-xl p-4 border border-theme">
-                    <div className="text-2xl font-bold text-theme-primary">
+                <div className="glass-subtle shadow-medium rounded-xl p-3 sm:p-4 border border-theme text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-theme-primary">
                         {Math.round(widgets.reduce((sum, w) => sum + (w.w * w.h), 0) / stats.total)}
                     </div>
-                    <div className="text-sm text-theme-secondary">Avg Size (cells)</div>
+                    <div className="text-xs sm:text-sm text-theme-secondary">Avg Size</div>
                 </div>
             </div>
 
             {/* Widget List */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
                 {widgets.map(widget => {
                     const metadata = getWidgetMetadata(widget.type);
                     const customIcon = widget.config?.customIcon;
@@ -180,12 +180,12 @@ const ActiveWidgets = () => {
                     return (
                         <div
                             key={widget.id}
-                            className="glass-subtle shadow-medium rounded-xl p-6 border border-theme card-glow"
+                            className="glass-subtle shadow-medium rounded-xl p-4 sm:p-6 border border-theme card-glow"
                         >
                             {/* Header Row */}
-                            <div className="flex items-start gap-4 mb-4">
+                            <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
                                 {/* Icon - Using Centralized IconPicker */}
-                                <div className="flex-shrink-0">
+                                <div className="flex-shrink-0 hidden sm:block">
                                     <IconPicker
                                         value={customIcon || getWidgetIconName(widget.type)}
                                         onChange={(iconName) => handleIconSelect(widget.id, iconName)}
@@ -194,15 +194,15 @@ const ActiveWidgets = () => {
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-theme-primary mb-1 truncate">
+                                    <h4 className="font-semibold text-theme-primary mb-1 truncate text-sm sm:text-base">
                                         {widget.config?.title || metadata.name}
                                     </h4>
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-secondary">
-                                        <span className="whitespace-nowrap">Type: {metadata.name}</span>
-                                        <span className="hidden sm:inline">•</span>
-                                        <span className="whitespace-nowrap">Size: {widget.w}x{widget.h}</span>
-                                        <span className="hidden sm:inline">•</span>
-                                        <span className="whitespace-nowrap">Pos: ({widget.x}, {widget.y})</span>
+                                    <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-xs text-theme-secondary">
+                                        <span className="whitespace-nowrap">{metadata.name}</span>
+                                        <span>•</span>
+                                        <span className="whitespace-nowrap">{widget.w}x{widget.h}</span>
+                                        <span className="hidden xs:inline">•</span>
+                                        <span className="hidden xs:inline whitespace-nowrap">({widget.x},{widget.y})</span>
                                     </div>
                                 </div>
 

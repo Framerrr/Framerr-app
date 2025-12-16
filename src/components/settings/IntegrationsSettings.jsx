@@ -382,29 +382,21 @@ const IntegrationsSettings = () => {
                                             />
 
                                             {/* Test Connection & Reset */}
-                                            <div className="flex items-center justify-between gap-3 pt-2">
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
                                                 <div className="flex items-center gap-3">
                                                     <Button
                                                         onClick={() => handleTest(config.id)}
                                                         disabled={testState?.loading}
-                                                        variant="secondary"
+                                                        variant={testState && !testState.loading ? (testState.success ? 'primary' : 'danger') : 'secondary'}
                                                         size="sm"
-                                                        icon={testState?.loading ? Loader : TestTube}
+                                                        icon={testState?.loading ? Loader : (testState?.success ? CheckCircle2 : testState ? AlertCircle : TestTube)}
+                                                        className={testState && !testState.loading && testState.success ? 'bg-success border-success' : ''}
                                                     >
-                                                        {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                                        {testState?.loading ? 'Testing...' :
+                                                            testState?.success ? <span className="hidden sm:inline">Connected</span> :
+                                                                testState ? <span className="hidden sm:inline">Failed</span> :
+                                                                    'Test'}
                                                     </Button>
-
-                                                    {/* Test Result */}
-                                                    {testState && !testState.loading && (
-                                                        <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'}`}>
-                                                            {testState.success ? (
-                                                                <CheckCircle2 size={16} />
-                                                            ) : (
-                                                                <AlertCircle size={16} />
-                                                            )}
-                                                            <span>{testState.message}</span>
-                                                        </div>
-                                                    )}
                                                 </div>
 
                                                 {/* Reset Integration Button with inline confirmation */}

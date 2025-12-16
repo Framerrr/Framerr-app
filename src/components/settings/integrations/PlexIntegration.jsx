@@ -218,20 +218,21 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                     <Tv className="text-theme-secondary" size={20} />
                     <div className="flex-1 min-w-0 text-left">
                         <h3 className="font-semibold text-theme-primary">Plex</h3>
-                        <p className="text-sm text-theme-secondary">Media server integration</p>
+                        <p className="text-sm text-theme-secondary hidden sm:block">Media server integration</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Connection status badge (when not expanded) */}
                     {!isExpanded && config.enabled && (
                         <span className={`
-                            px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
+                            px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
                             ${isConfigured
                                 ? 'bg-success/10 text-success border border-success/20'
                                 : 'bg-warning/10 text-warning border border-warning/20'
                             }
                         `}>
-                            {isConfigured ? '🟢 Configured' : '🟡 Setup Required'}
+                            <span>{isConfigured ? '🟢' : '🟡'}</span>
+                            <span className="hidden sm:inline">{isConfigured ? 'Configured' : 'Setup Required'}</span>
                         </span>
                     )}
 
@@ -377,18 +378,15 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                                 <Button
                                     onClick={handleTest}
                                     disabled={!config.url || !config.token || testState?.loading}
-                                    icon={testState?.loading ? Loader : TestTube}
-                                    variant="secondary"
+                                    icon={testState?.loading ? Loader : (testState?.success ? CheckCircle2 : testState ? AlertCircle : TestTube)}
+                                    variant={testState && !testState.loading ? (testState.success ? 'primary' : 'danger') : 'secondary'}
+                                    className={testState && !testState.loading && testState.success ? 'bg-success border-success' : ''}
                                 >
-                                    {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                    {testState?.loading ? 'Testing...' :
+                                        testState?.success ? <><span className="hidden sm:inline">Connected</span></> :
+                                            testState ? <><span className="hidden sm:inline">Failed</span></> :
+                                                'Test'}
                                 </Button>
-
-                                {testState && !testState.loading && (
-                                    <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'}`}>
-                                        {testState.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                                        {testState.message}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </motion.div>
