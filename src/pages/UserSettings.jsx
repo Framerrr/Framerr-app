@@ -88,7 +88,7 @@ const UserSettings = () => {
     };
 
     return (
-        <div className="w-full p-2 md:p-8 max-w-[2000px] mx-auto" style={{ overscrollBehavior: 'none' }}>
+        <div className="w-full p-2 md:p-8 max-w-[2000px] mx-auto">
             {/* Page Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-white">
