@@ -137,29 +137,29 @@ const LinkedAccountsSettings = () => {
             {/* Linked Accounts List */}
             <div className="space-y-4">
                 {/* Plex Account (read-only - linked via SSO) */}
-                <div className={`glass-subtle shadow-medium rounded-xl p-6 border ${isPlexLinked ? 'border-success/30' : 'border-theme'} card-glow`}>
-                    <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-lg ${isPlexLinked ? 'bg-success/20' : 'bg-theme-tertiary'}`}>
-                            <Tv className={isPlexLinked ? 'text-success' : 'text-theme-secondary'} size={24} />
+                <div className={`glass-subtle shadow-medium rounded-xl p-4 sm:p-6 border ${isPlexLinked ? 'border-success/30' : 'border-theme'} card-glow`}>
+                    <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ${isPlexLinked ? 'bg-success/20' : 'bg-theme-tertiary'}`}>
+                            <Tv className={isPlexLinked ? 'text-success' : 'text-theme-secondary'} size={20} />
                         </div>
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                        <div className="flex-1 min-w-0 w-full">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <h3 className="font-semibold text-theme-primary">Plex</h3>
                                 {isPlexLinked && (
-                                    <span className="flex items-center gap-1 text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">
+                                    <span className="flex items-center gap-1 text-xs bg-success/20 text-success px-2 py-0.5 rounded-full whitespace-nowrap">
                                         <CheckCircle2 size={12} />
-                                        Linked via SSO
+                                        <span className="hidden xs:inline">Linked via</span> SSO
                                     </span>
                                 )}
                             </div>
 
                             {isPlexLinked ? (
                                 <div className="text-sm text-theme-secondary">
-                                    <p className="mb-2">Your Plex account is automatically linked through Single Sign-On.</p>
-                                    <div className="bg-theme-tertiary/50 rounded-lg p-3 space-y-1">
-                                        <p><span className="text-theme-tertiary">Username:</span> <span className="text-theme-primary">{plexAccount.externalUsername || 'Unknown'}</span></p>
+                                    <p className="mb-2 hidden sm:block">Your Plex account is automatically linked through Single Sign-On.</p>
+                                    <div className="bg-theme-tertiary/50 rounded-lg p-3 space-y-1 overflow-hidden">
+                                        <p className="truncate"><span className="text-theme-tertiary">Username:</span> <span className="text-theme-primary">{plexAccount.externalUsername || 'Unknown'}</span></p>
                                         {plexAccount.externalEmail && (
-                                            <p><span className="text-theme-tertiary">Email:</span> <span className="text-theme-primary">{plexAccount.externalEmail}</span></p>
+                                            <p className="truncate"><span className="text-theme-tertiary">Email:</span> <span className="text-theme-primary">{plexAccount.externalEmail}</span></p>
                                         )}
                                     </div>
                                 </div>

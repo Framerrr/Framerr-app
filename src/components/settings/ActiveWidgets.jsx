@@ -194,15 +194,15 @@ const ActiveWidgets = () => {
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-theme-primary mb-1">
+                                    <h4 className="font-semibold text-theme-primary mb-1 truncate">
                                         {widget.config?.title || metadata.name}
                                     </h4>
-                                    <div className="flex items-center gap-3 text-xs text-theme-secondary">
-                                        <span>Type: {metadata.name}</span>
-                                        <span>•</span>
-                                        <span>Size: {widget.w}x{widget.h}</span>
-                                        <span>•</span>
-                                        <span>Position: ({widget.x}, {widget.y})</span>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-secondary">
+                                        <span className="whitespace-nowrap">Type: {metadata.name}</span>
+                                        <span className="hidden sm:inline">•</span>
+                                        <span className="whitespace-nowrap">Size: {widget.w}x{widget.h}</span>
+                                        <span className="hidden sm:inline">•</span>
+                                        <span className="whitespace-nowrap">Pos: ({widget.x}, {widget.y})</span>
                                     </div>
                                 </div>
 

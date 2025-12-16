@@ -199,7 +199,7 @@ const SharedWidgetsSettings = () => {
                                             className="text-error hover:bg-error/10 border-error/20"
                                             icon={Trash2}
                                         >
-                                            Revoke Access
+                                            <span className="hidden sm:inline">Revoke Access</span>
                                         </Button>
                                     </div>
                                 </div>

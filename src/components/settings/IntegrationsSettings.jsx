@@ -317,20 +317,21 @@ const IntegrationsSettings = () => {
                                     <Icon className="text-theme-secondary" size={20} />
                                     <div className="flex-1 min-w-0 text-left">
                                         <h3 className="font-semibold text-theme-primary">{config.name}</h3>
-                                        <p className="text-sm text-theme-secondary">{config.description}</p>
+                                        <p className="text-sm text-theme-secondary hidden sm:block">{config.description}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {/* Status Badge (when not expanded and enabled) */}
                                     {!isExpanded && isEnabled && (
                                         <span className={`
-                                            px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
+                                            px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
                                             ${configuredStatus
                                                 ? 'bg-success/10 text-success border border-success/20'
                                                 : 'bg-warning/10 text-warning border border-warning/20'
                                             }
                                         `}>
-                                            {configuredStatus ? '🟢 Configured' : '🟡 Setup Required'}
+                                            <span>{configuredStatus ? '🟢' : '🟡'}</span>
+                                            <span className="hidden sm:inline">{configuredStatus ? 'Configured' : 'Setup Required'}</span>
                                         </span>
                                     )}
 
