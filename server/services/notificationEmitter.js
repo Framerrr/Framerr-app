@@ -53,7 +53,7 @@ class NotificationEmitter extends EventEmitter {
             // Check if VAPID keys exist
             if (config.vapidKeys?.publicKey && config.vapidKeys?.privateKey) {
                 webpush.setVapidDetails(
-                    'mailto:admin@framerr.local',
+                    'mailto:noreply@framerr.app',
                     config.vapidKeys.publicKey,
                     config.vapidKeys.privateKey
                 );
@@ -72,7 +72,7 @@ class NotificationEmitter extends EventEmitter {
             });
 
             webpush.setVapidDetails(
-                'mailto:admin@framerr.local',
+                'mailto:noreply@framerr.app',
                 vapidKeys.publicKey,
                 vapidKeys.privateKey
             );
