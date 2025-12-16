@@ -5,7 +5,7 @@
  */
 
 // VERSION - Update this to force new SW installation
-const SW_VERSION = '1.0.5';
+const SW_VERSION = '1.0.6';
 
 // Cache name for app shell resources
 const CACHE_NAME = 'framerr-cache-v2';
@@ -74,60 +74,29 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Push event - Safari-robust handling
-// Safari WILL REVOKE subscription if showNotification fails 3 times
+// Push event - matches Overseerr's working pattern
 self.addEventListener('push', (event) => {
     console.log('[SW v' + SW_VERSION + '] Push received');
 
-    // Fallback notification - ALWAYS used if parsing fails
-    const fallback = {
-        title: 'Framerr',
-        body: 'New notification'
-    };
+    const payload = event.data ? event.data.json() : {};
 
-    let title = fallback.title;
-    let body = fallback.body;
-    let notificationData = {};
-
-    // Try to parse push data, but gracefully fallback
-    try {
-        if (event.data) {
-            const payload = event.data.json();
-            title = payload.title || fallback.title;
-            body = payload.body || payload.message || fallback.body;
-            notificationData = {
-                url: '/',
-                notificationId: payload.id,
-                type: payload.type
-            };
-            console.log('[SW] Parsed:', title, body);
-        }
-    } catch (e) {
-        console.warn('[SW] Parse failed, using fallback:', e.message);
-    }
-
-    // Safari: Include icon - iOS may require this
     const options = {
-        body: body,
+        body: payload.body || payload.message || 'New notification',
         icon: '/favicon-default/web-app-manifest-192x192.png',
-        data: notificationData
+        vibrate: [100, 50, 100],
+        data: {
+            dateOfArrival: Date.now(),
+            url: '/',
+            notificationId: payload.id,
+            type: payload.type
+        }
     };
 
-    // CRITICAL: This promise MUST resolve with a notification shown
-    // Safari revokes subscription after 3 failures
-    const showPromise = self.registration.showNotification(title, options)
-        .then(() => {
-            console.log('[SW] ✓ Notification shown');
-        })
-        .catch((err) => {
-            console.error('[SW] Primary notification failed:', err);
-            // Last resort - try with absolute minimum
-            return self.registration.showNotification('Framerr', { body: 'New notification' })
-                .then(() => console.log('[SW] ✓ Fallback notification shown'))
-                .catch((e) => console.error('[SW] ✗ All notifications failed:', e));
-        });
+    console.log('[SW] Showing notification:', payload.title, options.body);
 
-    event.waitUntil(showPromise);
+    event.waitUntil(
+        self.registration.showNotification(payload.title || 'Framerr', options)
+    );
 });
 
 // Notification click event - navigate to app
