@@ -284,7 +284,7 @@ const DebugSettings = () => {
                 </div>
 
                 {/* Logs Display */}
-                <div ref={logsContainerRef} className="bg-theme-tertiary rounded-lg p-4 h-96 overflow-y-auto overflow-x-auto font-mono text-[10px] min-[515px]:text-xs sm:text-sm border border-theme">
+                <div ref={logsContainerRef} className="bg-theme-tertiary rounded-lg p-4 h-96 overflow-y-auto overflow-x-auto scroll-contain-x font-mono text-[10px] min-[515px]:text-xs sm:text-sm border border-theme">
                     {loading ? (
                         <div className="text-center text-theme-secondary py-8">Loading logs...</div>
                     ) : filteredLogs.length === 0 ? (

@@ -38,7 +38,7 @@ const AdvancedSettings = () => {
 
             {/* Sub-Tab Navigation */}
             <div className="mb-6 border-b border-theme">
-                <div className="flex gap-1 overflow-x-auto relative">
+                <div className="flex gap-1 overflow-x-auto scroll-contain-x relative">
                     {subTabs.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeSubTab === tab.id;

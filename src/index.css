@@ -10,10 +10,20 @@
 @import './styles/animations.css';
 
 /* Global styles */
+html,
 body {
     font-family: var(--font-primary);
     background-color: var(--bg-primary);
     color: var(--text-primary);
+
+    /* Prevent horizontal page overflow (native app-like behavior) */
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+}
+
+/* Touch action for better mobile scrolling */
+body {
+    touch-action: pan-y;
 }
 
 /* Universal scrollbar hiding - Clean premium UI */
@@ -27,4 +37,10 @@ body {
 *::-webkit-scrollbar {
     display: none;
     /* Chrome, Safari, Opera */
+}
+
+/* Horizontal scroll containment - prevents scroll from bubbling to page */
+.scroll-contain-x {
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
 }

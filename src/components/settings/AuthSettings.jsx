@@ -268,7 +268,7 @@ const AuthSettings = () => {
             </div>
 
             {/* Subtab Navigation */}
-            <div className="flex gap-2 border-b border-theme relative">
+            <div className="flex gap-2 overflow-x-auto scroll-contain-x border-b border-theme relative">
                 <button
                     onClick={() => setActiveTab('proxy')}
                     className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"

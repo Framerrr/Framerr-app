@@ -129,6 +129,7 @@ const OverseerrWidget = ({ config }) => {
                     flex: 1,
                     overflowX: 'auto',
                     overflowY: 'hidden',
+                    overscrollBehaviorX: 'contain',
                     scrollBehavior: 'smooth',
                     scrollbarWidth: 'none', // Firefox
                     msOverflowStyle: 'none', // IE/Edge

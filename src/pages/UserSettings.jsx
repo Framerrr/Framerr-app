@@ -100,7 +100,7 @@ const UserSettings = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-6 border-b border-slate-700">
+            <div className="flex gap-2 overflow-x-auto scroll-contain-x pb-2 mb-6 border-b border-slate-700">
                 {allTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;

@@ -191,7 +191,7 @@ const UsersSettings = () => {
 
             {/* Users Table - Responsive */}
             <div className="rounded-xl overflow-hidden border border-theme bg-theme-tertiary/30" style={{ transition: 'all 0.3s ease' }}>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto scroll-contain-x">
                     <table className="w-full">
                         <thead className="bg-theme-tertiary/50">
                             <tr>
