@@ -22,8 +22,11 @@ body {
 }
 
 /* Touch action - disable pinch-zoom while allowing pan/scroll */
-body {
-    touch-action: pan-x pan-y;
+/* Applied broadly to prevent any element from enabling zoom */
+html,
+body,
+* {
+    touch-action: pan-x pan-y !important;
 }
 
 /* Universal scrollbar hiding - Clean premium UI */
