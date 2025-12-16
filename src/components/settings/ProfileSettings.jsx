@@ -206,7 +206,7 @@ const ProfileSettings = () => {
                     Profile Picture
                 </h3>
 
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-12">
                     {/* Picture Display */}
                     <div className="relative">
                         {profilePicture ? (
@@ -265,9 +265,9 @@ const ProfileSettings = () => {
                             disabled={uploadingPicture}
                             icon={Upload}
                         >
-                            {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change Photo' : 'Upload Photo')}
+                            {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change' : 'Upload')}
                         </Button>
-                        <p className="text-xs text-theme-tertiary mt-2">
+                        <p className="hidden sm:block text-xs text-theme-tertiary mt-2">
                             JPG, PNG, GIF or WebP. Max 5MB.
                         </p>
                     </div>
