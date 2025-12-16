@@ -165,25 +165,31 @@ export const NotificationProvider = ({ children }) => {
 
             setPushSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
 
-            // Check if we removed the current browser's subscription
+            // After deleting, re-check if this browser still has a valid subscription on server
             if (swRegistration) {
                 const currentSub = await swRegistration.pushManager.getSubscription();
-                if (!currentSub) {
-                    // No subscription exists anymore for this browser
-                    setPushEnabled(false);
-                } else {
-                    // Check if any remaining subscriptions match current endpoint
-                    // If the one we deleted was this browser's, the backend won't have it
-                    // We need to re-check by looking at current subscriptions
-                    const updatedSubs = await axios.get('/api/notifications/push/subscriptions', {
-                        withCredentials: true
-                    });
-                    const stillExists = updatedSubs.data.subscriptions?.some(s =>
-                        currentSub.endpoint.includes(s.id) || s.endpoint === currentSub.endpoint
-                    );
-                    if (!stillExists) {
+                if (currentSub) {
+                    // This browser has a subscription - check if it's still on server
+                    try {
+                        // Try to verify subscription still exists via register endpoint
+                        // If we get back the same subscription, it's still valid
+                        const response = await axios.get('/api/notifications/push/subscriptions', {
+                            withCredentials: true
+                        });
+                        const subs = response.data.subscriptions || [];
+
+                        // If no subscriptions left, this browser's sub was deleted
+                        if (subs.length === 0) {
+                            // Unsubscribe the browser too to keep in sync
+                            await currentSub.unsubscribe();
+                            setPushEnabled(false);
+                        }
+                    } catch (err) {
+                        // If check fails, just reset state to be safe
                         setPushEnabled(false);
                     }
+                } else {
+                    setPushEnabled(false);
                 }
             }
 
