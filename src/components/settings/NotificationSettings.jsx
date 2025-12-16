@@ -509,12 +509,12 @@ const NotificationSettings = () => {
                     // Supported and permission not denied
                     <div className="space-y-4">
                         {/* This Device Enable/Disable Toggle */}
-                        <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
-                            <div className="flex-1 flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-theme-tertiary rounded-lg border border-theme">
+                            <div className="flex items-center gap-3">
                                 {pushEnabled ? (
-                                    <ShieldCheck size={20} className="text-success" />
+                                    <ShieldCheck size={20} className="text-success flex-shrink-0" />
                                 ) : (
-                                    <Shield size={20} className="text-theme-tertiary" />
+                                    <Shield size={20} className="text-theme-tertiary flex-shrink-0" />
                                 )}
                                 <div>
                                     <div className="text-sm font-medium text-theme-primary mb-1">
@@ -549,6 +549,7 @@ const NotificationSettings = () => {
                                 variant={pushEnabled ? 'danger' : 'primary'}
                                 disabled={pushLoading || !notificationsEnabled}
                                 icon={pushLoading ? undefined : (pushEnabled ? ShieldOff : Shield)}
+                                className="w-full sm:w-auto flex-shrink-0"
                             >
                                 {pushLoading ? (pushEnabled ? 'Disabling...' : 'Enabling...') : (pushEnabled ? 'Disable' : 'Enable')}
                             </Button>
@@ -594,8 +595,8 @@ const NotificationSettings = () => {
                                             <div
                                                 key={sub.id}
                                                 className={`flex items-center justify-between p-3 rounded-lg border ${isThisDevice
-                                                        ? 'bg-accent/5 border-accent/30'
-                                                        : 'bg-theme-primary border-theme'
+                                                    ? 'bg-accent/5 border-accent/30'
+                                                    : 'bg-theme-primary border-theme'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
