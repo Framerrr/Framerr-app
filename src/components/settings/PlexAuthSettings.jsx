@@ -238,19 +238,21 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
     useEffect(() => {
         if (!originalConfig || !onSaveNeeded) return;
 
+        // Normalize values for comparison (handle undefined/null/empty string)
+        const normalize = (val) => val ?? '';
+
         const hasChanges =
-            config.enabled !== originalConfig.enabled ||
-            config.machineId !== originalConfig.machineId ||
-            config.autoCreateUsers !== originalConfig.autoCreateUsers ||
-            config.defaultGroup !== originalConfig.defaultGroup ||
-            config.linkedUserId !== originalConfig.linkedUserId;
+            !!config.enabled !== !!originalConfig.enabled ||
+            normalize(config.machineId) !== normalize(originalConfig.machineId) ||
+            !!config.autoCreateUsers !== !!originalConfig.autoCreateUsers ||
+            normalize(config.defaultGroup) !== normalize(originalConfig.defaultGroup) ||
+            normalize(config.linkedUserId) !== normalize(originalConfig.linkedUserId);
 
         onSaveNeeded(hasChanges);
-    }, [config, originalConfig]);
+    }, [config, originalConfig, onSaveNeeded]);
 
     const handleChange = (field, value) => {
         setConfig(prev => ({ ...prev, [field]: value }));
-        if (onSaveNeeded) onSaveNeeded(true);
     };
 
     if (loading) {
