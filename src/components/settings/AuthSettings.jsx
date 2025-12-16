@@ -271,7 +271,7 @@ const AuthSettings = () => {
             <div className="flex gap-2 overflow-x-auto scroll-contain-x border-b border-theme relative">
                 <button
                     onClick={() => setActiveTab('proxy')}
-                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                 >
                     <div className="flex items-center gap-2 relative z-10">
                         <Shield size={18} className={activeTab === 'proxy' ? 'text-accent' : ''} />
@@ -287,7 +287,7 @@ const AuthSettings = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('plex')}
-                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                 >
                     <div className="flex items-center gap-2 relative z-10">
                         <Tv size={18} className={activeTab === 'plex' ? 'text-accent' : ''} />
@@ -303,7 +303,7 @@ const AuthSettings = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('iframe')}
-                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                 >
                     <div className="flex items-center gap-2 relative z-10">
                         <Globe size={18} className={activeTab === 'iframe' ? 'text-accent' : ''} />
