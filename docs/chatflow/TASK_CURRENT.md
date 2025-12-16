@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-16 00:57 EST  
+**Last Updated:** 2025-12-16 12:55 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,21 +20,31 @@
 
 ## Current State
 
-**Status:** 🔄 In Progress - Push Subscription Device Matching Fix
+**Status:** ✅ Completed - Mobile Responsiveness Refinements
 
 **This Session Summary:**
 
-### Push Subscription Device Matching Fix ✅
-- **Root Cause:** Server wasn't returning `endpoint` in subscription list, making client-side matching impossible
-- **Fix 1:** Server now returns `endpoint` field in GET `/push/subscriptions` response
-- **Fix 2:** `unsubscribeFromPush` uses exact endpoint comparison (was broken: `endpoint.includes(s.id)` never matched)
-- **Fix 3:** `removePushSubscription` now checks if removed subscription is THIS device, updates `pushEnabled` accordingly
-- **Fix 4:** Added `currentEndpoint` state tracking in NotificationContext
-- **UI:** "This Device" badge shows in subscription list with accent styling
+### Mobile Scroll Containment ✅
+- Added global page lock (`overflow-x: hidden`, `overscroll-behavior-x: none`) in `index.css`
+- Created `.scroll-contain-x` utility class for horizontal scroll containment
+- Applied to: UserSettings, WidgetsSettings, AdvancedSettings, CustomizationSettings, AuthSettings, UsersSettings, DebugSettings, OverseerrWidget
 
-### Build & Commit ✅
-- Build passes
-- Committed: `fix(push): reliable device matching with endpoint comparison`
+### Widgets Page Mobile Responsiveness ✅
+- **ActiveWidgets**: Stats cards now inline 3-col (Total/Types/Avg Size), info row wraps, compact IconPicker on mobile
+- **IntegrationsSettings**: Service description hidden on mobile, configured badge shows emoji-only (🟢/🟡), no border on mobile
+- **SharedWidgets**: Revoke Access button shows trash icon only on mobile
+- **LinkedAccounts**: Plex SSO card cleaned up - tighter spacing, smaller text, icon hidden on tiny screens
+- **SystemHealthIntegration & PlexIntegration**: Same responsive treatment as IntegrationsSettings
+- **Test buttons**: Show result inline (icon changes to ✓/✗, text hidden on mobile)
+
+### IconPicker Improvements ✅
+- Added `compact` prop for icon-only button mode (used on mobile in ActiveWidgets)
+- Responsive popover sizing: `calc(100vw - 48px)` on mobile, 280px min, 24rem max
+- Increased z-index to 60 (now appears above modals which use z-50)
+
+### Build & Commits ✅
+- All changes committed to `feature/notification-integration`
+- Latest commit: `fix(IconPicker): increase z-index to 60 for modal compatibility`
 
 ---
 
@@ -42,19 +52,21 @@
 
 | File | Changes |
 |------|---------|
-| `server/routes/notifications.js` | Added `endpoint` to subscriptions response |
-| `src/context/NotificationContext.jsx` | Added `currentEndpoint` state, fixed `unsubscribeFromPush` matching, fixed `removePushSubscription` logic |
-| `src/components/settings/NotificationSettings.jsx` | Added `currentEndpoint` import, "This Device" badge with styling |
+| `src/index.css` | Global page lock, `.scroll-contain-x` utility |
+| `src/components/IconPicker.jsx` | `compact` prop, responsive sizing, z-60 |
+| `src/components/settings/ActiveWidgets.jsx` | Stats inline, compact IconPicker, cleaner layout |
+| `src/components/settings/IntegrationsSettings.jsx` | Description hidden, badge emoji-only, test inline |
+| `src/components/settings/SharedWidgetsSettings.jsx` | Revoke button icon-only on mobile |
+| `src/components/settings/LinkedAccountsSettings.jsx` | Plex SSO card mobile cleanup |
+| `src/components/settings/integrations/SystemHealthIntegration.jsx` | Same responsive treatment |
+| `src/components/settings/integrations/PlexIntegration.jsx` | Same responsive treatment |
+| Multiple settings files | Added `scroll-contain-x` class |
 
 ---
 
-## Ready for Testing
+## Next Step
 
-Please verify:
-- [ ] Enable push → device appears in list with "This Device" badge
-- [ ] Disable push → correct device removed, button shows "Enable"
-- [ ] Click trash on "This Device" → pushEnabled becomes false, button shows "Enable"
-- [ ] Click trash on other device → pushEnabled stays true (if still subscribed on this device)
+**Continue mobile responsiveness review** - Test on actual mobile devices and address any remaining UI issues found. Consider reviewing other settings pages for similar mobile refinements.
 
 ---
 
@@ -62,5 +74,8 @@ Please verify:
 
 1. **Revert to selective routing** - Currently sending both SSE and Web Push for testing (on back burner per user)
 2. **Global admin toggle** - Add admin setting to disable Web Push feature entirely
+3. **Additional mobile testing** - Verify all changes on actual devices
 
 ---
+
+**--- SESSION END ---**
