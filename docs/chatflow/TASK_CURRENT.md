@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-16 15:48 EST  
+**Last Updated:** 2025-12-16 18:15 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,48 +20,67 @@
 
 ## Current State
 
-**Status:** ✅ Completed - Global Web Push Toggle Implementation
+**Status:** 🔄 In Progress - Mobile Zoom/Scroll Investigation
 
 **This Session Summary:**
 
-### Global Web Push Admin Toggle ✅
-- Added `webPushEnabled` setting to `systemConfig.js` (default: true)
-- Created `/api/config/web-push-status` endpoint for users to check status
-- Updated subscription endpoint to return 403 when globally disabled
-- Updated `notificationEmitter.js` to skip push delivery when disabled
-- Added `globalPushEnabled` state and `fetchGlobalPushStatus` to NotificationContext
-- Added admin toggle switch in Web Push section header
-- Section completely hidden for non-admin users when disabled
+### Dynamic Manifest & Favicon ✅
+- Created `/api/config/manifest.json` endpoint for dynamic PWA name/icons
+- Added `/favicon` route with fallback to default icons
+- Updated `sw.js` to use `/favicon/` for notification icons
+- Updated `index.html` to use dynamic manifest
+- Deleted static `manifest.json`
 
-### Files Modified
-| File | Changes |
-|------|---------|
-| `server/db/systemConfig.js` | Added `webPushEnabled` config key |
-| `server/routes/config.js` | Added `/api/config/web-push-status` endpoint |
-| `server/routes/notifications.js` | Block subscriptions when disabled |
-| `server/services/notificationEmitter.js` | Skip push when disabled |
-| `src/context/NotificationContext.jsx` | Added global status state & fetch |
-| `src/components/settings/NotificationSettings.jsx` | Admin toggle, conditional visibility |
+### Mobile Zoom/Scroll Bug Investigation 🔬
 
-### Build & Commits ✅
+**Problem identified:** iOS has two conflicting behaviors:
+1. **Pinch-to-zoom** — needs to be disabled for app-like experience
+2. **Double scroll** — content needs unintended extra scroll at top/bottom
+
+**Key Test Findings:**
+
+| CSS touch-action Setting | Zoom Prevented? | Double Scroll? |
+|--------------------------|-----------------|----------------|
+| `html, body, * { touch-action: pan-x pan-y !important }` | ✅ YES | ❌ BUG EXISTS |
+| `html, body { touch-action: pan-x pan-y !important }` | ❌ NO | ✅ NO BUG |
+
+**Root Cause:** Applying `touch-action: pan-x pan-y` to ALL elements (`*`) prevents zoom but causes the double-scroll bug. Applying only to `html, body` fixes double-scroll but allows zoom.
+
+**Other Tests Performed (neither were the cause):**
+- `overscroll-behavior: none` — NOT the cause
+- `viewport-fit=cover` — NOT the cause
+
+### Current State of Files
+
+**index.html:** Has standard viewport (no `viewport-fit=cover`)
+**index.css:** Has `touch-action: pan-x pan-y` on `html, body` only (no `*`)
+**GridLayout.css:** No overscroll-behavior added
+**UserSettings.jsx:** No test styles
+
+### Build & Commits
 - All changes committed to `feature/notification-integration`
-- Latest commit: `feat(notifications): add global Web Push toggle for admin control`
+- Build passes
 
 ---
 
 ## Next Step
 
-**Manual Testing** - Verify global toggle functionality:
-1. Toggle switch as admin → verify setting persists
-2. Disable → log in as non-admin → verify section is hidden
-3. Re-enable → verify section reappears for users
+**Solve zoom + scroll trade-off:** Need to find a CSS or JavaScript approach that:
+1. Prevents pinch-zoom on iOS
+2. Does NOT cause double-scroll bug
+3. Options to investigate:
+   - JavaScript `gesturechange` event prevention
+   - More targeted touch-action selectors (e.g., on specific containers)
+   - Alternative CSS approaches
 
 ---
 
 ## TODO (Future Sessions)
 
-1. **Revert to selective routing** - Currently sending both SSE and Web Push for testing (on back burner per user)
-2. **Additional mobile testing** - Verify all changes on actual devices
+1. **Solve zoom/scroll trade-off** ← PRIORITY
+2. Settings bottom gap consistency
+3. Settings tab auto-scroll
+4. Revert to selective routing (SSE vs Web Push)
 
 ---
 
