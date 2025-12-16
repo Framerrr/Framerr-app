@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-15 05:55 EST  
+**Last Updated:** 2025-12-15 22:45 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,85 +20,81 @@
 
 ## Current State
 
-**Status:** ✅ Complete - Notification Integration Feature
+**Status:** ✅ Complete - Web Push Safari Fix
 
 **This Session Summary:**
 
-### Webhook Backend Implementation ✅
-- Created webhook receiver routes for Overseerr, Sonarr, Radarr
-- Token-based authentication via URL
-- Event type mapping from external services to Framerr events
-- User resolution cascade: manual link → Plex SSO → username match → admin fallback
-- Test webhook handling
+### Web Push Safari Fix (CRITICAL) ✅
+- **Root Cause:** VAPID subject email used `.local` domain which Safari rejects with `BadJwtToken` error
+- **Fix:** Changed `mailto:admin@framerr.local` to `mailto:noreply@framerr.app`
+- Separated manifest icon `purpose` into individual `any` and `maskable` entries (matching Overseerr)
+- Simplified Service Worker push handler to match Overseerr's proven working pattern
+- Added `vibrate` option to notification options
 
-### Webhook Debugging ✅
-- Fixed Overseerr event type detection (`TEST_NOTIFICATION` field name)
-- Fixed NPM "Block Common Exploits" bypass via Docker internal networking
-- Added configurable Webhook Base URL with Save/Reset buttons
-- Fixed webhookBaseUrl persistence in systemConfig
-
-### Real-Time Notifications ✅
-- Implemented SSE (Server-Sent Events) for instant notification delivery
-- Created `notificationEmitter.js` singleton for broadcasting
-- Added `/api/notifications/stream` endpoint
-- Frontend auto-connects on login, shows toast + updates notification center
+### Push UI Improvements ✅
+- Changed Enable/Disable button to simple toggle (Enable → enables this device, Disable → disables this device)
+- Improved "Notifications Blocked" UI with browser-specific instructions and "Check Again" button
+- Simplified unsubscribe to also delete from server
 
 ### Documentation ✅
-- Updated `docs/reference/notifications.md` with Web Push future plan
-- Updated draft changelog `v1.1.11-draft.md`
+- Created comprehensive `docs/reference/notifications.md` documenting:
+  - Complete notification system architecture
+  - Critical Safari/iOS requirements
+  - VAPID subject email requirement (MUST use valid domain)
+  - Troubleshooting guide
+- Updated draft changelog with Safari fix details
+
+### Debugging Work
+- Temporarily enabled dual SSE + Web Push routing to debug Safari (TODO: revert to selective)
+- Researched Overseerr's working implementation for comparison
+- Verified against Apple's Web Push documentation
 
 ---
 
-## Key Files Created/Modified
+## Key Files Modified This Session
 
 | File | Changes |
 |------|---------|
-| `server/routes/webhooks.js` | NEW - Webhook receiver endpoints |
-| `server/services/webhookUserResolver.js` | NEW - User resolution cascade |
-| `server/services/notificationEmitter.js` | NEW - SSE event emitter |
-| `server/routes/notifications.js` | MODIFIED - Added `/stream` SSE endpoint |
-| `server/db/notifications.js` | MODIFIED - Emit SSE on notification create |
-| `server/db/systemConfig.js` | MODIFIED - Added webhookBaseUrl persistence |
-| `src/context/NotificationContext.jsx` | MODIFIED - SSE connection logic |
-| `src/components/settings/NotificationSettings.jsx` | MODIFIED - Webhook Base URL UI |
-| `docs/reference/notifications.md` | MODIFIED - Web Push future plan |
+| `server/services/notificationEmitter.js` | Fixed VAPID subject email from `.local` to `.app` domain |
+| `public/sw.js` | Simplified push handler to match Overseerr pattern (v1.0.6) |
+| `public/manifest.json` | Separated icon purposes into individual entries |
+| `src/context/NotificationContext.jsx` | Improved unsubscribeFromPush to delete from server |
+| `src/components/settings/NotificationSettings.jsx` | Simplified Enable/Disable toggle, added unsubscribe import |
+| `docs/reference/notifications.md` | NEW - Comprehensive notification system docs |
 
 ---
 
 ## Testing Completed
 
-- ✅ Webhook from curl (direct to container IP)
-- ✅ Webhook from Overseerr (Docker internal network)
-- ✅ SSE connection establishes on login
-- ✅ Real-time notification appears without refresh
-- ✅ Toast displays on webhook notification
-- ✅ Webhook Base URL persists after page refresh
+- ✅ Safari macOS push notifications working
+- ✅ iOS PWA push notifications working (user confirmed)
+- ✅ Chrome push continues to work
+- ✅ Enable/Disable toggle works correctly
+- ✅ Build passes
 
 ---
 
-## Future Enhancement
+## TODO (Future Sessions)
 
-**Web Push Notifications** (documented in `docs/reference/notifications.md`):
-- Service Worker for background push
-- VAPID keys and `web-push` library
-- ~4-6 hours estimated implementation
-- Requires HTTPS
+1. **Revert to selective routing** - Currently sending both SSE and Web Push for testing
+   - File: `server/services/notificationEmitter.js`
+   - Change: Only send Web Push when no SSE connection
+
+2. **Device list improvements**
+   - Mark "this device" in device list
+   - Fix device removal matching by endpoint
+
+3. **Global admin toggle** - Add admin setting to disable Web Push feature entirely
 
 ---
 
 ## ✅ SESSION END
 
-- **Session ended:** 2025-12-15 05:55 EST
+- **Session ended:** 2025-12-15 22:45 EST
 - **Branch:** `feature/notification-integration`
 - **Build status:** ✅ Passing
-- **Commits this session:**
-  - `feat(webhooks): add configurable webhook base URL for Docker networking`
-  - `fix(webhooks): display webhook URL using configurable base URL`
-  - `fix(config): persist webhookBaseUrl in systemConfig`
-  - `feat(ui): add explicit Save button for webhook base URL`
-  - `fix(webhooks): handle multiple Overseerr event field names`
-  - `feat(notifications): implement SSE for real-time notification delivery`
+- **Critical fix:** Safari push notifications now working (VAPID email domain fix)
 - **Next agent action:**
-  1. Feature is complete - ready for merge to develop when user approves
-  2. Future: Web Push implementation (see docs/reference/notifications.md)
-  3. Future: Test with Sonarr/Radarr webhooks
+  1. Revert to selective SSE/Push routing after testing confirmed
+  2. Add global admin toggle for Web Push feature
+  3. Ready for user testing on multiple devices/browsers
