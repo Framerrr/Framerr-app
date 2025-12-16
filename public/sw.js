@@ -5,7 +5,7 @@
  */
 
 // VERSION - Update this to force new SW installation
-const SW_VERSION = '1.0.2';
+const SW_VERSION = '1.0.3';
 
 // Cache name for app shell resources
 const CACHE_NAME = 'framerr-cache-v2';
@@ -96,12 +96,10 @@ self.addEventListener('push', (event) => {
         console.error('[SW] Failed to parse push data:', error);
     }
 
-    // Notification options - minimal to ensure it works
+    // Notification options - Safari-compatible (minimal options)
     const options = {
-        body: data.body,
-        tag: data.id || 'framerr-notification',
-        renotify: true,
-        requireInteraction: false,
+        body: data.body || 'New notification',
+        // Safari doesn't support many notification options, keep it simple
         data: {
             url: '/',
             notificationId: data.id,
