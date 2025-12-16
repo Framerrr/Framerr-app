@@ -557,13 +557,18 @@ const NotificationSettings = () => {
 
                         {/* Test Push - Only show when enabled */}
                         {pushEnabled && pushSubscriptions.length > 0 && (
-                            <div className="p-4 bg-theme-tertiary rounded-lg border border-theme">
-                                <h4 className="text-sm font-medium text-theme-primary mb-2">
-                                    Test Push Notification
-                                </h4>
-                                <p className="text-xs text-theme-secondary mb-4">
-                                    Send a test push notification to all your subscribed devices.
-                                </p>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-theme-tertiary rounded-lg border border-theme">
+                                <div className="flex items-center gap-3">
+                                    <Send size={20} className="text-accent flex-shrink-0" />
+                                    <div>
+                                        <div className="text-sm font-medium text-theme-primary mb-1">
+                                            Test Push Notification
+                                        </div>
+                                        <div className="text-xs text-theme-tertiary">
+                                            Send a test push notification to all your subscribed devices
+                                        </div>
+                                    </div>
+                                </div>
                                 <Button
                                     onClick={async () => {
                                         try {
@@ -575,8 +580,9 @@ const NotificationSettings = () => {
                                     }}
                                     variant="secondary"
                                     icon={Send}
+                                    className="w-full sm:w-auto flex-shrink-0"
                                 >
-                                    Send Test Push
+                                    Send Test
                                 </Button>
                             </div>
                         )}
