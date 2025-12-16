@@ -373,4 +373,59 @@ router.delete('/favicon', requireAdmin, async (req, res) => {
     }
 });
 
+/**
+ * GET /api/config/manifest.json
+ * Dynamic PWA manifest - uses app name from config and /favicon/ paths
+ * Public endpoint (no auth) since browsers need to access it
+ */
+router.get('/manifest.json', async (req, res) => {
+    try {
+        const systemConfig = await getSystemConfig();
+        const appName = systemConfig.server?.name || 'Framerr';
+
+        const manifest = {
+            name: appName,
+            short_name: appName,
+            description: 'Your Personal Homelab Dashboard',
+            start_url: '/',
+            display: 'standalone',
+            background_color: '#0a0a0b',
+            theme_color: '#6366f1',
+            orientation: 'any',
+            icons: [
+                {
+                    src: '/favicon/web-app-manifest-192x192.png',
+                    sizes: '192x192',
+                    type: 'image/png',
+                    purpose: 'any'
+                },
+                {
+                    src: '/favicon/web-app-manifest-192x192.png',
+                    sizes: '192x192',
+                    type: 'image/png',
+                    purpose: 'maskable'
+                },
+                {
+                    src: '/favicon/web-app-manifest-512x512.png',
+                    sizes: '512x512',
+                    type: 'image/png',
+                    purpose: 'any'
+                },
+                {
+                    src: '/favicon/web-app-manifest-512x512.png',
+                    sizes: '512x512',
+                    type: 'image/png',
+                    purpose: 'maskable'
+                }
+            ]
+        };
+
+        res.setHeader('Content-Type', 'application/manifest+json');
+        res.json(manifest);
+    } catch (error) {
+        logger.error('Failed to generate manifest', { error: error.message });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;

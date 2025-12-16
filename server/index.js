@@ -137,7 +137,25 @@ const fs = require('fs');
 if (!fs.existsSync(customFaviconPath)) {
     fs.mkdirSync(customFaviconPath, { recursive: true });
 }
-app.use('/favicon', cors(), express.static(customFaviconPath));
+
+// Favicon with fallback: try custom first, then default
+app.use('/favicon', cors(), (req, res, next) => {
+    const customFile = path.join(customFaviconPath, req.path);
+
+    // Check if custom file exists
+    if (fs.existsSync(customFile)) {
+        return res.sendFile(customFile);
+    }
+
+    // Fallback to default Framerr favicon
+    const defaultFile = path.join(defaultFaviconPath, req.path);
+    if (fs.existsSync(defaultFile)) {
+        return res.sendFile(defaultFile);
+    }
+
+    // Neither exists - 404
+    res.status(404).json({ error: 'Favicon not found' });
+});
 
 // Profile pictures
 app.use('/profile-pictures', cors(), express.static('/config/upload/profile-pictures'));

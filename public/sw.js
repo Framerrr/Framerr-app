@@ -82,7 +82,7 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: payload.body || payload.message || 'New notification',
-        icon: '/favicon-default/web-app-manifest-192x192.png',
+        icon: '/favicon/web-app-manifest-192x192.png',
         vibrate: [100, 50, 100],
         data: {
             dateOfArrival: Date.now(),
