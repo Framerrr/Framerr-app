@@ -20,6 +20,21 @@ const CustomizationSettings = () => {
     const { error: showError, success: showSuccess } = useNotifications();
     const userIsAdmin = isAdmin(user);
 
+    // Refs for auto-scrolling sub-tab buttons into view
+    const subTabRefs = useRef({});
+
+    // Scroll active sub-tab into view when it changes
+    useEffect(() => {
+        const tabButton = subTabRefs.current[activeSubTab];
+        if (tabButton) {
+            tabButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        }
+    }, [activeSubTab]);
+
     // Default color values matching dark-pro.css - 21 customizable variables
     const defaultColors = {
         // Tier 1: Essentials (10)
@@ -522,6 +537,7 @@ const CustomizationSettings = () => {
             {/* Sub-Tabs */}
             <div className="flex gap-2 overflow-x-auto scroll-contain-x pb-2 border-b border-theme relative">
                 <button
+                    ref={(el) => { subTabRefs.current['general'] = el; }}
                     onClick={() => setActiveSubTab('general')}
                     className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
@@ -538,6 +554,7 @@ const CustomizationSettings = () => {
                     )}
                 </button>
                 <button
+                    ref={(el) => { subTabRefs.current['colors'] = el; }}
                     onClick={() => setActiveSubTab('colors')}
                     className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
@@ -555,6 +572,7 @@ const CustomizationSettings = () => {
                 </button>
                 {userIsAdmin && (
                     <button
+                        ref={(el) => { subTabRefs.current['favicon'] = el; }}
                         onClick={() => setActiveSubTab('favicon')}
                         className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                     >
