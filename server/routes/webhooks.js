@@ -171,7 +171,8 @@ router.post('/overseerr/:token', async (req, res) => {
         const { title, message } = buildOverseerrNotification(eventKey, mediaTitle, username, payload);
 
         // Extract requestId for actionable notifications
-        const requestId = payload.request?.id || null;
+        // Try different field names used by Overseerr/Jellyseerr/Seerr
+        const requestId = payload.request?.id || payload.request?.request_id || payload.request?.requestId || null;
         const metadata = requestId && eventKey === 'requestPending' ? {
             requestId,
             service: 'overseerr',
@@ -183,7 +184,8 @@ router.post('/overseerr/:token', async (req, res) => {
             requestId,
             eventKey,
             hasMetadata: !!metadata,
-            isRequestPending: eventKey === 'requestPending'
+            isRequestPending: eventKey === 'requestPending',
+            requestObjectKeys: payload.request ? Object.keys(payload.request) : 'null'
         });
 
         // Process notification
