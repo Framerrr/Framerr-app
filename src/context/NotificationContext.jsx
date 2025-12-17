@@ -473,61 +473,78 @@ export const NotificationProvider = ({ children }) => {
     const showToastForNotification = useCallback((notificationId) => {
         logger.info('[Push Click] showToastForNotification called', { notificationId });
 
-        // We need to access current state without closures - use a flag to track if we found existing
-        let foundExisting = false;
-
+        // First, check if toast already exists and reset it
         setToasts(prevToasts => {
             const existingToast = prevToasts.find(t => t.notificationId === notificationId);
 
             if (existingToast) {
-                foundExisting = true;
-                logger.debug('[Push Click] Toast exists, resetting timer', { notificationId });
+                logger.info('[Push Click] Toast exists, resetting timer', { notificationId });
                 return prevToasts.map(t =>
                     t.notificationId === notificationId
                         ? { ...t, createdAt: new Date() }
                         : t
                 );
             }
+
+            // Toast doesn't exist - return unchanged, we'll create below
             return prevToasts;
         });
 
-        // If existing toast was found, we're done
-        if (foundExisting) return;
+        // Now create a new toast if needed (using setTimeout to ensure first setToasts completes)
+        setTimeout(() => {
+            setToasts(prevToasts => {
+                // Check again if toast was just created
+                if (prevToasts.find(t => t.notificationId === notificationId)) {
+                    logger.debug('[Push Click] Toast already exists after check');
+                    return prevToasts;
+                }
 
-        // Need to check notifications - use functional update to access current state
-        setNotifications(prevNotifications => {
-            const notification = prevNotifications.find(n => n.id === notificationId);
+                // Need to find the notification - but we can't access notifications from here
+                // We'll use a workaround: access via the DOM/fetch from API
+                return prevToasts;
+            });
 
-            if (!notification) {
-                logger.warn('[Push Click] Notification not found', { notificationId, totalNotifications: prevNotifications.length });
+            // Access notifications state via a separate call
+            setNotifications(prevNotifications => {
+                // Check if toast already exists
+                setToasts(currentToasts => {
+                    if (currentToasts.find(t => t.notificationId === notificationId)) {
+                        return currentToasts; // Already exists
+                    }
+
+                    const notification = prevNotifications.find(n => n.id === notificationId);
+
+                    if (!notification) {
+                        logger.warn('[Push Click] Notification not found', { notificationId, count: prevNotifications.length });
+                        return currentToasts;
+                    }
+
+                    logger.info('[Push Click] Creating toast for notification', { notificationId, title: notification.title });
+
+                    const id = `toast-${Date.now()}-${Math.random()}`;
+                    const newToast = {
+                        id,
+                        type: notification.type || 'info',
+                        title: notification.title,
+                        message: notification.message,
+                        iconId: notification.iconId || null,
+                        duration: 10000,
+                        action: null,
+                        actions: (notification.metadata?.actionable && notification.metadata?.requestId) ? [
+                            { label: 'Approve', variant: 'success', onClick: () => handleRequestAction(notification.id, 'approve') },
+                            { label: 'Decline', variant: 'danger', onClick: () => handleRequestAction(notification.id, 'decline') }
+                        ] : null,
+                        onBodyClick: openNotificationCenter,
+                        notificationId: notification.id,
+                        createdAt: new Date()
+                    };
+
+                    return [newToast, ...currentToasts].slice(0, 5);
+                });
+
                 return prevNotifications;
-            }
-
-            logger.info('[Push Click] Creating toast for notification', { notificationId, title: notification.title });
-
-            // Build the toast directly (not through showToast to avoid closure issues)
-            const id = `toast-${Date.now()}-${Math.random()}`;
-            const newToast = {
-                id,
-                type: notification.type || 'info',
-                title: notification.title,
-                message: notification.message,
-                iconId: notification.iconId || null,
-                duration: 10000,
-                action: null,
-                actions: (notification.metadata?.actionable && notification.metadata?.requestId) ? [
-                    { label: 'Approve', variant: 'success', onClick: () => handleRequestAction(notification.id, 'approve') },
-                    { label: 'Decline', variant: 'danger', onClick: () => handleRequestAction(notification.id, 'decline') }
-                ] : null,
-                onBodyClick: openNotificationCenter,
-                notificationId: notification.id,
-                createdAt: new Date()
-            };
-
-            setToasts(prevToasts => [newToast, ...prevToasts].slice(0, 5));
-
-            return prevNotifications; // Don't modify notifications
-        });
+            });
+        }, 50);
     }, [handleRequestAction, openNotificationCenter]);
 
     // Listen for service worker messages (when push notification is clicked while app is open)
