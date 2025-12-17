@@ -282,10 +282,10 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                     maxWidth: '24rem',
                                     zIndex: 60
                                 }}
-                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col"
+                                className="glass-card border-theme rounded-xl shadow-2xl max-h-[60vh] flex flex-col"
                             >
                                 {/* Header */}
-                                <div className="flex items-center justify-between p-4 border-b border-theme">
+                                <div className="flex items-center justify-between p-4 border-b border-theme flex-shrink-0">
                                     <h3 className="font-semibold text-theme-primary">Select Icon</h3>
                                     <button
                                         onClick={() => setIsOpen(false)}
@@ -297,7 +297,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
 
 
                                 {/* Tabs */}
-                                <div className="flex border-b border-theme relative">
+                                <div className="flex border-b border-theme relative flex-shrink-0">
                                     {/* Sliding indicator */}
                                     {activeTab === 'icons' ? (
                                         <motion.div
@@ -341,7 +341,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-4 flex-1 overflow-y-auto">
+                                <div className="p-4 flex-1 min-h-0 overflow-y-auto">
                                     <AnimatePresence mode="wait">
                                         {activeTab === 'icons' ? (
                                             <motion.div
