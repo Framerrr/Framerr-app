@@ -40,7 +40,8 @@ const ToastNotification = ({
     action,
     actions,
     onBodyClick,
-    onDismiss
+    onDismiss,
+    createdAt
 }) => {
     const [progress, setProgress] = useState(100);
     const [isDragging, setIsDragging] = useState(false);
