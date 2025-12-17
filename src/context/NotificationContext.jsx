@@ -468,6 +468,101 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [showToast]);
 
+    // Show toast for a specific notification ID (used when clicking web push notification)
+    // Handles deduplication: if toast already exists, resets its timer
+    const showToastForNotification = useCallback((notificationId) => {
+        // Check if toast for this notification already exists
+        const existingToast = toasts.find(t => t.notificationId === notificationId);
+
+        if (existingToast) {
+            // Toast already visible - reset its timer by recreating it
+            logger.debug('[Push Click] Toast exists, resetting timer', { notificationId });
+            setToasts(prev => prev.map(t =>
+                t.notificationId === notificationId
+                    ? { ...t, createdAt: new Date() } // Reset createdAt to restart timer
+                    : t
+            ));
+            return;
+        }
+
+        // Toast doesn't exist - find the notification and create toast
+        const notification = notifications.find(n => n.id === notificationId);
+
+        if (!notification) {
+            logger.warn('[Push Click] Notification not found', { notificationId });
+            return;
+        }
+
+        logger.info('[Push Click] Creating toast for notification', { notificationId });
+
+        // Build toast options
+        const toastOptions = {
+            iconId: notification.iconId,
+            duration: 10000,
+            onBodyClick: openNotificationCenter,
+            notificationId: notification.id
+        };
+
+        // Add action buttons for actionable notifications
+        if (notification.metadata?.actionable && notification.metadata?.requestId) {
+            toastOptions.actions = [
+                {
+                    label: 'Approve',
+                    variant: 'success',
+                    onClick: () => handleRequestAction(notification.id, 'approve')
+                },
+                {
+                    label: 'Decline',
+                    variant: 'danger',
+                    onClick: () => handleRequestAction(notification.id, 'decline')
+                }
+            ];
+        }
+
+        showToast(notification.type || 'info', notification.title, notification.message, toastOptions);
+    }, [toasts, notifications, showToast, openNotificationCenter, handleRequestAction]);
+
+    // Listen for service worker messages (when push notification is clicked while app is open)
+    useEffect(() => {
+        const handleMessage = (event) => {
+            if (event.data?.type === 'NOTIFICATION_CLICK') {
+                logger.info('[SW Message] Notification click received', { notificationId: event.data.notificationId });
+                if (event.data.notificationId) {
+                    showToastForNotification(event.data.notificationId);
+                }
+            }
+        };
+
+        navigator.serviceWorker?.addEventListener('message', handleMessage);
+        return () => navigator.serviceWorker?.removeEventListener('message', handleMessage);
+    }, [showToastForNotification]);
+
+    // Check URL hash on mount for notification ID (when app opened from push notification)
+    useEffect(() => {
+        const checkNotificationHash = () => {
+            const hash = window.location.hash;
+            const match = hash.match(/#notification=([a-f0-9-]+)/i);
+
+            if (match) {
+                const notificationId = match[1];
+                logger.info('[URL Hash] Notification ID found', { notificationId });
+
+                // Clear the hash to prevent re-triggering
+                window.history.replaceState(null, '', window.location.pathname);
+
+                // Wait a moment for notifications to load, then show toast
+                setTimeout(() => {
+                    showToastForNotification(notificationId);
+                }, 500);
+            }
+        };
+
+        // Check on mount
+        if (isAuthenticated && user) {
+            checkNotificationHash();
+        }
+    }, [isAuthenticated, user, showToastForNotification]);
+
     // Load notifications on mount and when auth changes
     useEffect(() => {
         if (isAuthenticated && user) {

@@ -5,7 +5,7 @@
  */
 
 // VERSION - Update this to force new SW installation
-const SW_VERSION = '1.0.6';
+const SW_VERSION = '1.1.0';
 
 // Cache name for app shell resources
 const CACHE_NAME = 'framerr-cache-v2';
@@ -99,26 +99,40 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// Notification click event - navigate to app
+// Notification click event - navigate to app and trigger toast
 self.addEventListener('notificationclick', (event) => {
     console.log('[SW] Notification clicked');
 
     event.notification.close();
 
-    const urlToOpen = event.notification.data?.url || '/';
+    const notificationId = event.notification.data?.notificationId;
+    const baseUrl = '/';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clientList) => {
-                // Check if app is already open
-                for (const client of clientList) {
-                    if (client.url.includes(self.location.origin) && 'focus' in client) {
-                        return client.focus();
-                    }
+                // Find an existing Framerr tab
+                const existingClient = clientList.find(client =>
+                    client.url.includes(self.location.origin)
+                );
+
+                if (existingClient) {
+                    // App is already open - send message to show toast
+                    console.log('[SW] Posting message to existing client');
+                    existingClient.postMessage({
+                        type: 'NOTIFICATION_CLICK',
+                        notificationId: notificationId
+                    });
+                    return existingClient.focus();
                 }
-                // Open new window if not already open
+
+                // App not open - open with notification ID in URL
                 if (clients.openWindow) {
-                    return clients.openWindow(urlToOpen);
+                    const urlWithNotification = notificationId
+                        ? `${baseUrl}#notification=${notificationId}`
+                        : baseUrl;
+                    console.log('[SW] Opening new window:', urlWithNotification);
+                    return clients.openWindow(urlWithNotification);
                 }
             })
     );
