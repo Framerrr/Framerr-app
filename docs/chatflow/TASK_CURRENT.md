@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-17 15:15 EST  
+**Last Updated:** 2025-12-17 17:06 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,50 +20,55 @@
 
 ## Current State
 
-**Status:** ✅ Session Complete — Actionable Notifications & Cross-Device Sync
+**Status:** ✅ Session Complete — Dashboard Loading & Widget Fixes
 
 **This Session Summary:**
 
-### Actionable Notifications (Overseerr) ✅
-- Approve/Decline buttons on toast notifications for pending requests
-- Notification Center also displays action buttons
-- Auto-dismiss after 10 seconds with hover-pause
-- Click toast body opens Notification Center and dismisses toast
-- Swipe-to-dismiss gesture on toast notifications
-- Backend API endpoint `/api/request-actions/overseerr/:action/:notificationId`
+### Widget Loading Race Condition Fix ✅
+- Added `integrationsLoaded` and `integrationsError` states to AppDataContext
+- Created `IntegrationConnectionError` component for network failures
+- Updated all 7 integration widgets to wait for data before showing status
+- Prevents premature "Integration Disabled" message on slow connections
 
-### Cross-Device Notification Sync ✅
-- SSE sync events for: markRead, delete, markAllRead, clearAll
-- All connected devices update in real-time
-- Toasts dismissed when notification deleted on another device
+### Session Expiry Auto-Redirect ✅
+- Axios interceptor now triggers logout on 401 errors
+- Visibility change listener checks auth when tab wakes from sleep
+- "Session Expired" toast + immediate redirect to /login
+- No more stale/broken dashboard visible after timeout
 
-### Push Notification Click Toast Reshow ✅
-- Service Worker v1.2.0 posts NOTIFICATION_CLICK message to open clients
-- URL hash `#notification=id` for opening app from notification
-- Timer reset when clicking push while toast visible
-- Toast recreated with full functionality if expired
-- Works for all notifications, not just actionable ones
+### Dashboard Loading Indicator Fixes ✅
+- Removed duplicate overflowY from DashboardOrTabs
+- Dashboard loading now invisible placeholder (prevents layout shift)
+- ProtectedRoute loading uses consistent spinner style
+
+### Clock & Weather Widget Layout Improvements ✅
+- Larger time display (5xl), centered design, grouped edit controls
+- Weather: temp + icon side by side, location fully visible (no truncation)
+- Horizontal mode threshold changed from 280px to 410px
+- Weather min height reduced to h:1 for compact horizontal mode
 
 ### Files Changed This Session
-- `server/database/migrations/0006_add_notification_metadata.js` - NEW
-- `server/db/notifications.js` - metadata storage, SSE sync events
-- `server/routes/webhooks.js` - requestId extraction, metadata construction
-- `server/routes/requestActions.js` - NEW, approve/decline API
-- `src/components/notifications/ToastNotification.jsx` - swipe, actions, timer reset
-- `src/components/notifications/NotificationCenter.jsx` - action buttons
-- `src/context/NotificationContext.jsx` - handleRequestAction, showToastForNotification, sync handlers
-- `public/sw.js` - v1.2.0, NOTIFICATION_CLICK message, URL hash
+- `src/context/AppDataContext.jsx` - integrationsLoaded/Error states
+- `src/context/AuthContext.jsx` - visibility change listener, logout registration
+- `src/utils/axiosSetup.js` - logout callback on 401
+- `src/components/common/IntegrationConnectionError.jsx` - NEW
+- `src/components/common/ProtectedRoute.jsx` - consistent spinner
+- `src/pages/Dashboard.jsx` - invisible loading placeholder
+- `src/pages/DashboardOrTabs.jsx` - removed duplicate overflowY
+- `src/components/widgets/ClockWidget.jsx` - layout redesign
+- `src/components/widgets/WeatherWidget.jsx` - layout redesign
+- `src/utils/widgetRegistry.js` - weather minH:1
+- 7 widget files - integrationsLoaded checks
 
 ---
 
 ## Next Step
 
-**Ready for testing and merge to develop.**
+**Ready to merge to develop.**
 
-- Test actionable notifications: make Overseerr request → approve/decline from toast
-- Test cross-device sync: delete notification on one device, watch it disappear on another
-- Test push click reshow: dismiss toast → click web push → toast reappears
 - Merge `feature/notification-integration` → `develop` when ready
+- Test session expiry: let session timeout, verify auto-redirect
+- Test widget loading on slow connection: widgets should show spinner, not error
 
 ---
 

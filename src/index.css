@@ -9,29 +9,48 @@
 @import './styles/design-system.css';
 @import './styles/animations.css';
 
-/* Global styles */
+/* 
+ * iOS Safari Scroll Lock Pattern (December 2024)
+ * 
+ * REMOVED (iOS Safari ignores these):
+ * - overscroll-behavior: none/contain - NOT SUPPORTED in Safari (WebKit Bug #176454)
+ * - safe-area padding on body - conflicts with dvh, scroll containers
+ * - overflow-x: hidden alone - doesn't prevent viewport shift
+ *
+ * THE FIX: Lock html/body with position:fixed, let App.jsx handle scroll
+ */
 html,
 body {
+    /* Core styles */
     font-family: var(--font-primary);
     background-color: var(--bg-primary);
     color: var(--text-primary);
 
-    /* Prevent horizontal page overflow */
-    overflow-x: hidden;
+    /* Explicit sizing for height inheritance */
+    width: 100%;
+    height: 100%;
 
-    /* iOS Safe Area - ensure content doesn't go under notch/home indicator */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    /* iOS Safari Scroll Lock - THIS IS THE FIX */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+
+    /* Prevent pinch zoom (belt-and-suspenders with viewport meta) */
+    touch-action: manipulation;
+
+    /* Momentum scrolling for child scroll containers */
+    -webkit-overflow-scrolling: touch;
 }
 
-/* Touch action - disable pinch-zoom while allowing pan/scroll */
-/* overscroll-behavior: none prevents iOS bounce and ensures scroll reaches edges */
-html,
-body {
-    touch-action: pan-x pan-y !important;
-    overscroll-behavior: none;
+/* React root container - needs explicit height for h-full to work */
+#root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Universal scrollbar hiding - Clean premium UI */

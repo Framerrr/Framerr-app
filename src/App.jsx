@@ -52,13 +52,26 @@ const CustomColorLoader = ({ children }) => {
 };
 
 // Main layout component that uses LayoutContext for responsive behavior
+// NOTE: html/body is position:fixed, so this wrapper fills the viewport
 const MainLayout = () => {
     const { isMobile } = useLayout();
 
     return (
-        <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        // Outer wrapper: fills fixed viewport, applies safe-area padding
+        <div
+            className="flex flex-col w-full h-full"
+            style={{
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                // Safe-area padding at wrapper level (not body)
+                paddingTop: 'env(safe-area-inset-top)',
+                paddingLeft: 'env(safe-area-inset-left)',
+                paddingRight: 'env(safe-area-inset-right)',
+            }}
+        >
             <ProtectedRoute>
-                <div className="flex w-full" style={{ height: '100dvh' }}>
+                {/* Main flex container - sidebar + content */}
+                <div className="flex w-full flex-1 min-h-0">
                     <Sidebar />
                     <main
                         className="flex-1 min-w-0 min-h-0 h-full"

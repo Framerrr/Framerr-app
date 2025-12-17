@@ -113,7 +113,7 @@ export const WIDGET_TYPES = {
         description: 'Current weather and forecast',
         category: 'utility',
         defaultSize: { w: 3, h: 3 },
-        minSize: { w: 3, h: 2 }, // Responsive: vertical when narrow, horizontal when wide
+        minSize: { w: 3, h: 1 }, // h:1 for compact horizontal, h:2+ for vertical
         maxSize: { h: 4 }, // No width limit
         requiresIntegration: false
     },

@@ -7,6 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
+import IntegrationConnectionError from '../common/IntegrationConnectionError';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 // Episode Detail Popover Component
 const EpisodePopover = ({ episode }) => {
@@ -126,7 +128,17 @@ const SonarrWidget = ({ config }) => {
     const userIsAdmin = isAdmin(user);
 
     // Get integrations state from context - ONLY source of truth for access
-    const { integrations } = useAppData();
+    const { integrations, integrationsLoaded, integrationsError } = useAppData();
+
+    // Wait for integrations to load before checking status
+    if (!integrationsLoaded) {
+        return <LoadingSpinner size="sm" />;
+    }
+
+    // Show connection error if integrations failed to load
+    if (integrationsError) {
+        return <IntegrationConnectionError serviceName="Sonarr" />;
+    }
 
     // ONLY use context integration - no fallback to config (ensures actual revocation)
     const integration = integrations?.sonarr || { enabled: false };

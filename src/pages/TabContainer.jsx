@@ -340,8 +340,8 @@ const TabContainer = () => {
                 return (
                     <div
                         key={slug}
-                        style={{ display: isActive ? 'flex' : 'none' }}
-                        className="w-full h-full flex flex-col"
+                        style={{ display: isActive ? 'flex' : 'none', maxHeight: '100%' }}
+                        className="w-full h-full flex flex-col min-h-0"
                     >
                         {/* Toolbar */}
                         <div className="h-12 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between px-4 flex-shrink-0">
@@ -376,8 +376,8 @@ const TabContainer = () => {
                             </div>
                         </div>
 
-                        {/* Iframe Container */}
-                        <div className="flex-1 relative bg-white">
+                        {/* Iframe Container - min-h-0 + overflow:hidden critical for iOS */}
+                        <div className="flex-1 relative bg-white min-h-0 overflow-hidden">
                             {isLoading && (
                                 <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10">
                                     <div className="text-center text-slate-400">

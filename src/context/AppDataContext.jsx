@@ -13,6 +13,8 @@ export const AppDataProvider = ({ children }) => {
     const [groups, setGroups] = useState([]);
     const [widgets, setWidgets] = useState([]);
     const [integrations, setIntegrations] = useState({});
+    const [integrationsLoaded, setIntegrationsLoaded] = useState(false);
+    const [integrationsError, setIntegrationsError] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
@@ -41,9 +43,13 @@ export const AppDataProvider = ({ children }) => {
                 try {
                     const integrationsRes = await axios.get('/api/integrations');
                     setIntegrations(integrationsRes.data.integrations || {});
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(null);
                 } catch (intError) {
                     logger.debug('Full integrations not available');
                     setIntegrations({});
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(intError);
                 }
             } else {
                 // Non-admin: fetch shared integrations that admin has granted access to
@@ -64,10 +70,14 @@ export const AppDataProvider = ({ children }) => {
                         };
                     }
                     setIntegrations(sharedIntegrations);
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(null);
                     logger.debug('Shared integrations loaded', { count: sharedList.length });
                 } catch (sharedError) {
                     logger.debug('Shared integrations not available');
                     setIntegrations({});
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(sharedError);
                 }
             }
 
@@ -149,6 +159,8 @@ export const AppDataProvider = ({ children }) => {
             groups,
             widgets,
             integrations,
+            integrationsLoaded,
+            integrationsError,
             loading,
             updateWidgetLayout,
             refreshData: fetchData

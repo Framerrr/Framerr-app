@@ -8,6 +8,8 @@ import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
+import IntegrationConnectionError from '../common/IntegrationConnectionError';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 // Event Popover Component
 const EventPopover = ({ event }) => {
@@ -115,7 +117,17 @@ const CombinedCalendarWidget = ({ config }) => {
     const userIsAdmin = isAdmin(user);
 
     // Get integrations from context - ONLY source of truth for access
-    const { integrations } = useAppData();
+    const { integrations, integrationsLoaded, integrationsError } = useAppData();
+
+    // Wait for integrations to load before checking status
+    if (!integrationsLoaded) {
+        return <LoadingSpinner size="sm" />;
+    }
+
+    // Show connection error if integrations failed to load
+    if (integrationsError) {
+        return <IntegrationConnectionError serviceName="Calendar" />;
+    }
 
     // Get Sonarr and Radarr configs from context (not widget config)
     const sonarrConfig = integrations?.sonarr || {};
