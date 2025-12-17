@@ -149,19 +149,29 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                 onClick={() => !notification.read && handleMarkAsRead(notification.id)}
             >
                 <div className="flex items-start gap-3">
-                    {/* Icon */}
-                    <div
-                        className="p-2 rounded-lg flex-shrink-0"
-                        style={{
-                            backgroundColor: `var(--${notification.type})`,
-                            opacity: 0.2
-                        }}
-                    >
-                        <Icon
-                            size={18}
-                            style={{ color: `var(--${notification.type})` }}
-                        />
-                    </div>
+                    {/* Icon - custom icon or type-based icon */}
+                    {notification.iconId ? (
+                        <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-theme-tertiary flex items-center justify-center">
+                            <img
+                                src={`/api/custom-icons/${notification.iconId}/file`}
+                                alt=""
+                                className="w-7 h-7 object-contain"
+                            />
+                        </div>
+                    ) : (
+                        <div
+                            className="p-2 rounded-lg flex-shrink-0"
+                            style={{
+                                backgroundColor: `var(--${notification.type})`,
+                                opacity: 0.2
+                            }}
+                        >
+                            <Icon
+                                size={18}
+                                style={{ color: `var(--${notification.type})` }}
+                            />
+                        </div>
+                    )}
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
