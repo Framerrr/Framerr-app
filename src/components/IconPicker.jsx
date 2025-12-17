@@ -280,12 +280,13 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                         : '24rem',
                                     minWidth: '280px',
                                     maxWidth: '24rem',
-                                    zIndex: 60
+                                    zIndex: 100,
+                                    maxHeight: 'min(400px, calc(100vh - 200px))'
                                 }}
-                                className="glass-card border-theme rounded-xl shadow-2xl max-h-[60vh] flex flex-col"
+                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden overflow-y-auto"
                             >
                                 {/* Header */}
-                                <div className="flex items-center justify-between p-4 border-b border-theme flex-shrink-0">
+                                <div className="flex items-center justify-between p-4 border-b border-theme">
                                     <h3 className="font-semibold text-theme-primary">Select Icon</h3>
                                     <button
                                         onClick={() => setIsOpen(false)}
@@ -297,7 +298,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
 
 
                                 {/* Tabs */}
-                                <div className="flex border-b border-theme relative flex-shrink-0">
+                                <div className="flex border-b border-theme relative">
                                     {/* Sliding indicator */}
                                     {activeTab === 'icons' ? (
                                         <motion.div
@@ -341,7 +342,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-4 flex-1 min-h-0 overflow-y-auto">
+                                <div className="p-4 max-h-96 overflow-y-auto">
                                     <AnimatePresence mode="wait">
                                         {activeTab === 'icons' ? (
                                             <motion.div
@@ -433,7 +434,6 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                                         <div className="grid grid-cols-4 gap-2">
                                                             {uploadedIcons.map((icon) => {
                                                                 const isSelected = value === `custom:${icon.id}`;
-                                                                const isSystemIcon = icon.isSystem === true;
                                                                 return (
                                                                     <div
                                                                         key={icon.id}
@@ -457,37 +457,35 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                                                                 className="w-full h-full object-contain"
                                                                             />
                                                                         </motion.button>
-                                                                        {/* Delete Button - hidden for system icons */}
-                                                                        {!isSystemIcon && (
-                                                                            confirmDeleteId !== icon.id ? (
+                                                                        {/* Delete Button with inline confirmation */}
+                                                                        {confirmDeleteId !== icon.id ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setConfirmDeleteId(icon.id)}
+                                                                                className="absolute -top-1 -right-1 w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                                                                title="Delete icon"
+                                                                            >
+                                                                                <X size={12} />
+                                                                            </button>
+                                                                        ) : (
+                                                                            <div className="absolute -top-1 -right-1 flex gap-0.5">
                                                                                 <button
                                                                                     type="button"
-                                                                                    onClick={() => setConfirmDeleteId(icon.id)}
-                                                                                    className="absolute -top-1 -right-1 w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                                                                    title="Delete icon"
+                                                                                    onClick={() => handleDeleteIcon(icon.id)}
+                                                                                    className="w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full flex items-center justify-center"
+                                                                                    title="Confirm delete"
                                                                                 >
-                                                                                    <X size={12} />
+                                                                                    <Check size={10} />
                                                                                 </button>
-                                                                            ) : (
-                                                                                <div className="absolute -top-1 -right-1 flex gap-0.5">
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => handleDeleteIcon(icon.id)}
-                                                                                        className="w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full flex items-center justify-center"
-                                                                                        title="Confirm delete"
-                                                                                    >
-                                                                                        <Check size={10} />
-                                                                                    </button>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => setConfirmDeleteId(null)}
-                                                                                        className="w-5 h-5 bg-theme-tertiary hover:bg-theme-hover text-white rounded-full flex items-center justify-center"
-                                                                                        title="Cancel"
-                                                                                    >
-                                                                                        <X size={10} />
-                                                                                    </button>
-                                                                                </div>
-                                                                            )
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setConfirmDeleteId(null)}
+                                                                                    className="w-5 h-5 bg-theme-tertiary hover:bg-theme-hover text-white rounded-full flex items-center justify-center"
+                                                                                    title="Cancel"
+                                                                                >
+                                                                                    <X size={10} />
+                                                                                </button>
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                 );
