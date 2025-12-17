@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-17 12:10 EST  
+**Last Updated:** 2025-12-17 15:15 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,52 +20,50 @@
 
 ## Current State
 
-**Status:** ✅ Session Complete — Notification Integration Features Added
+**Status:** ✅ Session Complete — Actionable Notifications & Cross-Device Sync
 
 **This Session Summary:**
 
-### System Icons for Notifications ✅
-- 9 system icons auto-seeded on startup (Overseerr, Sonarr, Radarr, Plex, Jellyfin, Emby, Tautulli, qBittorrent, SABnzbd)
-- Toast and Notification Center display custom icons for webhook notifications
-- System icons protected from deletion (API 403, UI hides delete button)
-- Database migration `0005_add_notification_icon.js` adds `icon_id` column to notifications
+### Actionable Notifications (Overseerr) ✅
+- Approve/Decline buttons on toast notifications for pending requests
+- Notification Center also displays action buttons
+- Auto-dismiss after 10 seconds with hover-pause
+- Click toast body opens Notification Center and dismisses toast
+- Swipe-to-dismiss gesture on toast notifications
+- Backend API endpoint `/api/request-actions/overseerr/:action/:notificationId`
 
-### Seerr/Jellyseerr Support ✅
-- Added 28 human-readable event name mappings for Seerr forks
-- Example: `"New Movie Request"` now maps to `requestPending`
+### Cross-Device Notification Sync ✅
+- SSE sync events for: markRead, delete, markAllRead, clearAll
+- All connected devices update in real-time
+- Toasts dismissed when notification deleted on another device
 
-### Normalized Notification Format ✅
-- Professional `{AppName}: {Action}` title format for all integrations
-- Human-readable messages (e.g., "Season 2 Episode 1" instead of "S2E1")
-- Quality included for grab/upgrade events only
+### Push Notification Click Toast Reshow ✅
+- Service Worker v1.2.0 posts NOTIFICATION_CLICK message to open clients
+- URL hash `#notification=id` for opening app from notification
+- Timer reset when clicking push while toast visible
+- Toast recreated with full functionality if expired
+- Works for all notifications, not just actionable ones
 
-### Event-Based Notification Routing ✅
-- Admin events (requestPending, issueReported/Reopened) → Admins
-- User events (approved, available, declined, resolved) → Requesting user
-- Failed events → Both user and admins
-- Test events → All admins
-
-### Files Changed
-- `server/services/seedSystemIcons.js` - System icon seeding logic
-- `server/database/migrations/0005_add_notification_icon.js` - NEW
-- `server/database/schema.sql` - Added icon_id column
-- `server/db/notifications.js` - iconId in create/get
-- `server/db/customIcons.js` - is_system flag, deletion protection
-- `server/routes/webhooks.js` - Seerr support, normalized format, routing
-- `src/components/notifications/ToastNotification.jsx` - Icon display
-- `src/components/notifications/NotificationCenter.jsx` - Icon display
-- `src/context/NotificationContext.jsx` - iconId in toast options
+### Files Changed This Session
+- `server/database/migrations/0006_add_notification_metadata.js` - NEW
+- `server/db/notifications.js` - metadata storage, SSE sync events
+- `server/routes/webhooks.js` - requestId extraction, metadata construction
+- `server/routes/requestActions.js` - NEW, approve/decline API
+- `src/components/notifications/ToastNotification.jsx` - swipe, actions, timer reset
+- `src/components/notifications/NotificationCenter.jsx` - action buttons
+- `src/context/NotificationContext.jsx` - handleRequestAction, showToastForNotification, sync handlers
+- `public/sw.js` - v1.2.0, NOTIFICATION_CLICK message, URL hash
 
 ---
 
 ## Next Step
 
-**Ready for v1.1.11 release testing and deployment.**
+**Ready for testing and merge to develop.**
 
+- Test actionable notifications: make Overseerr request → approve/decline from toast
+- Test cross-device sync: delete notification on one device, watch it disappear on another
+- Test push click reshow: dismiss toast → click web push → toast reappears
 - Merge `feature/notification-integration` → `develop` when ready
-- Test webhook notifications from Overseerr/Seerr, Sonarr, Radarr
-- Verify icons display in both toast and notification center
-- Confirm routing: pending → admins, approved → user
 
 ---
 
