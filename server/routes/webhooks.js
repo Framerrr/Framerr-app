@@ -297,6 +297,12 @@ router.post('/radarr/:token', async (req, res) => {
 
 /**
  * Process webhook and create notifications for appropriate users
+ * 
+ * Routing logic:
+ * - Admin events (requestPending, issues) → Admins
+ * - User events (approved, available, declined) → User who requested
+ * - Failed events → Both user and admins
+ * - Test events → All admins
  */
 async function processWebhookNotification({ service, eventKey, username, title, message, webhookConfig, adminOnly = false }) {
     const notificationsSent = [];
@@ -304,22 +310,80 @@ async function processWebhookNotification({ service, eventKey, username, title, 
     // Get the system icon ID for this service
     const iconId = getSystemIconIdForService(service);
 
-    // Test events bypass all preference checks and go to all admins
+    // Define event routing
+    const ADMIN_EVENTS = ['requestPending', 'issueReported', 'issueReopened'];
+    const USER_EVENTS = ['requestApproved', 'requestAutoApproved', 'requestAvailable', 'requestDeclined', 'issueResolved', 'issueComment'];
+    const BOTH_EVENTS = ['requestFailed'];
+
     const isTestEvent = eventKey === 'test';
+    const isAdminEvent = ADMIN_EVENTS.includes(eventKey);
+    const isUserEvent = USER_EVENTS.includes(eventKey);
+    const isBothEvent = BOTH_EVENTS.includes(eventKey);
 
     logger.info('[Webhook] Processing notification', {
         service,
         eventKey,
         username,
         isTestEvent,
+        isAdminEvent,
+        isUserEvent,
+        isBothEvent,
         adminOnly
     });
 
-    if (isTestEvent) {
-        // Test notifications - send to all admins regardless of settings
+    // Helper: Get all admins
+    const getAdmins = async () => {
         const { listUsers } = require('../db/users');
         const users = await listUsers();
-        const admins = users.filter(u => u.group === 'admin');
+        return users.filter(u => u.group === 'admin');
+    };
+
+    // Helper: Send to admins (with preference check)
+    const sendToAdmins = async (titleOverride = null, messageOverride = null) => {
+        const admins = await getAdmins();
+
+        for (const admin of admins) {
+            const wantsEvent = await userWantsEvent(admin.id, service, eventKey, true, webhookConfig);
+
+            if (wantsEvent) {
+                await createNotification({
+                    userId: admin.id,
+                    type: 'info',
+                    title: titleOverride || title,
+                    message: messageOverride || message,
+                    iconId
+                });
+                notificationsSent.push({ userId: admin.id, username: admin.username, role: 'admin' });
+                logger.debug('[Webhook] Admin notification sent', { adminId: admin.id, eventKey });
+            }
+        }
+    };
+
+    // Helper: Send to specific user
+    const sendToUser = async (user) => {
+        const isAdmin = user.group === 'admin';
+        const wantsEvent = await userWantsEvent(user.id, service, eventKey, isAdmin, webhookConfig);
+
+        if (wantsEvent) {
+            await createNotification({
+                userId: user.id,
+                type: 'info',
+                title,
+                message,
+                iconId
+            });
+            notificationsSent.push({ userId: user.id, username: user.username, role: 'user' });
+            logger.debug('[Webhook] User notification sent', { userId: user.id, eventKey });
+        }
+    };
+
+    // ============================================
+    // ROUTING LOGIC
+    // ============================================
+
+    if (isTestEvent) {
+        // Test notifications - send to all admins regardless of settings
+        const admins = await getAdmins();
 
         for (const admin of admins) {
             await createNotification({
@@ -336,35 +400,30 @@ async function processWebhookNotification({ service, eventKey, username, title, 
         return { notificationsSent: notificationsSent.length };
     }
 
-    if (!adminOnly && username) {
-        // Try to find the user who triggered this event
+    if (adminOnly) {
+        // Admin-only notifications (Sonarr/Radarr system events)
+        await sendToAdmins();
+        logger.info('[Webhook] Admin-only notifications created', { service, eventKey, count: notificationsSent.length });
+        return { notificationsSent: notificationsSent.length };
+    }
+
+    if (isAdminEvent) {
+        // Events that should go to admins (request pending, new issues)
+        await sendToAdmins();
+        logger.info('[Webhook] Admin event notifications sent', { eventKey, count: notificationsSent.length });
+        return { notificationsSent: notificationsSent.length };
+    }
+
+    if (isUserEvent && username) {
+        // Events that should go to the user who triggered them
         const user = await resolveUserByUsername(username, service);
 
         if (user) {
-            const isAdmin = user.group === 'admin';
-            const wantsEvent = await userWantsEvent(user.id, service, eventKey, isAdmin, webhookConfig);
-
-            logger.debug('[Webhook] User event check', {
-                userId: user.id,
-                isAdmin,
-                wantsEvent,
-                eventKey
-            });
-
-            if (wantsEvent) {
-                await createNotification({
-                    userId: user.id,
-                    type: 'info',
-                    title,
-                    message,
-                    iconId
-                });
-                notificationsSent.push({ userId: user.id, username: user.username });
-                logger.info('[Webhook] Notification created for user', { userId: user.id, service, eventKey });
-            }
+            await sendToUser(user);
+            logger.info('[Webhook] User event notification sent', { userId: user.id, eventKey });
         } else {
-            // No user match - send to admins with receiveUnmatched
-            logger.debug('[Webhook] No user match, checking admins with receiveUnmatched');
+            // User not found - send to admins with receiveUnmatched
+            logger.debug('[Webhook] User not found, sending to admins with receiveUnmatched');
             const admins = await getAdminsWithReceiveUnmatched();
 
             for (const admin of admins) {
@@ -379,31 +438,31 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                         iconId
                     });
                     notificationsSent.push({ userId: admin.id, username: admin.username, unmatched: true });
-                    logger.info('[Webhook] Unmatched notification sent to admin', { adminId: admin.id, username });
                 }
             }
         }
-    } else {
-        // Admin-only notifications (Sonarr/Radarr system events)
-        const admins = await getAdminsWithReceiveUnmatched();
+        return { notificationsSent: notificationsSent.length };
+    }
 
-        for (const admin of admins) {
-            const wantsEvent = await userWantsEvent(admin.id, service, eventKey, true, webhookConfig);
+    if (isBothEvent && username) {
+        // Events that should go to BOTH user and admins
+        const user = await resolveUserByUsername(username, service);
 
-            if (wantsEvent) {
-                await createNotification({
-                    userId: admin.id,
-                    type: 'info',
-                    title,
-                    message,
-                    iconId
-                });
-                notificationsSent.push({ userId: admin.id, username: admin.username });
-            }
+        // Send to user if found
+        if (user) {
+            await sendToUser(user);
         }
 
-        logger.info('[Webhook] Admin notifications created', { service, eventKey, count: notificationsSent.length });
+        // Always send to admins for failed events
+        await sendToAdmins();
+
+        logger.info('[Webhook] Both user and admin notifications sent', { eventKey, count: notificationsSent.length });
+        return { notificationsSent: notificationsSent.length };
     }
+
+    // Fallback: If we can't determine routing, send to admins
+    logger.warn('[Webhook] Unknown event routing, sending to admins', { eventKey });
+    await sendToAdmins();
 
     return { notificationsSent: notificationsSent.length };
 }
