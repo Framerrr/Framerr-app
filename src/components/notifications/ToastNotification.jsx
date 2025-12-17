@@ -135,6 +135,7 @@ const ToastNotification = ({
 
         if (onBodyClick) {
             onBodyClick();
+            onDismiss(id); // Also dismiss the toast
         }
     };
 

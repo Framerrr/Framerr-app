@@ -47,7 +47,13 @@ async function createNotification(notificationData) {
             notification.read ? 1 : 0
         );
 
-        logger.debug('Notification created', { id: notification.id, userId: notification.userId, type: notification.type });
+        logger.debug('Notification created', {
+            id: notification.id,
+            userId: notification.userId,
+            type: notification.type,
+            hasMetadata: !!notification.metadata,
+            metadata: notification.metadata
+        });
 
         // Send real-time notification via SSE
         try {
