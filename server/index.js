@@ -137,7 +137,25 @@ const fs = require('fs');
 if (!fs.existsSync(customFaviconPath)) {
     fs.mkdirSync(customFaviconPath, { recursive: true });
 }
-app.use('/favicon', cors(), express.static(customFaviconPath));
+
+// Favicon with fallback: try custom first, then default
+app.use('/favicon', cors(), (req, res, next) => {
+    const customFile = path.join(customFaviconPath, req.path);
+
+    // Check if custom file exists
+    if (fs.existsSync(customFile)) {
+        return res.sendFile(customFile);
+    }
+
+    // Fallback to default Framerr favicon
+    const defaultFile = path.join(defaultFaviconPath, req.path);
+    if (fs.existsSync(defaultFile)) {
+        return res.sendFile(defaultFile);
+    }
+
+    // Neither exists - 404
+    res.status(404).json({ error: 'Favicon not found' });
+});
 
 // Profile pictures
 app.use('/profile-pictures', cors(), express.static('/config/upload/profile-pictures'));
@@ -169,6 +187,14 @@ app.use('/api/custom-icons', require('./routes/custom-icons'));
 app.use('/api/advanced', require('./routes/advanced'));
 app.use('/api/diagnostics', require('./routes/diagnostics'));
 app.use('/api/notifications', require('./routes/notifications'));
+<<<<<<< HEAD
+=======
+app.use('/api/plex', require('./routes/plex'));
+app.use('/api/linked-accounts', require('./routes/linkedAccounts'));
+app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/request-actions', require('./routes/requestActions'));
+
+>>>>>>> develop
 
 
 // Proxy routes for widgets (require authentication)
@@ -178,6 +204,15 @@ app.use('/api', require('./routes/proxy'));
 if (NODE_ENV === 'production') {
     const path = require('path');
     const distPath = path.join(__dirname, '../dist');
+
+    // Service Worker - prevent caching to ensure updates are picked up
+    app.get('/sw.js', (req, res) => {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Content-Type', 'application/javascript');
+        res.sendFile(path.join(distPath, 'sw.js'));
+    });
 
     // Serve static files
     app.use(express.static(distPath));
@@ -289,6 +324,10 @@ app.use((err, req, res, next) => {
         if (systemConfig.debug?.logLevel) {
             logger.setLevel(systemConfig.debug.logLevel);
         }
+
+        // Seed system icons (integration logos)
+        const { seedSystemIcons } = require('./services/seedSystemIcons');
+        await seedSystemIcons();
 
         // Now start server with config loaded
         app.listen(PORT, () => {

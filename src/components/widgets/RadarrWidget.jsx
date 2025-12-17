@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Film } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
+<<<<<<< HEAD
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+=======
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
+import IntegrationConnectionError from '../common/IntegrationConnectionError';
+import LoadingSpinner from '../common/LoadingSpinner';
+>>>>>>> develop
 
 // Movie Detail Popover Component
 const MoviePopover = ({ movie }) => {
@@ -119,6 +128,7 @@ const MoviePopover = ({ movie }) => {
 };
 
 const RadarrWidget = ({ config }) => {
+<<<<<<< HEAD
     // Get integrations state from context
     const { integrations } = useAppData();
     const integration = integrations?.radarr;
@@ -127,6 +137,31 @@ const RadarrWidget = ({ config }) => {
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
     const { enabled = false, url = '', apiKey = '' } = config || {};
+=======
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
+    // Get integrations state from context - ONLY source of truth for access
+    const { integrations, integrationsLoaded, integrationsError } = useAppData();
+
+    // Wait for integrations to load before checking status
+    if (!integrationsLoaded) {
+        return <LoadingSpinner size="sm" />;
+    }
+
+    // Show connection error if integrations failed to load
+    if (integrationsError) {
+        return <IntegrationConnectionError serviceName="Radarr" />;
+    }
+
+    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    const integration = integrations?.radarr || { enabled: false };
+
+    // Check if integration is enabled (from context only)
+    const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
+
+>>>>>>> develop
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -160,9 +195,18 @@ const RadarrWidget = ({ config }) => {
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 
+<<<<<<< HEAD
     // Show integration disabled message if not enabled
     if (!isIntegrationEnabled) {
         return <IntegrationDisabledMessage serviceName="Radarr" />;
+=======
+    // Show appropriate message based on user role
+    if (!isIntegrationEnabled) {
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="Radarr" />
+            : <IntegrationNoAccessMessage serviceName="Radarr" />;
+>>>>>>> develop
     }
 
     if (loading && !data) return <div className="text-secondary">Loading Calendar...</div>;

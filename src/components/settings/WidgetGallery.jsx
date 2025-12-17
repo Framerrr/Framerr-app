@@ -1,26 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, AlertCircle, CheckCircle2, Loader } from 'lucide-react';
+import { Plus, Search, AlertCircle, CheckCircle2, Loader, Share2, User } from 'lucide-react';
 import { getWidgetsByCategory, getWidgetMetadata } from '../../utils/widgetRegistry';
 import axios from 'axios';
 import logger from '../../utils/logger';
+import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 
 /**
  * Widget Gallery - Browse and add widgets to dashboard
+ * For admins: Shows all widgets, integration status
+ * For users: Shows utility widgets + widgets shared by admin
  */
 const WidgetGallery = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [integrations, setIntegrations] = useState({});
+    const [sharedIntegrations, setSharedIntegrations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [addingWidget, setAddingWidget] = useState(null);
+    const { success: showSuccess, error: showError } = useNotifications();
+    const { user } = useAuth();
+    const hasAdminAccess = isAdmin(user);
 
     const widgetsByCategory = getWidgetsByCategory();
     const categories = ['all', ...Object.keys(widgetsByCategory)];
 
     useEffect(() => {
-        fetchIntegrations();
-    }, []);
+        if (hasAdminAccess) {
+            fetchIntegrations();
+        } else {
+            fetchSharedIntegrations();
+        }
+    }, [hasAdminAccess]);
 
+    // Admin: fetch all integrations
     const fetchIntegrations = async () => {
         try {
             const response = await axios.get('/api/integrations');
@@ -32,25 +46,99 @@ const WidgetGallery = () => {
         }
     };
 
+    // User: fetch only shared integrations
+    const fetchSharedIntegrations = async () => {
+        try {
+            const response = await axios.get('/api/integrations/shared');
+            setSharedIntegrations(response.data.integrations || []);
+        } catch (error) {
+            logger.error('Failed to fetch shared integrations:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Check if a widget should be visible to the current user
+    const isWidgetVisible = (widget) => {
+        // Utility widgets (no integration required) are always visible
+        if (!widget.requiresIntegration && !widget.requiresIntegrations) {
+            return true;
+        }
+
+        // For admins, show all widgets
+        if (hasAdminAccess) {
+            return true;
+        }
+
+        // For regular users, check if integration is shared with them
+        const requiredIntegration = widget.requiresIntegration;
+        if (requiredIntegration) {
+            return sharedIntegrations.some(si => si.name === requiredIntegration);
+        }
+
+        // For widgets requiring multiple integrations (like calendar)
+        // Show if ANY of the required integrations is shared
+        const requiredIntegrations = widget.requiresIntegrations;
+        if (requiredIntegrations) {
+            return requiredIntegrations.some(req =>
+                sharedIntegrations.some(si => si.name === req)
+            );
+        }
+
+        return false;
+    };
+
+    // Get sharedBy info for a widget
+    const getSharedByInfo = (widget) => {
+        if (hasAdminAccess) return null; // Admins don't need to see this
+
+        const requiredIntegration = widget.requiresIntegration;
+        if (requiredIntegration) {
+            const shared = sharedIntegrations.find(si => si.name === requiredIntegration);
+            return shared?.sharedBy;
+        }
+
+        return null;
+    };
+
     const handleAddWidget = async (widgetType) => {
         setAddingWidget(widgetType);
 
         try {
             const metadata = getWidgetMetadata(widgetType);
 
-            // Check if integration is required and configured
-            if (metadata.requiresIntegration) {
-                const integration = integrations[metadata.requiresIntegration];
-                if (!integration?.enabled || !integration?.url) {
-                    alert(`This widget requires ${metadata.requiresIntegration} integration to be configured. Please configure it in the Integrations tab first.`);
-                    setAddingWidget(null);
-                    return;
-                }
-            }
-
             // Fetch current widgets
             const currentResponse = await axios.get('/api/widgets');
             const currentWidgets = currentResponse.data.widgets || [];
+
+            // Build widget config based on role
+            let widgetConfig = {
+                title: metadata.name
+            };
+
+            // For admins: copy full integration config
+            if (hasAdminAccess && metadata.requiresIntegration && integrations[metadata.requiresIntegration]) {
+                widgetConfig = {
+                    ...widgetConfig,
+                    enabled: true,
+                    ...integrations[metadata.requiresIntegration]
+                };
+            }
+            // For users: inject shared integration config
+            else if (!hasAdminAccess && metadata.requiresIntegration) {
+                const sharedIntegration = sharedIntegrations.find(
+                    si => si.name === metadata.requiresIntegration
+                );
+                if (sharedIntegration) {
+                    widgetConfig = {
+                        ...widgetConfig,
+                        enabled: true,
+                        // Include essential config from shared integration
+                        url: sharedIntegration.url,
+                        apiKey: sharedIntegration.apiKey
+                    };
+                }
+            }
 
             // Create new widget with defaults
             const newWidget = {
@@ -60,14 +148,7 @@ const WidgetGallery = () => {
                 y: Infinity, // Adds to bottom
                 w: metadata.defaultSize.w,
                 h: metadata.defaultSize.h,
-                config: {
-                    title: metadata.name,
-                    // If integration required, copy integration config
-                    ...(metadata.requiresIntegration && {
-                        enabled: true,
-                        ...integrations[metadata.requiresIntegration]
-                    })
-                }
+                config: widgetConfig
             };
 
             // Add to widgets array
@@ -76,25 +157,38 @@ const WidgetGallery = () => {
             // Save updated widgets
             await axios.put('/api/widgets', { widgets: updatedWidgets });
 
-            alert(`${metadata.name} added to your dashboard! Go to the Dashboard to see it.`);
+            // Dispatch event so Dashboard can refresh without full page reload
+            window.dispatchEvent(new CustomEvent('widgets-added', {
+                detail: { widgetId: newWidget.id, widgetType }
+            }));
+
+            showSuccess('Widget Added', `${metadata.name} added to your dashboard! Go to the Dashboard to see it.`);
         } catch (error) {
             logger.error('Failed to add widget:', error);
-            alert('Failed to add widget. Please try again.');
+            showError('Add Failed', 'Failed to add widget. Please try again.');
         } finally {
             setAddingWidget(null);
         }
     };
 
-    // Filter widgets
+    // Filter widgets based on visibility and search
     const filteredWidgets = Object.entries(widgetsByCategory).reduce((acc, [category, widgets]) => {
         if (selectedCategory !== 'all' && selectedCategory !== category) {
             return acc;
         }
 
-        const filtered = widgets.filter(widget =>
-            widget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            widget.description.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const filtered = widgets.filter(widget => {
+            // First check visibility based on sharing
+            if (!isWidgetVisible(widget)) {
+                return false;
+            }
+
+            // Then apply search filter
+            return (
+                widget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                widget.description.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        });
 
         if (filtered.length > 0) {
             acc[category] = filtered;
@@ -103,8 +197,32 @@ const WidgetGallery = () => {
         return acc;
     }, {});
 
+    // Check if there are ANY visible widgets
+    const totalVisibleWidgets = Object.values(filteredWidgets).reduce(
+        (sum, widgets) => sum + widgets.length, 0
+    );
+
     if (loading) {
         return <div className="text-center py-16 text-theme-secondary">Loading widgets...</div>;
+<<<<<<< HEAD
+=======
+    }
+
+    // Empty state for non-admin users with no shared widgets
+    if (!hasAdminAccess && totalVisibleWidgets === 0 && !searchTerm) {
+        return (
+            <div className="fade-in text-center py-16">
+                <div className="w-16 h-16 bg-theme-tertiary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Share2 size={32} className="text-theme-secondary" />
+                </div>
+                <h3 className="text-lg font-semibold text-theme-primary mb-2">No Widgets Available</h3>
+                <p className="text-theme-secondary max-w-md mx-auto">
+                    No widgets have been shared with you yet. Contact your administrator to get access
+                    to integration widgets like Plex, Sonarr, or System Status.
+                </p>
+            </div>
+        );
+>>>>>>> develop
     }
 
     return (
@@ -154,8 +272,28 @@ const WidgetGallery = () => {
                             {widgets.map(widget => {
                                 const Icon = widget.icon;
                                 const isIntegrationRequired = widget.requiresIntegration;
-                                const integration = isIntegrationRequired ? integrations[widget.requiresIntegration] : null;
-                                const isIntegrationReady = !isIntegrationRequired || (integration?.enabled && integration?.url);
+                                const integration = hasAdminAccess && isIntegrationRequired
+                                    ? integrations[widget.requiresIntegration]
+                                    : null;
+
+                                // Check if integration is ready - handle special cases
+                                let isIntegrationReady = !isIntegrationRequired;
+                                if (isIntegrationRequired && hasAdminAccess) {
+                                    if (widget.requiresIntegration === 'systemstatus') {
+                                        // SystemStatus uses backend with glances/custom config
+                                        isIntegrationReady = integration?.enabled && (
+                                            (integration.backend === 'glances' && integration.glances?.url) ||
+                                            (integration.backend === 'custom' && integration.custom?.url) ||
+                                            (!integration.backend && integration.url) // legacy
+                                        );
+                                    } else {
+                                        // Standard integrations use url directly
+                                        isIntegrationReady = integration?.enabled && integration?.url;
+                                    }
+                                } else if (isIntegrationRequired && !hasAdminAccess) {
+                                    isIntegrationReady = sharedIntegrations.some(si => si.name === widget.requiresIntegration);
+                                }
+                                const sharedBy = getSharedByInfo(widget);
 
                                 return (
                                     <div
@@ -174,11 +312,17 @@ const WidgetGallery = () => {
                                         </div>
 
                                         {/* Info */}
+<<<<<<< HEAD
                                         <div className="flex items-center gap-2 mb-4 text-xs">
+=======
+                                        <div className="flex items-center gap-2 mb-4 text-xs flex-wrap">
+>>>>>>> develop
                                             <span className="px-2 py-1 bg-theme-tertiary rounded text-theme-secondary">
                                                 {widget.defaultSize.w}x{widget.defaultSize.h}
                                             </span>
-                                            {isIntegrationRequired && (
+
+                                            {/* Integration status badge (admin view) */}
+                                            {hasAdminAccess && isIntegrationRequired && (
                                                 <div className={`flex items-center gap-1 px-2 py-1 rounded ${isIntegrationReady
                                                     ? 'bg-green-500/20 text-green-400'
                                                     : 'bg-amber-500/20 text-amber-400'
@@ -189,6 +333,14 @@ const WidgetGallery = () => {
                                                         <AlertCircle size={12} />
                                                     )}
                                                     <span>{widget.requiresIntegration}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Shared by badge (user view) */}
+                                            {!hasAdminAccess && sharedBy && (
+                                                <div className="flex items-center gap-1 px-2 py-1 rounded bg-info/20 text-info">
+                                                    <User size={12} />
+                                                    <span>Shared by {sharedBy}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -223,3 +375,4 @@ const WidgetGallery = () => {
 };
 
 export default WidgetGallery;
+

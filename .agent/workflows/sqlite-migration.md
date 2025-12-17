@@ -1,101 +1,126 @@
 ---
-description: SQLite Database Migration - Complete transition from JSON to SQLite
+description: How to add new database tables or modify schema
 ---
 
-# SQLite Migration Workflow
+# Database Schema Changes
 
-## Status: PLANNING COMPLETE - Ready for Session 1
+## When to Use
 
-## Quick Start for Next Session
+- Adding new SQLite tables
+- Modifying existing tables (ALTER TABLE)
+- Adding indexes
+- Schema version bumps
 
-Read these files IN ORDER:
-1. `docs/dbmigration/SESSION_PLAN.md` - **Main implementation guide**
-2. `docs/dbmigration/COMPLETE_FILE_AUDIT.md` - All files requiring changes
-3. `docs/dbmigration/MIGRATION_PLAN.md` - Overview and architecture
+---
 
-## Current Progress
+## Steps
 
-**Planning:** ✅ Complete (100%)
-- [x] All 30 files audited
-- [x] 6 files identified for modification
-- [x] 3-session plan created
-- [x] Schema designed (8 tables)
-- [ ] User approval pending
+### 1. Read Reference Doc
+```
+Read docs/reference/database.md
+```
+- Understand migration system
+- Know current schema version
 
-**Implementation:** Not started
-- [ ] Session 1: Foundation
-- [ ] Session 2: Core Modules  
-- [ ] Session 3: Completion
+### 2. Check Current Schema Version
+```bash
+# In SQLite:
+PRAGMA user_version;
+```
+Or check `server/database/schema.sql` header comment.
 
-## Session Roadmap
+### 3. Create Migration File
 
-### Session 1: Foundation (50-60 tool calls)
-**Goal:** Create infrastructure, no production changes yet
+**Location:** `server/database/migrations/NNNN_description.js`
 
-Tasks:
-1. Install `better-sqlite3` package
-2. Create `server/database/db.js` connection
-3. Create `server/database/schema.sql` (8 tables)
-4. Create migration script skeleton
-5. Test database initialization
+**Naming:** Increment version number (e.g., `0002_add_linked_accounts.js`)
 
-**Safe Point:** No production code changed, can abort
+**Template:**
+```javascript
+module.exports = {
+    version: 2, // Must match NNNN in filename
+    name: 'add_linked_accounts',
+    up(db) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS linked_accounts (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                service TEXT NOT NULL,
+                external_id TEXT NOT NULL,
+                external_username TEXT,
+                linked_at INTEGER DEFAULT (strftime('%s', 'now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_linked_accounts_user_id ON linked_accounts(user_id);
+            CREATE INDEX IF NOT EXISTS idx_linked_accounts_service ON linked_accounts(service);
+        `);
+    }
+};
+```
 
-### Session 2: Core Modules (70-90 tool calls)
-**Goal:** Migrate users and config modules
+### 4. Update Base Schema
 
-Tasks:
-1. Rewrite `server/db/users.js` (14 functions)
-2. Rewrite `server/db/userConfig.js` (7 functions)
-3. Test all auth/config flows
-4. Verify all 17 routes still work
+Also add table to `server/database/schema.sql` for fresh installs.
 
-**Rollback:** Restore 2 backup files if needed
+Increment `PRAGMA user_version` at end of schema.sql.
 
-### Session 3: Completion (70-90 tool calls)
-**Goal:** Finish migration, deploy
+### 5. Create DB Module (if needed)
 
-Tasks:
-1. Rewrite remaining 3 DB modules
-2. Fix check-users.js script
-3. Complete migration script
-4. Docker integration
-5. Full system testing
+**Location:** `server/db/linkedAccounts.js`
 
-**Rollback:** Full restoration available
+**Pattern:** Follow existing modules (users.js, notifications.js):
+- Import db connection
+- Export CRUD functions
+- Use parameterized queries
 
-## Critical: User Data Preserved
+### 6. Test Migration
 
-**✅ ALL USER DATA AUTOMATICALLY TRANSFERRED**
-- Migration script reads existing JSON files
-- Transfers ALL users, configs, tabs, widgets, notifications
-- Zero data loss
-- Users keep everything (tabs, widgets, themes, settings)
-- No manual reconfiguration needed
+```bash
+# Delete local DB to test fresh install
+rm -f config/framerr.db
 
-## Files Modified: 6
-1. `server/db/users.js`
-2. `server/db/userConfig.js`
-3. `server/db/systemConfig.js`
-4. `server/db/notifications.js`
-5. `server/db/customIcons.js`
-6. `server/scripts/check-users.js`
+# Or test migration on existing DB
+npm run dev
+# Check logs for migration messages
+```
 
-## Files Created: 3
-1. `server/database/db.js`
-2. `server/database/schema.sql`
-3. `server/scripts/migrate-to-sqlite.js`
+### 7. Build and Commit
 
-## No Changes: 25 files
-All routes, middleware, utils work automatically
+```bash
+npm run build
+git add .
+git commit -m "feat(db): add linked_accounts table"
+```
 
-## Next Steps
+---
 
-1. User reviews and approves plan
-2. Start Session 1: Foundation setup
-3. Continue with Session 2 and 3
-4. Deploy to develop Docker tag
-5. User testing
-6. Production release
+## For JSON Columns (system_config)
 
-**Total Time:** 5-8 hours across 3 sessions
+If adding data to existing `system_config` table:
+
+```javascript
+// No migration needed - just add default in code
+const defaultValue = JSON.stringify({ ... });
+// INSERT OR IGNORE handles fresh installs
+```
+
+---
+
+## Rollback
+
+- Migrations run on startup
+- If migration fails → server won't start
+- Restore backup from `/config/backups/`
+- Or manually fix and retry
+
+---
+
+## Quick Reference
+
+| Task | Location |
+|------|----------|
+| Schema definition | `server/database/schema.sql` |
+| Migrations | `server/database/migrations/*.js` |
+| DB connection | `server/database/db.js` |
+| DB modules | `server/db/*.js` |
+| Backups | `/config/backups/` |

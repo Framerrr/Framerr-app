@@ -3,6 +3,8 @@ import { Responsive, WidthProvider } from 'react-grid-layout';
 import { Edit, Save, X as XIcon, Plus } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLayout } from '../context/LayoutContext';
+import { LAYOUT } from '../constants/layout';
 import { Button } from '../components/common/Button';
 import WidgetWrapper from '../components/widgets/WidgetWrapper';
 import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
@@ -12,23 +14,26 @@ import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/w
 import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import DebugOverlay from '../components/debug/DebugOverlay';
+import { isAdmin } from '../utils/permissions';
 import axios from 'axios';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import '../styles/GridLayout.css';
 import logger from '../utils/logger';
+import { useNotifications } from '../context/NotificationContext';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const { isMobile } = useLayout();
+    const { warning: showWarning, error: showError } = useNotifications();
 
     // State
     const [widgets, setWidgets] = useState([]);
     const [layouts, setLayouts] = useState({
         lg: [],
-        xs: [],
-        xxs: []
+        sm: []
     });
     const [editMode, setEditMode] = useState(false);
     const [isGlobalDragEnabled, setGlobalDragEnabled] = useState(true);
@@ -40,9 +45,29 @@ const Dashboard = () => {
     const [greetingText, setGreetingText] = useState('Your personal dashboard');
     const [showAddModal, setShowAddModal] = useState(false);
     const [integrations, setIntegrations] = useState({});
+    const [sharedIntegrations, setSharedIntegrations] = useState([]); // For non-admins: integrations shared by admin
     const [widgetVisibility, setWidgetVisibility] = useState({}); // Track widget visibility: {widgetId: boolean}
     const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(false); // Toggle for debug overlay (can be controlled from settings)
+    const [editDisclaimerDismissed, setEditDisclaimerDismissed] = useState(false);
+
+    // Check if current user is admin
+    const userIsAdmin = isAdmin(user);
+
+    // Load edit disclaimer preference from user config
+    useEffect(() => {
+        const loadUserPreferences = async () => {
+            try {
+                const response = await axios.get('/api/config/user', { withCredentials: true });
+                if (response.data?.preferences?.editDisclaimerDismissed) {
+                    setEditDisclaimerDismissed(true);
+                }
+            } catch (error) {
+                logger.debug('Could not load user preferences for disclaimer:', error.message);
+            }
+        };
+        loadUserPreferences();
+    }, []);
 
     // Handle widget visibility changes (called by widgets that support hideWhenEmpty)
     const handleWidgetVisibilityChange = (widgetId, isVisible) => {
@@ -53,19 +78,32 @@ const Dashboard = () => {
     };
 
     // Grid configuration - memoized to prevent recreation on every render
+    // When isMobile is true, force 2-column mode regardless of container width
+    const effectiveBreakpoint = isMobile ? 'sm' : currentBreakpoint;
+
+    // Override breakpoints and cols when mobile to force mobile layout
+    // Simplified: only lg and sm (no md) since we only have lg and sm layouts
+    const gridBreakpoints = isMobile
+        ? { sm: 0 }
+        : { lg: 768, sm: 0 };  // lg starts at 768 (same as sidebar threshold)
+
+    const gridCols = isMobile
+        ? { sm: 2 }
+        : { lg: 24, sm: 2 };
+
     const gridConfig = React.useMemo(() => ({
         className: "layout",
-        cols: { lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 },
-        breakpoints: { lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 },
+        cols: gridCols,
+        breakpoints: gridBreakpoints,
         rowHeight: 100,
-        compactType: (currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical',
+        compactType: effectiveBreakpoint === 'sm' ? null : 'vertical',
         preventCollision: false,
-        isDraggable: editMode && isGlobalDragEnabled,
-        isResizable: editMode && isGlobalDragEnabled,
+        isDraggable: editMode && isGlobalDragEnabled && !isMobile,
+        isResizable: editMode && isGlobalDragEnabled && !isMobile,
         margin: [16, 16],
         containerPadding: [0, 0],
         onBreakpointChange: (breakpoint) => setCurrentBreakpoint(breakpoint)
-    }), [editMode, currentBreakpoint, isGlobalDragEnabled]);
+    }), [editMode, effectiveBreakpoint, isGlobalDragEnabled, isMobile, gridBreakpoints, gridCols]);
 
     // Helper: Apply minW/minH/maxH from widget metadata to layout items
     const enrichLayoutWithConstraints = (widget, layoutItem) => {
@@ -112,6 +150,18 @@ const Dashboard = () => {
         loadDebugOverlaySetting();
     }, []);
 
+    // Listen for greeting updates from settings
+    useEffect(() => {
+        const handleGreetingUpdate = (event) => {
+            const { enabled, text } = event.detail || {};
+            if (enabled !== undefined) setGreetingEnabled(enabled);
+            if (text !== undefined) setGreetingText(text);
+        };
+
+        window.addEventListener('greetingUpdated', handleGreetingUpdate);
+        return () => window.removeEventListener('greetingUpdated', handleGreetingUpdate);
+    }, []);
+
     // Listen for widget config updates (from individual widgets)
     useEffect(() => {
         const handleWidgetConfigUpdate = async (event) => {
@@ -147,8 +197,7 @@ const Dashboard = () => {
                 // Update layouts for this widget
                 setLayouts(prev => ({
                     lg: prev.lg.map(l => l.i === widgetId ? enrichLayoutWithConstraints(updatedWidget, { i: widgetId, ...updatedWidget.layouts.lg }) : l),
-                    xs: prev.xs.map(l => l.i === widgetId && updatedWidget.layouts.xs ? { i: widgetId, ...updatedWidget.layouts.xs } : l),
-                    xxs: prev.xxs.map(l => l.i === widgetId && updatedWidget.layouts.xxs ? { i: widgetId, ...updatedWidget.layouts.xxs } : l)
+                    sm: prev.sm.map(l => l.i === widgetId && updatedWidget.layouts.sm ? { i: widgetId, ...updatedWidget.layouts.sm } : l)
                 }));
 
                 logger.debug('Widget refreshed:', widgetId);
@@ -178,6 +227,17 @@ const Dashboard = () => {
         return () => window.removeEventListener('widgets-modified', handleWidgetsModified);
     }, []);
 
+    // Listen for widgets added from Settings > Widget Gallery
+    useEffect(() => {
+        const handleWidgetsAdded = () => {
+            // Re-fetch widgets to get the newly added widget
+            fetchWidgets();
+        };
+
+        window.addEventListener('widgets-added', handleWidgetsAdded);
+        return () => window.removeEventListener('widgets-added', handleWidgetsAdded);
+    }, []);
+
     // Dynamically recompact mobile layouts when widget visibility changes
     useEffect(() => {
         if (!widgets.length) return;
@@ -189,7 +249,7 @@ const Dashboard = () => {
         logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
 
         // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'xxs' || currentBreakpoint === 'xs' ? 2 : 24; // xs/xxs=2 (full width), md/sm/lg=24
+        const cols = currentBreakpoint === 'sm' || currentBreakpoint === 'xs' ? 2 : 24; // sm/xs=2 (full width), md/lg=24
         const breakpoint = currentBreakpoint;
 
         logger.debug('Recompacting layouts', { breakpoint, cols, visibility: widgetVisibility });
@@ -243,6 +303,11 @@ const Dashboard = () => {
     };
 
     const loadDebugOverlaySetting = async () => {
+        // Only admins can access system config
+        if (!userIsAdmin) {
+            return;
+        }
+
         try {
             const response = await axios.get('/api/system/config');
             if (response.data.config?.debug) {
@@ -257,8 +322,21 @@ const Dashboard = () => {
 
     const fetchIntegrations = async () => {
         try {
-            const response = await axios.get('/api/integrations');
-            setIntegrations(response.data.integrations || {});
+            // Admins get full integration config from /api/integrations
+            if (userIsAdmin) {
+                const response = await axios.get('/api/integrations');
+                setIntegrations(response.data.integrations || {});
+            } else {
+                // Non-admins get shared integrations from /api/integrations/shared
+                const response = await axios.get('/api/integrations/shared');
+                setSharedIntegrations(response.data.integrations || []);
+                // Also set integrations object for widget config injection
+                const integrationsObj = {};
+                (response.data.integrations || []).forEach(integration => {
+                    integrationsObj[integration.name] = integration;
+                });
+                setIntegrations(integrationsObj);
+            }
         } catch (error) {
             logger.error('Failed to fetch integrations:', error);
         }
@@ -301,10 +379,7 @@ const Dashboard = () => {
             // Convert to react-grid-layout format for all breakpoints
             const initialLayouts = {
                 lg: fetchedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                md: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.md })),
-                sm: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.sm })),
-                xs: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.xxs }))
+                sm: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts.sm }))
             };
 
             setLayouts(initialLayouts);
@@ -312,7 +387,7 @@ const Dashboard = () => {
         } catch (error) {
             logger.error('Failed to load widgets:', error);
             setWidgets([]);
-            setLayouts({ lg: [], xs: [], xxs: [] });
+            setLayouts({ lg: [], sm: [] });
         } finally {
             setLoading(false);
         }
@@ -363,8 +438,7 @@ const Dashboard = () => {
         setWidgets(withMobileLayouts);
         setLayouts({
             lg: newLayout,
-            xs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-            xxs: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            sm: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts.sm }))
         });
     };
 
@@ -381,8 +455,7 @@ const Dashboard = () => {
             // Update layouts from saved widgets
             setLayouts({
                 lg: savedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                xs: savedWidgets.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: savedWidgets.map(w => ({ i: w.id, ...w.layouts.xxs }))
+                sm: savedWidgets.map(w => ({ i: w.id, ...w.layouts.sm }))
             });
 
             setHasUnsavedChanges(false);
@@ -403,8 +476,7 @@ const Dashboard = () => {
         // Restore layouts from original
         setLayouts({
             lg: originalLayout.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-            xs: originalLayout.map(w => ({ i: w.id, ...w.layouts.xs })),
-            xxs: originalLayout.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            sm: originalLayout.map(w => ({ i: w.id, ...w.layouts.sm }))
         });
 
         setHasUnsavedChanges(false);
@@ -434,8 +506,7 @@ const Dashboard = () => {
         setWidgets(withLayouts);
         setLayouts({
             lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-            xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-            xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+            sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm }))
         });
 
         setHasUnsavedChanges(true);
@@ -454,25 +525,8 @@ const Dashboard = () => {
         try {
             const metadata = getWidgetMetadata(widgetType);
 
-            // Check single integration requirement
-            if (metadata.requiresIntegration) {
-                const integration = integrations[metadata.requiresIntegration];
-                if (!integration?.enabled || !integration?.url) {
-                    alert(`This widget requires ${metadata.requiresIntegration} integration. Please configure it in Settings first.`);
-                    return;
-                }
-            }
-
-            // Check multiple integrations requirement
-            if (metadata.requiresIntegrations && Array.isArray(metadata.requiresIntegrations)) {
-                const missingIntegrations = metadata.requiresIntegrations.filter(
-                    key => !integrations[key]?.enabled || !integrations[key]?.url
-                );
-                if (missingIntegrations.length > 0) {
-                    alert(`This widget requires ${missingIntegrations.join(' and ')} integration${missingIntegrations.length > 1 ? 's' : ''}. Please configure in Settings first.`);
-                    return;
-                }
-            }
+            // Note: Integration checks removed - widgets can now be added without integration configured
+            // The widget itself will display IntegrationDisabledMessage if not configured
 
             // Create new widget
             const newWidget = {
@@ -507,8 +561,7 @@ const Dashboard = () => {
             setWidgets(withLayouts);
             setLayouts({
                 lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts.lg })),
-                xs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xs })),
-                xxs: withLayouts.map(w => ({ i: w.id, ...w.layouts.xxs }))
+                sm: withLayouts.map(w => ({ i: w.id, ...w.layouts.sm }))
             });
 
             setHasUnsavedChanges(true);
@@ -521,7 +574,7 @@ const Dashboard = () => {
             }
         } catch (error) {
             logger.error('Failed to add widget:', error);
-            alert('Failed to add widget. Please try again.');
+            showError('Add Widget Failed', 'Failed to add widget. Please try again.');
         }
     };
 
@@ -593,22 +646,19 @@ const Dashboard = () => {
         );
     };
 
-    // Loading state
+    // Loading state - invisible placeholder prevents layout shift
+    // No visible indicator since ProtectedRoute handles initial loading
+    // and widgets display their own loading states
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-                    <p className="text-slate-400">Loading dashboard...</p>
-                </div>
-            </div>
-        );
+        return <div className="h-full w-full" />;
     }
 
     // Empty state
     if (widgets.length === 0 && !editMode) {
         return (
-            <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+            <div
+                className="w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8"
+            >
                 <header className="mb-12 flex items-center justify-between">
                     <div>
                         <h1 className="text-5xl font-bold mb-3 gradient-text">
@@ -634,7 +684,9 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-8 max-w-[2000px] mx-auto fade-in">
+        <div
+            className="w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8"
+        >
             {/* Header with Edit Controls */}
             <header className="mb-8 flex items-center justify-between">
                 <div>
@@ -683,16 +735,44 @@ const Dashboard = () => {
                             </button>
                         </div>
                     ) : (
-                        <button
-                            onClick={handleToggleEdit}
-                            className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
-                        >
-                            <Edit size={16} />
-                            Edit
-                        </button>
+                        // Edit button only visible when not in sm breakpoint (sm = stacked, no editing)
+                        effectiveBreakpoint !== 'sm' && (
+                            <button
+                                onClick={handleToggleEdit}
+                                className="flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
+                            >
+                                <Edit size={16} />
+                                Edit
+                            </button>
+                        )
                     )}
                 </div>
             </header>
+
+            {/* Edit Mode Desktop Disclaimer */}
+            {editMode && !editDisclaimerDismissed && (
+                <div className="mb-4 px-4 py-3 bg-info/10 border border-info/20 rounded-xl flex items-center justify-between gap-4">
+                    <p className="text-sm text-theme-secondary">
+                        💡 Dashboard editing is only available on tablet and desktop (≥768px)
+                    </p>
+                    <button
+                        onClick={async () => {
+                            setEditDisclaimerDismissed(true);
+                            try {
+                                await axios.put('/api/config/user', {
+                                    preferences: { editDisclaimerDismissed: true }
+                                }, { withCredentials: true });
+                            } catch (error) {
+                                logger.error('Failed to save disclaimer preference:', error);
+                            }
+                        }}
+                        className="p-1.5 hover:bg-theme-hover rounded-lg transition-colors text-theme-tertiary hover:text-theme-primary"
+                        title="Dismiss"
+                    >
+                        <XIcon size={16} />
+                    </button>
+                </div>
+            )}
 
             {/* Grid Layout with Drop Support - Always rendered for drag-and-drop */}
             <div
@@ -712,18 +792,18 @@ const Dashboard = () => {
                     <>
                         <ResponsiveGridLayout
                             className="layout"
-                            cols={{ lg: 24, md: 24, sm: 24, xs: 2, xxs: 2 }}
-                            breakpoints={{ lg: 1200, md: 1024, sm: 768, xs: 600, xxs: 0 }}
+                            cols={gridCols}
+                            breakpoints={gridBreakpoints}
                             rowHeight={100}
-                            compactType={(currentBreakpoint === 'xs' || currentBreakpoint === 'xxs') ? null : 'vertical'}
+                            compactType={effectiveBreakpoint === 'sm' ? null : 'vertical'}
                             preventCollision={false}
-                            isDraggable={editMode && isGlobalDragEnabled}
-                            isResizable={editMode && isGlobalDragEnabled}
+                            isDraggable={editMode && isGlobalDragEnabled && !isMobile}
+                            isResizable={editMode && isGlobalDragEnabled && !isMobile}
                             resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
                             containerPadding={[0, 0]}
-                            layouts={layouts}
+                            layouts={isMobile ? { sm: layouts.sm } : layouts}
                             onLayoutChange={handleLayoutChange}
                             onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint)}
                         >
@@ -788,10 +868,12 @@ const Dashboard = () => {
                 onClose={() => setShowAddModal(false)}
                 onAddWidget={handleAddWidgetFromModal}
                 integrations={integrations}
+                isAdmin={userIsAdmin}
+                sharedIntegrations={sharedIntegrations}
             />
 
-            {/* Bottom Spacer - Prevents content cutoff */}
-            <div style={{ height: '100px' }} className="md:h-32" aria-hidden="true" />
+            {/* Bottom Spacer - On mobile: accounts for tab bar + gap. On desktop: just page margin */}
+            <div style={{ height: isMobile ? LAYOUT.TABBAR_HEIGHT + LAYOUT.PAGE_MARGIN : LAYOUT.PAGE_MARGIN }} aria-hidden="true" />
         </div>
     );
 };

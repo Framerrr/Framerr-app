@@ -17,8 +17,27 @@ const CustomizationSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
+<<<<<<< HEAD
     const { info: showInfoToast, addNotification } = useNotifications();
+=======
+    const { error: showError, success: showSuccess } = useNotifications();
+>>>>>>> develop
     const userIsAdmin = isAdmin(user);
+
+    // Refs for auto-scrolling sub-tab buttons into view
+    const subTabRefs = useRef({});
+
+    // Scroll active sub-tab into view when it changes
+    useEffect(() => {
+        const tabButton = subTabRefs.current[activeSubTab];
+        if (tabButton) {
+            tabButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [activeSubTab]);
 
     // Default color values matching dark-pro.css - 21 customizable variables
     const defaultColors = {
@@ -58,7 +77,7 @@ const CustomizationSettings = () => {
     const [loading, setLoading] = useState(true);
 
     // Application name state
-    const [applicationName, setApplicationName] = useState('Homelab Dashboard');
+    const [applicationName, setApplicationName] = useState('Framerr');
     const [applicationIcon, setApplicationIcon] = useState('Server');
     const [savingAppName, setSavingAppName] = useState(false);
 
@@ -75,6 +94,7 @@ const CustomizationSettings = () => {
     const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
+<<<<<<< HEAD
     // Notification preferences state
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [notificationSound, setNotificationSound] = useState(false);
@@ -84,6 +104,12 @@ const CustomizationSettings = () => {
 
     // Change tracking for save buttons
     const [originalAppName, setOriginalAppName] = useState('Homelab Dashboard');
+=======
+
+
+    // Change tracking for save buttons
+    const [originalAppName, setOriginalAppName] = useState('Framerr');
+>>>>>>> develop
     const [originalAppIcon, setOriginalAppIcon] = useState('Server');
     const [originalGreeting, setOriginalGreeting] = useState({ enabled: true, text: 'Your personal dashboard' });
     const [hasAppNameChanges, setHasAppNameChanges] = useState(false);
@@ -177,11 +203,14 @@ const CustomizationSettings = () => {
                     setCustomColors(themeColors);
                 }
 
-                // Load system config for application name and icon
-                const systemResponse = await axios.get('/api/config/system', {
-                    withCredentials: true
-                });
+                // Load system config for application name and icon (admin only)
+                if (isAdmin(user)) {
+                    try {
+                        const systemResponse = await axios.get('/api/config/system', {
+                            withCredentials: true
+                        });
 
+<<<<<<< HEAD
                 if (systemResponse.data?.server?.name) {
                     const name = systemResponse.data.server.name;
                     setApplicationName(name);
@@ -192,6 +221,33 @@ const CustomizationSettings = () => {
                     const icon = systemResponse.data.server.icon;
                     setApplicationIcon(icon);
                     setOriginalAppIcon(icon);
+=======
+                        if (systemResponse.data?.server?.name) {
+                            const name = systemResponse.data.server.name;
+                            setApplicationName(name);
+                            setOriginalAppName(name);
+                        }
+
+                        if (systemResponse.data?.server?.icon) {
+                            const icon = systemResponse.data.server.icon;
+                            setApplicationIcon(icon);
+                            setOriginalAppIcon(icon);
+                        }
+
+                        // Load iframe auth settings from system config
+                        if (systemResponse.data?.iframeAuth) {
+                            const authConfig = systemResponse.data.iframeAuth;
+                            setIframeAuthEnabled(authConfig.enabled !== false); // Default true
+                            setAuthSensitivity(authConfig.sensitivity || 'balanced');
+                            setCustomAuthPatterns(authConfig.customPatterns || []);
+                        }
+                    } catch (error) {
+                        // Silently handle 403 (expected for non-admins after race condition)
+                        if (error.response?.status !== 403) {
+                            logger.error('Failed to load system config:', error);
+                        }
+                    }
+>>>>>>> develop
                 }
 
                 // Load flatten UI preference
@@ -375,7 +431,7 @@ const CustomizationSettings = () => {
             applyColorsToDOM(customColors);
         } catch (error) {
             logger.error('Failed to save custom colors:', error);
-            alert('Failed to save custom colors. Please try again.');
+            showError('Save Failed', 'Failed to save custom colors. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -403,7 +459,7 @@ const CustomizationSettings = () => {
             });
         } catch (error) {
             logger.error('Failed to reset colors:', error);
-            alert('Failed to reset colors. Please try again.');
+            showError('Reset Failed', 'Failed to reset colors. Please try again.');
         }
     };
 
@@ -432,9 +488,10 @@ const CustomizationSettings = () => {
             setOriginalAppIcon(applicationIcon);
 
             logger.info('Application name and icon saved successfully');
+            showSuccess('Settings Saved', 'Application name and icon updated');
         } catch (error) {
             logger.error('Failed to save application name:', error);
-            alert('Failed to save application name. Please try again.');
+            showError('Save Failed', 'Failed to save application name. Please try again.');
         } finally {
             setSavingAppName(false);
         }
@@ -459,7 +516,7 @@ const CustomizationSettings = () => {
             logger.info('Flatten UI preference saved');
         } catch (error) {
             logger.error('Failed to save flatten UI preference:', error);
-            alert('Failed to save flatten UI preference.');
+            showError('Save Failed', 'Failed to save flatten UI preference.');
         } finally {
             setSavingFlattenUI(false);
         }
@@ -482,10 +539,19 @@ const CustomizationSettings = () => {
             // Update original values after successful save
             setOriginalGreeting({ enabled: greetingEnabled, text: greetingText });
 
+<<<<<<< HEAD
+=======
+            // Dispatch event to notify Dashboard to update immediately
+            window.dispatchEvent(new CustomEvent('greetingUpdated', {
+                detail: { enabled: greetingEnabled, text: greetingText }
+            }));
+
+>>>>>>> develop
             logger.info('Greeting saved successfully');
+            showSuccess('Greeting Saved', 'Dashboard greeting updated');
         } catch (error) {
             logger.error('Failed to save greeting:', error);
-            alert('Failed to save greeting. Please try again.');
+            showError('Save Failed', 'Failed to save greeting. Please try again.');
         } finally {
             setSavingGreeting(false);
         }
@@ -497,20 +563,25 @@ const CustomizationSettings = () => {
     };
 
     return (
-        <div className="space-y-6 fade-in">
+        <div className="space-y-6 fade-in scroll-contain-x">
             {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">
                     Customization
                 </h2>
-                <p className="text-sm text-theme-secondary">
+                <p className="text-theme-secondary text-sm">
                     Personalize your dashboard appearance with colors and branding
                 </p>
             </div>
 
             {/* Sub-Tabs */}
+<<<<<<< HEAD
             <div className="flex gap-2 overflow-x-auto pb-2 border-b border-theme relative">
+=======
+            <div className="flex gap-2 overflow-x-auto scroll-contain-x pb-2 border-b border-theme relative">
+>>>>>>> develop
                 <button
+                    ref={(el) => { subTabRefs.current['general'] = el; }}
                     onClick={() => setActiveSubTab('general')}
                     className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
@@ -527,6 +598,7 @@ const CustomizationSettings = () => {
                     )}
                 </button>
                 <button
+                    ref={(el) => { subTabRefs.current['colors'] = el; }}
                     onClick={() => setActiveSubTab('colors')}
                     className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
@@ -541,6 +613,7 @@ const CustomizationSettings = () => {
                             transition={{ type: 'spring', stiffness: 350, damping: 35 }}
                         />
                     )}
+<<<<<<< HEAD
                 </button>
                 <button
                     onClick={() => setActiveSubTab('favicon')}
@@ -573,7 +646,28 @@ const CustomizationSettings = () => {
                             transition={{ type: 'spring', stiffness: 350, damping: 35 }}
                         />
                     )}
+=======
+>>>>>>> develop
                 </button>
+                {userIsAdmin && (
+                    <button
+                        ref={(el) => { subTabRefs.current['favicon'] = el; }}
+                        onClick={() => setActiveSubTab('favicon')}
+                        className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                    >
+                        <div className="flex items-center gap-2 relative z-10">
+                            <ImageIcon size={18} className={activeSubTab === 'favicon' ? 'text-accent' : ''} />
+                            <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
+                        </div>
+                        {activeSubTab === 'favicon' && (
+                            <motion.div
+                                layoutId="customizationSubTabIndicator"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                                transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                            />
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Content - CrossFade between tabs */}
@@ -589,6 +683,7 @@ const CustomizationSettings = () => {
                     }}
                 >
                     <div className="space-y-6">
+<<<<<<< HEAD
                         {/* Application Name Section */}
                         <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">
@@ -646,9 +741,35 @@ const CustomizationSettings = () => {
                                         value={applicationIcon}
                                         onChange={(icon) => setApplicationIcon(icon)}
                                         disabled={!userIsAdmin}
+=======
+                        {/* Application Branding Section - Admin Only */}
+                        {userIsAdmin && (
+                            <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                                <h3 className="text-lg font-semibold text-theme-primary mb-4">
+                                    Application Branding
+                                </h3>
+                                <p className="text-sm text-theme-secondary mb-4">
+                                    Customize the application name and icon displayed throughout the dashboard.
+                                </p>
+                                <div className="space-y-4">
+                                    <Input
+                                        label="Application Name"
+                                        value={applicationName}
+                                        onChange={(e) => setApplicationName(e.target.value)}
+                                        maxLength={50}
+                                        placeholder="Framerr"
+                                        helperText={`${applicationName.length}/50 characters`}
+>>>>>>> develop
                                     />
-                                </div>
-                                {userIsAdmin && (
+                                    <div>
+                                        <label className="block mb-2 font-medium text-theme-secondary text-sm">
+                                            Application Icon
+                                        </label>
+                                        <IconPicker
+                                            value={applicationIcon}
+                                            onChange={(icon) => setApplicationIcon(icon)}
+                                        />
+                                    </div>
                                     <Button
                                         onClick={handleSaveApplicationName}
                                         disabled={!hasAppNameChanges || savingAppName}
@@ -656,9 +777,9 @@ const CustomizationSettings = () => {
                                     >
                                         {savingAppName ? 'Saving...' : 'Save Application Name & Icon'}
                                     </Button>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Dashboard Greeting Section */}
                         <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
@@ -686,7 +807,7 @@ const CustomizationSettings = () => {
                                             onChange={(e) => setGreetingEnabled(e.target.checked)}
                                             className="sr-only peer"
                                         />
-                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                        <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                     </label>
                                 </div>
 
@@ -745,7 +866,7 @@ const CustomizationSettings = () => {
                                         disabled={savingFlattenUI}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                 </label>
                             </div>
                         </div>
@@ -866,7 +987,7 @@ const CustomizationSettings = () => {
                                         onChange={(e) => handleToggleCustomColors(e.target.checked)}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                 </label>
                             </div>
 

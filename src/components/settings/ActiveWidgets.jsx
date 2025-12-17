@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Info, Loader, X, Search } from 'lucide-react';
+import { Trash2, Info, Loader, X, Search, Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { getWidgetMetadata, getWidgetIconName } from '../../utils/widgetRegistry';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import IconPicker from '../IconPicker';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { useNotifications } from '../../context/NotificationContext';
 
 // Popular icons for quick selection - 126 validated icons (same as IconPicker)
 const POPULAR_ICONS = [
@@ -69,6 +70,8 @@ const ActiveWidgets = () => {
     const [removingWidget, setRemovingWidget] = useState(null);
     const [iconPickerOpen, setIconPickerOpen] = useState(null); // Track which widget's picker is open
     const [iconSearch, setIconSearch] = useState('');
+    const [confirmRemoveId, setConfirmRemoveId] = useState(null);
+    const { error: showError, success: showSuccess } = useNotifications();
 
     useEffect(() => {
         fetchWidgets();
@@ -86,16 +89,17 @@ const ActiveWidgets = () => {
     };
 
     const handleRemove = async (widgetId) => {
-        if (!confirm('Remove this widget from your dashboard?')) return;
-
         setRemovingWidget(widgetId);
         try {
             const updatedWidgets = widgets.filter(w => w.id !== widgetId);
             await axios.put('/api/widgets', { widgets: updatedWidgets });
             setWidgets(updatedWidgets);
+            setConfirmRemoveId(null);
+            showSuccess('Widget Removed', 'Widget has been removed from the dashboard');
         } catch (error) {
             logger.error('Failed to remove widget', { widgetId, error: error.message });
-            alert('Failed to remove widget. Please try again.');
+            showError('Remove Failed', 'Failed to remove widget. Please try again.');
+            setConfirmRemoveId(null);
         } finally {
             setRemovingWidget(null);
         }
@@ -149,26 +153,26 @@ const ActiveWidgets = () => {
 
     return (
         <div className="fade-in">
-            {/* Stats */}
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="glass-subtle shadow-medium rounded-xl p-4 border border-theme">
-                    <div className="text-2xl font-bold text-theme-primary">{stats.total}</div>
-                    <div className="text-sm text-theme-secondary">Total Widgets</div>
+            {/* Stats - Inline on mobile */}
+            <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="glass-subtle shadow-medium rounded-xl p-3 sm:p-4 border border-theme text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-theme-primary">{stats.total}</div>
+                    <div className="text-xs sm:text-sm text-theme-secondary">Total</div>
                 </div>
-                <div className="glass-subtle shadow-medium rounded-xl p-4 border border-theme">
-                    <div className="text-2xl font-bold text-theme-primary">{Object.keys(stats.byType).length}</div>
-                    <div className="text-sm text-theme-secondary">Widget Types</div>
+                <div className="glass-subtle shadow-medium rounded-xl p-3 sm:p-4 border border-theme text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-theme-primary">{Object.keys(stats.byType).length}</div>
+                    <div className="text-xs sm:text-sm text-theme-secondary">Types</div>
                 </div>
-                <div className="glass-subtle shadow-medium rounded-xl p-4 border border-theme">
-                    <div className="text-2xl font-bold text-theme-primary">
+                <div className="glass-subtle shadow-medium rounded-xl p-3 sm:p-4 border border-theme text-center">
+                    <div className="text-xl sm:text-2xl font-bold text-theme-primary">
                         {Math.round(widgets.reduce((sum, w) => sum + (w.w * w.h), 0) / stats.total)}
                     </div>
-                    <div className="text-sm text-theme-secondary">Avg Size (cells)</div>
+                    <div className="text-xs sm:text-sm text-theme-secondary">Avg Size</div>
                 </div>
             </div>
 
             {/* Widget List */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
                 {widgets.map(widget => {
                     const metadata = getWidgetMetadata(widget.type);
                     const customIcon = widget.config?.customIcon;
@@ -176,48 +180,85 @@ const ActiveWidgets = () => {
                     return (
                         <div
                             key={widget.id}
-                            className="glass-subtle shadow-medium rounded-xl p-6 border border-theme card-glow"
+                            className="glass-subtle shadow-medium rounded-xl p-4 sm:p-6 border border-theme card-glow"
                         >
                             {/* Header Row */}
-                            <div className="flex items-start gap-4 mb-4">
-                                {/* Icon - Using Centralized IconPicker */}
+                            <div className="flex items-start gap-2 sm:gap-4 mb-3 sm:mb-4">
+                                {/* Icon - Compact on mobile, full on desktop */}
                                 <div className="flex-shrink-0">
-                                    <IconPicker
-                                        value={customIcon || getWidgetIconName(widget.type)}
-                                        onChange={(iconName) => handleIconSelect(widget.id, iconName)}
-                                    />
+                                    {/* Mobile: compact icon-only */}
+                                    <div className="sm:hidden">
+                                        <IconPicker
+                                            value={customIcon || getWidgetIconName(widget.type)}
+                                            onChange={(iconName) => handleIconSelect(widget.id, iconName)}
+                                            compact
+                                        />
+                                    </div>
+                                    {/* Desktop: full with name */}
+                                    <div className="hidden sm:block">
+                                        <IconPicker
+                                            value={customIcon || getWidgetIconName(widget.type)}
+                                            onChange={(iconName) => handleIconSelect(widget.id, iconName)}
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-theme-primary mb-1">
+                                    <h4 className="font-semibold text-theme-primary mb-1 truncate text-sm sm:text-base">
                                         {widget.config?.title || metadata.name}
                                     </h4>
-                                    <div className="flex items-center gap-3 text-xs text-theme-secondary">
-                                        <span>Type: {metadata.name}</span>
+                                    <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-xs text-theme-secondary">
+                                        <span className="whitespace-nowrap">{metadata.name}</span>
                                         <span>•</span>
-                                        <span>Size: {widget.w}x{widget.h}</span>
-                                        <span>•</span>
-                                        <span>Position: ({widget.x}, {widget.y})</span>
+                                        <span className="whitespace-nowrap">{widget.w}x{widget.h}</span>
+                                        <span className="hidden xs:inline">•</span>
+                                        <span className="hidden xs:inline whitespace-nowrap">({widget.x},{widget.y})</span>
                                     </div>
                                 </div>
 
-                                {/* Delete Button */}
+                                {/* Delete Button with Inline Confirmation */}
                                 <div className="flex-shrink-0">
-                                    <Button
-                                        onClick={() => handleRemove(widget.id)}
-                                        disabled={removingWidget === widget.id}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-error hover:bg-error/10"
-                                        title="Remove widget"
-                                    >
-                                        {removingWidget === widget.id ? (
-                                            <Loader size={18} className="animate-spin" />
-                                        ) : (
-                                            <Trash2 size={18} />
-                                        )}
-                                    </Button>
+                                    {confirmRemoveId !== widget.id ? (
+                                        <Button
+                                            onClick={() => setConfirmRemoveId(widget.id)}
+                                            disabled={removingWidget === widget.id}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-error hover:bg-error/10"
+                                            title="Remove widget"
+                                        >
+                                            {removingWidget === widget.id ? (
+                                                <Loader size={18} className="animate-spin" />
+                                            ) : (
+                                                <Trash2 size={18} />
+                                            )}
+                                        </Button>
+                                    ) : (
+                                        <div className="flex gap-1">
+                                            <Button
+                                                onClick={() => handleRemove(widget.id)}
+                                                disabled={removingWidget === widget.id}
+                                                variant="danger"
+                                                size="sm"
+                                                title="Confirm remove"
+                                            >
+                                                {removingWidget === widget.id ? (
+                                                    <Loader size={14} className="animate-spin" />
+                                                ) : (
+                                                    <Check size={14} />
+                                                )}
+                                            </Button>
+                                            <Button
+                                                onClick={() => setConfirmRemoveId(null)}
+                                                variant="secondary"
+                                                size="sm"
+                                                title="Cancel"
+                                            >
+                                                <X size={14} />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -271,13 +312,13 @@ const ActiveWidgets = () => {
                                                         }));
                                                     } catch (error) {
                                                         logger.error('Failed to update widget flatten setting', { widgetId: widget.id, error: error.message });
-                                                        alert('Failed to update widget. Please try again.');
+                                                        showError('Update Failed', 'Failed to update widget. Please try again.');
                                                         fetchWidgets();
                                                     }
                                                 }}
                                                 className="sr-only peer"
                                             />
-                                            <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                            <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                         </label>
                                     </div>
 
@@ -307,13 +348,13 @@ const ActiveWidgets = () => {
                                                             }));
                                                         } catch (error) {
                                                             logger.error('Failed to update widget header setting', { widgetId: widget.id, error: error.message });
-                                                            alert('Failed to update widget. Please try again.');
+                                                            showError('Update Failed', 'Failed to update widget. Please try again.');
                                                             fetchWidgets();
                                                         }
                                                     }}
                                                     className="sr-only peer"
                                                 />
-                                                <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                                <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                             </label>
                                         </div>
                                     )}

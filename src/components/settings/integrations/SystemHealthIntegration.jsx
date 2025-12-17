@@ -1,17 +1,30 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+=======
+import { Activity, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+>>>>>>> develop
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
 import BackendSelector from './BackendSelector';
 import GlancesConfig from './backends/GlancesConfig';
 import CustomBackendConfig from './backends/CustomBackendConfig';
+<<<<<<< HEAD
+=======
+import SharingDropdown from '../SharingDropdown';
+>>>>>>> develop
 
 /**
  * SystemHealthIntegration - Multi-backend System Status configuration
  * Replaces the generic System Health section in IntegrationsSettings
  */
+<<<<<<< HEAD
 const SystemHealthIntegration = ({ integration, onUpdate }) => {
+=======
+const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChange }) => {
+>>>>>>> develop
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedBackend, setSelectedBackend] = useState(integration?.backend || 'glances');
     const [config, setConfig] = useState(integration || {
@@ -21,6 +34,7 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
         custom: { url: '', token: '' }
     });
     const [testState, setTestState] = useState(null);
+<<<<<<< HEAD
 
     // Auto-expand when enabled
     useEffect(() => {
@@ -31,6 +45,15 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
 
     const handleToggle = () => {
         const newConfig = { ...config, enabled: !config.enabled };
+=======
+    const [confirmReset, setConfirmReset] = useState(false);
+
+    // Auto-expand behavior removed - section should stay collapsed on page load
+    // It will expand when user clicks the toggle or the header
+
+    const handleToggle = () => {
+        const newConfig = { ...config, enabled: !config.enabled, sharing };
+>>>>>>> develop
         setConfig(newConfig);
         onUpdate(newConfig);
 
@@ -40,7 +63,11 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
     };
 
     const handleBackendChange = (backend) => {
+<<<<<<< HEAD
         const newConfig = { ...config, backend };
+=======
+        const newConfig = { ...config, backend, sharing };
+>>>>>>> develop
         setSelectedBackend(backend);
         setConfig(newConfig);
         onUpdate(newConfig);
@@ -52,7 +79,12 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
             [selectedBackend]: {
                 ...config[selectedBackend],
                 [field]: value
+<<<<<<< HEAD
             }
+=======
+            },
+            sharing
+>>>>>>> develop
         };
         setConfig(newConfig);
         onUpdate(newConfig);
@@ -113,6 +145,7 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
     };
 
     const handleReset = () => {
+<<<<<<< HEAD
         if (window.confirm('Are you sure you want to reset System Health integration? This will disable the integration and clear all configuration.')) {
             const resetConfig = {
                 enabled: false,
@@ -125,6 +158,19 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
             setSelectedBackend('glances');
             onUpdate(resetConfig);
         }
+=======
+        const resetConfig = {
+            enabled: false,
+            backend: 'glances',
+            glances: { url: '', password: '' },
+            custom: { url: '', token: '' },
+            _isValid: true
+        };
+        setConfig(resetConfig);
+        setSelectedBackend('glances');
+        onUpdate(resetConfig);
+        setConfirmReset(false);
+>>>>>>> develop
     };
 
     const backendConfig = config[selectedBackend] || {};
@@ -158,6 +204,7 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
 
     return (
         <div className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
+<<<<<<< HEAD
             {/* Header */}
             <div className="p-6 flex items-center justify-between">
                 <div className="flex items-center gap-4 flex-1">
@@ -165,6 +212,18 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                     <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-theme-primary">System Health</h3>
                         <p className="text-sm text-theme-secondary">
+=======
+            {/* Header - Clickable to expand */}
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
+            >
+                <div className="flex items-center gap-4 flex-1">
+                    <Activity className="text-theme-secondary" size={20} />
+                    <div className="flex-1 min-w-0 text-left">
+                        <h3 className="font-semibold text-theme-primary">System Health</h3>
+                        <p className="text-sm text-theme-secondary hidden sm:block">
+>>>>>>> develop
                             Server monitoring (CPU, Memory, Temperature)
                         </p>
                     </div>
@@ -173,6 +232,7 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                     {/* Connection status badge (when not expanded) */}
                     {!isExpanded && config.enabled && (
                         <span className={`
+<<<<<<< HEAD
                             px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
                             ${isConfigured
                                 ? 'bg-success/10 text-success border border-success/20'
@@ -180,10 +240,21 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                             }
                         `}>
                             {isConfigured ? '🟢 Configured' : '🟡 Setup Required'}
+=======
+                            px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
+                            ${isConfigured
+                                ? 'bg-success/10 text-success sm:border sm:border-success/20'
+                                : 'bg-warning/10 text-warning sm:border sm:border-warning/20'
+                            }
+                        `}>
+                            <span>{isConfigured ? '🟢' : '🟡'}</span>
+                            <span className="hidden sm:inline">{isConfigured ? 'Configured' : 'Setup Required'}</span>
+>>>>>>> develop
                         </span>
                     )}
 
                     {/* Toggle Switch */}
+<<<<<<< HEAD
                     <button
                         onClick={handleToggle}
                         className={`relative w-12 h-6 rounded-full transition-colors ${config.enabled ? 'bg-success' : 'bg-theme-tertiary'
@@ -284,6 +355,119 @@ const SystemHealthIntegration = ({ integration, onUpdate }) => {
                     </div>
                 </motion.div>
             )}
+=======
+                    <div
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggle();
+                        }}
+                        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${config.enabled ? 'bg-success' : 'bg-theme-tertiary'}`}
+                    >
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </div>
+
+                    {/* Chevron */}
+                    <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+            </button>
+
+            {/* Configuration Panel - Animated Collapsible */}
+            <AnimatePresence>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden">
+                        <div className="px-6 pb-6 border-t border-theme pt-6 space-y-6">
+                            {/* Backend Selector */}
+                            <BackendSelector
+                                selected={selectedBackend}
+                                onSelect={handleBackendChange}
+                                disabled={false}
+                            />
+
+                            {/* Backend-specific Configuration */}
+                            <div>
+                                {selectedBackend === 'glances' ? (
+                                    <GlancesConfig
+                                        config={backendConfig}
+                                        onChange={handleConfigChange}
+                                    />
+                                ) : (
+                                    <CustomBackendConfig
+                                        config={backendConfig}
+                                        onChange={handleConfigChange}
+                                    />
+                                )}
+                            </div>
+
+                            {/* Widget Sharing */}
+                            <SharingDropdown
+                                service="systemstatus"
+                                sharing={sharing}
+                                onChange={onSharingChange}
+                                disabled={!isConfigured}
+                            />
+
+                            {/* Test Connection & Reset */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+                                <div className="flex items-center gap-3">
+                                    <Button
+                                        onClick={handleTest}
+                                        disabled={testState?.loading || !isConfigured}
+                                        variant={testState && !testState.loading ? (testState.success ? 'primary' : 'danger') : 'secondary'}
+                                        size="sm"
+                                        icon={testState?.loading ? Loader : (testState?.success ? CheckCircle2 : testState ? AlertCircle : TestTube)}
+                                        className={testState && !testState.loading ? (testState.success ? 'bg-success border-success' : '') : ''}
+                                    >
+                                        {testState?.loading ? 'Testing...' :
+                                            testState?.success ? <span className="hidden sm:inline">Connected!</span> :
+                                                testState ? <span className="hidden sm:inline">Failed</span> :
+                                                    'Test'}
+                                    </Button>
+                                </div>
+
+                                {/* Reset Integration Button with inline confirmation */}
+                                {config.enabled && (
+                                    !confirmReset ? (
+                                        <Button
+                                            onClick={() => setConfirmReset(true)}
+                                            variant="secondary"
+                                            size="sm"
+                                            className="text-error hover:bg-error/10 border-error/20"
+                                        >
+                                            Reset Integration
+                                        </Button>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-error">Reset?</span>
+                                            <Button
+                                                onClick={handleReset}
+                                                variant="danger"
+                                                size="sm"
+                                                icon={Check}
+                                            >
+                                                Yes
+                                            </Button>
+                                            <Button
+                                                onClick={() => setConfirmReset(false)}
+                                                variant="secondary"
+                                                size="sm"
+                                                icon={X}
+                                            >
+                                                No
+                                            </Button>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+>>>>>>> develop
         </div>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Trash2, Search, Bug, Play, Pause } from 'lucide-react';
+import { Download, Trash2, Search, Bug, Play, Pause, Check, X } from 'lucide-react';
 import axios from 'axios';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
@@ -13,6 +13,7 @@ const DebugSettings = () => {
     const [filterLevel, setFilterLevel] = useState('ALL');
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [confirmClear, setConfirmClear] = useState(false);
     const logsEndRef = useRef(null);
 
     const logLevels = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
@@ -110,13 +111,13 @@ const DebugSettings = () => {
     };
 
     const handleClearLogs = async () => {
-        if (!confirm('Clear all logs? This cannot be undone.')) return;
-
         try {
             await axios.post('/api/advanced/logs/clear');
             setLogs([]);
+            setConfirmClear(false);
         } catch (error) {
             logger.error('Failed to clear logs:', error);
+            setConfirmClear(false);
         }
     };
 
@@ -185,7 +186,7 @@ const DebugSettings = () => {
                             onChange={(e) => handleOverlayToggle(e.target.checked)}
                             className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-light after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                        <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                     </label>
                 </div>
             </div>
@@ -231,13 +232,32 @@ const DebugSettings = () => {
                             icon={Download}
                             title="Download logs"
                         />
-                        <Button
-                            onClick={handleClearLogs}
-                            variant="danger"
-                            size="sm"
-                            icon={Trash2}
-                            title="Clear logs"
-                        />
+                        {!confirmClear ? (
+                            <Button
+                                onClick={() => setConfirmClear(true)}
+                                variant="danger"
+                                size="sm"
+                                icon={Trash2}
+                                title="Clear logs"
+                            />
+                        ) : (
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    onClick={handleClearLogs}
+                                    variant="danger"
+                                    size="sm"
+                                    icon={Check}
+                                    title="Confirm clear"
+                                />
+                                <Button
+                                    onClick={() => setConfirmClear(false)}
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={X}
+                                    title="Cancel"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -264,7 +284,7 @@ const DebugSettings = () => {
                 </div>
 
                 {/* Logs Display */}
-                <div ref={logsContainerRef} className="bg-theme-tertiary rounded-lg p-4 h-96 overflow-y-auto overflow-x-auto font-mono text-[10px] min-[515px]:text-xs sm:text-sm border border-theme">
+                <div ref={logsContainerRef} className="bg-theme-tertiary rounded-lg p-4 h-96 overflow-y-auto overflow-x-auto scroll-contain-x font-mono text-[10px] min-[515px]:text-xs sm:text-sm border border-theme">
                     {loading ? (
                         <div className="text-center text-theme-secondary py-8">Loading logs...</div>
                     ) : filteredLogs.length === 0 ? (

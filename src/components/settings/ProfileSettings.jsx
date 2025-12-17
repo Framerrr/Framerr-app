@@ -4,11 +4,17 @@ import { User, Save, RotateCcw, Lock, Mail, UserCircle, Upload, X } from 'lucide
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ProfileSettings = () => {
+    const { error: showError, success: showSuccess } = useNotifications();
+    const { checkAuth } = useAuth();
+
     // User info
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
+    const [displayName, setDisplayName] = useState('');
     const [profilePicture, setProfilePicture] = useState(null);
     const fileInputRef = useRef(null);
 
@@ -24,6 +30,8 @@ const ProfileSettings = () => {
     const [uploadingPicture, setUploadingPicture] = useState(false);
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState(false);
+    const [confirmRemovePicture, setConfirmRemovePicture] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
 
     // Load user profile and preferences on mount
     useEffect(() => {
@@ -36,7 +44,11 @@ const ProfileSettings = () => {
 
                 setUsername(profileResponse.data.username || '');
                 setEmail(profileResponse.data.email || '');
-                setProfilePicture(profileResponse.data.profilePicture || null);
+                setDisplayName(profileResponse.data.displayName || profileResponse.data.username || '');
+
+                // Add cache-busting timestamp to profile picture to prevent stale cache
+                const picturePath = profileResponse.data.profilePicture;
+                setProfilePicture(picturePath ? `${picturePath}?t=${Date.now()}` : null);
             } catch (error) {
                 logger.error('Failed to load profile:', error);
             } finally {
@@ -46,6 +58,27 @@ const ProfileSettings = () => {
 
         loadProfile();
     }, []);
+
+    const handleSaveProfile = async () => {
+        setSavingProfile(true);
+        try {
+            await axios.put('/api/profile', {
+                displayName
+            }, {
+                withCredentials: true
+            });
+
+            // Refresh auth context to update dashboard greeting immediately
+            await checkAuth();
+
+            showSuccess('Profile Saved', 'Your display name has been updated');
+        } catch (error) {
+            logger.error('Failed to save profile:', error);
+            showError('Save Failed', error.response?.data?.error || 'Failed to save profile');
+        } finally {
+            setSavingProfile(false);
+        }
+    };
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
@@ -76,6 +109,7 @@ const ProfileSettings = () => {
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
+            showSuccess('Password Changed', 'Your password has been updated successfully');
         } catch (error) {
             setPasswordError(error.response?.data?.error || 'Failed to change password');
         } finally {
@@ -89,7 +123,7 @@ const ProfileSettings = () => {
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert('File size must be less than 5MB');
+            showError('File Too Large', 'File size must be less than 5MB');
             return;
         }
 
@@ -105,26 +139,40 @@ const ProfileSettings = () => {
                 }
             });
 
-            setProfilePicture(response.data.profilePicture);
+            // Add cache-busting timestamp to force browser refresh
+            const pictureUrl = `${response.data.profilePicture}?t=${Date.now()}`;
+            setProfilePicture(pictureUrl);
+
+            // Dispatch event to notify Sidebar to refresh profile picture
+            window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
+                detail: { profilePicture: pictureUrl }
+            }));
+            showSuccess('Photo Updated', 'Profile picture uploaded successfully');
         } catch (error) {
             logger.error('Failed to upload profile picture:', error);
-            alert(error.response?.data?.error || 'Failed to upload profile picture');
+            showError('Upload Failed', error.response?.data?.error || 'Failed to upload profile picture');
         } finally {
             setUploadingPicture(false);
         }
     };
 
     const handleRemoveProfilePicture = async () => {
-        if (!confirm('Remove your profile picture?')) return;
-
         try {
             await axios.delete('/api/profile/picture', {
                 withCredentials: true
             });
             setProfilePicture(null);
+            setConfirmRemovePicture(false);
+
+            // Dispatch event to notify Sidebar
+            window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
+                detail: { profilePicture: null }
+            }));
+            showSuccess('Photo Removed', 'Profile picture has been removed');
         } catch (error) {
             logger.error('Failed to remove profile picture:', error);
-            alert('Failed to remove profile picture');
+            showError('Remove Failed', 'Failed to remove profile picture');
+            setConfirmRemovePicture(false);
         }
     };
 
@@ -140,25 +188,30 @@ const ProfileSettings = () => {
     }
 
     return (
-        <div className="space-y-6 fade-in">
+        <div className="space-y-6 fade-in scroll-contain-x">
             {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">
                     Profile Settings
                 </h2>
-                <p className="text-sm text-theme-secondary">
+                <p className="text-theme-secondary text-sm">
                     Manage your personal profile and preferences
                 </p>
             </div>
 
             {/* Profile Picture Section */}
+<<<<<<< HEAD
             <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6">
                 <h3 className="text-lg font-semibold text-theme-primary mb-4 flex items-center gap-2">
+=======
+            <div className="glass-subtle rounded-xl shadow-medium border border-theme p-6 @container">
+                <h3 className="text-lg font-semibold text-theme-primary mb-8 flex items-center gap-2">
+>>>>>>> develop
                     <UserCircle size={20} />
                     Profile Picture
                 </h3>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-6 pt-2">
                     {/* Picture Display */}
                     <div className="relative">
                         {profilePicture ? (
@@ -168,13 +221,32 @@ const ProfileSettings = () => {
                                     alt="Profile"
                                     className="w-24 h-24 min-w-[80px] min-h-[80px] max-w-[120px] max-h-[120px] aspect-square rounded-full object-cover border-2 border-theme"
                                 />
-                                <button
-                                    onClick={handleRemoveProfilePicture}
-                                    className="absolute -top-2 -right-2 w-7 h-7 bg-error hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors"
-                                    title="Remove picture"
-                                >
-                                    <X size={14} />
-                                </button>
+                                {!confirmRemovePicture ? (
+                                    <button
+                                        onClick={() => setConfirmRemovePicture(true)}
+                                        className="absolute -top-2 -right-2 w-7 h-7 bg-error hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors"
+                                        title="Remove picture"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                ) : (
+                                    <div className="absolute -top-3 -right-3 flex gap-1">
+                                        <button
+                                            onClick={handleRemoveProfilePicture}
+                                            className="w-7 h-7 bg-error hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold transition-colors"
+                                            title="Confirm remove"
+                                        >
+                                            ✓
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmRemovePicture(false)}
+                                            className="w-7 h-7 bg-theme-tertiary hover:bg-theme-secondary border border-theme rounded-full flex items-center justify-center text-theme-primary text-xs font-bold transition-colors"
+                                            title="Cancel"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="w-24 h-24 min-w-[80px] min-h-[80px] max-w-[120px] max-h-[120px] aspect-square rounded-full bg-theme-tertiary flex items-center justify-center">
@@ -198,9 +270,11 @@ const ProfileSettings = () => {
                             disabled={uploadingPicture}
                             icon={Upload}
                         >
-                            {uploadingPicture ? 'Uploading...' : 'Upload Picture'}
+                            <span className="profile-btn-text">
+                                {uploadingPicture ? 'Uploading...' : (profilePicture ? 'Change' : 'Upload')}
+                            </span>
                         </Button>
-                        <p className="text-xs text-theme-tertiary mt-2">
+                        <p className="hidden sm:block text-xs text-theme-tertiary mt-2">
                             JPG, PNG, GIF or WebP. Max 5MB.
                         </p>
                     </div>
@@ -224,6 +298,18 @@ const ProfileSettings = () => {
                             <User size={18} />
                             <span>{username}</span>
                         </div>
+                        <p className="text-xs text-theme-tertiary mt-1">Username cannot be changed</p>
+                    </div>
+
+                    {/* Display Name (editable) */}
+                    <div>
+                        <Input
+                            label="Display Name"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            placeholder={username}
+                            helperText="This name is shown in greetings and throughout the app"
+                        />
                     </div>
 
                     {/* Email (read-only) */}
@@ -236,6 +322,15 @@ const ProfileSettings = () => {
                             <span>{email || 'Not set'}</span>
                         </div>
                     </div>
+
+                    {/* Save Button */}
+                    <Button
+                        onClick={handleSaveProfile}
+                        disabled={savingProfile}
+                        icon={Save}
+                    >
+                        {savingProfile ? 'Saving...' : 'Save Profile'}
+                    </Button>
                 </div>
             </div>
 

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, LayoutGrid } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useLayout } from '../context/LayoutContext';
+import { LAYOUT } from '../constants/layout';
 import { isAdmin } from '../utils/permissions';
 import { Card } from '../components/common/Card';
 
@@ -9,6 +11,7 @@ import { Card } from '../components/common/Card';
 import UserTabsSettings from '../components/settings/UserTabsSettings';
 import CustomizationSettings from '../components/settings/CustomizationSettings';
 import ProfileSettings from '../components/settings/ProfileSettings';
+import NotificationSettings from '../components/settings/NotificationSettings';
 
 // Admin Settings Components
 import UsersSettings from '../components/settings/UsersSettings';
@@ -20,6 +23,10 @@ import AdvancedSettings from '../components/settings/AdvancedSettings';
 const UserSettings = () => {
     const [activeTab, setActiveTab] = useState('tabs');
     const { user } = useAuth();
+    const { isMobile } = useLayout();
+
+    // Refs for auto-scrolling tab buttons into view
+    const tabRefs = useRef({});
 
     // Parse query params from hash manually 
     // (useSearchParams doesn't work with hash-based routing!)
@@ -46,6 +53,22 @@ const UserSettings = () => {
         return () => window.removeEventListener('hashchange', updateTabFromHash);
     }, []);
 
+    // Scroll active tab into view when it changes (on click or page load)
+    useEffect(() => {
+        // Small delay to ensure DOM is fully rendered (especially on initial navigation)
+        const timer = setTimeout(() => {
+            const tabButton = tabRefs.current[activeTab];
+            if (tabButton) {
+                tabButton.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [activeTab]);
+
     // Check if user is admin
     const hasAdminAccess = isAdmin(user);
 
@@ -53,14 +76,15 @@ const UserSettings = () => {
     const userTabs = [
         { id: 'tabs', label: 'My Tabs', icon: Layout },
         ...(hasAdminAccess ? [{ id: 'tabgroups', label: 'Tab Groups', icon: FolderTree }] : []),
+        { id: 'integrations', label: 'Integrations', icon: Puzzle },
         { id: 'customization', label: 'Customization', icon: SettingsIcon },
         { id: 'profile', label: 'Profile', icon: User },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
     ];
 
     // Admin tabs (only for admins)
     const adminTabs = hasAdminAccess ? [
         { id: 'users', label: 'Users', icon: Users },
-        { id: 'widgets', label: 'Widgets', icon: LayoutGrid },
         { id: 'auth', label: 'Auth', icon: Shield },
         { id: 'advanced', label: 'Advanced', icon: Cpu },
     ] : [];
@@ -83,7 +107,7 @@ const UserSettings = () => {
     };
 
     return (
-        <div className="w-full p-4 md:p-8 max-w-[2000px] mx-auto">
+        <div className="w-full p-2 md:p-8 max-w-[2000px] mx-auto">
             {/* Page Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-white">
@@ -98,7 +122,7 @@ const UserSettings = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-6 border-b border-slate-700">
+            <div className="flex gap-2 overflow-x-auto scroll-contain-x pb-2 mb-6 border-b border-slate-700">
                 {allTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -106,6 +130,7 @@ const UserSettings = () => {
                     return (
                         <button
                             key={tab.id}
+                            ref={(el) => { tabRefs.current[tab.id] = el; }}
                             onClick={() => {
                                 setActiveTab(tab.id);
                                 // Preserve hash-based navigation with query params
@@ -175,6 +200,28 @@ const UserSettings = () => {
                             <ProfileSettings />
                         </motion.div>
                     )}
+                    {activeTab === 'notifications' && (
+                        <motion.div
+                            key="notifications"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <NotificationSettings />
+                        </motion.div>
+                    )}
+                    {activeTab === 'integrations' && (
+                        <motion.div
+                            key="integrations"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <WidgetsSettings />
+                        </motion.div>
+                    )}
 
                     {/* Admin Settings - only render if user has access */}
                     {hasAdminAccess && (
@@ -199,17 +246,6 @@ const UserSettings = () => {
                                     transition={contentSpring}
                                 >
                                     <TabGroupsSettings />
-                                </motion.div>
-                            )}
-                            {activeTab === 'widgets' && (
-                                <motion.div
-                                    key="widgets"
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={contentSpring}
-                                >
-                                    <WidgetsSettings />
                                 </motion.div>
                             )}
                             {activeTab === 'auth' && (
@@ -239,8 +275,8 @@ const UserSettings = () => {
                 </AnimatePresence>
             </Card>
 
-            {/* Bottom Spacer - Prevents content cutoff */}
-            <div style={{ height: '100px' }} className="md:h-32" aria-hidden="true" />
+            {/* Bottom Spacer - On mobile: accounts for tab bar + gap. On desktop: just page margin */}
+            <div style={{ height: isMobile ? LAYOUT.TABBAR_HEIGHT + LAYOUT.PAGE_MARGIN : LAYOUT.PAGE_MARGIN }} aria-hidden="true" />
         </div>
     );
 };

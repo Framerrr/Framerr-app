@@ -1,16 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { isAdmin } from '../utils/permissions';
+import logger from '../utils/logger';
 
 export const AppDataContext = createContext(null);
 
 export const AppDataProvider = ({ children }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [userSettings, setUserSettings] = useState({});
     const [services, setServices] = useState([]);
     const [groups, setGroups] = useState([]);
     const [widgets, setWidgets] = useState([]);
     const [integrations, setIntegrations] = useState({});
+<<<<<<< HEAD
+=======
+    const [integrationsLoaded, setIntegrationsLoaded] = useState(false);
+    const [integrationsError, setIntegrationsError] = useState(null);
+>>>>>>> develop
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
@@ -25,24 +32,85 @@ export const AppDataProvider = ({ children }) => {
             const userConfigRes = await axios.get('/api/config/user');
             const userConfig = userConfigRes.data;
 
-            // Fetch system config for tab groups
-            const systemConfigRes = await axios.get('/api/config/system');
-            const systemConfig = systemConfigRes.data;
+            // Only fetch admin-only endpoints for admins
+            let systemConfig = {};
+            if (isAdmin(user)) {
+                try {
+                    const systemConfigRes = await axios.get('/api/config/system');
+                    systemConfig = systemConfigRes.data;
+                } catch (sysError) {
+                    logger.debug('System config not available');
+                }
 
+<<<<<<< HEAD
             // Fetch integrations config
             const integrationsRes = await axios.get('/api/integrations');
             setIntegrations(integrationsRes.data.integrations || {});
 
             // Set user settings with server name/icon from system config
+=======
+                // Fetch integrations config (admin-only)
+                try {
+                    const integrationsRes = await axios.get('/api/integrations');
+                    setIntegrations(integrationsRes.data.integrations || {});
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(null);
+                } catch (intError) {
+                    logger.debug('Full integrations not available');
+                    setIntegrations({});
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(intError);
+                }
+            } else {
+                // Non-admin: fetch shared integrations that admin has granted access to
+                try {
+                    const sharedRes = await axios.get('/api/integrations/shared');
+                    const sharedList = sharedRes.data.integrations || [];
+
+                    // Convert array to object keyed by service name for widget compatibility
+                    const sharedIntegrations = {};
+                    for (const integration of sharedList) {
+                        sharedIntegrations[integration.name] = {
+                            enabled: integration.enabled,
+                            url: integration.url,
+                            apiKey: integration.apiKey,
+                            token: integration.token || integration.apiKey, // Plex uses 'token'
+                            // Include any additional fields
+                            ...integration
+                        };
+                    }
+                    setIntegrations(sharedIntegrations);
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(null);
+                    logger.debug('Shared integrations loaded', { count: sharedList.length });
+                } catch (sharedError) {
+                    logger.debug('Shared integrations not available');
+                    setIntegrations({});
+                    setIntegrationsLoaded(true);
+                    setIntegrationsError(sharedError);
+                }
+            }
+
+            // Fetch app branding (public endpoint - works for all users)
+            let appBranding = { name: 'Framerr', icon: 'Server' };
+            try {
+                const brandingRes = await axios.get('/api/config/app-name');
+                appBranding = brandingRes.data;
+            } catch (brandingError) {
+                logger.debug('App branding not available, using defaults');
+            }
+
+            // Set user settings with server name/icon from branding API
+>>>>>>> develop
             setUserSettings({
-                serverName: systemConfig?.server?.name || 'Homelab Dashboard',
-                serverIcon: systemConfig?.server?.icon || 'Server',
+                serverName: appBranding.name || 'Framerr',
+                serverIcon: appBranding.icon || 'Server',
                 ...userConfig.preferences
             });
 
             setWidgets(userConfig.dashboard?.widgets || []);
 
-            // Set tab groups from system config
+            // Set tab groups from system config (or empty for non-admins)
             setGroups((systemConfig.tabGroups || []).sort((a, b) => a.order - b.order));
 
             // TODO: Fetch real services from backend when service system is implemented
@@ -102,6 +170,11 @@ export const AppDataProvider = ({ children }) => {
             groups,
             widgets,
             integrations,
+<<<<<<< HEAD
+=======
+            integrationsLoaded,
+            integrationsError,
+>>>>>>> develop
             loading,
             updateWidgetLayout,
             refreshData: fetchData

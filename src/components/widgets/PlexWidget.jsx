@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Film, Network, Info, ExternalLink, StopCircle, X, Loader2 } from 'lucide-react';
 import PlaybackDataModal from './modals/PlaybackDataModal';
 import MediaInfoModal from './modals/MediaInfoModal';
 import { useAppData } from '../../context/AppDataContext';
+<<<<<<< HEAD
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
@@ -14,6 +15,40 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.token;
 
     const { enabled = false, url = '', token = '', hideWhenEmpty = true } = config || {};
+=======
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
+import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
+import IntegrationConnectionError from '../common/IntegrationConnectionError';
+import LoadingSpinner from '../common/LoadingSpinner';
+
+const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
+
+    // Get integrations state from context - ONLY source of truth for access
+    const { integrations, integrationsLoaded, integrationsError } = useAppData();
+
+    // Wait for integrations to load before checking status
+    if (!integrationsLoaded) {
+        return <LoadingSpinner size="sm" />;
+    }
+
+    // Show connection error if integrations failed to load
+    if (integrationsError) {
+        return <IntegrationConnectionError serviceName="Plex" />;
+    }
+
+    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    const integration = integrations?.plex || { enabled: false };
+
+    // Check if integration is enabled (from context only)
+    const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.token;
+
+    const { hideWhenEmpty = true } = config || {};
+>>>>>>> develop
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -79,7 +114,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
 
     // Notify dashboard when visibility changes (for hideWhenEmpty)
     useEffect(() => {
-        if (!onVisibilityChange || !enabled) return;
+        if (!onVisibilityChange || !isIntegrationEnabled) return;
 
         const sessions = data?.sessions || [];
         const shouldBeVisible = sessions.length > 0 || editMode;
@@ -92,7 +127,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
             previousVisibilityRef.current = isVisible;
             onVisibilityChange(widgetId, isVisible);
         }
-    }, [data, localHideWhenEmpty, editMode, widgetId, onVisibilityChange, enabled]);
+    }, [data, localHideWhenEmpty, editMode, widgetId, onVisibilityChange, isIntegrationEnabled]);
 
     const handleStopPlayback = async (session) => {
         if (stoppingSession === session.sessionKey) return;
@@ -170,9 +205,18 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         }
     };
 
+<<<<<<< HEAD
     // Show integration disabled message if not enabled
     if (!isIntegrationEnabled) {
         return <IntegrationDisabledMessage serviceName="Plex" />;
+=======
+    // Show appropriate message based on user role
+    if (!isIntegrationEnabled) {
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="Plex" />
+            : <IntegrationNoAccessMessage serviceName="Plex" />;
+>>>>>>> develop
     }
 
     if (loading && !data) return <div className="text-secondary">Loading Plex...</div>;

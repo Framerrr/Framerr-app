@@ -22,7 +22,6 @@ const OverseerrWidget = lazy(() => import('../components/widgets/OverseerrWidget
 const QBittorrentWidget = lazy(() => import('../components/widgets/QBittorrentWidget'));
 const WeatherWidget = lazy(() => import('../components/widgets/WeatherWidget'));
 const CalendarWidget = lazy(() => import('../components/widgets/CalendarWidget'));
-const UpcomingMediaWidget = lazy(() => import('../components/widgets/UpcomingMediaWidget'));
 const CustomHTMLWidget = lazy(() => import('../components/widgets/CustomHTMLWidget'));
 const LinkGridWidget = lazy(() => import('../components/widgets/LinkGridWidget_v2'));
 const ClockWidget = lazy(() => import('../components/widgets/ClockWidget'));
@@ -42,7 +41,7 @@ export const WIDGET_TYPES = {
         defaultSize: { w: 4, h: 3 },
         minSize: { w: 4, h: 3 }, // Needs space for all 4 metrics + bars
         maxSize: { h: 4 }, // No width limit, max height only
-        requiresIntegration: 'systemHealth'
+        requiresIntegration: 'systemstatus'
     },
 
     // Media Widgets
@@ -114,7 +113,7 @@ export const WIDGET_TYPES = {
         description: 'Current weather and forecast',
         category: 'utility',
         defaultSize: { w: 3, h: 3 },
-        minSize: { w: 3, h: 2 }, // Responsive: vertical when narrow, horizontal when wide
+        minSize: { w: 3, h: 1 }, // h:1 for compact horizontal, h:2+ for vertical
         maxSize: { h: 4 }, // No width limit
         requiresIntegration: false
     },
@@ -124,23 +123,11 @@ export const WIDGET_TYPES = {
         icon: Calendar,
         name: 'Calendar',
         description: 'Combined Sonarr and Radarr calendar',
-        category: 'utility',
+        category: 'media',
         defaultSize: { w: 6, h: 5 },
         minSize: { w: 5, h: 5 }, // Calendar grid needs space for filters + 7-day grid
         maxSize: { h: 8 }, // No width limit
         requiresIntegrations: ['sonarr', 'radarr'] // Requires both integrations
-    },
-
-    'upcoming-media': {
-        component: UpcomingMediaWidget,
-        icon: Calendar,
-        name: 'Upcoming Media',
-        description: 'Upcoming TV shows and movies',
-        category: 'utility',
-        defaultSize: { w: 4, h: 3 },
-        minSize: { w: 3, h: 2 }, // List needs vertical space
-        maxSize: { h: 6 }, // No width limit
-        requiresIntegration: false
     },
 
     'custom-html': {
