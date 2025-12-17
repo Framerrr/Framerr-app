@@ -58,7 +58,7 @@ const MainLayout = () => {
     return (
         <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
             <ProtectedRoute>
-                <div className="flex w-full h-screen">
+                <div className="flex w-full" style={{ height: '100dvh' }}>
                     <Sidebar />
                     <main
                         className="flex-1 min-w-0 min-h-0 h-full"
