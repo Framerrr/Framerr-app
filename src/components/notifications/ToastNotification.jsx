@@ -102,6 +102,11 @@ const ToastNotification = ({
         isPausedRef.current = false;
     };
 
+    // Trigger initial animation on mount
+    useEffect(() => {
+        controls.start({ opacity: 1, y: 0, scale: 1, x: 0 });
+    }, [controls]);
+
     // Handle swipe dismiss
     const handleDragEnd = (event, info) => {
         setIsDragging(false);
@@ -136,7 +141,7 @@ const ToastNotification = ({
     return (
         <motion.div
             layout
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -20, scale: 0.95, x: 0 }}
             animate={controls}
             exit={{ opacity: 0, y: 20, scale: 0.95, transition: { duration: 0.2 } }}
             transition={{
@@ -219,10 +224,10 @@ const ToastNotification = ({
                                         actionItem.onClick();
                                     }}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${actionItem.variant === 'success'
-                                            ? 'bg-success/20 text-success hover:bg-success/30'
-                                            : actionItem.variant === 'danger'
-                                                ? 'bg-error/20 text-error hover:bg-error/30'
-                                                : 'bg-accent/20 text-accent hover:bg-accent/30'
+                                        ? 'bg-success/20 text-success hover:bg-success/30'
+                                        : actionItem.variant === 'danger'
+                                            ? 'bg-error/20 text-error hover:bg-error/30'
+                                            : 'bg-accent/20 text-accent hover:bg-accent/30'
                                         }`}
                                 >
                                     {actionItem.variant === 'success' && <Check size={14} />}
