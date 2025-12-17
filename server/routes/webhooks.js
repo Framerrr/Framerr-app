@@ -14,6 +14,7 @@ const router = express.Router();
 const { getSystemConfig } = require('../db/systemConfig');
 const { createNotification } = require('../db/notifications');
 const { resolveUserByUsername, getAdminsWithReceiveUnmatched, userWantsEvent } = require('../services/webhookUserResolver');
+const { getSystemIconIdForService } = require('../services/seedSystemIcons');
 const logger = require('../utils/logger');
 
 // Event type mappings from external services to Framerr event keys
@@ -274,6 +275,9 @@ router.post('/radarr/:token', async (req, res) => {
 async function processWebhookNotification({ service, eventKey, username, title, message, webhookConfig, adminOnly = false }) {
     const notificationsSent = [];
 
+    // Get the system icon ID for this service
+    const iconId = getSystemIconIdForService(service);
+
     // Test events bypass all preference checks and go to all admins
     const isTestEvent = eventKey === 'test';
 
@@ -296,7 +300,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                 userId: admin.id,
                 type: 'success',
                 title: `[Test] ${title}`,
-                message: message || 'Test notification received successfully!'
+                message: message || 'Test notification received successfully!',
+                iconId
             });
             notificationsSent.push({ userId: admin.id, username: admin.username, test: true });
         }
@@ -325,7 +330,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                     userId: user.id,
                     type: 'info',
                     title,
-                    message
+                    message,
+                    iconId
                 });
                 notificationsSent.push({ userId: user.id, username: user.username });
                 logger.info('[Webhook] Notification created for user', { userId: user.id, service, eventKey });
@@ -343,7 +349,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                         userId: admin.id,
                         type: 'info',
                         title: `[Unmatched] ${title}`,
-                        message: `From: ${username}\n${message}`
+                        message: `From: ${username}\n${message}`,
+                        iconId
                     });
                     notificationsSent.push({ userId: admin.id, username: admin.username, unmatched: true });
                     logger.info('[Webhook] Unmatched notification sent to admin', { adminId: admin.id, username });
@@ -362,7 +369,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                     userId: admin.id,
                     type: 'info',
                     title,
-                    message
+                    message,
+                    iconId
                 });
                 notificationsSent.push({ userId: admin.id, username: admin.username });
             }

@@ -23,6 +23,7 @@ async function createNotification(notificationData) {
         type: notificationData.type || 'info', // success, error, warning, info
         title: notificationData.title,
         message: notificationData.message,
+        iconId: notificationData.iconId || null, // Custom icon ID for integration logos
         read: false,
         metadata: notificationData.metadata || null,
         createdAt: new Date().toISOString(),
@@ -31,8 +32,8 @@ async function createNotification(notificationData) {
 
     try {
         const insert = db.prepare(`
-            INSERT INTO notifications (id, user_id, title, message, type, read, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
+            INSERT INTO notifications (id, user_id, title, message, type, icon_id, read, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
         `);
 
         insert.run(
@@ -41,6 +42,7 @@ async function createNotification(notificationData) {
             notification.title,
             notification.message,
             notification.type,
+            notification.iconId,
             notification.read ? 1 : 0
         );
 
@@ -109,6 +111,7 @@ async function getNotifications(userId, filters = {}) {
             type: n.type,
             title: n.title,
             message: n.message,
+            iconId: n.icon_id || null, // Custom icon ID
             read: n.read === 1,
             metadata: null, // Legacy field, not stored in SQLite
             createdAt: new Date(n.created_at * 1000).toISOString(),

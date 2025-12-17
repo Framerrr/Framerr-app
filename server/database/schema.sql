@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     title TEXT NOT NULL,
     message TEXT,
     type TEXT DEFAULT 'info',
+    icon_id TEXT DEFAULT NULL,
     read INTEGER DEFAULT 0,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

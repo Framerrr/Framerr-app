@@ -19,6 +19,7 @@ const ICONS = {
  * @param {string} props.type - Type: 'success' | 'error' | 'warning' | 'info'
  * @param {string} props.title - Toast title
  * @param {string} props.message - Toast message
+ * @param {string} props.iconId - Optional custom icon ID (for integration logos)
  * @param {number} props.duration - Auto-dismiss duration in ms (default 10000)
  * @param {Object} props.action - Optional action button { label, onClick }
  * @param {Function} props.onDismiss - Callback when dismissed
@@ -28,6 +29,7 @@ const ToastNotification = ({
     type = 'info',
     title,
     message,
+    iconId,
     duration = 10000,
     action,
     onDismiss
@@ -109,20 +111,30 @@ const ToastNotification = ({
             aria-live="assertive"
         >
             <div className="flex items-start gap-3 p-4">
-                {/* Icon with type-based background */}
-                <div
-                    className="p-2 rounded-lg flex-shrink-0"
-                    style={{
-                        backgroundColor: `var(--${type})`,
-                        opacity: 0.2
-                    }}
-                >
-                    <Icon
-                        size={20}
-                        style={{ color: `var(--${type})` }}
-                        aria-hidden="true"
-                    />
-                </div>
+                {/* Icon - custom icon or type-based icon */}
+                {iconId ? (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-theme-tertiary flex items-center justify-center">
+                        <img
+                            src={`/api/custom-icons/${iconId}/file`}
+                            alt=""
+                            className="w-8 h-8 object-contain"
+                        />
+                    </div>
+                ) : (
+                    <div
+                        className="p-2 rounded-lg flex-shrink-0"
+                        style={{
+                            backgroundColor: `var(--${type})`,
+                            opacity: 0.2
+                        }}
+                    >
+                        <Icon
+                            size={20}
+                            style={{ color: `var(--${type})` }}
+                            aria-hidden="true"
+                        />
+                    </div>
+                )}
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
