@@ -236,22 +236,16 @@ const NotificationSettings = () => {
 
     const sendTestNotification = async () => {
         try {
-            const response = await axios.post('/api/notifications', {
+            // Just create the notification via API - SSE will broadcast it and show the toast
+            await axios.post('/api/notifications', {
                 title: 'Test Notification',
                 message: 'This is a test notification to demonstrate how notifications appear!',
                 type: 'info'
             }, { withCredentials: true });
-
-            showInfoToast(
-                'Test Notification',
-                'This is a test notification to demonstrate how notifications appear!'
-            );
-
-            if (response.data) {
-                addNotification(response.data);
-            }
+            // Toast and notification center update handled automatically by SSE
         } catch (error) {
             logger.error('Failed to create test notification:', error);
+            showError('Error', 'Failed to create test notification');
         }
     };
 
