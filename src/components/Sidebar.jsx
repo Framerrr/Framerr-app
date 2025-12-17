@@ -906,7 +906,7 @@ const Sidebar = () => {
                 >
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="flex flex-col items-center gap-1 text-theme-tertiary hover:text-theme-primary transition-all py-2 px-3 rounded-lg hover:bg-theme-hover"
+                        className="flex flex-col items-center gap-1 text-theme-tertiary active:text-theme-primary transition-all py-2 px-3 rounded-lg active:bg-theme-hover"
                         style={{
                             transition: 'transform 300ms ease-out',
                         }}
@@ -922,20 +922,17 @@ const Sidebar = () => {
                     <a
                         href="/#dashboard"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        onMouseEnter={() => setHoveredMobileTab('dashboard')}
-                        onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
-                        {/* Animated sliding indicator */}
+                        {/* Animated sliding indicator - active state only */}
                         {(() => {
                             const hash = window.location.hash.slice(1);
                             const isActive = !hash || hash === 'dashboard';
-                            const shouldShowIndicator = isActive || hoveredMobileTab === 'dashboard';
 
-                            return shouldShowIndicator && (
+                            return isActive && (
                                 <motion.div
                                     layoutId="mobileTabIndicator"
-                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className="absolute inset-0 rounded-lg bg-accent/20 shadow-lg"
                                     transition={sidebarSpring}
                                 />
                             );
@@ -957,11 +954,9 @@ const Sidebar = () => {
                     <a
                         href="/#settings?tab=profile&source=profile"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        onMouseEnter={() => setHoveredMobileTab('profile')}
-                        onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
-                        {/* Animated sliding indicator */}
+                        {/* Animated sliding indicator - active state only */}
                         {(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
@@ -969,12 +964,11 @@ const Sidebar = () => {
                             const currentTab = searchParams.get('tab');
                             const source = searchParams.get('source');
                             const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                            const shouldShowIndicator = isActive || hoveredMobileTab === 'profile';
 
-                            return shouldShowIndicator && (
+                            return isActive && (
                                 <motion.div
                                     layoutId="mobileTabIndicator"
-                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className="absolute inset-0 rounded-lg bg-accent/20 shadow-lg"
                                     transition={sidebarSpring}
                                 />
                             );
@@ -1012,11 +1006,9 @@ const Sidebar = () => {
                     <a
                         href="/#settings"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        onMouseEnter={() => setHoveredMobileTab('settings')}
-                        onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
-                        {/* Animated sliding indicator */}
+                        {/* Animated sliding indicator - active state only */}
                         {(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
@@ -1025,12 +1017,11 @@ const Sidebar = () => {
                             const source = searchParams.get('source');
                             const isProfilePage = currentTab === 'profile' && source === 'profile';
                             const isActive = hash.startsWith('settings') && !isProfilePage;
-                            const shouldShowIndicator = isActive || hoveredMobileTab === 'settings';
 
-                            return shouldShowIndicator && (
+                            return isActive && (
                                 <motion.div
                                     layoutId="mobileTabIndicator"
-                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className="absolute inset-0 rounded-lg bg-accent/20 shadow-lg"
                                     transition={sidebarSpring}
                                 />
                             );
