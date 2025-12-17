@@ -238,7 +238,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
     };
 
     return (
-        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Root open={isOpen} onOpenChange={setIsOpen} modal={false}>
             <Popover.Trigger asChild>
                 <button
                     ref={triggerRef}
@@ -281,12 +281,16 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                     minWidth: '280px',
                                     maxWidth: '24rem',
                                     zIndex: 100,
-                                    maxHeight: 'min(400px, calc(100vh - 200px))'
+                                    maxHeight: 'min(400px, calc(100vh - 200px))',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    touchAction: 'pan-y',
+                                    WebkitOverflowScrolling: 'touch'
                                 }}
-                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden overflow-y-auto"
+                                className="glass-card border-theme rounded-xl shadow-2xl"
                             >
-                                {/* Header */}
-                                <div className="flex items-center justify-between p-4 border-b border-theme">
+                                {/* Header - fixed */}
+                                <div className="flex items-center justify-between p-4 border-b border-theme flex-shrink-0">
                                     <h3 className="font-semibold text-theme-primary">Select Icon</h3>
                                     <button
                                         onClick={() => setIsOpen(false)}
@@ -297,8 +301,8 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                 </div>
 
 
-                                {/* Tabs */}
-                                <div className="flex border-b border-theme relative">
+                                {/* Tabs - fixed */}
+                                <div className="flex border-b border-theme relative flex-shrink-0">
                                     {/* Sliding indicator */}
                                     {activeTab === 'icons' ? (
                                         <motion.div
@@ -341,8 +345,13 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                     </button>
                                 </div>
 
-                                {/* Content */}
-                                <div className="p-4 max-h-96 overflow-y-auto">
+                                {/* Content - scrollable */}
+                                <div
+                                    className="p-4 flex-1 min-h-0 overflow-y-auto"
+                                    style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
+                                    onWheel={(e) => e.stopPropagation()}
+                                    onTouchMove={(e) => e.stopPropagation()}
+                                >
                                     <AnimatePresence mode="wait">
                                         {activeTab === 'icons' ? (
                                             <motion.div

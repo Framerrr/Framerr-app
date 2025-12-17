@@ -59,3 +59,18 @@ body {
         display: none;
     }
 }
+
+/* Radix UI scroll lock override - allows nested scrollable elements (like Popovers inside Dialogs) */
+/* When Radix locks scroll, it adds [data-scroll-locked] to body which can break nested scroll areas */
+body[data-scroll-locked] [data-radix-popper-content-wrapper] {
+    pointer-events: auto !important;
+}
+
+/* Ensure popover content can scroll even when body scroll is locked */
+[data-radix-popper-content-wrapper] {
+    overflow: visible !important;
+}
+
+[data-radix-popper-content-wrapper]>* {
+    overflow-y: auto !important;
+}
