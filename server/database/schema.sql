@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS custom_icons (
     file_path TEXT NOT NULL,                   -- Relative path to icon file in /config/upload/custom-icons/
     mime_type TEXT NOT NULL,
     uploaded_by TEXT,
+    is_system INTEGER DEFAULT 0,               -- 1 = system icon (non-deletable), 0 = user-uploaded
     uploaded_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -202,5 +203,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON push_subscr
 -- ============================================================================
 -- SCHEMA VERSION
 -- ============================================================================
--- Schema version 3: Added push_subscriptions table
-PRAGMA user_version = 3;
+-- Schema version 4: Added is_system column to custom_icons table
+PRAGMA user_version = 4;

@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-16 22:42 EST  
+**Last Updated:** 2025-12-16 23:24 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,37 +20,39 @@
 
 ## Current State
 
-**Status:** ✅ iOS Scroll/Zoom Fixed — Ready for remaining backlog items
+**Status:** ✅ Session Complete — Ready for v1.1.11 Release
 
 **This Session Summary:**
 
 ### iOS Mobile Scroll/Zoom Fix ✅
+- Fixed content not scrolling to full top/bottom on iOS Safari
+- Root cause: `h-screen` (100vh) uses maximum viewport height, not current visible
+- Solution: `100dvh` + `viewport-fit=cover` + safe-area-inset padding + Safari flexbox fix
 
-**Problem:** iOS Safari had scroll issues (content not reaching edges) and zoom wasn't properly prevented.
+### Settings Tab Auto-Scroll ✅
+- Main tabs and all sub-tabs now auto-scroll to center active tab on click or deep-link
+- Added 50ms delay for initial navigation to ensure DOM is ready
+- Affects: UserSettings, WidgetsSettings, CustomizationSettings, AuthSettings, AdvancedSettings
 
-**Root Cause:** `h-screen` uses `100vh` which on iOS equals the MAXIMUM viewport (toolbar hidden), not the current visible area.
+### Mobile Tab Bar Touch Optimization ✅
+- Removed hover effects from bottom tab bar (use `active:` instead of `hover:`)
+- Removed sliding indicator hover preview (shows only on active tab)
 
-**Solution Applied:**
-1. **`100dvh`** instead of `h-screen` in `App.jsx` — dynamic viewport height that adapts to visible area
-2. **Viewport meta** with `maximum-scale=1.0, user-scalable=no, viewport-fit=cover`
-3. **Safe-area-inset padding** for notch/home indicator
-4. **`min-h-0 h-full`** on main for Safari flexbox fix
-5. **`overscroll-behavior: none`** to prevent iOS bounce
-
-**All tests pass:**
-- ✅ Zoom prevented
-- ✅ Scroll bleeding between pages fixed
-- ✅ Scroll reaches full top/bottom
-- ✅ Build passes
+### Files Changed
+- `src/App.jsx` - 100dvh, min-h-0 h-full on main
+- `src/index.css` - overscroll-behavior, safe-area padding
+- `index.html` - viewport meta with viewport-fit=cover
+- `src/pages/UserSettings.jsx` - tab auto-scroll with delay
+- `src/components/settings/*.jsx` (4 files) - sub-tab auto-scroll
+- `src/components/Sidebar.jsx` - mobile tab bar hover removal
 
 ---
 
-## Remaining TODO for v1.1.11
+## Next Step
 
-1. ~~Solve zoom/scroll trade-off~~ ✅ DONE
-2. Settings bottom gap consistency
-3. Settings tab auto-scroll
-4. Revert to selective routing (SSE vs Web Push)
+**Ready for v1.1.11 release testing and deployment.**
+
+Review and merge `feature/notification-integration` → `develop` when ready.
 
 ---
 

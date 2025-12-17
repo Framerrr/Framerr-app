@@ -321,6 +321,10 @@ app.use((err, req, res, next) => {
             logger.setLevel(systemConfig.debug.logLevel);
         }
 
+        // Seed system icons (integration logos)
+        const { seedSystemIcons } = require('./services/seedSystemIcons');
+        await seedSystemIcons();
+
         // Now start server with config loaded
         app.listen(PORT, () => {
             logger.startup('Homelab Dashboard', {
