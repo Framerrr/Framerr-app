@@ -135,9 +135,9 @@ router.post('/overseerr/:token', async (req, res) => {
             username = payload.comment.commentedBy_username;
         }
 
-        // Build notification content
-        const title = payload.subject || 'Overseerr Notification';
-        const message = payload.message || `Event: ${payload.event}`;
+        // Build normalized notification content
+        const mediaTitle = payload.subject || payload.media?.title || 'Unknown';
+        const { title, message } = buildOverseerrNotification(eventKey, mediaTitle, username, payload);
 
         // Process notification
         const result = await processWebhookNotification({
@@ -186,15 +186,11 @@ router.post('/sonarr/:token', async (req, res) => {
             return res.status(200).json({ status: 'ignored', reason: 'Unknown event type' });
         }
 
-        // Build notification content
+        // Build normalized notification content
         const series = payload.series?.title || 'Unknown Series';
         const episodes = payload.episodes || [];
-        const episodeInfo = episodes.length > 0
-            ? `S${episodes[0].seasonNumber}E${episodes[0].episodeNumber}`
-            : '';
-
-        const title = `Sonarr: ${series}`;
-        const message = buildSonarrMessage(payload.eventType, series, episodeInfo, payload);
+        const quality = payload.release?.quality || payload.episodeFile?.quality?.quality?.name || null;
+        const { title, message } = buildSonarrNotification(payload.eventType, series, episodes, quality, payload);
 
         // Sonarr doesn't have per-user requests, so notifications go to admins only
         const result = await processWebhookNotification({
@@ -244,12 +240,11 @@ router.post('/radarr/:token', async (req, res) => {
             return res.status(200).json({ status: 'ignored', reason: 'Unknown event type' });
         }
 
-        // Build notification content
+        // Build normalized notification content
         const movie = payload.movie?.title || 'Unknown Movie';
-        const year = payload.movie?.year ? ` (${payload.movie.year})` : '';
-
-        const title = `Radarr: ${movie}${year}`;
-        const message = buildRadarrMessage(payload.eventType, movie, payload);
+        const year = payload.movie?.year || null;
+        const quality = payload.release?.quality || payload.movieFile?.quality?.quality?.name || null;
+        const { title, message } = buildRadarrNotification(payload.eventType, movie, year, quality, payload);
 
         // Radarr doesn't have per-user requests, notifications go to admins only
         const result = await processWebhookNotification({
@@ -383,61 +378,226 @@ async function processWebhookNotification({ service, eventKey, username, title, 
 }
 
 /**
- * Build descriptive message for Sonarr events
+ * Build normalized notification for Overseerr events
+ * @returns {{ title: string, message: string }}
  */
-function buildSonarrMessage(eventType, series, episodeInfo, payload) {
-    switch (eventType) {
-        case 'Grab':
-            return `Grabbed ${episodeInfo ? episodeInfo + ' of ' : ''}${series}`;
-        case 'Download':
-            return `Downloaded ${episodeInfo ? episodeInfo + ' of ' : ''}${series}`;
-        case 'Upgrade':
-            return `Upgraded ${episodeInfo ? episodeInfo + ' of ' : ''}${series}`;
-        case 'ImportComplete':
-            return `Import complete for ${series}`;
-        case 'SeriesAdd':
-            return `Added series: ${series}`;
-        case 'SeriesDelete':
-            return `Deleted series: ${series}`;
-        case 'Health':
-        case 'HealthRestored':
-            return payload.message || `Health status changed for ${series}`;
-        case 'ApplicationUpdate':
-            return 'Sonarr application update available';
-        case 'ManualInteractionRequired':
-            return `Manual interaction required for ${series}`;
+function buildOverseerrNotification(eventKey, mediaTitle, username, payload) {
+    const titleMap = {
+        'requestPending': 'Request Pending',
+        'requestApproved': 'Request Approved',
+        'requestAutoApproved': 'Request Auto-Approved',
+        'requestAvailable': 'Now Available',
+        'requestDeclined': 'Request Declined',
+        'requestFailed': 'Request Failed',
+        'issueReported': 'Issue Reported',
+        'issueComment': 'New Comment',
+        'issueResolved': 'Issue Resolved',
+        'issueReopened': 'Issue Reopened',
+        'test': 'Test Notification'
+    };
+
+    const title = `Overseerr: ${titleMap[eventKey] || 'Notification'}`;
+
+    let message;
+    switch (eventKey) {
+        case 'requestPending':
+            message = username
+                ? `"${mediaTitle}" requested by ${username} is awaiting approval`
+                : `"${mediaTitle}" is awaiting approval`;
+            break;
+        case 'requestApproved':
+            message = `Your request for "${mediaTitle}" has been approved`;
+            break;
+        case 'requestAutoApproved':
+            message = `"${mediaTitle}" was automatically approved`;
+            break;
+        case 'requestAvailable':
+            message = `"${mediaTitle}" is now available to watch`;
+            break;
+        case 'requestDeclined':
+            message = `Your request for "${mediaTitle}" was declined`;
+            break;
+        case 'requestFailed':
+            message = `Failed to process request for "${mediaTitle}"`;
+            break;
+        case 'issueReported':
+            message = `A new issue was reported for "${mediaTitle}"`;
+            break;
+        case 'issueComment':
+            message = `New comment on issue for "${mediaTitle}"`;
+            break;
+        case 'issueResolved':
+            message = `The issue for "${mediaTitle}" has been resolved`;
+            break;
+        case 'issueReopened':
+            message = `An issue for "${mediaTitle}" has been reopened`;
+            break;
+        case 'test':
+            message = 'Successfully connected to Framerr';
+            break;
         default:
-            return `Event: ${eventType}`;
+            message = payload.message || `Event received for "${mediaTitle}"`;
     }
+
+    return { title, message };
 }
 
 /**
- * Build descriptive message for Radarr events
+ * Build normalized notification for Sonarr events
+ * @returns {{ title: string, message: string }}
  */
-function buildRadarrMessage(eventType, movie, payload) {
+function buildSonarrNotification(eventType, series, episodes, quality, payload) {
+    const titleMap = {
+        'Grab': 'Episode Grabbed',
+        'Download': 'Episode Downloaded',
+        'Upgrade': 'Episode Upgraded',
+        'ImportComplete': 'Import Complete',
+        'Rename': 'Episode Renamed',
+        'SeriesAdd': 'Series Added',
+        'SeriesDelete': 'Series Removed',
+        'EpisodeFileDelete': 'Episode Deleted',
+        'EpisodeFileDeleteForUpgrade': 'Episode Deleted for Upgrade',
+        'Health': 'Health Warning',
+        'HealthRestored': 'Health Restored',
+        'ApplicationUpdate': 'Update Available',
+        'ManualInteractionRequired': 'Action Required',
+        'Test': 'Test Notification'
+    };
+
+    const title = `Sonarr: ${titleMap[eventType] || 'Notification'}`;
+
+    // Build episode info
+    let episodeInfo = '';
+    if (episodes && episodes.length > 0) {
+        const ep = episodes[0];
+        episodeInfo = `Season ${ep.seasonNumber} Episode ${ep.episodeNumber}`;
+    }
+
+    let message;
     switch (eventType) {
         case 'Grab':
-            return `Grabbed ${movie}`;
+            message = episodeInfo
+                ? `${series} ${episodeInfo} has been grabbed${quality ? ` in ${quality}` : ''}`
+                : `${series} has been grabbed${quality ? ` in ${quality}` : ''}`;
+            break;
         case 'Download':
-            return `Downloaded ${movie}`;
+            message = episodeInfo
+                ? `${series} ${episodeInfo} has been downloaded`
+                : `${series} has been downloaded`;
+            break;
         case 'Upgrade':
-            return `Upgraded ${movie}`;
+            message = episodeInfo
+                ? `${series} ${episodeInfo} upgraded to ${quality || 'higher quality'}`
+                : `${series} upgraded to ${quality || 'higher quality'}`;
+            break;
         case 'ImportComplete':
-            return `Import complete for ${movie}`;
-        case 'MovieAdded':
-            return `Added movie: ${movie}`;
-        case 'MovieDelete':
-            return `Deleted movie: ${movie}`;
+            message = episodeInfo
+                ? `${series} ${episodeInfo} import is complete`
+                : `${series} import is complete`;
+            break;
+        case 'SeriesAdd':
+            message = `${series} has been added to the library`;
+            break;
+        case 'SeriesDelete':
+            message = `${series} has been removed from the library`;
+            break;
+        case 'EpisodeFileDelete':
+        case 'EpisodeFileDeleteForUpgrade':
+            message = episodeInfo
+                ? `${series} ${episodeInfo} file has been deleted`
+                : `${series} episode file has been deleted`;
+            break;
         case 'Health':
+            message = payload.message || 'A health issue was detected';
+            break;
         case 'HealthRestored':
-            return payload.message || `Health status changed`;
+            message = 'All health issues have been resolved';
+            break;
         case 'ApplicationUpdate':
-            return 'Radarr application update available';
+            message = 'A new version of Sonarr is available';
+            break;
         case 'ManualInteractionRequired':
-            return `Manual interaction required for ${movie}`;
+            message = `${series} requires manual intervention`;
+            break;
+        case 'Test':
+            message = 'Successfully connected to Framerr';
+            break;
         default:
-            return `Event: ${eventType}`;
+            message = `Event received for ${series}`;
     }
+
+    return { title, message };
+}
+
+/**
+ * Build normalized notification for Radarr events
+ * @returns {{ title: string, message: string }}
+ */
+function buildRadarrNotification(eventType, movie, year, quality, payload) {
+    const titleMap = {
+        'Grab': 'Movie Grabbed',
+        'Download': 'Movie Downloaded',
+        'Upgrade': 'Movie Upgraded',
+        'ImportComplete': 'Import Complete',
+        'Rename': 'Movie Renamed',
+        'MovieAdded': 'Movie Added',
+        'MovieDelete': 'Movie Removed',
+        'MovieFileDelete': 'Movie Deleted',
+        'MovieFileDeleteForUpgrade': 'Movie Deleted for Upgrade',
+        'Health': 'Health Warning',
+        'HealthRestored': 'Health Restored',
+        'ApplicationUpdate': 'Update Available',
+        'ManualInteractionRequired': 'Action Required',
+        'Test': 'Test Notification'
+    };
+
+    const title = `Radarr: ${titleMap[eventType] || 'Notification'}`;
+    const movieWithYear = year ? `${movie} (${year})` : movie;
+
+    let message;
+    switch (eventType) {
+        case 'Grab':
+            message = `${movieWithYear} has been grabbed${quality ? ` in ${quality}` : ''}`;
+            break;
+        case 'Download':
+            message = `${movieWithYear} has been downloaded`;
+            break;
+        case 'Upgrade':
+            message = `${movieWithYear} upgraded to ${quality || 'higher quality'}`;
+            break;
+        case 'ImportComplete':
+            message = `${movieWithYear} import is complete`;
+            break;
+        case 'MovieAdded':
+            message = `${movieWithYear} has been added to the library`;
+            break;
+        case 'MovieDelete':
+            message = `${movie} has been removed from the library`;
+            break;
+        case 'MovieFileDelete':
+        case 'MovieFileDeleteForUpgrade':
+            message = `${movie} file has been deleted`;
+            break;
+        case 'Health':
+            message = payload.message || 'A health issue was detected';
+            break;
+        case 'HealthRestored':
+            message = 'All health issues have been resolved';
+            break;
+        case 'ApplicationUpdate':
+            message = 'A new version of Radarr is available';
+            break;
+        case 'ManualInteractionRequired':
+            message = `${movie} requires manual intervention`;
+            break;
+        case 'Test':
+            message = 'Successfully connected to Framerr';
+            break;
+        default:
+            message = `Event received for ${movie}`;
+    }
+
+    return { title, message };
 }
 
 module.exports = router;
