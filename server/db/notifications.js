@@ -173,6 +173,17 @@ async function markAsRead(notificationId, userId) {
 
         logger.debug('Notification marked as read', { id: notificationId, userId });
 
+        // Send sync event to other devices
+        try {
+            getEmitter().sendNotification(userId, {
+                type: 'sync',
+                action: 'markRead',
+                notificationId
+            });
+        } catch (sseError) {
+            logger.debug('SSE sync emit failed', { error: sseError.message });
+        }
+
         return {
             id: notification.id,
             userId: notification.user_id,
@@ -210,6 +221,18 @@ async function deleteNotification(notificationId, userId) {
         }
 
         logger.debug('Notification deleted', { id: notificationId, userId });
+
+        // Send sync event to other devices
+        try {
+            getEmitter().sendNotification(userId, {
+                type: 'sync',
+                action: 'delete',
+                notificationId
+            });
+        } catch (sseError) {
+            logger.debug('SSE sync emit failed', { error: sseError.message });
+        }
+
         return true;
     } catch (error) {
         logger.error('Failed to delete notification', { error: error.message, notificationId, userId });
@@ -235,6 +258,16 @@ async function markAllAsRead(userId) {
 
         if (updatedCount > 0) {
             logger.info('All notifications marked as read', { userId, count: updatedCount });
+
+            // Send sync event to other devices
+            try {
+                getEmitter().sendNotification(userId, {
+                    type: 'sync',
+                    action: 'markAllRead'
+                });
+            } catch (sseError) {
+                logger.debug('SSE sync emit failed', { error: sseError.message });
+            }
         }
 
         return updatedCount;
@@ -261,6 +294,16 @@ async function clearAll(userId) {
 
         if (deletedCount > 0) {
             logger.info('All notifications cleared', { userId, count: deletedCount });
+
+            // Send sync event to other devices
+            try {
+                getEmitter().sendNotification(userId, {
+                    type: 'sync',
+                    action: 'clearAll'
+                });
+            } catch (sseError) {
+                logger.debug('SSE sync emit failed', { error: sseError.message });
+            }
         }
 
         return deletedCount;

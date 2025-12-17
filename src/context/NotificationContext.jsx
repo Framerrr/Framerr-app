@@ -610,6 +610,41 @@ export const NotificationProvider = ({ children }) => {
                     return;
                 }
 
+                // Handle sync events (from other devices)
+                if (data.type === 'sync') {
+                    logger.info('[SSE] Sync event received', { action: data.action, notificationId: data.notificationId });
+
+                    switch (data.action) {
+                        case 'markRead':
+                            setNotifications(prev => prev.map(n =>
+                                n.id === data.notificationId ? { ...n, read: true } : n
+                            ));
+                            setUnreadCount(prev => Math.max(0, prev - 1));
+                            break;
+                        case 'delete':
+                            setNotifications(prev => {
+                                const notification = prev.find(n => n.id === data.notificationId);
+                                if (notification && !notification.read) {
+                                    setUnreadCount(count => Math.max(0, count - 1));
+                                }
+                                return prev.filter(n => n.id !== data.notificationId);
+                            });
+                            // Also dismiss any toast for this notification
+                            setToasts(prev => prev.filter(t => t.notificationId !== data.notificationId));
+                            break;
+                        case 'markAllRead':
+                            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                            setUnreadCount(0);
+                            break;
+                        case 'clearAll':
+                            setNotifications([]);
+                            setUnreadCount(0);
+                            setToasts(prev => prev.filter(t => !t.notificationId)); // Only keep non-notification toasts
+                            break;
+                    }
+                    return;
+                }
+
                 // Real notification received
                 logger.info('[SSE] Notification received', { id: data.id, title: data.title, actionable: data.metadata?.actionable });
 
