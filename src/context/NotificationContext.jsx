@@ -30,6 +30,14 @@ export const NotificationProvider = ({ children }) => {
     const [currentEndpoint, setCurrentEndpoint] = useState(null);  // This device's push endpoint
     const [globalPushEnabled, setGlobalPushEnabled] = useState(true);  // Admin global toggle
 
+    // Notification center open state (for toast body click)
+    const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
+    const openNotificationCenter = useCallback(() => {
+        setNotificationCenterOpen(true);
+        // Emit event that Sidebar can listen to
+        window.dispatchEvent(new CustomEvent('openNotificationCenter'));
+    }, []);
+
     // Check if Web Push is supported
     useEffect(() => {
         const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
@@ -292,7 +300,9 @@ export const NotificationProvider = ({ children }) => {
             message,
             iconId: options.iconId || null, // Custom icon ID for integration logos
             duration: options.duration || 5000, // Default 5 seconds
-            action: options.action, // { label, onClick }
+            action: options.action, // { label, onClick } - single action (legacy)
+            actions: options.actions || null, // Array of actions for approve/decline
+            onBodyClick: options.onBodyClick || null, // Callback for body click
             createdAt: new Date()
         };
 
@@ -416,6 +426,44 @@ export const NotificationProvider = ({ children }) => {
         }
     }, []);
 
+    // Handle request action (approve/decline for Overseerr)
+    const handleRequestAction = useCallback(async (notificationId, action) => {
+        try {
+            const response = await axios.post(
+                `/api/request-actions/overseerr/${action}/${notificationId}`,
+                {},
+                { withCredentials: true }
+            );
+
+            // Remove notification from state
+            const notification = notifications.find(n => n.id === notificationId);
+            setNotifications(prev => prev.filter(n => n.id !== notificationId));
+            if (notification && !notification.read) {
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            }
+
+            // Also dismiss any toast with this notification
+            setToasts(prev => prev.filter(t => t.notificationId !== notificationId));
+
+            // Show result toast
+            if (response.data.alreadyHandled) {
+                showToast('info', 'Already Handled', 'This request was already handled in Overseerr.');
+            } else {
+                showToast(
+                    'success',
+                    action === 'approve' ? 'Request Approved' : 'Request Declined',
+                    response.data.message || `Request ${action}d successfully`
+                );
+            }
+
+            return response.data;
+        } catch (error) {
+            logger.error('Failed to process request action', { error: error.message });
+            showToast('error', 'Action Failed', error.response?.data?.error || 'Failed to process request');
+            throw error;
+        }
+    }, [notifications, showToast]);
+
     // Load notifications on mount and when auth changes
     useEffect(() => {
         if (isAuthenticated && user) {
@@ -456,13 +504,37 @@ export const NotificationProvider = ({ children }) => {
                 }
 
                 // Real notification received
-                logger.info('[SSE] Notification received', { id: data.id, title: data.title });
+                logger.info('[SSE] Notification received', { id: data.id, title: data.title, actionable: data.metadata?.actionable });
 
                 // Add to notification list
                 addNotification(data);
 
-                // Show toast for the notification (with iconId if present)
-                showToast(data.type || 'info', data.title, data.message, { iconId: data.iconId });
+                // Build toast options
+                const toastOptions = {
+                    iconId: data.iconId,
+                    duration: 10000, // 10 second default for SSE notifications
+                    onBodyClick: openNotificationCenter
+                };
+
+                // Add action buttons for actionable notifications (Overseerr requests)
+                if (data.metadata?.actionable && data.metadata?.requestId) {
+                    toastOptions.actions = [
+                        {
+                            label: 'Approve',
+                            variant: 'success',
+                            onClick: () => handleRequestAction(data.id, 'approve')
+                        },
+                        {
+                            label: 'Decline',
+                            variant: 'danger',
+                            onClick: () => handleRequestAction(data.id, 'decline')
+                        }
+                    ];
+                    toastOptions.notificationId = data.id; // Track for syncing with notification center
+                }
+
+                // Show toast for the notification
+                showToast(data.type || 'info', data.title, data.message, toastOptions);
             } catch (error) {
                 logger.error('[SSE] Failed to parse message', { error: error.message });
             }
@@ -511,6 +583,12 @@ export const NotificationProvider = ({ children }) => {
         deleteNotification,
         markAllAsRead,
         clearAll,
+        handleRequestAction,
+
+        // Notification center state
+        notificationCenterOpen,
+        setNotificationCenterOpen,
+        openNotificationCenter,
 
         // SSE connection state
         connected,

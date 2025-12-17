@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { motion, useAnimation } from 'framer-motion';
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Check, XCircle } from 'lucide-react';
 
 const ICONS = {
     success: CheckCircle,
@@ -12,7 +12,11 @@ const ICONS = {
 /**
  * ToastNotification Component
  * 
- * Individual toast notification with auto-dismiss, pause-on-hover, and progress bar
+ * Individual toast notification with:
+ * - Auto-dismiss with pause-on-hover
+ * - Swipe-to-dismiss gestures
+ * - Multiple action buttons support (for approve/decline)
+ * - Body click to open notification center
  * 
  * @param {Object} props
  * @param {string} props.id - Unique toast ID
@@ -21,7 +25,9 @@ const ICONS = {
  * @param {string} props.message - Toast message
  * @param {string} props.iconId - Optional custom icon ID (for integration logos)
  * @param {number} props.duration - Auto-dismiss duration in ms (default 10000)
- * @param {Object} props.action - Optional action button { label, onClick }
+ * @param {Object} props.action - Optional single action button { label, onClick }
+ * @param {Array} props.actions - Optional multiple action buttons [{ label, onClick, variant }]
+ * @param {Function} props.onBodyClick - Optional callback when toast body is clicked
  * @param {Function} props.onDismiss - Callback when dismissed
  */
 const ToastNotification = ({
@@ -32,13 +38,17 @@ const ToastNotification = ({
     iconId,
     duration = 10000,
     action,
+    actions,
+    onBodyClick,
     onDismiss
 }) => {
     const [progress, setProgress] = useState(100);
+    const [isDragging, setIsDragging] = useState(false);
     const isPausedRef = useRef(false);
     const elapsedRef = useRef(0);
     const lastTickRef = useRef(Date.now());
     const rafRef = useRef(null);
+    const controls = useAnimation();
 
     const Icon = ICONS[type] || Info;
 
@@ -92,23 +102,61 @@ const ToastNotification = ({
         isPausedRef.current = false;
     };
 
+    // Handle swipe dismiss
+    const handleDragEnd = (event, info) => {
+        setIsDragging(false);
+        const threshold = 100;
+
+        if (Math.abs(info.offset.x) > threshold) {
+            // Animate out in swipe direction
+            controls.start({
+                x: info.offset.x > 0 ? 400 : -400,
+                opacity: 0,
+                transition: { duration: 0.2 }
+            }).then(() => {
+                onDismiss(id);
+            });
+        } else {
+            // Snap back
+            controls.start({ x: 0, opacity: 1 });
+        }
+    };
+
+    // Handle body click (open notification center)
+    const handleBodyClick = (e) => {
+        // Don't trigger if clicking buttons or during drag
+        if (isDragging) return;
+        if (e.target.closest('button')) return;
+
+        if (onBodyClick) {
+            onBodyClick();
+        }
+    };
+
     return (
         <motion.div
             layout
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            animate={controls}
             exit={{ opacity: 0, y: 20, scale: 0.95, transition: { duration: 0.2 } }}
             transition={{
                 type: 'spring',
                 stiffness: 350,
                 damping: 35
             }}
-            className="glass-subtle border border-theme rounded-xl shadow-lg 
-                max-w-sm w-full overflow-hidden"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.7}
+            onDragStart={() => setIsDragging(true)}
+            onDragEnd={handleDragEnd}
+            className={`glass-subtle border border-theme rounded-xl shadow-lg 
+                max-w-sm w-full overflow-hidden ${onBodyClick ? 'cursor-pointer' : ''}`}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            onClick={handleBodyClick}
             role="alert"
             aria-live="assertive"
+            style={{ touchAction: 'pan-y' }}
         >
             <div className="flex items-start gap-3 p-4">
                 {/* Icon - custom icon or type-based icon */}
@@ -144,9 +192,12 @@ const ToastNotification = ({
                     <p className="text-theme-secondary text-sm mt-1">
                         {message}
                     </p>
-                    {action && (
+
+                    {/* Single action button (legacy support) */}
+                    {action && !actions && (
                         <button
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 action.onClick();
                                 onDismiss(id);
                             }}
@@ -156,11 +207,39 @@ const ToastNotification = ({
                             {action.label}
                         </button>
                     )}
+
+                    {/* Multiple action buttons (approve/decline) */}
+                    {actions && actions.length > 0 && (
+                        <div className="flex gap-2 mt-3">
+                            {actions.map((actionItem, index) => (
+                                <button
+                                    key={index}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        actionItem.onClick();
+                                    }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${actionItem.variant === 'success'
+                                            ? 'bg-success/20 text-success hover:bg-success/30'
+                                            : actionItem.variant === 'danger'
+                                                ? 'bg-error/20 text-error hover:bg-error/30'
+                                                : 'bg-accent/20 text-accent hover:bg-accent/30'
+                                        }`}
+                                >
+                                    {actionItem.variant === 'success' && <Check size={14} />}
+                                    {actionItem.variant === 'danger' && <XCircle size={14} />}
+                                    {actionItem.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Close button */}
                 <button
-                    onClick={() => onDismiss(id)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDismiss(id);
+                    }}
                     className="text-theme-tertiary hover:text-theme-primary 
                         transition-colors flex-shrink-0 p-1"
                     aria-label="Dismiss notification"

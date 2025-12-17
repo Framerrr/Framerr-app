@@ -190,6 +190,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/plex', require('./routes/plex'));
 app.use('/api/linked-accounts', require('./routes/linkedAccounts'));
 app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/request-actions', require('./routes/requestActions'));
 
 
 

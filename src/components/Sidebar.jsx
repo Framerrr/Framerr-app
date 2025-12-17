@@ -128,6 +128,21 @@ const Sidebar = () => {
         }
     }, [groups]);
 
+    // Listen for openNotificationCenter event (from toast body clicks)
+    useEffect(() => {
+        const handleOpenNotificationCenter = () => {
+            setShowNotificationCenter(true);
+            if (!isMobile) {
+                setIsExpanded(true);
+            } else {
+                setIsMobileMenuOpen(true);
+            }
+        };
+
+        window.addEventListener('openNotificationCenter', handleOpenNotificationCenter);
+        return () => window.removeEventListener('openNotificationCenter', handleOpenNotificationCenter);
+    }, [isMobile]);
+
     // Note: isMobile is now provided by LayoutContext (single source of truth)
     // The resize handling is done there with debouncing
 
@@ -911,11 +926,23 @@ const Sidebar = () => {
                             transition: 'transform 300ms ease-out',
                         }}
                     >
-                        <div style={{
+                        <div className="relative" style={{
                             transition: 'transform 300ms ease-out',
                             transform: isMobileMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                         }}>
                             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                            {/* Notification badge on hamburger icon */}
+                            {!isMobileMenuOpen && unreadCount > 0 && (
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="absolute -top-1 -right-2 bg-error text-white 
+                                        text-[8px] font-bold rounded-full min-w-[16px] h-[16px] 
+                                        flex items-center justify-center shadow-lg"
+                                >
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </motion.div>
+                            )}
                         </div>
                         <span className="text-[10px] font-medium">{isMobileMenuOpen ? 'Close' : 'Menu'}</span>
                     </button>

@@ -32,8 +32,8 @@ async function createNotification(notificationData) {
 
     try {
         const insert = db.prepare(`
-            INSERT INTO notifications (id, user_id, title, message, type, icon_id, read, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
+            INSERT INTO notifications (id, user_id, title, message, type, icon_id, metadata, read, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
         `);
 
         insert.run(
@@ -43,6 +43,7 @@ async function createNotification(notificationData) {
             notification.message,
             notification.type,
             notification.iconId,
+            notification.metadata ? JSON.stringify(notification.metadata) : null,
             notification.read ? 1 : 0
         );
 
@@ -105,18 +106,28 @@ async function getNotifications(userId, filters = {}) {
         const unreadCount = unreadResult.count;
 
         // Convert SQLite timestamps (unix seconds) to ISO strings
-        const formattedNotifications = notifications.map(n => ({
-            id: n.id,
-            userId: n.user_id,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            iconId: n.icon_id || null, // Custom icon ID
-            read: n.read === 1,
-            metadata: null, // Legacy field, not stored in SQLite
-            createdAt: new Date(n.created_at * 1000).toISOString(),
-            expiresAt: null // Legacy field, not stored in SQLite
-        }));
+        const formattedNotifications = notifications.map(n => {
+            let parsedMetadata = null;
+            if (n.metadata) {
+                try {
+                    parsedMetadata = JSON.parse(n.metadata);
+                } catch (e) {
+                    logger.warn('Failed to parse notification metadata', { id: n.id });
+                }
+            }
+            return {
+                id: n.id,
+                userId: n.user_id,
+                type: n.type,
+                title: n.title,
+                message: n.message,
+                iconId: n.icon_id || null,
+                read: n.read === 1,
+                metadata: parsedMetadata,
+                createdAt: new Date(n.created_at * 1000).toISOString(),
+                expiresAt: null
+            };
+        });
 
         return {
             notifications: formattedNotifications,
@@ -254,6 +265,49 @@ async function clearAll(userId) {
 }
 
 /**
+ * Get a single notification by ID
+ * @param {string} notificationId - Notification ID
+ * @param {string} userId - User ID (for security)
+ * @returns {Promise<object|null>} Notification or null
+ */
+async function getNotificationById(notificationId, userId) {
+    try {
+        const notification = db.prepare(
+            'SELECT * FROM notifications WHERE id = ? AND user_id = ?'
+        ).get(notificationId, userId);
+
+        if (!notification) {
+            return null;
+        }
+
+        let parsedMetadata = null;
+        if (notification.metadata) {
+            try {
+                parsedMetadata = JSON.parse(notification.metadata);
+            } catch (e) {
+                logger.warn('Failed to parse notification metadata', { id: notification.id });
+            }
+        }
+
+        return {
+            id: notification.id,
+            userId: notification.user_id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            iconId: notification.icon_id || null,
+            read: notification.read === 1,
+            metadata: parsedMetadata,
+            createdAt: new Date(notification.created_at * 1000).toISOString(),
+            expiresAt: null
+        };
+    } catch (error) {
+        logger.error('Failed to get notification by ID', { error: error.message, notificationId, userId });
+        throw error;
+    }
+}
+
+/**
  * Clean up expired notifications
  * Run periodically to remove old notifications
  * NOTE: Expiration feature not implemented in SQLite schema yet
@@ -268,10 +322,10 @@ async function cleanupExpiredNotifications() {
 module.exports = {
     createNotification,
     getNotifications,
+    getNotificationById,
     markAsRead,
     deleteNotification,
     markAllAsRead,
     clearAll,
     cleanupExpiredNotifications
 };
-

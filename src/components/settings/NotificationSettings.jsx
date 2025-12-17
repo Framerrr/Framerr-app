@@ -309,7 +309,11 @@ const NotificationSettings = () => {
     // Get visible integrations based on permissions
     const getVisibleIntegrations = () => {
         if (hasAdminAccess) {
-            return webhookIntegrations;
+            // Admin: Only show integrations that are enabled and configured
+            return webhookIntegrations.filter(integration => {
+                const config = integrations[integration.id];
+                return config?.enabled && config?.url && config?.apiKey;
+            });
         }
 
         // For users: Show only integrations that are shared AND have userEvents configured
@@ -754,7 +758,22 @@ const NotificationSettings = () => {
                         <Bell size={32} className="mx-auto mb-3 text-theme-tertiary" />
                         <p className="text-theme-secondary text-sm">
                             {hasAdminAccess
-                                ? 'Configure integrations in Widgets → Service Settings to enable webhook notifications.'
+                                ? (
+                                    <>
+                                        Configure integrations in{' '}
+                                        <a
+                                            href="#settings?tab=integrations"
+                                            className="text-accent hover:underline"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                window.location.hash = '#settings?tab=integrations';
+                                            }}
+                                        >
+                                            Integrations Settings
+                                        </a>
+                                        {' '}to enable webhook notifications.
+                                    </>
+                                )
                                 : 'No integrations with notifications are shared with you.'}
                         </p>
                     </div>

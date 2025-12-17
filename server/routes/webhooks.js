@@ -170,6 +170,15 @@ router.post('/overseerr/:token', async (req, res) => {
         const mediaTitle = payload.subject || payload.media?.title || 'Unknown';
         const { title, message } = buildOverseerrNotification(eventKey, mediaTitle, username, payload);
 
+        // Extract requestId for actionable notifications
+        const requestId = payload.request?.id || null;
+        const metadata = requestId && eventKey === 'requestPending' ? {
+            requestId,
+            service: 'overseerr',
+            actionable: true,
+            mediaTitle
+        } : null;
+
         // Process notification
         const result = await processWebhookNotification({
             service: 'overseerr',
@@ -177,7 +186,8 @@ router.post('/overseerr/:token', async (req, res) => {
             username,
             title,
             message,
-            webhookConfig: validation.webhookConfig
+            webhookConfig: validation.webhookConfig,
+            metadata
         });
 
         res.status(200).json({ status: 'ok', ...result });
@@ -304,7 +314,7 @@ router.post('/radarr/:token', async (req, res) => {
  * - Failed events → Both user and admins
  * - Test events → All admins
  */
-async function processWebhookNotification({ service, eventKey, username, title, message, webhookConfig, adminOnly = false }) {
+async function processWebhookNotification({ service, eventKey, username, title, message, webhookConfig, metadata = null, adminOnly = false }) {
     const notificationsSent = [];
 
     // Get the system icon ID for this service
@@ -328,7 +338,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
         isAdminEvent,
         isUserEvent,
         isBothEvent,
-        adminOnly
+        adminOnly,
+        hasMetadata: !!metadata
     });
 
     // Helper: Get all admins
@@ -351,7 +362,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                     type: 'info',
                     title: titleOverride || title,
                     message: messageOverride || message,
-                    iconId
+                    iconId,
+                    metadata
                 });
                 notificationsSent.push({ userId: admin.id, username: admin.username, role: 'admin' });
                 logger.debug('[Webhook] Admin notification sent', { adminId: admin.id, eventKey });
@@ -370,7 +382,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                 type: 'info',
                 title,
                 message,
-                iconId
+                iconId,
+                metadata
             });
             notificationsSent.push({ userId: user.id, username: user.username, role: 'user' });
             logger.debug('[Webhook] User notification sent', { userId: user.id, eventKey });
@@ -391,7 +404,8 @@ async function processWebhookNotification({ service, eventKey, username, title, 
                 type: 'success',
                 title: `[Test] ${title}`,
                 message: message || 'Test notification received successfully!',
-                iconId
+                iconId,
+                metadata: null // Test notifications are not actionable
             });
             notificationsSent.push({ userId: admin.id, username: admin.username, test: true });
         }
