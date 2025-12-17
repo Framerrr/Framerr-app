@@ -55,14 +55,18 @@ const UserSettings = () => {
 
     // Scroll active tab into view when it changes (on click or page load)
     useEffect(() => {
-        const tabButton = tabRefs.current[activeTab];
-        if (tabButton) {
-            tabButton.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
-            });
-        }
+        // Small delay to ensure DOM is fully rendered (especially on initial navigation)
+        const timer = setTimeout(() => {
+            const tabButton = tabRefs.current[activeTab];
+            if (tabButton) {
+                tabButton.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
     }, [activeTab]);
 
     // Check if user is admin
