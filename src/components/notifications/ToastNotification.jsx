@@ -92,6 +92,15 @@ const ToastNotification = ({
         };
     }, [duration, tick]);
 
+    // Reset timer when createdAt changes (timer reset from push notification click)
+    useEffect(() => {
+        if (createdAt) {
+            elapsedRef.current = 0;
+            lastTickRef.current = Date.now();
+            setProgress(100);
+        }
+    }, [createdAt]);
+
     const handleMouseEnter = () => {
         isPausedRef.current = true;
     };
