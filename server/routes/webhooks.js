@@ -18,7 +18,9 @@ const { getSystemIconIdForService } = require('../services/seedSystemIcons');
 const logger = require('../utils/logger');
 
 // Event type mappings from external services to Framerr event keys
+// Supports both Overseerr (media.pending) and Seerr/Jellyseerr ("New Movie Request") formats
 const OVERSEERR_EVENT_MAP = {
+    // Overseerr format
     'media.pending': 'requestPending',
     'media.approved': 'requestApproved',
     'media.auto_approved': 'requestAutoApproved',
@@ -29,6 +31,35 @@ const OVERSEERR_EVENT_MAP = {
     'issue.comment': 'issueComment',
     'issue.resolved': 'issueResolved',
     'issue.reopened': 'issueReopened',
+
+    // Seerr/Jellyseerr format (human-readable event names)
+    'New Movie Request': 'requestPending',
+    'New Series Request': 'requestPending',
+    'New Request': 'requestPending',
+    'Movie Request Approved': 'requestApproved',
+    'Series Request Approved': 'requestApproved',
+    'Request Approved': 'requestApproved',
+    'Movie Request Automatically Approved': 'requestAutoApproved',
+    'Series Request Automatically Approved': 'requestAutoApproved',
+    'Request Automatically Approved': 'requestAutoApproved',
+    'Movie Now Available': 'requestAvailable',
+    'Series Now Available': 'requestAvailable',
+    'Now Available': 'requestAvailable',
+    'Movie Available': 'requestAvailable',
+    'Series Available': 'requestAvailable',
+    'Movie Request Declined': 'requestDeclined',
+    'Series Request Declined': 'requestDeclined',
+    'Request Declined': 'requestDeclined',
+    'Movie Request Failed': 'requestFailed',
+    'Series Request Failed': 'requestFailed',
+    'Request Failed': 'requestFailed',
+    'New Issue': 'issueReported',
+    'Issue Created': 'issueReported',
+    'Issue Comment': 'issueComment',
+    'New Issue Comment': 'issueComment',
+    'Issue Resolved': 'issueResolved',
+    'Issue Reopened': 'issueReopened',
+
     // Test events
     'test': 'test',
     'Test Notification': 'test',
