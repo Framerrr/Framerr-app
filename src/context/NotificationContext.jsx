@@ -471,56 +471,64 @@ export const NotificationProvider = ({ children }) => {
     // Show toast for a specific notification ID (used when clicking web push notification)
     // Handles deduplication: if toast already exists, resets its timer
     const showToastForNotification = useCallback((notificationId) => {
-        // Check if toast for this notification already exists
-        const existingToast = toasts.find(t => t.notificationId === notificationId);
+        logger.info('[Push Click] showToastForNotification called', { notificationId });
 
-        if (existingToast) {
-            // Toast already visible - reset its timer by recreating it
-            logger.debug('[Push Click] Toast exists, resetting timer', { notificationId });
-            setToasts(prev => prev.map(t =>
-                t.notificationId === notificationId
-                    ? { ...t, createdAt: new Date() } // Reset createdAt to restart timer
-                    : t
-            ));
-            return;
-        }
+        // We need to access current state without closures - use a flag to track if we found existing
+        let foundExisting = false;
 
-        // Toast doesn't exist - find the notification and create toast
-        const notification = notifications.find(n => n.id === notificationId);
+        setToasts(prevToasts => {
+            const existingToast = prevToasts.find(t => t.notificationId === notificationId);
 
-        if (!notification) {
-            logger.warn('[Push Click] Notification not found', { notificationId });
-            return;
-        }
+            if (existingToast) {
+                foundExisting = true;
+                logger.debug('[Push Click] Toast exists, resetting timer', { notificationId });
+                return prevToasts.map(t =>
+                    t.notificationId === notificationId
+                        ? { ...t, createdAt: new Date() }
+                        : t
+                );
+            }
+            return prevToasts;
+        });
 
-        logger.info('[Push Click] Creating toast for notification', { notificationId });
+        // If existing toast was found, we're done
+        if (foundExisting) return;
 
-        // Build toast options
-        const toastOptions = {
-            iconId: notification.iconId,
-            duration: 10000,
-            onBodyClick: openNotificationCenter,
-            notificationId: notification.id
-        };
+        // Need to check notifications - use functional update to access current state
+        setNotifications(prevNotifications => {
+            const notification = prevNotifications.find(n => n.id === notificationId);
 
-        // Add action buttons for actionable notifications
-        if (notification.metadata?.actionable && notification.metadata?.requestId) {
-            toastOptions.actions = [
-                {
-                    label: 'Approve',
-                    variant: 'success',
-                    onClick: () => handleRequestAction(notification.id, 'approve')
-                },
-                {
-                    label: 'Decline',
-                    variant: 'danger',
-                    onClick: () => handleRequestAction(notification.id, 'decline')
-                }
-            ];
-        }
+            if (!notification) {
+                logger.warn('[Push Click] Notification not found', { notificationId, totalNotifications: prevNotifications.length });
+                return prevNotifications;
+            }
 
-        showToast(notification.type || 'info', notification.title, notification.message, toastOptions);
-    }, [toasts, notifications, showToast, openNotificationCenter, handleRequestAction]);
+            logger.info('[Push Click] Creating toast for notification', { notificationId, title: notification.title });
+
+            // Build the toast directly (not through showToast to avoid closure issues)
+            const id = `toast-${Date.now()}-${Math.random()}`;
+            const newToast = {
+                id,
+                type: notification.type || 'info',
+                title: notification.title,
+                message: notification.message,
+                iconId: notification.iconId || null,
+                duration: 10000,
+                action: null,
+                actions: (notification.metadata?.actionable && notification.metadata?.requestId) ? [
+                    { label: 'Approve', variant: 'success', onClick: () => handleRequestAction(notification.id, 'approve') },
+                    { label: 'Decline', variant: 'danger', onClick: () => handleRequestAction(notification.id, 'decline') }
+                ] : null,
+                onBodyClick: openNotificationCenter,
+                notificationId: notification.id,
+                createdAt: new Date()
+            };
+
+            setToasts(prevToasts => [newToast, ...prevToasts].slice(0, 5));
+
+            return prevNotifications; // Don't modify notifications
+        });
+    }, [handleRequestAction, openNotificationCenter]);
 
     // Listen for service worker messages (when push notification is clicked while app is open)
     useEffect(() => {
