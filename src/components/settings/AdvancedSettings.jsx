@@ -21,7 +21,7 @@ const AdvancedSettings = () => {
             tabButton.scrollIntoView({
                 behavior: 'smooth',
                 block: 'nearest',
-                inline: 'nearest'
+                inline: 'center'
             });
         }
     }, [activeSubTab]);

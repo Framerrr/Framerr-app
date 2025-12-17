@@ -60,7 +60,7 @@ const UserSettings = () => {
             tabButton.scrollIntoView({
                 behavior: 'smooth',
                 block: 'nearest',
-                inline: 'nearest'
+                inline: 'center'
             });
         }
     }, [activeTab]);

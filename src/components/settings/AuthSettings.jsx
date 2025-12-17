@@ -52,9 +52,24 @@ const AuthSettings = () => {
     const [plexHasChanges, setPlexHasChanges] = useState(false);
     const plexSaveRef = useRef(null);
 
+    // Refs for auto-scrolling sub-tab buttons into view
+    const subTabRefs = useRef({});
+
     useEffect(() => {
         fetchSettings();
     }, []);
+
+    // Scroll active sub-tab into view when it changes
+    useEffect(() => {
+        const tabButton = subTabRefs.current[activeTab];
+        if (tabButton) {
+            tabButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [activeTab]);
 
     useEffect(() => {
         // Auto-populate redirect URI if empty
@@ -270,6 +285,7 @@ const AuthSettings = () => {
             {/* Subtab Navigation */}
             <div className="flex gap-2 overflow-x-auto scroll-contain-x border-b border-theme relative">
                 <button
+                    ref={(el) => { subTabRefs.current['proxy'] = el; }}
                     onClick={() => setActiveTab('proxy')}
                     className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                 >
@@ -286,6 +302,7 @@ const AuthSettings = () => {
                     )}
                 </button>
                 <button
+                    ref={(el) => { subTabRefs.current['plex'] = el; }}
                     onClick={() => setActiveTab('plex')}
                     className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                 >
@@ -302,6 +319,7 @@ const AuthSettings = () => {
                     )}
                 </button>
                 <button
+                    ref={(el) => { subTabRefs.current['iframe'] = el; }}
                     onClick={() => setActiveTab('iframe')}
                     className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                 >
