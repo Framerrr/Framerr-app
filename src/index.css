@@ -18,6 +18,12 @@ body {
 
     /* Prevent horizontal page overflow */
     overflow-x: hidden;
+
+    /* iOS Safe Area - ensure content doesn't go under notch/home indicator */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 }
 
 /* Touch action - disable pinch-zoom while allowing pan/scroll */
