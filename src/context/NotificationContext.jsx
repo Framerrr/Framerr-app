@@ -303,6 +303,7 @@ export const NotificationProvider = ({ children }) => {
             action: options.action, // { label, onClick } - single action (legacy)
             actions: options.actions || null, // Array of actions for approve/decline
             onBodyClick: options.onBodyClick || null, // Callback for body click
+            notificationId: options.notificationId || null, // Link to notification for dismissal sync
             createdAt: new Date()
         };
 
@@ -435,14 +436,17 @@ export const NotificationProvider = ({ children }) => {
                 { withCredentials: true }
             );
 
-            // Remove notification from state
-            const notification = notifications.find(n => n.id === notificationId);
-            setNotifications(prev => prev.filter(n => n.id !== notificationId));
-            if (notification && !notification.read) {
-                setUnreadCount(prev => Math.max(0, prev - 1));
-            }
+            // Remove notification from state using functional update
+            setNotifications(prev => {
+                const notification = prev.find(n => n.id === notificationId);
+                // Update unread count if notification was unread
+                if (notification && !notification.read) {
+                    setUnreadCount(count => Math.max(0, count - 1));
+                }
+                return prev.filter(n => n.id !== notificationId);
+            });
 
-            // Also dismiss any toast with this notification
+            // Dismiss any toast for this notification (match by notificationId property)
             setToasts(prev => prev.filter(t => t.notificationId !== notificationId));
 
             // Show result toast
@@ -462,7 +466,7 @@ export const NotificationProvider = ({ children }) => {
             showToast('error', 'Action Failed', error.response?.data?.error || 'Failed to process request');
             throw error;
         }
-    }, [notifications, showToast]);
+    }, [showToast]);
 
     // Load notifications on mount and when auth changes
     useEffect(() => {
