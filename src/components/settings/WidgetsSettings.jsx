@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { LayoutGrid, Cpu, Activity, Link2, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +21,21 @@ const WidgetsSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('gallery');
     const { user } = useAuth();
     const hasAdminAccess = isAdmin(user);
+
+    // Refs for auto-scrolling sub-tab buttons into view
+    const subTabRefs = useRef({});
+
+    // Scroll active sub-tab into view when it changes
+    useEffect(() => {
+        const tabButton = subTabRefs.current[activeSubTab];
+        if (tabButton) {
+            tabButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        }
+    }, [activeSubTab]);
 
     // Build sub-tabs based on permissions
     const subTabs = [
@@ -62,6 +77,7 @@ const WidgetsSettings = () => {
                         return (
                             <button
                                 key={tab.id}
+                                ref={(el) => { subTabRefs.current[tab.id] = el; }}
                                 onClick={() => setActiveSubTab(tab.id)}
                                 className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
                             >

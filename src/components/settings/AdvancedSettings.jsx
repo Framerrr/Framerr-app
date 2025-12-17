@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Bug, Wrench, Beaker, Code } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -10,6 +10,21 @@ import DeveloperSettings from './advanced/DeveloperSettings';
 
 const AdvancedSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('debug');
+
+    // Refs for auto-scrolling sub-tab buttons into view
+    const subTabRefs = useRef({});
+
+    // Scroll active sub-tab into view when it changes
+    useEffect(() => {
+        const tabButton = subTabRefs.current[activeSubTab];
+        if (tabButton) {
+            tabButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        }
+    }, [activeSubTab]);
 
     const subTabs = [
         { id: 'debug', label: 'Debug', icon: Bug },
@@ -45,6 +60,7 @@ const AdvancedSettings = () => {
                         return (
                             <button
                                 key={tab.id}
+                                ref={(el) => { subTabRefs.current[tab.id] = el; }}
                                 onClick={() => setActiveSubTab(tab.id)}
                                 className="relative px-4 py-2 font-medium transition-colors whitespace-nowrap text-theme-secondary hover:text-theme-primary"
                             >
