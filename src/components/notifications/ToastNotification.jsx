@@ -151,8 +151,8 @@ const ToastNotification = ({
                 damping: 35
             }}
             drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.7}
+            dragElastic={0.8}
+            dragSnapToOrigin={false}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={handleDragEnd}
             className={`glass-subtle border border-theme rounded-xl shadow-lg 

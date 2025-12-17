@@ -179,6 +179,13 @@ router.post('/overseerr/:token', async (req, res) => {
             mediaTitle
         } : null;
 
+        logger.info('[Webhook] Metadata check', {
+            requestId,
+            eventKey,
+            hasMetadata: !!metadata,
+            isRequestPending: eventKey === 'requestPending'
+        });
+
         // Process notification
         const result = await processWebhookNotification({
             service: 'overseerr',
