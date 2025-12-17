@@ -5,7 +5,7 @@
  */
 
 // VERSION - Update this to force new SW installation
-const SW_VERSION = '1.1.0';
+const SW_VERSION = '1.2.0';
 
 // Cache name for app shell resources
 const CACHE_NAME = 'framerr-cache-v2';
@@ -101,16 +101,21 @@ self.addEventListener('push', (event) => {
 
 // Notification click event - navigate to app and trigger toast
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] Notification clicked');
+    console.log('[SW v' + SW_VERSION + '] Notification clicked');
+    console.log('[SW] Notification data:', JSON.stringify(event.notification.data));
 
     event.notification.close();
 
     const notificationId = event.notification.data?.notificationId;
+    console.log('[SW] Extracted notificationId:', notificationId);
+
     const baseUrl = '/';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clientList) => {
+                console.log('[SW] Found clients:', clientList.length);
+
                 // Find an existing Framerr tab
                 const existingClient = clientList.find(client =>
                     client.url.includes(self.location.origin)
@@ -118,7 +123,7 @@ self.addEventListener('notificationclick', (event) => {
 
                 if (existingClient) {
                     // App is already open - send message to show toast
-                    console.log('[SW] Posting message to existing client');
+                    console.log('[SW] Posting NOTIFICATION_CLICK message to client:', existingClient.url);
                     existingClient.postMessage({
                         type: 'NOTIFICATION_CLICK',
                         notificationId: notificationId
