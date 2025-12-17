@@ -559,7 +559,7 @@ export const NotificationProvider = ({ children }) => {
             setEventSource(null);
             setConnected(false);
         };
-    }, [isAuthenticated, user, addNotification, showToast]);
+    }, [isAuthenticated, user, addNotification, showToast, handleRequestAction, openNotificationCenter]);
 
     const value = {
         // Toast state
