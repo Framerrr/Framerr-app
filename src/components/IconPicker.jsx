@@ -282,7 +282,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                     maxWidth: '24rem',
                                     zIndex: 60
                                 }}
-                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[50vh] overflow-y-auto"
+                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[60vh] flex flex-col"
                             >
                                 {/* Header */}
                                 <div className="flex items-center justify-between p-4 border-b border-theme">
@@ -341,7 +341,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-4 max-h-96 overflow-y-auto">
+                                <div className="p-4 flex-1 overflow-y-auto">
                                     <AnimatePresence mode="wait">
                                         {activeTab === 'icons' ? (
                                             <motion.div
