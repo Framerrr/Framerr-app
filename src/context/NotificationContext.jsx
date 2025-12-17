@@ -290,6 +290,7 @@ export const NotificationProvider = ({ children }) => {
             type, // 'success' | 'error' | 'warning' | 'info'
             title,
             message,
+            iconId: options.iconId || null, // Custom icon ID for integration logos
             duration: options.duration || 5000, // Default 5 seconds
             action: options.action, // { label, onClick }
             createdAt: new Date()
@@ -460,8 +461,8 @@ export const NotificationProvider = ({ children }) => {
                 // Add to notification list
                 addNotification(data);
 
-                // Show toast for the notification
-                showToast(data.type || 'info', data.title, data.message);
+                // Show toast for the notification (with iconId if present)
+                showToast(data.type || 'info', data.title, data.message, { iconId: data.iconId });
             } catch (error) {
                 logger.error('[SSE] Failed to parse message', { error: error.message });
             }
