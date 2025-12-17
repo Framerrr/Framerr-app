@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-16 18:15 EST  
+**Last Updated:** 2025-12-16 22:42 EST  
 **Branch:** `feature/notification-integration`
 
 ---
@@ -20,64 +20,34 @@
 
 ## Current State
 
-**Status:** 🔄 In Progress - Mobile Zoom/Scroll Investigation
+**Status:** ✅ iOS Scroll/Zoom Fixed — Ready for remaining backlog items
 
 **This Session Summary:**
 
-### Dynamic Manifest & Favicon ✅
-- Created `/api/config/manifest.json` endpoint for dynamic PWA name/icons
-- Added `/favicon` route with fallback to default icons
-- Updated `sw.js` to use `/favicon/` for notification icons
-- Updated `index.html` to use dynamic manifest
-- Deleted static `manifest.json`
+### iOS Mobile Scroll/Zoom Fix ✅
 
-### Mobile Zoom/Scroll Bug Investigation 🔬
+**Problem:** iOS Safari had scroll issues (content not reaching edges) and zoom wasn't properly prevented.
 
-**Problem identified:** iOS has two conflicting behaviors:
-1. **Pinch-to-zoom** — needs to be disabled for app-like experience
-2. **Double scroll** — content needs unintended extra scroll at top/bottom
+**Root Cause:** `h-screen` uses `100vh` which on iOS equals the MAXIMUM viewport (toolbar hidden), not the current visible area.
 
-**Key Test Findings:**
+**Solution Applied:**
+1. **`100dvh`** instead of `h-screen` in `App.jsx` — dynamic viewport height that adapts to visible area
+2. **Viewport meta** with `maximum-scale=1.0, user-scalable=no, viewport-fit=cover`
+3. **Safe-area-inset padding** for notch/home indicator
+4. **`min-h-0 h-full`** on main for Safari flexbox fix
+5. **`overscroll-behavior: none`** to prevent iOS bounce
 
-| CSS touch-action Setting | Zoom Prevented? | Double Scroll? |
-|--------------------------|-----------------|----------------|
-| `html, body, * { touch-action: pan-x pan-y !important }` | ✅ YES | ❌ BUG EXISTS |
-| `html, body { touch-action: pan-x pan-y !important }` | ❌ NO | ✅ NO BUG |
-
-**Root Cause:** Applying `touch-action: pan-x pan-y` to ALL elements (`*`) prevents zoom but causes the double-scroll bug. Applying only to `html, body` fixes double-scroll but allows zoom.
-
-**Other Tests Performed (neither were the cause):**
-- `overscroll-behavior: none` — NOT the cause
-- `viewport-fit=cover` — NOT the cause
-
-### Current State of Files
-
-**index.html:** Has standard viewport (no `viewport-fit=cover`)
-**index.css:** Has `touch-action: pan-x pan-y` on `html, body` only (no `*`)
-**GridLayout.css:** No overscroll-behavior added
-**UserSettings.jsx:** No test styles
-
-### Build & Commits
-- All changes committed to `feature/notification-integration`
-- Build passes
+**All tests pass:**
+- ✅ Zoom prevented
+- ✅ Scroll bleeding between pages fixed
+- ✅ Scroll reaches full top/bottom
+- ✅ Build passes
 
 ---
 
-## Next Step
+## Remaining TODO for v1.1.11
 
-**Solve zoom + scroll trade-off:** Need to find a CSS or JavaScript approach that:
-1. Prevents pinch-zoom on iOS
-2. Does NOT cause double-scroll bug
-3. Options to investigate:
-   - JavaScript `gesturechange` event prevention
-   - More targeted touch-action selectors (e.g., on specific containers)
-   - Alternative CSS approaches
-
----
-
-## TODO (Future Sessions)
-
-1. **Solve zoom/scroll trade-off** ← PRIORITY
+1. ~~Solve zoom/scroll trade-off~~ ✅ DONE
 2. Settings bottom gap consistency
 3. Settings tab auto-scroll
 4. Revert to selective routing (SSE vs Web Push)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +25,9 @@ const UserSettings = () => {
     const { user } = useAuth();
     const { isMobile } = useLayout();
 
+    // Refs for auto-scrolling tab buttons into view
+    const tabRefs = useRef({});
+
     // Parse query params from hash manually 
     // (useSearchParams doesn't work with hash-based routing!)
     const getHashParams = () => {
@@ -49,6 +52,18 @@ const UserSettings = () => {
         window.addEventListener('hashchange', updateTabFromHash);
         return () => window.removeEventListener('hashchange', updateTabFromHash);
     }, []);
+
+    // Scroll active tab into view when it changes (on click or page load)
+    useEffect(() => {
+        const tabButton = tabRefs.current[activeTab];
+        if (tabButton) {
+            tabButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        }
+    }, [activeTab]);
 
     // Check if user is admin
     const hasAdminAccess = isAdmin(user);
@@ -111,6 +126,7 @@ const UserSettings = () => {
                     return (
                         <button
                             key={tab.id}
+                            ref={(el) => { tabRefs.current[tab.id] = el; }}
                             onClick={() => {
                                 setActiveTab(tab.id);
                                 // Preserve hash-based navigation with query params
