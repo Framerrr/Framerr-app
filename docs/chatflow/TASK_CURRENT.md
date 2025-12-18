@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-17 22:58 EST  
+**Last Updated:** 2025-12-17 23:03 EST  
 **Branch:** `develop`
 
 ---
@@ -20,7 +20,7 @@
 
 ## Current State
 
-**Status:** 🔄 In Progress — Version bump 1.1.11 → 1.2.0
+**Status:** ✅ Complete — v1.2.0 Released
 
 **This Session Summary:**
 
@@ -28,13 +28,15 @@
 - Updated `package.json` and `server/package.json` to 1.2.0
 - Renamed `docs/versions/v1.1.11.md` → `v1.2.0.md`
 - Added 1.2.0 section to `CHANGELOG.md`
-- Git tag and Docker retag pending
+- Deleted git tag v1.1.11, created and pushed v1.2.0
+- Docker image retagged: `pickels23/framerr:1.2.0` pushed
 
 ---
 
 ## Next Step
 
-- Complete git tag operations (delete v1.1.11, create v1.2.0)
-- Retag Docker images
+**Start v1.2.1 development** — No pending work identified.
 
 ---
+
+**=== SESSION END ===**
