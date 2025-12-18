@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Save, GripVertical, Loader, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, GripVertical, Loader } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,10 +24,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import logger from '../../utils/logger';
-import { useNotifications } from '../../context/NotificationContext';
 
 // Sortable Tab Item Component
-const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent, confirmDeleteId, setConfirmDeleteId }) => {
+const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent }) => {
     const {
         attributes,
         listeners,
@@ -99,37 +98,16 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent, confirmDelet
                     <Edit size={14} className="mr-1" />
                     <span className="hidden sm:inline">Edit</span>
                 </Button>
-                {confirmDeleteId !== tab.id ? (
-                    <Button
-                        onClick={() => setConfirmDeleteId(tab.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-error hover:bg-error/10"
-                        title="Delete tab"
-                    >
-                        <Trash2 size={14} className="mr-1" />
-                        <span className="hidden sm:inline">Delete</span>
-                    </Button>
-                ) : (
-                    <div className="flex gap-1">
-                        <Button
-                            onClick={() => onDelete(tab.id, tab.name)}
-                            variant="danger"
-                            size="sm"
-                            title="Confirm delete"
-                        >
-                            <Check size={14} />
-                        </Button>
-                        <Button
-                            onClick={() => setConfirmDeleteId(null)}
-                            variant="secondary"
-                            size="sm"
-                            title="Cancel"
-                        >
-                            <X size={14} />
-                        </Button>
-                    </div>
-                )}
+                <Button
+                    onClick={() => onDelete(tab.id, tab.name)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-error hover:bg-error/10"
+                    title="Delete tab"
+                >
+                    <Trash2 size={14} className="mr-1" />
+                    <span className="hidden sm:inline">Delete</span>
+                </Button>
             </div>
         </div>
     );
@@ -142,8 +120,6 @@ const UserTabsSettings = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('create');
     const [selectedTab, setSelectedTab] = useState(null);
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const { error: showError, success: showSuccess } = useNotifications();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -250,21 +226,21 @@ const UserTabsSettings = () => {
                 fetchTabs();
                 // Notify sidebar to update
                 window.dispatchEvent(new Event('tabsUpdated'));
-                showSuccess(
-                    modalMode === 'create' ? 'Tab Created' : 'Tab Updated',
-                    `Tab "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
-                );
             } else {
                 const error = await response.json();
-                showError('Save Failed', error.error || 'Failed to save tab');
+                alert(error.error || 'Failed to save tab');
             }
         } catch (error) {
             logger.error('Error saving tab:', error);
-            showError('Save Failed', 'Failed to save tab');
+            alert('Failed to save tab');
         }
     };
 
     const handleDelete = async (tabId, tabName) => {
+        if (!confirm(`Are you sure you want to delete tab "${tabName}"?`)) {
+            return;
+        }
+
         try {
             const response = await fetch(`/api/tabs/${tabId}`, {
                 method: 'DELETE',
@@ -272,20 +248,16 @@ const UserTabsSettings = () => {
             });
 
             if (response.ok) {
-                setConfirmDeleteId(null);
                 fetchTabs();
                 // Notify sidebar to update
                 window.dispatchEvent(new Event('tabsUpdated'));
-                showSuccess('Tab Deleted', `Tab "${tabName}" has been deleted`);
             } else {
                 const error = await response.json();
-                showError('Delete Failed', error.error || 'Failed to delete tab');
-                setConfirmDeleteId(null);
+                alert(error.error || 'Failed to delete tab');
             }
         } catch (error) {
             logger.error('Error deleting tab:', error);
-            showError('Delete Failed', 'Failed to delete tab');
-            setConfirmDeleteId(null);
+            alert('Failed to delete tab');
         }
     };
 
@@ -384,8 +356,6 @@ const UserTabsSettings = () => {
                                     onEdit={handleEdit}
                                     onDelete={handleDelete}
                                     getIconComponent={getIconComponent}
-                                    confirmDeleteId={confirmDeleteId}
-                                    setConfirmDeleteId={setConfirmDeleteId}
                                 />
                             ))}
                         </div>

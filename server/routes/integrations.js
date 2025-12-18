@@ -2,96 +2,20 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { getSystemConfig, updateSystemConfig } = require('../db/systemConfig');
-const { getUserById, listUsers } = require('../db/users');
 const logger = require('../utils/logger');
 const axios = require('axios');
 const { translateHostUrl } = require('../utils/urlHelper');
 const { httpsAgent } = require('../utils/httpsAgent');
 
-// NOTE: Different auth levels for different endpoints
-// /shared - requires auth only (all users)
-// All other routes - require auth + admin
-
-/**
- * GET /api/integrations/shared
- * Get integrations shared with the current user
- * Returns integration name, config (url/apiKey), and sharedBy info
- */
-router.get('/shared', requireAuth, async (req, res) => {
-    try {
-        const config = await getSystemConfig();
-        const integrations = config.integrations || {};
-        const userId = req.user.id;
-        const userGroup = req.user.group;
-
-        // Build list of integrations shared with this user
-        const sharedIntegrations = [];
-
-        for (const [serviceName, serviceConfig] of Object.entries(integrations)) {
-            // Skip if not enabled
-            if (!serviceConfig.enabled) continue;
-
-            // Check sharing settings
-            const sharing = serviceConfig.sharing;
-            if (!sharing || !sharing.enabled) continue;
-
-            let hasAccess = false;
-
-            switch (sharing.mode) {
-                case 'everyone':
-                    hasAccess = true;
-                    break;
-                case 'groups':
-                    hasAccess = sharing.groups?.includes(userGroup);
-                    break;
-                case 'users':
-                    hasAccess = sharing.users?.includes(userId);
-                    break;
-            }
-
-            if (hasAccess) {
-                // Get sharedBy user's display name
-                let sharedByName = 'Admin';
-                if (sharing.sharedBy) {
-                    try {
-                        const sharedByUser = await getUserById(sharing.sharedBy);
-                        if (sharedByUser) {
-                            sharedByName = sharedByUser.displayName || sharedByUser.username;
-                        }
-                    } catch (e) {
-                        // Fallback to 'Admin' if user lookup fails
-                    }
-                }
-
-                // Include ALL config needed for widget to function
-                // Spread the full serviceConfig to include all fields each widget needs:
-                // - Sonarr/Radarr/Overseerr: url, apiKey
-                // - Plex: url, token  
-                // - qBittorrent: url, username, password
-                // - SystemStatus: url, backend, glances, custom, token
-                const { sharing: _omit, ...configWithoutSharing } = serviceConfig;
-                sharedIntegrations.push({
-                    name: serviceName,
-                    ...configWithoutSharing,  // Include all config fields
-                    enabled: true,  // Force enabled since it passed access check
-                    sharedBy: sharedByName,
-                    sharedAt: sharing.sharedAt || null
-                });
-            }
-        }
-
-        res.json({ integrations: sharedIntegrations });
-    } catch (error) {
-        logger.error('Error fetching shared integrations:', error);
-        res.status(500).json({ error: 'Failed to fetch shared integrations' });
-    }
-});
+// All integration routes require authentication and admin role
+router.use(requireAuth);
+router.use(requireAdmin);
 
 /**
  * GET /api/integrations
- * Get all integration configurations (ADMIN ONLY)
+ * Get all integration configurations
  */
-router.get('/', requireAuth, requireAdmin, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const config = await getSystemConfig();
         res.json({ integrations: config.integrations || {} });
@@ -103,9 +27,9 @@ router.get('/', requireAuth, requireAdmin, async (req, res) => {
 
 /**
  * PUT /api/integrations
- * Update integration configurations (ADMIN ONLY)
+ * Update integration configurations
  */
-router.put('/', requireAuth, requireAdmin, async (req, res) => {
+router.put('/', async (req, res) => {
     try {
         const { integrations } = req.body;
 
@@ -129,9 +53,9 @@ router.put('/', requireAuth, requireAdmin, async (req, res) => {
 
 /**
  * POST /api/integrations/test
- * Test integration connection (ADMIN ONLY)
+ * Test integration connection
  */
-router.post('/test', requireAuth, requireAdmin, async (req, res) => {
+router.post('/test', async (req, res) => {
     try {
         const { service, config } = req.body;
 

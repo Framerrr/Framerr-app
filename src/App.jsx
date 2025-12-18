@@ -7,11 +7,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SystemConfigProvider } from './context/SystemConfigContext';
 import { AppDataProvider } from './context/AppDataContext';
 import { NotificationProvider } from './context/NotificationContext';
-<<<<<<< HEAD
-=======
-import { LayoutProvider, useLayout } from './context/LayoutContext';
-import { LAYOUT } from './constants/layout';
->>>>>>> develop
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import FaviconInjector from './components/FaviconInjector';
@@ -54,45 +49,6 @@ const CustomColorLoader = ({ children }) => {
     return children;
 };
 
-// Main layout component that uses LayoutContext for responsive behavior
-// NOTE: html/body is position:fixed, so this wrapper fills the viewport
-const MainLayout = () => {
-    const { isMobile } = useLayout();
-
-    return (
-        // Outer wrapper: fills fixed viewport, applies safe-area padding
-        <div
-            className="flex flex-col w-full h-full"
-            style={{
-                backgroundColor: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                // Safe-area padding at wrapper level (not body)
-                paddingTop: 'env(safe-area-inset-top)',
-                paddingLeft: 'env(safe-area-inset-left)',
-                paddingRight: 'env(safe-area-inset-right)',
-            }}
-        >
-            <ProtectedRoute>
-                {/* Main flex container - sidebar + content */}
-                <div className="flex w-full flex-1 min-h-0">
-                    <Sidebar />
-                    <main
-                        className="flex-1 min-w-0 min-h-0 h-full"
-                        style={{
-                            paddingLeft: isMobile ? 0 : `${LAYOUT.SIDEBAR_WIDTH}px`,
-                            backgroundColor: 'var(--bg-primary)'
-                        }}
-                    >
-                        <Routes>
-                            <Route path="/*" element={<MainContent />} />
-                        </Routes>
-                    </main>
-                </div>
-            </ProtectedRoute>
-        </div>
-    );
-};
-
 const App = () => {
     return (
         <AuthProvider>
@@ -103,7 +59,6 @@ const App = () => {
                     <SystemConfigProvider>
                         <AppDataProvider>
                             <NotificationProvider>
-<<<<<<< HEAD
                                 <ToastContainer />
                                 <Routes>
                                     <Route path="/login" element={<Login />} />
@@ -126,19 +81,6 @@ const App = () => {
                                         </div>
                                     } />
                                 </Routes>
-=======
-                                <LayoutProvider>
-                                    <ToastContainer />
-                                    <Routes>
-                                        <Route path="/login" element={<Login />} />
-                                        <Route path="/setup" element={<Setup />} />
-                                        <Route path="/animation-test" element={<AnimationTest />} />
-
-                                        {/* Protected Routes with Layout-aware Wrapper */}
-                                        <Route path="/*" element={<MainLayout />} />
-                                    </Routes>
-                                </LayoutProvider>
->>>>>>> develop
                             </NotificationProvider>
                         </AppDataProvider>
                     </SystemConfigProvider>

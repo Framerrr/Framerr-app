@@ -46,35 +46,17 @@ router.put('/system', requireAdmin, async (req, res) => {
 
 /**
  * GET /api/config/app-name
- * Get application branding (public, no auth required)
- * This endpoint is safe to be public as it only exposes the display name and icon
+ * Get application name (public, no auth required)
+ * This endpoint is safe to be public as it only exposes the display name
  */
 router.get('/app-name', async (req, res) => {
     try {
         const config = await getSystemConfig();
         res.json({
-            name: config.server?.name || 'Framerr',
-            icon: config.server?.icon || 'Server'
+            name: config.server?.name || 'Homelab Dashboard'
         });
     } catch (error) {
         logger.error('Failed to get app name', { error: error.message });
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-/**
- * GET /api/config/web-push-status
- * Get Web Push enabled status (public, requires auth)
- * Users need to know if Web Push is globally enabled to show/hide the section
- */
-router.get('/web-push-status', requireAuth, async (req, res) => {
-    try {
-        const config = await getSystemConfig();
-        res.json({
-            enabled: config.webPushEnabled !== false // Default true if not set
-        });
-    } catch (error) {
-        logger.error('Failed to get web push status', { error: error.message });
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -370,61 +352,6 @@ router.delete('/favicon', requireAdmin, async (req, res) => {
     } catch (error) {
         logger.error('Failed to reset favicon', { error: error.message });
         res.status(500).json({ error: 'Failed to reset favicon' });
-    }
-});
-
-/**
- * GET /api/config/manifest.json
- * Dynamic PWA manifest - uses app name from config and /favicon/ paths
- * Public endpoint (no auth) since browsers need to access it
- */
-router.get('/manifest.json', async (req, res) => {
-    try {
-        const systemConfig = await getSystemConfig();
-        const appName = systemConfig.server?.name || 'Framerr';
-
-        const manifest = {
-            name: appName,
-            short_name: appName,
-            description: 'Your Personal Homelab Dashboard',
-            start_url: '/',
-            display: 'standalone',
-            background_color: '#0a0a0b',
-            theme_color: '#6366f1',
-            orientation: 'any',
-            icons: [
-                {
-                    src: '/favicon/web-app-manifest-192x192.png',
-                    sizes: '192x192',
-                    type: 'image/png',
-                    purpose: 'any'
-                },
-                {
-                    src: '/favicon/web-app-manifest-192x192.png',
-                    sizes: '192x192',
-                    type: 'image/png',
-                    purpose: 'maskable'
-                },
-                {
-                    src: '/favicon/web-app-manifest-512x512.png',
-                    sizes: '512x512',
-                    type: 'image/png',
-                    purpose: 'any'
-                },
-                {
-                    src: '/favicon/web-app-manifest-512x512.png',
-                    sizes: '512x512',
-                    type: 'image/png',
-                    purpose: 'maskable'
-                }
-            ]
-        };
-
-        res.setHeader('Content-Type', 'application/manifest+json');
-        res.json(manifest);
-    } catch (error) {
-        logger.error('Failed to generate manifest', { error: error.message });
-        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

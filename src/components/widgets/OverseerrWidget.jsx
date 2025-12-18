@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Star, Film, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext';
-<<<<<<< HEAD
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const OverseerrWidget = ({ config }) => {
@@ -13,39 +12,6 @@ const OverseerrWidget = ({ config }) => {
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
     const { enabled = false, url = '', apiKey = '' } = config || {};
-=======
-import { useAuth } from '../../context/AuthContext';
-import { isAdmin } from '../../utils/permissions';
-import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
-import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
-import IntegrationConnectionError from '../common/IntegrationConnectionError';
-import LoadingSpinner from '../common/LoadingSpinner';
-
-const OverseerrWidget = ({ config }) => {
-    // Get auth state to determine admin status
-    const { user } = useAuth();
-    const userIsAdmin = isAdmin(user);
-
-    // Get integrations state from context - ONLY source of truth for access
-    const { integrations, integrationsLoaded, integrationsError } = useAppData();
-
-    // Wait for integrations to load before checking status
-    if (!integrationsLoaded) {
-        return <LoadingSpinner size="sm" />;
-    }
-
-    // Show connection error if integrations failed to load
-    if (integrationsError) {
-        return <IntegrationConnectionError serviceName="Overseerr" />;
-    }
-
-    // ONLY use context integration - no fallback to config (ensures actual revocation)
-    const integration = integrations?.overseerr || { enabled: false };
-
-    // Check if integration is enabled (from context only)
-    const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
-
->>>>>>> develop
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -91,18 +57,9 @@ const OverseerrWidget = ({ config }) => {
         }
     };
 
-<<<<<<< HEAD
     // Show integration disabled message if not enabled
     if (!isIntegrationEnabled) {
         return <IntegrationDisabledMessage serviceName="Overseerr" />;
-=======
-    // Show appropriate message based on user role
-    if (!isIntegrationEnabled) {
-        // Admins see "disabled" (can fix it), non-admins see "no access"
-        return userIsAdmin
-            ? <IntegrationDisabledMessage serviceName="Overseerr" />
-            : <IntegrationNoAccessMessage serviceName="Overseerr" />;
->>>>>>> develop
     }
 
     if (loading && !data) return <div className="text-theme-secondary">Loading Requests...</div>;
@@ -161,7 +118,6 @@ const OverseerrWidget = ({ config }) => {
                     flex: 1,
                     overflowX: 'auto',
                     overflowY: 'hidden',
-                    overscrollBehaviorX: 'contain',
                     scrollBehavior: 'smooth',
                     scrollbarWidth: 'none', // Firefox
                     msOverflowStyle: 'none', // IE/Edge

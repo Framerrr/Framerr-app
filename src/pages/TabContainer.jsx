@@ -4,12 +4,10 @@ import { RefreshCw, ExternalLink, AlertCircle, Lock, X } from 'lucide-react';
 import logger from '../utils/logger';
 import { useSystemConfig } from '../context/SystemConfigContext';
 import { detectAuthNeed, isAuthDetectionEnabled, getSensitivity, getUserAuthPatterns } from '../utils/authDetection';
-import { useNotifications } from '../context/NotificationContext';
 
 const TabContainer = () => {
     const navigate = useNavigate();
     const { systemConfig } = useSystemConfig();
-    const { warning: showWarning } = useNotifications();
     const [tabs, setTabs] = useState([]);
     const [loadedTabs, setLoadedTabs] = useState(new Set()); // Track which tabs have been loaded
     const [activeSlug, setActiveSlug] = useState(null); // Current visible tab
@@ -179,9 +177,9 @@ const TabContainer = () => {
         // Validate configuration
         if (!clientId || !oauthEndpoint) {
             logger.error('iFrame auth not configured', { clientId: !!clientId, endpoint: !!oauthEndpoint });
-            showWarning(
-                'Not Configured',
-                'iFrame authentication is not configured. Please go to Settings → Authentication → iFrame Auth to set up OAuth.'
+            alert(
+                'iFrame authentication is not configured.\n\n' +
+                'Please go to Settings → Authentication → iFrame Auth to set up OAuth.'
             );
             return;
         }
@@ -199,7 +197,7 @@ const TabContainer = () => {
 
         if (!authWindow) {
             logger.error('Failed to open auth window - popup blocked?');
-            showWarning('Popup Blocked', 'Please allow popups for Framerr to enable automatic authentication.');
+            alert('Please allow popups for Framerr to enable automatic authentication.');
             return;
         }
 
@@ -340,8 +338,8 @@ const TabContainer = () => {
                 return (
                     <div
                         key={slug}
-                        style={{ display: isActive ? 'flex' : 'none', maxHeight: '100%' }}
-                        className="w-full h-full flex flex-col min-h-0"
+                        style={{ display: isActive ? 'flex' : 'none' }}
+                        className="w-full h-full flex flex-col"
                     >
                         {/* Toolbar */}
                         <div className="h-12 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between px-4 flex-shrink-0">
@@ -376,8 +374,8 @@ const TabContainer = () => {
                             </div>
                         </div>
 
-                        {/* Iframe Container - min-h-0 + overflow:hidden critical for iOS */}
-                        <div className="flex-1 relative bg-white min-h-0 overflow-hidden">
+                        {/* Iframe Container */}
+                        <div className="flex-1 relative bg-white">
                             {isLoading && (
                                 <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10">
                                     <div className="text-center text-slate-400">

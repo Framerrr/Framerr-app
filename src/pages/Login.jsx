@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
-import { Lock, User, AlertCircle, Loader, ExternalLink } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Login = () => {
@@ -12,36 +10,11 @@ const Login = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [plexSSOEnabled, setPlexSSOEnabled] = useState(false);
-    const [plexLoading, setPlexLoading] = useState(false);
-    const { login, loginWithPlex, isAuthenticated, loading: authLoading } = useAuth();
-    const { success: showSuccess, info: showInfo, error: showError } = useNotifications();
+    const { login, isAuthenticated, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     const from = location.state?.from?.pathname || '/';
-    const loggedOut = location.state?.loggedOut;
-
-    // Check if Plex SSO is enabled
-    useEffect(() => {
-        const checkPlexSSO = async () => {
-            try {
-                const response = await axios.get('/api/plex/sso/status');
-                setPlexSSOEnabled(response.data.enabled);
-            } catch (error) {
-                // SSO not available, that's fine
-            }
-        };
-        checkPlexSSO();
-    }, []);
-
-    // Show logout message if coming from logout
-    useEffect(() => {
-        if (loggedOut) {
-            showInfo('Goodbye!', 'You have been logged out');
-            navigate('/login', { replace: true, state: {} });
-        }
-    }, [loggedOut, showInfo, navigate]);
 
     // Redirect if already authenticated
     useEffect(() => {
@@ -49,54 +22,6 @@ const Login = () => {
             navigate(from, { replace: true });
         }
     }, [isAuthenticated, navigate, from]);
-
-    // Check for pending Plex auth on page load (redirect flow)
-    useEffect(() => {
-        let hasCompleted = false;
-
-        const completePlexAuth = async () => {
-            const pendingPinId = localStorage.getItem('plexPendingPinId');
-            if (!pendingPinId || hasCompleted) return;
-
-            hasCompleted = true;
-            setPlexLoading(true);
-
-            try {
-                // Check if the PIN has been claimed
-                const tokenResponse = await axios.get(`/api/plex/auth/token?pinId=${pendingPinId}`);
-
-                if (tokenResponse.data.authToken) {
-                    const { authToken, user } = tokenResponse.data;
-                    const result = await loginWithPlex(authToken, user.id);
-
-                    localStorage.removeItem('plexPendingPinId');
-
-                    if (result.success) {
-                        showSuccess('Welcome!', `Signed in as ${user.username}`);
-                        navigate(from, { replace: true });
-                    } else {
-                        setError(result.error || 'Plex login failed');
-                    }
-                } else {
-                    // Token not ready yet - this shouldn't happen with the redirect flow
-                    localStorage.removeItem('plexPendingPinId');
-                    setError('Plex authentication incomplete. Please try again.');
-                }
-            } catch (error) {
-                localStorage.removeItem('plexPendingPinId');
-                if (error.response?.status === 404) {
-                    setError('Plex authentication expired. Please try again.');
-                } else {
-                    setError(error.response?.data?.error || 'Failed to complete Plex login');
-                }
-            } finally {
-                setPlexLoading(false);
-            }
-        };
-
-        completePlexAuth();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -106,7 +31,6 @@ const Login = () => {
         try {
             const result = await login(username, password, rememberMe);
             if (result.success) {
-                showSuccess('Welcome!', 'You have successfully logged in');
                 navigate(from, { replace: true });
             } else {
                 setError(result.error || 'Login failed');
@@ -118,29 +42,8 @@ const Login = () => {
         }
     };
 
-    const handlePlexLogin = async () => {
-        setPlexLoading(true);
-        setError('');
-
-        try {
-            const pinResponse = await axios.post('/api/plex/auth/pin', {
-                forwardUrl: `${window.location.origin}/login`
-            });
-
-            const { pinId, authUrl } = pinResponse.data;
-
-            // Store PIN ID for when we return from Plex
-            localStorage.setItem('plexPendingPinId', pinId.toString());
-
-            // Redirect to Plex (no popup, full page redirect)
-            window.location.href = authUrl;
-
-        } catch (error) {
-            setError(error.response?.data?.error || 'Failed to connect to Plex');
-            setPlexLoading(false);
-        }
-    };
-
+    // Show loading state while checking authentication
+    // This prevents the login form from flashing for proxy-authenticated users
     if (authLoading) {
         return (
             <div className="min-h-screen w-full flex items-center justify-center bg-theme-primary p-4">
@@ -309,50 +212,6 @@ const Login = () => {
                         </AnimatePresence>
                     </motion.button>
                 </form>
-
-                {/* Plex SSO Button */}
-                {plexSSOEnabled && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                    >
-                        <div className="relative my-6">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-theme"></div>
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="px-2 bg-theme-secondary text-theme-tertiary rounded">or</span>
-                            </div>
-                        </div>
-
-                        <motion.button
-                            type="button"
-                            onClick={handlePlexLogin}
-                            disabled={plexLoading}
-                            className="w-full py-4 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-                            style={{
-                                backgroundColor: '#e5a00d',
-                                color: '#000',
-                                boxShadow: '0 4px 14px rgba(229, 160, 13, 0.3)'
-                            }}
-                            whileHover={!plexLoading ? { scale: 1.02, boxShadow: '0 6px 20px rgba(229, 160, 13, 0.4)' } : {}}
-                            whileTap={!plexLoading ? { scale: 0.98 } : {}}
-                        >
-                            {plexLoading ? (
-                                <>
-                                    <Loader className="animate-spin" size={20} />
-                                    Connecting to Plex...
-                                </>
-                            ) : (
-                                <>
-                                    <ExternalLink size={20} />
-                                    Sign in with Plex
-                                </>
-                            )}
-                        </motion.button>
-                    </motion.div>
-                )}
             </motion.div>
         </div>
     );

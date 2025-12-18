@@ -85,7 +85,7 @@ const WidgetWrapper = ({
 
             {/* Widget Header - conditionally rendered */}
             {shouldShowHeader && (
-                <div className="widget-header flex items-center justify-between p-2 md:p-4 border-b border-theme">
+                <div className="widget-header flex items-center justify-between p-4 border-b border-theme">
                     <div className="flex items-center gap-3">
                         {Icon && (
                             <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
@@ -100,7 +100,7 @@ const WidgetWrapper = ({
             )}
 
             {/* Widget Content */}
-            <div className={`widget-content flex-1 ${type === 'link-grid' ? 'overflow-hidden p-[2px]' : 'overflow-auto p-2 md:p-4'}`}>
+            <div className={`widget-content flex-1 ${type === 'link-grid' ? 'overflow-hidden p-[2px]' : 'overflow-auto p-4'}`}>
                 {children}
             </div>
         </Card>

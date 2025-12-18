@@ -9,26 +9,22 @@ const logger = require('../utils/logger');
 router.use(requireAdmin);
 
 // ============================================================================
-// DATABASE (SQLITE) TEST
+// DATABASE (JSON FILE) TEST
 // ============================================================================
 
 /**
- * Test SQLite database connection and latency
+ * Test database (JSON files) connection and latency
  */
 router.get('/database', async (req, res) => {
     const startTime = Date.now();
 
     try {
-        const { db } = require('../database/db');
         const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
-        const dbPath = path.join(DATA_DIR, 'framerr.db');
+        const testFile = path.join(DATA_DIR, 'users.json');
 
-        // Test database query to verify connection
-        const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
-        const tableInfo = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-
-        // Get file stats
-        const stats = await fs.stat(dbPath);
+        // Test read access
+        await fs.access(testFile, fs.constants.R_OK | fs.constants.W_OK);
+        const stats = await fs.stat(testFile);
 
         const latency = Date.now() - startTime;
 
@@ -37,12 +33,9 @@ router.get('/database', async (req, res) => {
             status: 'healthy',
             latency,
             details: {
-                path: dbPath,
+                path: DATA_DIR,
                 sizeKB: Math.round(stats.size / 1024),
-                accessible: true,
-                userCount: userCount.count,
-                tableCount: tableInfo.length,
-                type: 'SQLite'
+                accessible: true
             }
         });
     } catch (error) {

@@ -1,22 +1,12 @@
 import React, { useState } from 'react';
-import { X, Search, Plus, AlertCircle, CheckCircle2, Loader, Share2 } from 'lucide-react';
+import { X, Search, Plus, AlertCircle, CheckCircle2, Loader } from 'lucide-react';
 import { getWidgetsByCategory, getWidgetMetadata } from '../../utils/widgetRegistry';
 
 /**
  * AddWidgetModal - Modal for browsing and adding widgets to dashboard
  * Supports both click-to-add and drag-and-drop interaction
- * 
- * For admins: Shows all widgets
- * For users: Shows utility widgets + widgets whose integration is shared with them
  */
-const AddWidgetModal = ({
-    isOpen,
-    onClose,
-    onAddWidget,
-    integrations = {},
-    isAdmin = false,
-    sharedIntegrations = []
-}) => {
+const AddWidgetModal = ({ isOpen, onClose, onAddWidget, integrations = {} }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [adding, setAdding] = useState(null);
@@ -24,72 +14,16 @@ const AddWidgetModal = ({
     const widgetsByCategory = getWidgetsByCategory();
     const categories = ['all', ...Object.keys(widgetsByCategory)];
 
-    /**
-     * Check if a widget is visible to the current user
-     * - Admins see all widgets
-     * - Users see utility widgets (no integration required)
-     * - Users see integration widgets only if shared with them
-     */
-    const isWidgetVisible = (widget) => {
-        // Admins see all
-        if (isAdmin) return true;
-
-        // Utility widgets (no integration required) - always visible
-        if (!widget.requiresIntegration && !widget.requiresIntegrations) {
-            return true;
-        }
-
-        // Single integration widgets - check if shared
-        if (widget.requiresIntegration) {
-            return sharedIntegrations.some(si => si.name === widget.requiresIntegration);
-        }
-
-        // Multi-integration widgets (like calendar) - show if ANY required integration is shared
-        if (widget.requiresIntegrations) {
-            return widget.requiresIntegrations.some(req =>
-                sharedIntegrations.some(si => si.name === req)
-            );
-        }
-
-        return false;
-    };
-
-    /**
-     * Get share info for a widget (for badge display)
-     */
-    const getSharedByInfo = (widget) => {
-        if (widget.requiresIntegration) {
-            const shared = sharedIntegrations.find(si => si.name === widget.requiresIntegration);
-            return shared?.sharedBy || null;
-        }
-
-        if (widget.requiresIntegrations) {
-            // Find the first shared integration among the required ones
-            for (const reqIntegrationName of widget.requiresIntegrations) {
-                const shared = sharedIntegrations.find(si => si.name === reqIntegrationName);
-                if (shared) {
-                    return shared.sharedBy || null;
-                }
-            }
-        }
-
-        return null;
-    };
-
-    // Filter widgets based on search, category, and permissions
+    // Filter widgets based on search and category
     const filteredWidgets = Object.entries(widgetsByCategory).reduce((acc, [category, widgets]) => {
         if (selectedCategory !== 'all' && selectedCategory !== category) {
             return acc;
         }
 
-        const filtered = widgets.filter(widget => {
-            // First check visibility (permissions)
-            if (!isWidgetVisible(widget)) return false;
-
-            // Then check search term
-            return widget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                widget.description.toLowerCase().includes(searchTerm.toLowerCase());
-        });
+        const filtered = widgets.filter(widget =>
+            widget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            widget.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
         if (filtered.length > 0) {
             acc[category] = filtered;
@@ -103,11 +37,7 @@ const AddWidgetModal = ({
         try {
             await onAddWidget(widgetType);
         } catch (error) {
-<<<<<<< HEAD
             logger.error('Failed to add widget', { error: error.message, modal: 'AddWidget' });
-=======
-            console.error('Failed to add widget', { error: error.message, modal: 'AddWidget' });
->>>>>>> develop
         } finally {
             setAdding(null);
         }
@@ -200,32 +130,9 @@ const AddWidgetModal = ({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {widgets.map(widget => {
                                         const Icon = widget.icon;
-                                        const isIntegrationRequired = widget.requiresIntegration || widget.requiresIntegrations;
-                                        const integration = widget.requiresIntegration ? integrations[widget.requiresIntegration] : null;
-
-                                        // Check if integration is ready - handle special cases
-                                        let isIntegrationReady = !isIntegrationRequired;
-                                        if (isIntegrationRequired && widget.requiresIntegration) {
-                                            if (widget.requiresIntegration === 'systemstatus') {
-                                                // SystemStatus uses backend with glances/custom config
-                                                isIntegrationReady = integration?.enabled && (
-                                                    (integration.backend === 'glances' && integration.glances?.url) ||
-                                                    (integration.backend === 'custom' && integration.custom?.url) ||
-                                                    (!integration.backend && integration.url) // legacy
-                                                );
-                                            } else {
-                                                // Standard integrations use url directly
-                                                isIntegrationReady = integration?.enabled && integration?.url;
-                                            }
-                                        } else if (isIntegrationRequired && widget.requiresIntegrations) {
-                                            // Multi-integration widgets (calendar) - check if any integration is configured
-                                            isIntegrationReady = widget.requiresIntegrations.some(intName => {
-                                                const intConfig = integrations[intName];
-                                                return intConfig?.enabled && intConfig?.url;
-                                            });
-                                        }
-
-                                        const sharedByInfo = !isAdmin ? getSharedByInfo(widget) : null;
+                                        const isIntegrationRequired = widget.requiresIntegration;
+                                        const integration = isIntegrationRequired ? integrations[widget.requiresIntegration] : null;
+                                        const isIntegrationReady = !isIntegrationRequired || (integration?.enabled && integration?.url);
 
                                         return (
                                             <div
@@ -246,22 +153,12 @@ const AddWidgetModal = ({
                                                     </div>
                                                 </div>
 
-                                                {/* Info & Badges */}
-                                                <div className="flex items-center flex-wrap gap-2 mb-4 text-xs">
+                                                {/* Info */}
+                                                <div className="flex items-center gap-2 mb-4 text-xs">
                                                     <span className="px-2 py-1 bg-slate-700/50 rounded text-slate-300">
                                                         {widget.defaultSize.w}x{widget.defaultSize.h}
                                                     </span>
-
-                                                    {/* Shared by badge for non-admins */}
-                                                    {sharedByInfo && (
-                                                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-blue-500/20 text-blue-400">
-                                                            <Share2 size={12} />
-                                                            <span>Shared by {sharedByInfo}</span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Integration status - only for admins */}
-                                                    {isAdmin && isIntegrationRequired && (
+                                                    {isIntegrationRequired && (
                                                         <div className={`flex items-center gap-1 px-2 py-1 rounded ${isIntegrationReady
                                                             ? 'bg-green-500/20 text-green-400'
                                                             : 'bg-amber-500/20 text-amber-400'
@@ -271,7 +168,7 @@ const AddWidgetModal = ({
                                                             ) : (
                                                                 <AlertCircle size={12} />
                                                             )}
-                                                            <span>{widget.requiresIntegration || 'Integration'}</span>
+                                                            <span>{widget.requiresIntegration}</span>
                                                         </div>
                                                     )}
                                                 </div>

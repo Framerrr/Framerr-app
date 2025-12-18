@@ -1,27 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-<<<<<<< HEAD
 import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
-=======
-import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X, Tv } from 'lucide-react';
->>>>>>> develop
 import { motion } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
-import { useNotifications } from '../../context/NotificationContext';
-import PlexAuthSettings from './PlexAuthSettings';
 
 const AuthSettings = () => {
-<<<<<<< HEAD
     // Subtab state
     const [activeTab, setActiveTab] = useState('proxy'); // 'proxy' or 'iframe'
-=======
-    const { error: showError, warning: showWarning } = useNotifications();
-
-    // Subtab state
-    const [activeTab, setActiveTab] = useState('proxy'); // 'proxy', 'plex', or 'iframe'
->>>>>>> develop
 
     const tabSpring = {
         type: 'spring',
@@ -56,38 +43,9 @@ const AuthSettings = () => {
     const [originalSettings, setOriginalSettings] = useState({});
     const [showAuthentikInstructions, setShowAuthentikInstructions] = useState(false);
     const [testingOAuth, setTestingOAuth] = useState(false);
-<<<<<<< HEAD
-=======
-
-    // Plex SSO integration
-    const [plexHasChanges, setPlexHasChanges] = useState(false);
-    const plexSaveRef = useRef(null);
-
-    // Refs for auto-scrolling sub-tab buttons into view
-    const subTabRefs = useRef({});
->>>>>>> develop
 
     useEffect(() => {
         fetchSettings();
-    }, []);
-
-    // Scroll active sub-tab into view when it changes
-    useEffect(() => {
-        const tabButton = subTabRefs.current[activeTab];
-        if (tabButton) {
-            tabButton.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
-            });
-        }
-    }, [activeTab]);
-
-    useEffect(() => {
-        // Auto-populate redirect URI if empty
-        if (!redirectUri) {
-            setRedirectUri(`${window.location.origin}/login-complete`);
-        }
     }, []);
 
     useEffect(() => {
@@ -113,13 +71,7 @@ const AuthSettings = () => {
             authDetectionSensitivity,
             customAuthPatterns
         };
-<<<<<<< HEAD
         setHasChanges(JSON.stringify(current) !== JSON.stringify(originalSettings));
-=======
-        // hasChanges for proxy/iframe tabs only (Plex has its own tracking)
-        const proxyIframeChanged = JSON.stringify(current) !== JSON.stringify(originalSettings);
-        setHasChanges(proxyIframeChanged);
->>>>>>> develop
     }, [proxyEnabled, headerName, emailHeaderName, whitelist, overrideLogout, logoutUrl,
         iframeEnabled, oauthEndpoint, clientId, redirectUri, scopes,
         authDetectionSensitivity, customAuthPatterns, originalSettings]);
@@ -180,12 +132,6 @@ const AuthSettings = () => {
     };
 
     const handleSave = async () => {
-        // If on Plex tab, delegate to PlexAuthSettings save
-        if (activeTab === 'plex' && plexSaveRef.current) {
-            await plexSaveRef.current();
-            return;
-        }
-
         setSaving(true);
         try {
             const whitelistArray = whitelist
@@ -239,11 +185,7 @@ const AuthSettings = () => {
             logger.info('Auth settings saved successfully');
         } catch (error) {
             logger.error('Failed to save auth settings', { error: error.message });
-<<<<<<< HEAD
             alert(error.response?.data?.error || 'Failed to save settings. Please try again.');
-=======
-            showError('Save Failed', error.response?.data?.error || 'Failed to save settings. Please try again.');
->>>>>>> develop
         } finally {
             setSaving(false);
         }
@@ -258,11 +200,7 @@ const AuthSettings = () => {
 
     const handleTestOAuth = () => {
         if (!oauthEndpoint || !clientId) {
-<<<<<<< HEAD
             alert('Please fill in OAuth endpoint and client ID before testing');
-=======
-            showWarning('Missing Fields', 'Please fill in OAuth endpoint and client ID before testing');
->>>>>>> develop
             return;
         }
 
@@ -304,32 +242,20 @@ const AuthSettings = () => {
     return (
         <div className="space-y-6 fade-in">
             {/* Header */}
-            <div className="mb-6 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">
+            <div>
+                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
                     Authentication Settings
                 </h2>
-<<<<<<< HEAD
                 <p className="text-sm text-theme-secondary">
-=======
-                <p className="text-theme-secondary text-sm">
->>>>>>> develop
                     Configure reverse proxy authentication and iframe OAuth
                 </p>
             </div>
 
             {/* Subtab Navigation */}
-<<<<<<< HEAD
             <div className="flex gap-2 border-b border-theme relative">
                 <button
                     onClick={() => setActiveTab('proxy')}
                     className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
-=======
-            <div className="flex gap-2 overflow-x-auto scroll-contain-x border-b border-theme relative">
-                <button
-                    ref={(el) => { subTabRefs.current['proxy'] = el; }}
-                    onClick={() => setActiveTab('proxy')}
-                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
->>>>>>> develop
                 >
                     <div className="flex items-center gap-2 relative z-10">
                         <Shield size={18} className={activeTab === 'proxy' ? 'text-accent' : ''} />
@@ -344,31 +270,8 @@ const AuthSettings = () => {
                     )}
                 </button>
                 <button
-<<<<<<< HEAD
                     onClick={() => setActiveTab('iframe')}
                     className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
-=======
-                    ref={(el) => { subTabRefs.current['plex'] = el; }}
-                    onClick={() => setActiveTab('plex')}
-                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
-                >
-                    <div className="flex items-center gap-2 relative z-10">
-                        <Tv size={18} className={activeTab === 'plex' ? 'text-accent' : ''} />
-                        <span className={activeTab === 'plex' ? 'text-accent' : ''}>Plex</span>
-                    </div>
-                    {activeTab === 'plex' && (
-                        <motion.div
-                            layoutId="authSubTabIndicator"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                            transition={tabSpring}
-                        />
-                    )}
-                </button>
-                <button
-                    ref={(el) => { subTabRefs.current['iframe'] = el; }}
-                    onClick={() => setActiveTab('iframe')}
-                    className="relative px-4 py-3 font-medium transition-colors text-theme-secondary hover:text-theme-primary whitespace-nowrap"
->>>>>>> develop
                 >
                     <div className="flex items-center gap-2 relative z-10">
                         <Globe size={18} className={activeTab === 'iframe' ? 'text-accent' : ''} />
@@ -404,7 +307,7 @@ const AuthSettings = () => {
                                 onChange={(e) => setProxyEnabled(e.target.checked)}
                                 className="sr-only peer"
                             />
-                            <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
+                            <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-light after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                         </label>
                     </div>
 
@@ -458,11 +361,7 @@ const AuthSettings = () => {
                                 disabled={!proxyEnabled}
                                 className="sr-only peer"
                             />
-<<<<<<< HEAD
                             <div className={`w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-light after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent ${!proxyEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
-=======
-                            <div className={`w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent ${!proxyEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
->>>>>>> develop
                         </label>
                     </div>
 
@@ -479,17 +378,6 @@ const AuthSettings = () => {
                 </div>
             )}
 
-<<<<<<< HEAD
-=======
-            {/* Plex SSO Tab */}
-            {activeTab === 'plex' && (
-                <PlexAuthSettings
-                    onSaveNeeded={setPlexHasChanges}
-                    onSave={plexSaveRef}
-                />
-            )}
-
->>>>>>> develop
             {/* iFrame Auth Tab */}
             {activeTab === 'iframe' && (
                 <div className="space-y-6">
@@ -612,11 +500,7 @@ const AuthSettings = () => {
                                     onChange={(e) => setIframeEnabled(e.target.checked)}
                                     className="sr-only peer"
                                 />
-<<<<<<< HEAD
                                 <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-light after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-=======
-                                <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
->>>>>>> develop
                             </label>
                         </div>
 
@@ -752,11 +636,7 @@ const AuthSettings = () => {
             <div className="flex gap-3">
                 <Button
                     onClick={handleSave}
-<<<<<<< HEAD
                     disabled={!hasChanges || saving}
-=======
-                    disabled={activeTab === 'plex' ? !plexHasChanges : (!hasChanges || saving)}
->>>>>>> develop
                     icon={saving ? Loader : Save}
                 >
                     {saving ? 'Saving...' : 'Save Settings'}

@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, ArrowDown, ArrowUp } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
-<<<<<<< HEAD
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 
 const QBittorrentWidget = ({ config }) => {
@@ -15,39 +14,6 @@ const QBittorrentWidget = ({ config }) => {
     const isIntegrationEnabled = integration?.enabled && integration?.url;
 
     const { enabled = false, url = '', username = '', password = '' } = config || {};
-=======
-import { useAuth } from '../../context/AuthContext';
-import { isAdmin } from '../../utils/permissions';
-import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
-import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
-import IntegrationConnectionError from '../common/IntegrationConnectionError';
-import LoadingSpinner from '../common/LoadingSpinner';
-
-const QBittorrentWidget = ({ config }) => {
-    // Get auth state to determine admin status
-    const { user } = useAuth();
-    const userIsAdmin = isAdmin(user);
-
-    // Get integrations state from context - ONLY source of truth for access
-    const { integrations, integrationsLoaded, integrationsError } = useAppData();
-
-    // Wait for integrations to load before checking status
-    if (!integrationsLoaded) {
-        return <LoadingSpinner size="sm" />;
-    }
-
-    // Show connection error if integrations failed to load
-    if (integrationsError) {
-        return <IntegrationConnectionError serviceName="qBittorrent" />;
-    }
-
-    // ONLY use context integration - no fallback to config (ensures actual revocation)
-    const integration = integrations?.qbittorrent || { enabled: false };
-
-    // Check if integration is enabled (from context only)
-    const isIntegrationEnabled = integration?.enabled && integration?.url;
-
->>>>>>> develop
     const [torrents, setTorrents] = useState([]);
     const [transferInfo, setTransferInfo] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -113,18 +79,9 @@ const QBittorrentWidget = ({ config }) => {
 
     const formatSpeed = (bytesPerSec) => formatBytes(bytesPerSec) + '/s';
 
-<<<<<<< HEAD
     // Show integration disabled message if not enabled
     if (!isIntegrationEnabled) {
         return <IntegrationDisabledMessage serviceName="qBittorrent" />;
-=======
-    // Show appropriate message based on user role
-    if (!isIntegrationEnabled) {
-        // Admins see "disabled" (can fix it), non-admins see "no access"
-        return userIsAdmin
-            ? <IntegrationDisabledMessage serviceName="qBittorrent" />
-            : <IntegrationNoAccessMessage serviceName="qBittorrent" />;
->>>>>>> develop
     }
 
     if (loading && torrents.length === 0) {

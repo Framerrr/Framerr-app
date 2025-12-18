@@ -3,16 +3,6 @@ import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Filter, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-<<<<<<< HEAD
-=======
-import { useAppData } from '../../context/AppDataContext';
-import { useAuth } from '../../context/AuthContext';
-import { isAdmin } from '../../utils/permissions';
-import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
-import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
-import IntegrationConnectionError from '../common/IntegrationConnectionError';
-import LoadingSpinner from '../common/LoadingSpinner';
->>>>>>> develop
 
 // Event Popover Component
 const EventPopover = ({ event }) => {
@@ -115,32 +105,9 @@ const EventPopover = ({ event }) => {
 };
 
 const CombinedCalendarWidget = ({ config }) => {
-    // Get auth state to determine admin status
-    const { user } = useAuth();
-    const userIsAdmin = isAdmin(user);
-
-    // Get integrations from context - ONLY source of truth for access
-    const { integrations, integrationsLoaded, integrationsError } = useAppData();
-
-    // Wait for integrations to load before checking status
-    if (!integrationsLoaded) {
-        return <LoadingSpinner size="sm" />;
-    }
-
-    // Show connection error if integrations failed to load
-    if (integrationsError) {
-        return <IntegrationConnectionError serviceName="Calendar" />;
-    }
-
-    // Get Sonarr and Radarr configs from context (not widget config)
-    const sonarrConfig = integrations?.sonarr || {};
-    const radarrConfig = integrations?.radarr || {};
-
-    // Check if either integration is available
-    const hasSonarr = sonarrConfig.enabled && sonarrConfig.url && sonarrConfig.apiKey;
-    const hasRadarr = radarrConfig.enabled && radarrConfig.url && radarrConfig.apiKey;
-    const hasAnyIntegration = hasSonarr || hasRadarr;
-
+    // Get integration configs from props (passed by Dashboard)
+    const sonarrConfig = config?.sonarr || {};
+    const radarrConfig = config?.radarr || {};
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState({});
     const [loading, setLoading] = useState(false);
@@ -155,17 +122,12 @@ const CombinedCalendarWidget = ({ config }) => {
 
     useEffect(() => {
         const fetchEvents = async () => {
-<<<<<<< HEAD
             // Check integrations FIRST before doing anything async
             const hasSonarr = sonarrConfig.enabled && sonarrConfig.url && sonarrConfig.apiKey;
             const hasRadarr = radarrConfig.enabled && radarrConfig.url && radarrConfig.apiKey;
 
             if (!hasSonarr && !hasRadarr) {
                 setError('No calendar services enabled. Please configure Sonarr or Radarr in Integrations.');
-=======
-            // Skip if no integrations available (handled by early return in render)
-            if (!hasAnyIntegration) {
->>>>>>> develop
                 setLoading(false);
                 return;
             }
@@ -220,9 +182,8 @@ const CombinedCalendarWidget = ({ config }) => {
         fetchEvents();
     }, [
         currentDate,
-        hasAnyIntegration, hasSonarr, hasRadarr,
-        sonarrConfig.url, sonarrConfig.apiKey,
-        radarrConfig.url, radarrConfig.apiKey,
+        sonarrConfig.enabled, sonarrConfig.url, sonarrConfig.apiKey,
+        radarrConfig.enabled, radarrConfig.url, radarrConfig.apiKey,
         startDateStr, endDateStr
     ]); // Primitive dependencies - stable!
 
@@ -245,17 +206,6 @@ const CombinedCalendarWidget = ({ config }) => {
         return dayEvents;
     };
 
-<<<<<<< HEAD
-=======
-    // Show appropriate message based on user role when no integrations
-    if (!hasAnyIntegration) {
-        // Admins see "disabled" (can fix it), non-admins see "no access"
-        return userIsAdmin
-            ? <IntegrationDisabledMessage serviceName="Calendar (Sonarr/Radarr)" />
-            : <IntegrationNoAccessMessage serviceName="Calendar" />;
-    }
-
->>>>>>> develop
     return (
         <div className="flex flex-col h-full gap-2 relative">
             {/* Header with month navigation and filter */}

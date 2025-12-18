@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { setLogoutFunction } from '../utils/axiosSetup';
 import logger from '../utils/logger';
 
 const AuthContext = createContext(null);
@@ -18,37 +17,6 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         checkSetupAndAuth();
     }, []);
-
-    // Session expiry handler - clears state and redirects
-    const handleSessionExpiry = useCallback(() => {
-        setUser(null);
-        navigate('/login', { replace: true });
-    }, [navigate]);
-
-    // Register logout function with axios interceptor for auto-logout on 401
-    useEffect(() => {
-        setLogoutFunction(handleSessionExpiry);
-        return () => setLogoutFunction(null);
-    }, [handleSessionExpiry]);
-
-    // Check auth when tab becomes visible (handles sleeping tabs)
-    useEffect(() => {
-        const handleVisibilityChange = async () => {
-            // Only check if tab is becoming visible and user is logged in
-            if (document.visibilityState === 'visible' && user) {
-                try {
-                    await axios.get('/api/auth/me');
-                } catch (err) {
-                    // 401 will be handled by axios interceptor
-                    // which calls handleSessionExpiry
-                    logger.debug('Visibility auth check failed');
-                }
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [user]);
 
     // Handle redirects when setup status or auth changes
     useEffect(() => {
@@ -138,21 +106,6 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const loginWithPlex = async (plexToken, plexUserId) => {
-        try {
-            const response = await axios.post('/api/auth/plex-login', {
-                plexToken,
-                plexUserId
-            });
-            setUser(response.data.user);
-            return { success: true };
-        } catch (err) {
-            const msg = err.response?.data?.error || 'Plex login failed';
-            setError(msg);
-            return { success: false, error: msg };
-        }
-    };
-
     return (
         <AuthContext.Provider value={{
             user,
@@ -160,7 +113,6 @@ export const AuthProvider = ({ children }) => {
             error,
             needsSetup,
             login,
-            loginWithPlex,
             logout,
             checkAuth,
             checkSetupStatus,
@@ -171,7 +123,6 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
-
 
 export const useAuth = () => {
     const context = useContext(AuthContext);

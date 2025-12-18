@@ -1,32 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Users as UsersIcon, Plus, Edit, Trash2, Key, X, Save, Loader, Check, Copy } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Users as UsersIcon, Plus, Edit, Trash2, Key, X, Save, Loader } from 'lucide-react';
+import { useSystemConfig } from '../../context/SystemConfigContext';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
-import { useNotifications } from '../../context/NotificationContext';
-import { useAuth } from '../../context/AuthContext';
-
-// Hardcoded permission groups - admin, user, guest
-const PERMISSION_GROUPS = [
-    { id: 'admin', name: 'Admin' },
-    { id: 'user', name: 'User' },
-    { id: 'guest', name: 'Guest' }
-];
 
 const UsersSettings = () => {
     const [users, setUsers] = useState([]);
+    const [permissionGroups, setPermissionGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('create');
     const [selectedUser, setSelectedUser] = useState(null);
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const [confirmResetId, setConfirmResetId] = useState(null);
-    const [tempPassword, setTempPassword] = useState(null);
-    const { error: showError, success: showSuccess } = useNotifications();
-    const { user: currentUser } = useAuth();
 
-    // Check if editing self (to prevent group demotion)
-    const isEditingSelf = modalMode === 'edit' && selectedUser?.id === currentUser?.id;
+    const { systemConfig } = useSystemConfig();
 
     const [formData, setFormData] = useState({
         username: '',
@@ -35,7 +22,6 @@ const UsersSettings = () => {
         group: 'user'
     });
 
-<<<<<<< HEAD
     // Compute which groups have admin permissions
     const adminGroups = useMemo(() => {
         if (!systemConfig?.groups) return new Set(['admin']);
@@ -51,13 +37,10 @@ const UsersSettings = () => {
             .map(g => g.id);
         return new Set(groups);
     }, [systemConfig]);
-=======
-    // Check if group is admin
-    const isAdminGroup = (group) => group === 'admin';
->>>>>>> develop
 
     useEffect(() => {
         fetchUsers();
+        fetchPermissionGroups();
     }, []);
 
     const fetchUsers = async () => {
@@ -77,7 +60,6 @@ const UsersSettings = () => {
         }
     };
 
-<<<<<<< HEAD
     const fetchPermissionGroups = async () => {
         try {
             const response = await fetch('/api/config/system', {
@@ -97,8 +79,6 @@ const UsersSettings = () => {
         }
     };
 
-=======
->>>>>>> develop
     const handleCreateUser = () => {
         setModalMode('create');
         setFormData({ username: '', email: '', password: '', group: 'user' });
@@ -142,21 +122,21 @@ const UsersSettings = () => {
             if (response.ok) {
                 setShowModal(false);
                 fetchUsers();
-                showSuccess(
-                    modalMode === 'create' ? 'User Created' : 'User Updated',
-                    modalMode === 'create' ? `User "${formData.username}" created successfully` : `User "${formData.username}" updated successfully`
-                );
             } else {
                 const error = await response.json();
-                showError('Save Failed', error.error || 'Failed to save user');
+                alert(error.error || 'Failed to save user');
             }
         } catch (error) {
             logger.error('Error saving user:', error);
-            showError('Save Failed', 'Failed to save user');
+            alert('Failed to save user');
         }
     };
 
     const handleDeleteUser = async (userId, username) => {
+        if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+            return;
+        }
+
         try {
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE',
@@ -164,22 +144,22 @@ const UsersSettings = () => {
             });
 
             if (response.ok) {
-                setConfirmDeleteId(null);
                 fetchUsers();
-                showSuccess('User Deleted', `User "${username}" has been deleted`);
             } else {
                 const error = await response.json();
-                showError('Delete Failed', error.error || 'Failed to delete user');
-                setConfirmDeleteId(null);
+                alert(error.error || 'Failed to delete user');
             }
         } catch (error) {
             logger.error('Error deleting user:', error);
-            showError('Delete Failed', 'Failed to delete user');
-            setConfirmDeleteId(null);
+            alert('Failed to delete user');
         }
     };
 
     const handleResetPassword = async (userId, username) => {
+        if (!confirm(`Reset password for user "${username}"? They will need to set a new password on next login.`)) {
+            return;
+        }
+
         try {
             const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
                 method: 'POST',
@@ -188,18 +168,14 @@ const UsersSettings = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setTempPassword({ userId, password: data.tempPassword });
-                setConfirmResetId(null);
-                showSuccess('Password Reset', `New temporary password generated for ${username}`);
+                alert(`Password reset successfully. New temporary password: ${data.tempPassword}`);
             } else {
                 const error = await response.json();
-                showError('Reset Failed', error.error || 'Failed to reset password');
-                setConfirmResetId(null);
+                alert(error.error || 'Failed to reset password');
             }
         } catch (error) {
             logger.error('Error resetting password:', error);
-            showError('Reset Failed', 'Failed to reset password');
-            setConfirmResetId(null);
+            alert('Failed to reset password');
         }
     };
 
@@ -231,7 +207,7 @@ const UsersSettings = () => {
 
             {/* Users Table - Responsive */}
             <div className="rounded-xl overflow-hidden border border-theme bg-theme-tertiary/30" style={{ transition: 'all 0.3s ease' }}>
-                <div className="overflow-x-auto scroll-contain-x">
+                <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-theme-tertiary/50">
                             <tr>
@@ -257,7 +233,7 @@ const UsersSettings = () => {
                                         {user.email || '-'}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${isAdminGroup(user.group)
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${adminGroups.has(user.group)
                                             ? 'bg-accent/20 text-accent'
                                             : 'bg-theme-tertiary text-theme-secondary'
                                             }`}>
@@ -268,31 +244,7 @@ const UsersSettings = () => {
                                         {user.createdAt ? new Date(user.createdAt * 1000).toLocaleDateString() : '-'}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="flex gap-2 justify-end items-center">
-                                            {/* Show temp password if just reset */}
-                                            {tempPassword?.userId === user.id && (
-                                                <div className="flex items-center gap-2 bg-success/10 border border-success/20 px-2 py-1 rounded-lg text-xs">
-                                                    <span className="text-success font-mono">{tempPassword.password}</span>
-                                                    <button
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(tempPassword.password);
-                                                            showSuccess('Copied', 'Password copied to clipboard');
-                                                        }}
-                                                        className="text-success hover:text-success/80"
-                                                        title="Copy password"
-                                                    >
-                                                        <Copy size={12} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setTempPassword(null)}
-                                                        className="text-success hover:text-success/80"
-                                                        title="Dismiss"
-                                                    >
-                                                        <X size={12} />
-                                                    </button>
-                                                </div>
-                                            )}
-
+                                        <div className="flex gap-2 justify-end">
                                             <Button
                                                 onClick={() => handleEditUser(user)}
                                                 variant="ghost"
@@ -302,71 +254,24 @@ const UsersSettings = () => {
                                             >
                                                 <Edit size={16} />
                                             </Button>
-
-                                            {/* Reset Password - Inline Confirmation */}
-                                            {confirmResetId !== user.id ? (
-                                                <Button
-                                                    onClick={() => setConfirmResetId(user.id)}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-warning hover:bg-warning/10 hidden sm:flex"
-                                                    title="Reset password"
-                                                >
-                                                    <Key size={16} />
-                                                </Button>
-                                            ) : (
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        onClick={() => handleResetPassword(user.id, user.username)}
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-warning bg-warning/20"
-                                                        title="Confirm reset"
-                                                    >
-                                                        <Check size={14} />
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => setConfirmResetId(null)}
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        title="Cancel"
-                                                    >
-                                                        <X size={14} />
-                                                    </Button>
-                                                </div>
-                                            )}
-
-                                            {/* Delete - Inline Confirmation */}
-                                            {confirmDeleteId !== user.id ? (
-                                                <Button
-                                                    onClick={() => setConfirmDeleteId(user.id)}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-error hover:bg-error/10"
-                                                    title="Delete user"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </Button>
-                                            ) : (
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        onClick={() => handleDeleteUser(user.id, user.username)}
-                                                        variant="danger"
-                                                        size="sm"
-                                                        title="Confirm delete"
-                                                    >
-                                                        <Check size={14} />
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => setConfirmDeleteId(null)}
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        title="Cancel"
-                                                    >
-                                                        <X size={14} />
-                                                    </Button>
-                                                </div>
-                                            )}
+                                            <Button
+                                                onClick={() => handleResetPassword(user.id, user.username)}
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-warning hover:bg-warning/10 hidden sm:flex"
+                                                title="Reset password"
+                                            >
+                                                <Key size={16} />
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleDeleteUser(user.id, user.username)}
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-error hover:bg-error/10"
+                                                title="Delete user"
+                                            >
+                                                <Trash2 size={16} />
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
@@ -440,20 +345,16 @@ const UsersSettings = () => {
                                 <select
                                     value={formData.group}
                                     onChange={(e) => setFormData({ ...formData, group: e.target.value })}
-                                    disabled={isEditingSelf}
-                                    className={`w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all ${isEditingSelf ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                                 >
-                                    {PERMISSION_GROUPS.map(group => (
+                                    {permissionGroups.map(group => (
                                         <option key={group.id} value={group.id}>
                                             {group.name}
                                         </option>
                                     ))}
                                 </select>
                                 <p className="text-xs text-theme-tertiary mt-1">
-                                    {isEditingSelf
-                                        ? 'You cannot change your own permission group'
-                                        : 'Admin: Full access | User: Standard access | Guest: Read-only'
-                                    }
+                                    Controls what this user can access (managed in Permission Groups tab)
                                 </p>
                             </div>
 

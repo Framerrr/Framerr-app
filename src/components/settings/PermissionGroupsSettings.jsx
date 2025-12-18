@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Edit, Trash2, X, Save, AlertTriangle, Users, Loader, Check } from 'lucide-react';
+import { Shield, Plus, Edit, Trash2, X, Save, AlertTriangle, Users, Loader } from 'lucide-react';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
-import { useNotifications } from '../../context/NotificationContext';
 
 // System groups that cannot be deleted
 const PROTECTED_GROUPS = ['admin', 'user', 'guest'];
@@ -24,8 +23,6 @@ const PermissionGroupsSettings = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('create');
     const [selectedGroup, setSelectedGroup] = useState(null);
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const { error: showError, warning: showWarning, success: showSuccess } = useNotifications();
 
     const [formData, setFormData] = useState({
         id: '',
@@ -77,16 +74,18 @@ const PermissionGroupsSettings = () => {
         e.preventDefault();
 
         if (!formData.name.trim()) {
-            showWarning('Missing Name', 'Group name is required');
+            alert('Group name is required');
             return;
         }
 
-        // Skip empty permissions check - the UI warning is sufficient
+        if (formData.permissions.length === 0 && !confirm('This group has no permissions. Continue?')) {
+            return;
+        }
 
         const groupId = modalMode === 'create' ? generateGroupId(formData.name) : formData.id;
 
         if (modalMode === 'create' && groups.some(g => g.id === groupId)) {
-            showWarning('Duplicate Group', `A group with ID "${groupId}" already exists.`);
+            alert(`A group with ID "${groupId}" already exists.`);
             return;
         }
 
@@ -114,31 +113,27 @@ const PermissionGroupsSettings = () => {
             if (response.ok) {
                 setShowModal(false);
                 fetchGroups();
-                showSuccess(
-                    modalMode === 'create' ? 'Group Created' : 'Group Updated',
-                    `Permission group "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
-                );
             } else {
-                showError('Save Failed', (await response.json()).error || 'Failed to save group');
+                alert((await response.json()).error || 'Failed to save group');
             }
         } catch (error) {
             logger.error('Error saving group:', error);
-            showError('Save Failed', 'Failed to save group');
+            alert('Failed to save group');
         }
     };
 
     const handleDelete = async (group) => {
         if (PROTECTED_GROUPS.includes(group.id)) {
-            showWarning('Cannot Delete', `Cannot delete system group "${group.name}".`);
-            setConfirmDeleteId(null);
+            alert(`Cannot delete system group "${group.name}".`);
             return;
         }
 
         if (group.id === defaultGroup) {
-            showWarning('Cannot Delete', `Cannot delete "${group.name}" as it's the default group.`);
-            setConfirmDeleteId(null);
+            alert(`Cannot delete "${group.name}" as it's the default group.`);
             return;
         }
+
+        if (!confirm(`Delete group "${group.name}"?`)) return;
 
         try {
             const updatedGroupsArray = groups.filter(g => g.id !== group.id);
@@ -157,18 +152,11 @@ const PermissionGroupsSettings = () => {
                 body: JSON.stringify({ groups: groupsObject })
             });
 
-            if (response.ok) {
-                setConfirmDeleteId(null);
-                fetchGroups();
-                showSuccess('Group Deleted', `Permission group "${group.name}" has been deleted`);
-            } else {
-                showError('Delete Failed', 'Failed to delete group');
-                setConfirmDeleteId(null);
-            }
+            if (response.ok) fetchGroups();
+            else alert('Failed to delete group');
         } catch (error) {
             logger.error('Error deleting group:', error);
-            showError('Delete Failed', 'Failed to delete group');
-            setConfirmDeleteId(null);
+            alert('Failed to delete group');
         }
     };
 
@@ -181,13 +169,10 @@ const PermissionGroupsSettings = () => {
                 body: JSON.stringify({ defaultGroup: newDefaultGroup })
             });
 
-            if (response.ok) {
-                setDefaultGroup(newDefaultGroup);
-                showSuccess('Default Updated', 'Default permission group updated');
-            }
-            else showError('Update Failed', 'Failed to update default group');
+            if (response.ok) setDefaultGroup(newDefaultGroup);
+            else alert('Failed to update default group');
         } catch (error) {
-            showError('Update Failed', 'Failed to update default group');
+            alert('Failed to update default group');
         }
     };
 
@@ -272,40 +257,17 @@ const PermissionGroupsSettings = () => {
                                 <Edit size={14} className="mr-2" />
                                 <span className="hidden sm:inline">Edit</span>
                             </Button>
-                            {confirmDeleteId !== group.id ? (
-                                <Button
-                                    onClick={() => setConfirmDeleteId(group.id)}
-                                    disabled={PROTECTED_GROUPS.includes(group.id)}
-                                    variant="ghost"
-                                    size="sm"
-                                    className={`flex-1 ${PROTECTED_GROUPS.includes(group.id) ? 'text-theme-tertiary cursor-not-allowed' : 'text-error hover:bg-error/10'}`}
-                                    title={PROTECTED_GROUPS.includes(group.id) ? "System group cannot be deleted" : "Delete group"}
-                                >
-                                    <Trash2 size={14} className="mr-2" />
-                                    <span className="hidden sm:inline">Delete</span>
-                                </Button>
-                            ) : (
-                                <div className="flex gap-1 flex-1">
-                                    <Button
-                                        onClick={() => handleDelete(group)}
-                                        variant="danger"
-                                        size="sm"
-                                        className="flex-1"
-                                        title="Confirm delete"
-                                    >
-                                        <Check size={14} />
-                                    </Button>
-                                    <Button
-                                        onClick={() => setConfirmDeleteId(null)}
-                                        variant="secondary"
-                                        size="sm"
-                                        className="flex-1"
-                                        title="Cancel"
-                                    >
-                                        <X size={14} />
-                                    </Button>
-                                </div>
-                            )}
+                            <Button
+                                onClick={() => handleDelete(group)}
+                                disabled={PROTECTED_GROUPS.includes(group.id)}
+                                variant="ghost"
+                                size="sm"
+                                className={`flex-1 ${PROTECTED_GROUPS.includes(group.id) ? 'text-theme-tertiary cursor-not-allowed' : 'text-error hover:bg-error/10'}`}
+                                title={PROTECTED_GROUPS.includes(group.id) ? "System group cannot be deleted" : "Delete group"}
+                            >
+                                <Trash2 size={14} className="mr-2" />
+                                <span className="hidden sm:inline">Delete</span>
+                            </Button>
                         </div>
                     </div>
                 ))}

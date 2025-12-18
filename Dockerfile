@@ -35,9 +35,9 @@ COPY server/package*.json ./server/
 # Install build dependencies, install npm packages, then remove build deps
 # This ensures better-sqlite3 native module is compiled for the correct architecture
 RUN apk add --no-cache --virtual .build-deps \
-    python3 \
-    make \
-    g++ \
+        python3 \
+        make \
+        g++ \
     && cd server \
     && npm ci --omit=dev \
     && apk del .build-deps
@@ -48,9 +48,9 @@ COPY server/ ./server/
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/dist ./dist
 
-# Copy entrypoint script and convert to Unix line endings (fixes Windows CRLF issue)
+# Copy entrypoint script
 COPY docker-entrypoint.sh /
-RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Create config directory
 RUN mkdir -p /config && \

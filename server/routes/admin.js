@@ -61,11 +61,6 @@ router.put('/users/:id', async (req, res) => {
         const { id } = req.params;
         const { username, email, password, group } = req.body;
 
-        // Prevent admin from changing their own group (self-demotion protection)
-        if (id === req.user.id && group && group !== req.user.group) {
-            return res.status(400).json({ error: 'Cannot change your own permission group' });
-        }
-
         const updates = {
             username,
             email,

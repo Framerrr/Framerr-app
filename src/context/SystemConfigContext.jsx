@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
-import { isAdmin } from '../utils/permissions';
 import logger from '../utils/logger';
 
 const SystemConfigContext = createContext(null);
 
 export const SystemConfigProvider = ({ children }) => {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [systemConfig, setSystemConfig] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -17,30 +16,12 @@ export const SystemConfigProvider = ({ children }) => {
             return;
         }
 
-        // Wait for user data to be available before checking admin status
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-
-        // Only admins can access system config
-        if (!isAdmin(user)) {
-            setSystemConfig({ groups: [], tabGroups: [] });
-            setLoading(false);
-            return;
-        }
-
         try {
             setLoading(true);
             const response = await axios.get('/api/config/system');
             setSystemConfig(response.data);
         } catch (error) {
-            // Only log debug for 403 (expected for non-admins), error for other issues
-            if (error.response?.status === 403) {
-                logger.debug('System config not accessible (not admin)');
-            } else {
-                logger.error('Failed to fetch system config:', error);
-            }
+            logger.error('Failed to fetch system config:', error);
             // Set empty config to prevent crashes
             setSystemConfig({ groups: [], tabGroups: [] });
         } finally {
@@ -50,7 +31,7 @@ export const SystemConfigProvider = ({ children }) => {
 
     useEffect(() => {
         fetchSystemConfig();
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated]);
 
     return (
         <SystemConfigContext.Provider value={{

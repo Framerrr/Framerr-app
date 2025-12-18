@@ -16,12 +16,8 @@ import { useNotifications } from '../../context/NotificationContext';
 const ToastContainer = () => {
     const { toasts, dismissToast } = useNotifications();
 
-<<<<<<< HEAD
     // Only render if there are toasts
     if (toasts.length === 0) return null;
-=======
-    // Always render container so AnimatePresence can animate last toast exit
->>>>>>> develop
 
     const toastContent = (
         <div

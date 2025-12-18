@@ -22,17 +22,10 @@ const FaviconInjector = () => {
                 // Store the authorized favicon HTML (or null for default)
                 if (htmlSnippet && htmlSnippet.trim() && enabled !== false) {
                     setAuthorizedFavicon(htmlSnippet);
-<<<<<<< HEAD
                     logger.info('Custom favicon authorized');
                 } else {
                     setAuthorizedFavicon(null);
                     logger.info('Using default Framerr favicon');
-=======
-                    logger.debug('Custom favicon authorized');
-                } else {
-                    setAuthorizedFavicon(null);
-                    logger.debug('Using default Framerr favicon');
->>>>>>> develop
                 }
                 setIsLoaded(true); // Mark as loaded regardless of custom/default
             } catch (error) {
@@ -46,11 +39,7 @@ const FaviconInjector = () => {
 
         // Listen for favicon update events from settings
         const handleFaviconUpdate = () => {
-<<<<<<< HEAD
             logger.info('Favicon updated, reloading...');
-=======
-            logger.debug('Favicon updated, reloading...');
->>>>>>> develop
             setIsLoaded(false); // Reset to trigger reload
             loadFavicon();
         };

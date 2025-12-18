@@ -2,18 +2,6 @@ const { db } = require('../database/db');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
 
-<<<<<<< HEAD
-=======
-// Lazy-load notificationEmitter to avoid circular dependency
-let notificationEmitter = null;
-function getEmitter() {
-    if (!notificationEmitter) {
-        notificationEmitter = require('../services/notificationEmitter');
-    }
-    return notificationEmitter;
-}
-
->>>>>>> develop
 /**
  * Create a notification
  * @param {object} notificationData - Notification data
@@ -26,10 +14,6 @@ async function createNotification(notificationData) {
         type: notificationData.type || 'info', // success, error, warning, info
         title: notificationData.title,
         message: notificationData.message,
-<<<<<<< HEAD
-=======
-        iconId: notificationData.iconId || null, // Custom icon ID for integration logos
->>>>>>> develop
         read: false,
         metadata: notificationData.metadata || null,
         createdAt: new Date().toISOString(),
@@ -38,13 +22,8 @@ async function createNotification(notificationData) {
 
     try {
         const insert = db.prepare(`
-<<<<<<< HEAD
             INSERT INTO notifications (id, user_id, title, message, type, read, created_at)
             VALUES (?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
-=======
-            INSERT INTO notifications (id, user_id, title, message, type, icon_id, metadata, read, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
->>>>>>> develop
         `);
 
         insert.run(
@@ -53,32 +32,10 @@ async function createNotification(notificationData) {
             notification.title,
             notification.message,
             notification.type,
-<<<<<<< HEAD
             notification.read ? 1 : 0
         );
 
         logger.debug('Notification created', { id: notification.id, userId: notification.userId, type: notification.type });
-=======
-            notification.iconId,
-            notification.metadata ? JSON.stringify(notification.metadata) : null,
-            notification.read ? 1 : 0
-        );
-
-        logger.debug('Notification created', {
-            id: notification.id,
-            userId: notification.userId,
-            type: notification.type,
-            hasMetadata: !!notification.metadata,
-            metadata: notification.metadata
-        });
-
-        // Send real-time notification via SSE
-        try {
-            getEmitter().sendNotification(notification.userId, notification);
-        } catch (sseError) {
-            logger.debug('SSE emit failed (no active connections)', { error: sseError.message });
-        }
->>>>>>> develop
 
         return notification;
     } catch (error) {
@@ -130,7 +87,6 @@ async function getNotifications(userId, filters = {}) {
         const unreadCount = unreadResult.count;
 
         // Convert SQLite timestamps (unix seconds) to ISO strings
-<<<<<<< HEAD
         const formattedNotifications = notifications.map(n => ({
             id: n.id,
             userId: n.user_id,
@@ -142,30 +98,6 @@ async function getNotifications(userId, filters = {}) {
             createdAt: new Date(n.created_at * 1000).toISOString(),
             expiresAt: null // Legacy field, not stored in SQLite
         }));
-=======
-        const formattedNotifications = notifications.map(n => {
-            let parsedMetadata = null;
-            if (n.metadata) {
-                try {
-                    parsedMetadata = JSON.parse(n.metadata);
-                } catch (e) {
-                    logger.warn('Failed to parse notification metadata', { id: n.id });
-                }
-            }
-            return {
-                id: n.id,
-                userId: n.user_id,
-                type: n.type,
-                title: n.title,
-                message: n.message,
-                iconId: n.icon_id || null,
-                read: n.read === 1,
-                metadata: parsedMetadata,
-                createdAt: new Date(n.created_at * 1000).toISOString(),
-                expiresAt: null
-            };
-        });
->>>>>>> develop
 
         return {
             notifications: formattedNotifications,
@@ -205,20 +137,6 @@ async function markAsRead(notificationId, userId) {
 
         logger.debug('Notification marked as read', { id: notificationId, userId });
 
-<<<<<<< HEAD
-=======
-        // Send sync event to other devices
-        try {
-            getEmitter().sendNotification(userId, {
-                type: 'sync',
-                action: 'markRead',
-                notificationId
-            });
-        } catch (sseError) {
-            logger.debug('SSE sync emit failed', { error: sseError.message });
-        }
-
->>>>>>> develop
         return {
             id: notification.id,
             userId: notification.user_id,
@@ -256,21 +174,6 @@ async function deleteNotification(notificationId, userId) {
         }
 
         logger.debug('Notification deleted', { id: notificationId, userId });
-<<<<<<< HEAD
-=======
-
-        // Send sync event to other devices
-        try {
-            getEmitter().sendNotification(userId, {
-                type: 'sync',
-                action: 'delete',
-                notificationId
-            });
-        } catch (sseError) {
-            logger.debug('SSE sync emit failed', { error: sseError.message });
-        }
-
->>>>>>> develop
         return true;
     } catch (error) {
         logger.error('Failed to delete notification', { error: error.message, notificationId, userId });
@@ -296,19 +199,6 @@ async function markAllAsRead(userId) {
 
         if (updatedCount > 0) {
             logger.info('All notifications marked as read', { userId, count: updatedCount });
-<<<<<<< HEAD
-=======
-
-            // Send sync event to other devices
-            try {
-                getEmitter().sendNotification(userId, {
-                    type: 'sync',
-                    action: 'markAllRead'
-                });
-            } catch (sseError) {
-                logger.debug('SSE sync emit failed', { error: sseError.message });
-            }
->>>>>>> develop
         }
 
         return updatedCount;
@@ -335,19 +225,6 @@ async function clearAll(userId) {
 
         if (deletedCount > 0) {
             logger.info('All notifications cleared', { userId, count: deletedCount });
-<<<<<<< HEAD
-=======
-
-            // Send sync event to other devices
-            try {
-                getEmitter().sendNotification(userId, {
-                    type: 'sync',
-                    action: 'clearAll'
-                });
-            } catch (sseError) {
-                logger.debug('SSE sync emit failed', { error: sseError.message });
-            }
->>>>>>> develop
         }
 
         return deletedCount;
@@ -358,52 +235,6 @@ async function clearAll(userId) {
 }
 
 /**
-<<<<<<< HEAD
-=======
- * Get a single notification by ID
- * @param {string} notificationId - Notification ID
- * @param {string} userId - User ID (for security)
- * @returns {Promise<object|null>} Notification or null
- */
-async function getNotificationById(notificationId, userId) {
-    try {
-        const notification = db.prepare(
-            'SELECT * FROM notifications WHERE id = ? AND user_id = ?'
-        ).get(notificationId, userId);
-
-        if (!notification) {
-            return null;
-        }
-
-        let parsedMetadata = null;
-        if (notification.metadata) {
-            try {
-                parsedMetadata = JSON.parse(notification.metadata);
-            } catch (e) {
-                logger.warn('Failed to parse notification metadata', { id: notification.id });
-            }
-        }
-
-        return {
-            id: notification.id,
-            userId: notification.user_id,
-            type: notification.type,
-            title: notification.title,
-            message: notification.message,
-            iconId: notification.icon_id || null,
-            read: notification.read === 1,
-            metadata: parsedMetadata,
-            createdAt: new Date(notification.created_at * 1000).toISOString(),
-            expiresAt: null
-        };
-    } catch (error) {
-        logger.error('Failed to get notification by ID', { error: error.message, notificationId, userId });
-        throw error;
-    }
-}
-
-/**
->>>>>>> develop
  * Clean up expired notifications
  * Run periodically to remove old notifications
  * NOTE: Expiration feature not implemented in SQLite schema yet
@@ -418,17 +249,10 @@ async function cleanupExpiredNotifications() {
 module.exports = {
     createNotification,
     getNotifications,
-<<<<<<< HEAD
-=======
-    getNotificationById,
->>>>>>> develop
     markAsRead,
     deleteNotification,
     markAllAsRead,
     clearAll,
     cleanupExpiredNotifications
 };
-<<<<<<< HEAD
 
-=======
->>>>>>> develop

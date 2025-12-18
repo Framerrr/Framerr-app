@@ -1,9 +1,8 @@
 import logger from './logger';
 import { getWidgetMetadata } from './widgetRegistry';
-export const generateMobileLayout = (widgets, breakpoint = 'sm') => {
+export const generateMobileLayout = (widgets, breakpoint = 'xs') => {
     // Determine column count based on breakpoint
-    // lg/md use 24 cols (handled separately), sm/xs use 2 cols (stacked)
-    const cols = 2;
+    const cols = breakpoint === 'xxs' ? 2 : breakpoint === 'xs' ? 6 : 24; // md/sm/lg=24, xs=6, xxs=2
     // 1. Extract desktop layout info with Y range
     const desktopWidgets = widgets.map(w => ({
         id: w.id,
@@ -102,14 +101,18 @@ const calculateMobileHeight = (widget, breakpoint) => {
     const desktopHeight = widget.layouts?.lg?.h ?? widget.h ?? 2;
     const scaled = Math.ceil(desktopHeight * 0.75);
     const min = 2;
-    const max = 6;
+    const max = breakpoint === 'xxs' ? 4 : 6;
     return Math.max(min, Math.min(max, scaled));
 };
 /**
- * Generate mobile layout for sm breakpoint
+ * Generate mobile layouts for all stacking breakpoints: md, sm, xs, xxs
  */
 export const generateAllMobileLayouts = (widgets) => {
-    return generateMobileLayout(widgets, 'sm');
+    const withMd = generateMobileLayout(widgets, 'md');
+    const withSm = generateMobileLayout(withMd, 'sm');
+    const withXs = generateMobileLayout(withSm, 'xs');
+    const withXxs = generateMobileLayout(withXs, 'xxs');
+    return withXxs;
 };
 /**
  * Convert old widget format to new layouts format

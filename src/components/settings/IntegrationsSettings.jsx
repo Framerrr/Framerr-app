@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Tv, MonitorPlay, Film, Download, Star, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save, Check, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Server, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save } from 'lucide-react';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import SystemHealthIntegration from './integrations/SystemHealthIntegration';
-<<<<<<< HEAD
-=======
-import PlexIntegration from './integrations/PlexIntegration';
-import SharingDropdown from './SharingDropdown';
-import { useNotifications } from '../../context/NotificationContext';
-import { useAuth } from '../../context/AuthContext';
->>>>>>> develop
 
 const IntegrationsSettings = () => {
     const [integrations, setIntegrations] = useState({
@@ -27,22 +19,9 @@ const IntegrationsSettings = () => {
     const [saving, setSaving] = useState(false);
     const [expandedSections, setExpandedSections] = useState({});
     const [testStates, setTestStates] = useState({});
-    const [confirmReset, setConfirmReset] = useState({});
-    const { success: showSuccess, error: showError } = useNotifications();
-    const { user } = useAuth();
 
     useEffect(() => {
         fetchIntegrations();
-
-        // Listen for integration updates from SharedWidgetsSettings (revoke)
-        const handleIntegrationsUpdated = () => {
-            fetchIntegrations();
-        };
-        window.addEventListener('integrationsUpdated', handleIntegrationsUpdated);
-
-        return () => {
-            window.removeEventListener('integrationsUpdated', handleIntegrationsUpdated);
-        };
     }, []);
 
     const fetchIntegrations = async () => {
@@ -90,19 +69,6 @@ const IntegrationsSettings = () => {
         }));
     };
 
-    const handleSharingChange = (service, sharingConfig) => {
-        setIntegrations(prev => ({
-            ...prev,
-            [service]: {
-                ...prev[service],
-                sharing: {
-                    ...sharingConfig,
-                    sharedBy: sharingConfig.enabled ? (sharingConfig.sharedBy || user?.id) : null
-                }
-            }
-        }));
-    };
-
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -114,21 +80,17 @@ const IntegrationsSettings = () => {
             });
 
             if (response.ok) {
-<<<<<<< HEAD
                 alert('Integration settings saved successfully');
-=======
-                showSuccess('Settings Saved', 'Integration settings saved successfully');
->>>>>>> develop
 
                 // Dispatch event to notify widgets that integrations have been updated
                 window.dispatchEvent(new CustomEvent('integrationsUpdated'));
             } else {
                 const error = await response.json();
-                showError('Save Failed', error.error || 'Failed to save integrations');
+                alert(error.error || 'Failed to save integrations');
             }
         } catch (error) {
             logger.error('Error saving integrations:', error);
-            showError('Save Failed', 'Failed to save integrations');
+            alert('Failed to save integrations');
         } finally {
             setSaving(false);
         }
@@ -179,32 +141,8 @@ const IntegrationsSettings = () => {
         setExpandedSections(prev => ({ ...prev, [service]: !prev[service] }));
     };
 
-    const handleReset = (service, fields) => {
-        // Reset to default values
-        const resetData = { enabled: false };
-        fields.forEach(field => {
-            resetData[field.key] = '';
-        });
-        setIntegrations(prev => ({
-            ...prev,
-            [service]: resetData
-        }));
-        setConfirmReset(prev => ({ ...prev, [service]: false }));
-        setExpandedSections(prev => ({ ...prev, [service]: false }));
-    };
-
-    // Helper to check if integration is configured
-    const isConfigured = (service) => {
-        const config = integrations[service];
-        if (!config?.enabled) return false;
-        // Check if URL is filled (required for all integrations)
-        return !!config.url;
-    };
-
-    // Define integration configuration metadata - excludes systemstatus and plex (handled separately)
     const integrationConfigs = [
         {
-<<<<<<< HEAD
             id: 'plex',
             name: 'Plex',
             description: 'Media server integration',
@@ -214,12 +152,9 @@ const IntegrationsSettings = () => {
             ]
         },
         {
-=======
->>>>>>> develop
             id: 'sonarr',
             name: 'Sonarr',
             description: 'TV show management',
-            icon: MonitorPlay,
             fields: [
                 { key: 'url', label: 'Sonarr URL', placeholder: 'http://192.168.1.5:8989', type: 'text' },
                 { key: 'apiKey', label: 'API Key', placeholder: 'Your Sonarr API key', type: 'password' }
@@ -229,7 +164,6 @@ const IntegrationsSettings = () => {
             id: 'radarr',
             name: 'Radarr',
             description: 'Movie management',
-            icon: Film,
             fields: [
                 { key: 'url', label: 'Radarr URL', placeholder: 'http://192.168.1.5:7878', type: 'text' },
                 { key: 'apiKey', label: 'API Key', placeholder: 'Your Radarr API key', type: 'password' }
@@ -239,7 +173,6 @@ const IntegrationsSettings = () => {
             id: 'qbittorrent',
             name: 'qBittorrent',
             description: 'Torrent client',
-            icon: Download,
             fields: [
                 { key: 'url', label: 'qBittorrent URL', placeholder: 'http://192.168.1.5:8080', type: 'text' },
                 { key: 'username', label: 'Username', placeholder: 'admin', type: 'text' },
@@ -250,7 +183,6 @@ const IntegrationsSettings = () => {
             id: 'overseerr',
             name: 'Overseerr',
             description: 'Request management',
-            icon: Star,
             fields: [
                 { key: 'url', label: 'Overseerr URL', placeholder: 'http://192.168.1.5:5055', type: 'text' },
                 { key: 'apiKey', label: 'API Key', placeholder: 'Your Overseerr API key', type: 'password' }
@@ -288,7 +220,6 @@ const IntegrationsSettings = () => {
                 </div>
             </div>
 
-<<<<<<< HEAD
             {/* System Health Integration - Special Multi-Backend Component */}
             <SystemHealthIntegration
                 integration={integrations.systemstatus}
@@ -302,176 +233,89 @@ const IntegrationsSettings = () => {
 
             {/* Other Integrations List */}
             <div className="space-y-4 mt-4">
-=======
-            {/* Integration Cards */}
-            <div className="space-y-4">
-                {/* System Health Integration - Special Multi-Backend Component */}
-                <SystemHealthIntegration
-                    integration={integrations.systemstatus}
-                    onUpdate={(updated) => {
-                        setIntegrations(prev => ({
-                            ...prev,
-                            systemstatus: updated
-                        }));
-                    }}
-                    sharing={integrations.systemstatus?.sharing}
-                    onSharingChange={(sharingConfig) => handleSharingChange('systemstatus', sharingConfig)}
-                />
-
-                {/* Plex Integration - Special OAuth Component */}
-                <PlexIntegration
-                    integration={integrations.plex}
-                    onUpdate={(updated) => {
-                        setIntegrations(prev => ({
-                            ...prev,
-                            plex: updated
-                        }));
-                    }}
-                    sharing={integrations.plex?.sharing}
-                    onSharingChange={(sharingConfig) => handleSharingChange('plex', sharingConfig)}
-                />
-
-                {/* Other Integrations */}
->>>>>>> develop
                 {integrationConfigs.map(config => {
-                    const Icon = config.icon;
                     const isEnabled = integrations[config.id]?.enabled;
                     const isExpanded = expandedSections[config.id];
                     const testState = testStates[config.id];
-                    const configuredStatus = isConfigured(config.id);
-                    const showConfirmReset = confirmReset[config.id];
 
                     return (
                         <div key={config.id} className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
-                            {/* Header - Clickable to expand */}
-                            <button
-                                onClick={() => toggleSection(config.id)}
-                                className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
-                            >
+                            {/* Header */}
+                            <div className="p-6 flex items-center justify-between">
                                 <div className="flex items-center gap-4 flex-1">
-                                    <Icon className="text-theme-secondary" size={20} />
-                                    <div className="flex-1 min-w-0 text-left">
+                                    <Server className="text-theme-secondary" size={20} />
+                                    <div className="flex-1 min-w-0">
                                         <h3 className="font-semibold text-theme-primary">{config.name}</h3>
-                                        <p className="text-sm text-theme-secondary hidden sm:block">{config.description}</p>
+                                        <p className="text-sm text-theme-secondary">{config.description}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    {/* Status Badge (when not expanded and enabled) */}
-                                    {!isExpanded && isEnabled && (
-                                        <span className={`
-                                            px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
-                                            ${configuredStatus
-                                                ? 'bg-success/10 text-success sm:border sm:border-success/20'
-                                                : 'bg-warning/10 text-warning sm:border sm:border-warning/20'
-                                            }
-                                        `}>
-                                            <span>{configuredStatus ? '🟢' : '🟡'}</span>
-                                            <span className="hidden sm:inline">{configuredStatus ? 'Configured' : 'Setup Required'}</span>
-                                        </span>
-                                    )}
-
                                     {/* Toggle Switch */}
-                                    <div
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleToggle(config.id);
-                                        }}
-                                        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${isEnabled ? 'bg-success' : 'bg-theme-tertiary'}`}
+                                    <button
+                                        onClick={() => handleToggle(config.id)}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${isEnabled ? 'bg-success' : 'bg-theme-tertiary'
+                                            }`}
                                     >
-                                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                                    </div>
+                                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'
+                                            }`} />
+                                    </button>
 
-                                    {/* Chevron */}
-                                    <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                    {/* Expand Button */}
+                                    {isEnabled && (
+                                        <button
+                                            onClick={() => toggleSection(config.id)}
+                                            className="text-theme-secondary hover:text-theme-primary transition-colors"
+                                        >
+                                            <ChevronDown size={20} className={`transition-transform ${isExpanded ? 'rotate-180' : ''
+                                                }`} />
+                                        </button>
+                                    )}
                                 </div>
-                            </button>
+                            </div>
 
-                            {/* Configuration Form - Animated Collapsible */}
-                            <AnimatePresence>
-                                {isExpanded && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                    >
-                                        <div className="px-6 pb-6 border-t border-theme pt-6 space-y-4 overflow-visible">
-                                            {/* Configuration Fields */}
-                                            {config.fields.map(field => (
-                                                <Input
-                                                    key={field.key}
-                                                    label={field.label}
-                                                    type={field.type}
-                                                    value={integrations[config.id][field.key] || ''}
-                                                    onChange={(e) => handleFieldChange(config.id, field.key, e.target.value)}
-                                                    placeholder={field.placeholder}
-                                                />
-                                            ))}
-
-                                            {/* Widget Sharing */}
-                                            <SharingDropdown
-                                                service={config.id}
-                                                sharing={integrations[config.id]?.sharing}
-                                                onChange={(sharingConfig) => handleSharingChange(config.id, sharingConfig)}
-                                                disabled={!isConfigured(config.id)}
+                            {/* Configuration Form - Collapsible */}
+                            {isEnabled && isExpanded && (
+                                <div className="px-6 pb-6 border-t border-theme pt-6">
+                                    <div className="space-y-4">
+                                        {config.fields.map(field => (
+                                            <Input
+                                                key={field.key}
+                                                label={field.label}
+                                                type={field.type}
+                                                value={integrations[config.id][field.key] || ''}
+                                                onChange={(e) => handleFieldChange(config.id, field.key, e.target.value)}
+                                                placeholder={field.placeholder}
                                             />
+                                        ))}
 
-                                            {/* Test Connection & Reset */}
-                                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
-                                                <div className="flex items-center gap-3">
-                                                    <Button
-                                                        onClick={() => handleTest(config.id)}
-                                                        disabled={testState?.loading}
-                                                        variant={testState && !testState.loading ? (testState.success ? 'primary' : 'danger') : 'secondary'}
-                                                        size="sm"
-                                                        icon={testState?.loading ? Loader : (testState?.success ? CheckCircle2 : testState ? AlertCircle : TestTube)}
-                                                        className={testState && !testState.loading && testState.success ? 'bg-success border-success' : ''}
-                                                    >
-                                                        {testState?.loading ? 'Testing...' :
-                                                            testState?.success ? <span className="hidden sm:inline">Connected</span> :
-                                                                testState ? <span className="hidden sm:inline">Failed</span> :
-                                                                    'Test'}
-                                                    </Button>
-                                                </div>
+                                        {/* Test Connection Button */}
+                                        <div className="flex items-center gap-3 pt-2">
+                                            <Button
+                                                onClick={() => handleTest(config.id)}
+                                                disabled={testState?.loading}
+                                                variant="secondary"
+                                                size="sm"
+                                                icon={testState?.loading ? Loader : TestTube}
+                                            >
+                                                {testState?.loading ? 'Testing...' : 'Test Connection'}
+                                            </Button>
 
-                                                {/* Reset Integration Button with inline confirmation */}
-                                                {isEnabled && (
-                                                    !showConfirmReset ? (
-                                                        <Button
-                                                            onClick={() => setConfirmReset(prev => ({ ...prev, [config.id]: true }))}
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            className="text-error hover:bg-error/10 border-error/20"
-                                                        >
-                                                            Reset Integration
-                                                        </Button>
+                                            {/* Test Result */}
+                                            {testState && !testState.loading && (
+                                                <div className={`flex items-center gap-2 text-sm ${testState.success ? 'text-success' : 'text-error'
+                                                    }`}>
+                                                    {testState.success ? (
+                                                        <CheckCircle2 size={16} />
                                                     ) : (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm text-error">Reset?</span>
-                                                            <Button
-                                                                onClick={() => handleReset(config.id, config.fields)}
-                                                                variant="danger"
-                                                                size="sm"
-                                                                icon={Check}
-                                                            >
-                                                                Yes
-                                                            </Button>
-                                                            <Button
-                                                                onClick={() => setConfirmReset(prev => ({ ...prev, [config.id]: false }))}
-                                                                variant="secondary"
-                                                                size="sm"
-                                                                icon={X}
-                                                            >
-                                                                No
-                                                            </Button>
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
+                                                        <AlertCircle size={16} />
+                                                    )}
+                                                    <span>{testState.message}</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     );
                 })}

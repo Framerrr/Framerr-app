@@ -221,25 +221,16 @@ async function updateUser(userId, updates) {
 /**
  * Delete user
  * @param {string} userId - User ID
- * @returns {boolean} True if deleted, false if user not found
  */
 async function deleteUser(userId) {
     try {
         const user = await getUserById(userId);
-<<<<<<< HEAD
         if (!user) return;
-=======
-        if (!user) return false;
->>>>>>> develop
 
         // Delete user (CASCADE will handle sessions due to foreign key)
         db.prepare('DELETE FROM users WHERE id = ?').run(userId);
 
         logger.info(`User deleted: ${user.username}`);
-<<<<<<< HEAD
-=======
-        return true;
->>>>>>> develop
     } catch (error) {
         logger.error('Failed to delete user', { error: error.message, userId });
         throw error;

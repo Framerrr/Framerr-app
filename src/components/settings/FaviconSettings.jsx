@@ -213,7 +213,7 @@ const FaviconSettings = () => {
                         </div>
                         <button
                             onClick={handleToggleFavicon}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${faviconEnabled ? 'bg-accent border-accent' : 'bg-theme-primary border-theme'
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${faviconEnabled ? 'bg-accent' : 'bg-theme-tertiary'
                                 }`}
                         >
                             <span
