@@ -26,10 +26,11 @@ export const AuthProvider = ({ children }) => {
     }, [navigate]);
 
     // Register logout function with axios interceptor for auto-logout on 401
+    // Must use full logout() to respect proxy auth redirect, not just handleSessionExpiry
     useEffect(() => {
-        setLogoutFunction(handleSessionExpiry);
+        setLogoutFunction(logout);
         return () => setLogoutFunction(null);
-    }, [handleSessionExpiry]);
+    }, [logout]);
 
     // Check auth when tab becomes visible (handles sleeping tabs)
     useEffect(() => {
@@ -124,7 +125,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
             const response = await axios.post('/api/auth/logout');
             setUser(null);
@@ -136,7 +137,7 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
             logger.error('Logout failed', err);
         }
-    };
+    }, []);
 
     const loginWithPlex = async (plexToken, plexUserId) => {
         try {
