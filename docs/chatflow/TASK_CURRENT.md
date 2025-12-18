@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-17 21:06 EST  
+**Last Updated:** 2025-12-17 22:58 EST  
 **Branch:** `develop`
 
 ---
@@ -9,48 +9,32 @@
 
 | Field | Value |
 |-------|-------|
-| **Last Released Version** | `1.1.11` |
+| **Last Released Version** | `1.2.0` |
 | **Release Status** | RELEASED |
 | **Draft Changelog** | (none - create next session) |
 | **Draft Status** | N/A |
 
-> **IMPORTANT FOR AGENTS:** No draft currently exists. Create `docs/versions/v1.1.12-draft.md` when starting new work.
+> **IMPORTANT FOR AGENTS:** No draft currently exists. Create `docs/versions/v1.2.1-draft.md` when starting new work.
 
 ---
 
 ## Current State
 
-**Status:** ✅ Complete — v1.1.11 Released to Production
+**Status:** 🔄 In Progress — Version bump 1.1.11 → 1.2.0
 
 **This Session Summary:**
 
-### v1.1.11 Production Release ✅
-- Fixed double toast bug in test notification button
-- Merged feature/notification-integration → develop
-- Squash merged develop → main (55 conflicts resolved using develop versions)
-- Created and pushed git tag v1.1.11
-- Built and pushed Docker images: pickels23/framerr:1.1.11 and :latest
-
-### Key Fixes This Session
-- **Double Toast Bug**: `sendTestNotification` was showing toast AND SSE was showing another — removed manual toast
-- **Merge Conflict Resolution**: Properly resolved all 55 squash merge conflicts by accepting develop versions for all files
-
----
-
-## Previous Session Work (Now Released)
-
-- Notification integration (SSE, Web Push, toast system)
-- Widget loading race condition fixes
-- Session expiry auto-redirect
-- Dashboard loading indicator fixes
-- Clock & Weather widget layout improvements
+### Version Rename: 1.1.11 → 1.2.0
+- Updated `package.json` and `server/package.json` to 1.2.0
+- Renamed `docs/versions/v1.1.11.md` → `v1.2.0.md`
+- Added 1.2.0 section to `CHANGELOG.md`
+- Git tag and Docker retag pending
 
 ---
 
 ## Next Step
 
-**Start v1.1.12 development** — User mentioned wanting to update workflows to avoid future squash merge conflict issues.
+- Complete git tag operations (delete v1.1.11, create v1.2.0)
+- Retag Docker images
 
 ---
-
-**=== SESSION END ===**
