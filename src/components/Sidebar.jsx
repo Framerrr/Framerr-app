@@ -112,8 +112,12 @@ const Sidebar = () => {
     }, []);
 
     const handleLogout = async () => {
-        await logout();
-        navigate('/login');
+        // logout() returns true for local auth, false for proxy redirect
+        const shouldNavigate = await logout();
+        if (shouldNavigate) {
+            navigate('/login');
+        }
+        // If false, browser is redirecting to proxy logout - do NOT navigate
     };
 
     // Initialize all groups as expanded by default
