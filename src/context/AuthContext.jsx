@@ -128,12 +128,16 @@ export const AuthProvider = ({ children }) => {
     const logout = useCallback(async () => {
         try {
             const response = await axios.post('/api/auth/logout');
-            setUser(null);
 
-            // If backend returns redirectUrl (proxy auth logout), redirect to it
+            // If proxy auth redirect, do it BEFORE clearing user state
+            // Otherwise ProtectedRoute will navigate to /login first (race condition)
             if (response.data?.redirectUrl) {
                 window.location.href = response.data.redirectUrl;
+                return; // Don't continue, browser is navigating away
             }
+
+            // Only clear user for local logout (no proxy redirect)
+            setUser(null);
         } catch (err) {
             logger.error('Logout failed', err);
         }
