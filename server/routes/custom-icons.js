@@ -78,6 +78,10 @@ router.delete('/:id', authenticateUser, async (req, res) => {
 
         res.json({ success: true, icon: deletedIcon });
     } catch (error) {
+        // Check if this is a system icon deletion attempt
+        if (error.isSystemIcon) {
+            return res.status(403).json({ error: 'System icons cannot be deleted' });
+        }
         logger.error('Failed to delete custom icon', { error: error.message });
         res.status(500).json({ error: 'Failed to delete icon' });
     }

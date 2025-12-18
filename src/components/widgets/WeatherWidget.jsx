@@ -24,8 +24,8 @@ const WeatherWidget = () => {
 
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
-                // Switch to horizontal layout if width >= 280px (w:3 grid units)
-                const shouldBeWide = entry.contentRect.width >= 280;
+                // Switch to horizontal layout if width >= 410px
+                const shouldBeWide = entry.contentRect.width >= 410;
                 setIsWide(prev => prev === shouldBeWide ? prev : shouldBeWide);
             }
         });
@@ -136,40 +136,53 @@ const WeatherWidget = () => {
     // Render success state with weather data
     return (
         <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-            {/* Dynamic Layout: Vertical (narrow) or Horizontal (wide) */}
-            <div className={`flex ${isWide ? 'flex-row items-center gap-4' : 'flex-col items-center'}`}>
-                {isWide ? (
-                    // Horizontal layout: Icon | Location/Temp | Conditions/H/L
-                    <>
-                        <WeatherIcon size={48} color="var(--text-secondary)" style={{ opacity: 0.8, flexShrink: 0 }} />
+            {isWide ? (
+                // Horizontal layout
+                <div className="flex items-center gap-5">
+                    {/* Icon */}
+                    <WeatherIcon size={48} className="text-theme-secondary opacity-80 flex-shrink-0" />
 
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                <MapPin size={12} style={{ flexShrink: 0 }} />
-                                {weather.location}
-                            </div>
-                            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', lineHeight: 1, marginTop: '0.1rem' }}>{weather.temp}°F</div>
-                        </div>
+                    {/* Temperature */}
+                    <div className="text-5xl font-bold text-theme-primary leading-none">
+                        {weather.temp}°
+                    </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>{info.label}</div>
-                            <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.1rem' }}>H: {weather.high}° L: {weather.low}°</div>
+                    {/* Info Column */}
+                    <div className="flex flex-col items-start">
+                        <div className="flex items-center gap-1 text-sm text-theme-secondary">
+                            <MapPin size={12} className="flex-shrink-0" />
+                            <span>{weather.location}</span>
                         </div>
-                    </>
-                ) : (
-                    // Vertical layout
-                    <>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <MapPin size={10} />
-                            {weather.location}
+                        <div className="text-theme-secondary font-medium mt-0.5">{info.label}</div>
+                        <div className="text-xs text-theme-tertiary mt-0.5">
+                            H: {weather.high}° · L: {weather.low}°
                         </div>
-                        <div className="text-4xl mb-2" style={{ fontWeight: 'bold', lineHeight: 1 }}>{weather.temp}°F</div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500 }}>{info.label}</div>
-                        <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>H: {weather.high}° L: {weather.low}°</div>
-                        <WeatherIcon size={32} color="var(--text-secondary)" style={{ opacity: 0.5, marginTop: '0.5rem' }} />
-                    </>
-                )}
-            </div>
+                    </div>
+                </div>
+            ) : (
+                // Vertical layout - centered
+                <div className="flex flex-col items-center text-center">
+                    {/* Location */}
+                    <div className="flex items-center gap-1 text-xs text-theme-secondary mb-2">
+                        <MapPin size={10} className="flex-shrink-0" />
+                        <span className="text-center">{weather.location}</span>
+                    </div>
+
+                    {/* Temp + Icon row */}
+                    <div className="flex items-center gap-3">
+                        <div className="text-5xl font-bold text-theme-primary leading-none">
+                            {weather.temp}°
+                        </div>
+                        <WeatherIcon size={36} className="text-theme-secondary opacity-70" />
+                    </div>
+
+                    {/* Conditions */}
+                    <div className="text-theme-secondary font-medium mt-2">{info.label}</div>
+                    <div className="text-xs text-theme-tertiary mt-1">
+                        H: {weather.high}° · L: {weather.low}°
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

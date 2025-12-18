@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLayout } from '../../context/LayoutContext';
+import { LAYOUT } from '../../constants/layout';
 
 /**
  * DebugOverlay - Shows dashboard grid and layout information
@@ -13,6 +15,21 @@ const DebugOverlay = ({
 }) => {
     // Don't render if not enabled
     if (!enabled) return null;
+
+    // Get layout context info
+    const { mode, isMobile } = useLayout();
+
+    // Track viewport width
+    const [viewportWidth, setViewportWidth] = useState(
+        typeof window !== 'undefined' ? window.innerWidth : 0
+    );
+
+    useEffect(() => {
+        const handleResize = () => setViewportWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const currentLayout = layouts[currentBreakpoint] || [];
 
     // Sort widgets by their Y position to show stacking order
@@ -33,27 +50,83 @@ const DebugOverlay = ({
 
     return (
         <div
-            className="fixed bottom-4 right-4 z-[9999] w-80 max-h-96 overflow-auto
+            className="fixed bottom-4 right-4 z-[9999] w-80 max-h-[80vh] overflow-auto
                        bg-slate-900/95 border-2 border-purple-500 rounded-lg shadow-2xl
                        backdrop-blur-md text-white text-xs font-mono"
         >
             {/* Header */}
             <div className="sticky top-0 bg-purple-600 px-3 py-2 flex items-center justify-between">
                 <span className="font-bold text-sm">🐛 Debug Overlay</span>
-                <span className="text-purple-200 text-[10px]">v1.0</span>
+                <span className="text-purple-200 text-[10px]">v2.0</span>
+            </div>
+
+            {/* Layout Controller Info - NEW SECTION */}
+            <div className="p-3 border-b border-slate-700 bg-slate-800/50">
+                <div className="font-bold text-blue-400 mb-2">📐 Layout Controller</div>
+                <div className="space-y-1">
+                    <div className="flex justify-between">
+                        <span className="text-slate-400">Mode:</span>
+                        <span className={`font-bold ${mode === 'mobile' ? 'text-orange-400' : 'text-green-400'}`}>
+                            {mode}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-400">isMobile:</span>
+                        <span className={`font-bold ${isMobile ? 'text-orange-400' : 'text-green-400'}`}>
+                            {isMobile ? 'true' : 'false'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-400">Viewport Width:</span>
+                        <span className="text-cyan-400">{viewportWidth}px</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-400">Mobile Threshold:</span>
+                        <span className="text-yellow-400">{LAYOUT.MOBILE_THRESHOLD}px</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-400">Sidebar Width:</span>
+                        <span className="text-yellow-400">{LAYOUT.SIDEBAR_WIDTH}px</span>
+                    </div>
+                    {/* Visual threshold indicator */}
+                    <div className="mt-2 pt-2 border-t border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full transition-all duration-300 ${viewportWidth >= LAYOUT.MOBILE_THRESHOLD
+                                            ? 'bg-green-500'
+                                            : 'bg-orange-500'
+                                        }`}
+                                    style={{
+                                        width: `${Math.min(100, (viewportWidth / 1200) * 100)}%`
+                                    }}
+                                />
+                            </div>
+                            <span className="text-[10px] text-slate-500 w-16 text-right">
+                                {viewportWidth >= LAYOUT.MOBILE_THRESHOLD ? '≥768' : '<768'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Grid Info */}
             <div className="p-3 border-b border-slate-700">
-                <div className="font-bold text-purple-400 mb-2">Grid Info</div>
+                <div className="font-bold text-purple-400 mb-2">🔲 Grid Info</div>
                 <div className="space-y-1">
                     <div className="flex justify-between">
-                        <span className="text-slate-400">Breakpoint:</span>
+                        <span className="text-slate-400">Grid Breakpoint:</span>
                         <span className="text-green-400 font-bold">{currentBreakpoint}</span>
                     </div>
                     <div className="flex justify-between">
+                        <span className="text-slate-400">Effective BP:</span>
+                        <span className={`font-bold ${isMobile ? 'text-orange-400' : 'text-green-400'}`}>
+                            {isMobile ? 'sm (forced)' : currentBreakpoint}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
                         <span className="text-slate-400">Columns:</span>
-                        <span className="text-yellow-400">{gridConfig?.cols?.[currentBreakpoint] || 'N/A'}</span>
+                        <span className="text-yellow-400">{gridConfig?.cols?.[currentBreakpoint] || (isMobile ? 2 : 'N/A')}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-400">CompactType:</span>
@@ -63,13 +136,19 @@ const DebugOverlay = ({
                         <span className="text-slate-400">Row Height:</span>
                         <span className="text-orange-400">{gridConfig?.rowHeight}px</span>
                     </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-400">Draggable:</span>
+                        <span className={gridConfig?.isDraggable ? 'text-green-400' : 'text-red-400'}>
+                            {gridConfig?.isDraggable ? 'yes' : 'no'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
             {/* Widget List */}
             <div className="p-3">
                 <div className="font-bold text-purple-400 mb-2">
-                    Widget Positions ({sortedWidgets.length})
+                    📦 Widget Positions ({sortedWidgets.length})
                 </div>
                 <div className="space-y-2">
                     {sortedWidgets.map((widget) => (

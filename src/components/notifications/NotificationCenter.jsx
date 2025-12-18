@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Trash2, Check } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Trash2, Check, XCircle } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import logger from '../../utils/logger';
 
@@ -29,7 +29,8 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         markAsRead,
         deleteNotification,
         markAllAsRead,
-        clearAll
+        clearAll,
+        handleRequestAction
     } = useNotifications();
 
     const [activeFilter, setActiveFilter] = useState('all');
@@ -149,19 +150,29 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                 onClick={() => !notification.read && handleMarkAsRead(notification.id)}
             >
                 <div className="flex items-start gap-3">
-                    {/* Icon */}
-                    <div
-                        className="p-2 rounded-lg flex-shrink-0"
-                        style={{
-                            backgroundColor: `var(--${notification.type})`,
-                            opacity: 0.2
-                        }}
-                    >
-                        <Icon
-                            size={18}
-                            style={{ color: `var(--${notification.type})` }}
-                        />
-                    </div>
+                    {/* Icon - custom icon or type-based icon */}
+                    {notification.iconId ? (
+                        <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-theme-tertiary flex items-center justify-center">
+                            <img
+                                src={`/api/custom-icons/${notification.iconId}/file`}
+                                alt=""
+                                className="w-7 h-7 object-contain"
+                            />
+                        </div>
+                    ) : (
+                        <div
+                            className="p-2 rounded-lg flex-shrink-0"
+                            style={{
+                                backgroundColor: `var(--${notification.type})`,
+                                opacity: 0.2
+                            }}
+                        >
+                            <Icon
+                                size={18}
+                                style={{ color: `var(--${notification.type})` }}
+                            />
+                        </div>
+                    )}
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
@@ -176,6 +187,34 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                         <p className="text-sm text-theme-secondary mt-1">
                             {notification.message}
                         </p>
+
+                        {/* Actionable notification buttons (Overseerr approve/decline) */}
+                        {notification.metadata?.actionable && notification.metadata?.requestId && (
+                            <div className="flex gap-2 mt-3">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRequestAction(notification.id, 'approve');
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                                        bg-success/20 text-success hover:bg-success/30 transition-colors"
+                                >
+                                    <Check size={14} />
+                                    Approve
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRequestAction(notification.id, 'decline');
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                                        bg-error/20 text-error hover:bg-error/30 transition-colors"
+                                >
+                                    <XCircle size={14} />
+                                    Decline
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Actions */}

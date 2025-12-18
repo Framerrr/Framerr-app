@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown, Bell } from 'lucide-react';
+import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -17,8 +17,23 @@ const CustomizationSettings = () => {
     const [activeSubTab, setActiveSubTab] = useState('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
-    const { info: showInfoToast, addNotification } = useNotifications();
+    const { error: showError, success: showSuccess } = useNotifications();
     const userIsAdmin = isAdmin(user);
+
+    // Refs for auto-scrolling sub-tab buttons into view
+    const subTabRefs = useRef({});
+
+    // Scroll active sub-tab into view when it changes
+    useEffect(() => {
+        const tabButton = subTabRefs.current[activeSubTab];
+        if (tabButton) {
+            tabButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [activeSubTab]);
 
     // Default color values matching dark-pro.css - 21 customizable variables
     const defaultColors = {
@@ -58,7 +73,7 @@ const CustomizationSettings = () => {
     const [loading, setLoading] = useState(true);
 
     // Application name state
-    const [applicationName, setApplicationName] = useState('Homelab Dashboard');
+    const [applicationName, setApplicationName] = useState('Framerr');
     const [applicationIcon, setApplicationIcon] = useState('Server');
     const [savingAppName, setSavingAppName] = useState(false);
 
@@ -75,15 +90,10 @@ const CustomizationSettings = () => {
     const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
-    // Notification preferences state
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const [notificationSound, setNotificationSound] = useState(false);
-    const [savingNotifications, setSavingNotifications] = useState(false);
-    const [originalNotifications, setOriginalNotifications] = useState({ enabled: true, sound: false });
-    const [hasNotificationChanges, setHasNotificationChanges] = useState(false);
+
 
     // Change tracking for save buttons
-    const [originalAppName, setOriginalAppName] = useState('Homelab Dashboard');
+    const [originalAppName, setOriginalAppName] = useState('Framerr');
     const [originalAppIcon, setOriginalAppIcon] = useState('Server');
     const [originalGreeting, setOriginalGreeting] = useState({ enabled: true, text: 'Your personal dashboard' });
     const [hasAppNameChanges, setHasAppNameChanges] = useState(false);
@@ -177,21 +187,38 @@ const CustomizationSettings = () => {
                     setCustomColors(themeColors);
                 }
 
-                // Load system config for application name and icon
-                const systemResponse = await axios.get('/api/config/system', {
-                    withCredentials: true
-                });
+                // Load system config for application name and icon (admin only)
+                if (isAdmin(user)) {
+                    try {
+                        const systemResponse = await axios.get('/api/config/system', {
+                            withCredentials: true
+                        });
 
-                if (systemResponse.data?.server?.name) {
-                    const name = systemResponse.data.server.name;
-                    setApplicationName(name);
-                    setOriginalAppName(name);
-                }
+                        if (systemResponse.data?.server?.name) {
+                            const name = systemResponse.data.server.name;
+                            setApplicationName(name);
+                            setOriginalAppName(name);
+                        }
 
-                if (systemResponse.data?.server?.icon) {
-                    const icon = systemResponse.data.server.icon;
-                    setApplicationIcon(icon);
-                    setOriginalAppIcon(icon);
+                        if (systemResponse.data?.server?.icon) {
+                            const icon = systemResponse.data.server.icon;
+                            setApplicationIcon(icon);
+                            setOriginalAppIcon(icon);
+                        }
+
+                        // Load iframe auth settings from system config
+                        if (systemResponse.data?.iframeAuth) {
+                            const authConfig = systemResponse.data.iframeAuth;
+                            setIframeAuthEnabled(authConfig.enabled !== false); // Default true
+                            setAuthSensitivity(authConfig.sensitivity || 'balanced');
+                            setCustomAuthPatterns(authConfig.customPatterns || []);
+                        }
+                    } catch (error) {
+                        // Silently handle 403 (expected for non-admins after race condition)
+                        if (error.response?.status !== 403) {
+                            logger.error('Failed to load system config:', error);
+                        }
+                    }
                 }
 
                 // Load flatten UI preference
@@ -203,14 +230,6 @@ const CustomizationSettings = () => {
                     if (shouldFlatten) {
                         document.documentElement.classList.add('flatten-ui');
                     }
-                }
-
-                // Load iframe auth settings from system config
-                if (systemResponse.data?.iframeAuth) {
-                    const authConfig = systemResponse.data.iframeAuth;
-                    setIframeAuthEnabled(authConfig.enabled !== false); // Default true
-                    setAuthSensitivity(authConfig.sensitivity || 'balanced');
-                    setCustomAuthPatterns(authConfig.customPatterns || []);
                 }
 
                 // Load greeting preferences
@@ -375,7 +394,7 @@ const CustomizationSettings = () => {
             applyColorsToDOM(customColors);
         } catch (error) {
             logger.error('Failed to save custom colors:', error);
-            alert('Failed to save custom colors. Please try again.');
+            showError('Save Failed', 'Failed to save custom colors. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -403,7 +422,7 @@ const CustomizationSettings = () => {
             });
         } catch (error) {
             logger.error('Failed to reset colors:', error);
-            alert('Failed to reset colors. Please try again.');
+            showError('Reset Failed', 'Failed to reset colors. Please try again.');
         }
     };
 
@@ -432,9 +451,10 @@ const CustomizationSettings = () => {
             setOriginalAppIcon(applicationIcon);
 
             logger.info('Application name and icon saved successfully');
+            showSuccess('Settings Saved', 'Application name and icon updated');
         } catch (error) {
             logger.error('Failed to save application name:', error);
-            alert('Failed to save application name. Please try again.');
+            showError('Save Failed', 'Failed to save application name. Please try again.');
         } finally {
             setSavingAppName(false);
         }
@@ -459,7 +479,7 @@ const CustomizationSettings = () => {
             logger.info('Flatten UI preference saved');
         } catch (error) {
             logger.error('Failed to save flatten UI preference:', error);
-            alert('Failed to save flatten UI preference.');
+            showError('Save Failed', 'Failed to save flatten UI preference.');
         } finally {
             setSavingFlattenUI(false);
         }
@@ -482,10 +502,16 @@ const CustomizationSettings = () => {
             // Update original values after successful save
             setOriginalGreeting({ enabled: greetingEnabled, text: greetingText });
 
+            // Dispatch event to notify Dashboard to update immediately
+            window.dispatchEvent(new CustomEvent('greetingUpdated', {
+                detail: { enabled: greetingEnabled, text: greetingText }
+            }));
+
             logger.info('Greeting saved successfully');
+            showSuccess('Greeting Saved', 'Dashboard greeting updated');
         } catch (error) {
             logger.error('Failed to save greeting:', error);
-            alert('Failed to save greeting. Please try again.');
+            showError('Save Failed', 'Failed to save greeting. Please try again.');
         } finally {
             setSavingGreeting(false);
         }
@@ -497,20 +523,21 @@ const CustomizationSettings = () => {
     };
 
     return (
-        <div className="space-y-6 fade-in">
+        <div className="space-y-6 fade-in scroll-contain-x">
             {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold mb-2 text-theme-primary">
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">
                     Customization
                 </h2>
-                <p className="text-sm text-theme-secondary">
+                <p className="text-theme-secondary text-sm">
                     Personalize your dashboard appearance with colors and branding
                 </p>
             </div>
 
             {/* Sub-Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 border-b border-theme relative">
+            <div className="flex gap-2 overflow-x-auto scroll-contain-x pb-2 border-b border-theme relative">
                 <button
+                    ref={(el) => { subTabRefs.current['general'] = el; }}
                     onClick={() => setActiveSubTab('general')}
                     className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
@@ -527,6 +554,7 @@ const CustomizationSettings = () => {
                     )}
                 </button>
                 <button
+                    ref={(el) => { subTabRefs.current['colors'] = el; }}
                     onClick={() => setActiveSubTab('colors')}
                     className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
                 >
@@ -542,38 +570,25 @@ const CustomizationSettings = () => {
                         />
                     )}
                 </button>
-                <button
-                    onClick={() => setActiveSubTab('favicon')}
-                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
-                >
-                    <div className="flex items-center gap-2 relative z-10">
-                        <ImageIcon size={18} className={activeSubTab === 'favicon' ? 'text-accent' : ''} />
-                        <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
-                    </div>
-                    {activeSubTab === 'favicon' && (
-                        <motion.div
-                            layoutId="customizationSubTabIndicator"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-                        />
-                    )}
-                </button>
-                <button
-                    onClick={() => setActiveSubTab('notifications')}
-                    className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
-                >
-                    <div className="flex items-center gap-2 relative z-10">
-                        <Bell size={18} className={activeSubTab === 'notifications' ? 'text-accent' : ''} />
-                        <span className={activeSubTab === 'notifications' ? 'text-accent' : ''}>Notifications</span>
-                    </div>
-                    {activeSubTab === 'notifications' && (
-                        <motion.div
-                            layoutId="customizationSubTabIndicator"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-                        />
-                    )}
-                </button>
+                {userIsAdmin && (
+                    <button
+                        ref={(el) => { subTabRefs.current['favicon'] = el; }}
+                        onClick={() => setActiveSubTab('favicon')}
+                        className="relative px-4 py-2 font-medium transition-colors text-theme-secondary hover:text-theme-primary"
+                    >
+                        <div className="flex items-center gap-2 relative z-10">
+                            <ImageIcon size={18} className={activeSubTab === 'favicon' ? 'text-accent' : ''} />
+                            <span className={activeSubTab === 'favicon' ? 'text-accent' : ''}>Favicon</span>
+                        </div>
+                        {activeSubTab === 'favicon' && (
+                            <motion.div
+                                layoutId="customizationSubTabIndicator"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                                transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                            />
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Content - CrossFade between tabs */}
@@ -589,66 +604,33 @@ const CustomizationSettings = () => {
                     }}
                 >
                     <div className="space-y-6">
-                        {/* Application Name Section */}
-                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
-                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
-                                Application Name
-                            </h3>
-                            <p className="text-sm text-theme-secondary mb-4">
-                                Customize the application name displayed in the sidebar and throughout the dashboard.
-                                {!userIsAdmin && (
-                                    <span className="block mt-2 text-warning">
-                                        ⚠️ This setting requires admin privileges
-                                    </span>
-                                )}
-                            </p>
-                            <div className="space-y-4">
-                                <Input
-                                    label="Application Name"
-                                    value={applicationName}
-                                    onChange={(e) => setApplicationName(e.target.value)}
-                                    disabled={!userIsAdmin}
-                                    maxLength={50}
-                                    placeholder="Homelab Dashboard"
-                                    helperText={`${applicationName.length}/50 characters`}
-                                />
-                                {userIsAdmin && (
-                                    <Button
-                                        onClick={handleSaveApplicationName}
-                                        disabled={!hasAppNameChanges || savingAppName}
-                                        icon={Save}
-                                    >
-                                        {savingAppName ? 'Saving...' : 'Save Application Name'}
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Application Icon Section */}
-                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
-                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
-                                Application Icon
-                            </h3>
-                            <p className="text-sm text-theme-secondary mb-4">
-                                Customize the icon displayed in the sidebar header and mobile menu.
-                                {!userIsAdmin && (
-                                    <span className="block mt-2 text-warning">
-                                        ⚠️ This setting requires admin privileges
-                                    </span>
-                                )}
-                            </p>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block mb-2 font-medium text-theme-secondary text-sm">
-                                        Select Icon
-                                    </label>
-                                    <IconPicker
-                                        value={applicationIcon}
-                                        onChange={(icon) => setApplicationIcon(icon)}
-                                        disabled={!userIsAdmin}
+                        {/* Application Branding Section - Admin Only */}
+                        {userIsAdmin && (
+                            <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
+                                <h3 className="text-lg font-semibold text-theme-primary mb-4">
+                                    Application Branding
+                                </h3>
+                                <p className="text-sm text-theme-secondary mb-4">
+                                    Customize the application name and icon displayed throughout the dashboard.
+                                </p>
+                                <div className="space-y-4">
+                                    <Input
+                                        label="Application Name"
+                                        value={applicationName}
+                                        onChange={(e) => setApplicationName(e.target.value)}
+                                        maxLength={50}
+                                        placeholder="Framerr"
+                                        helperText={`${applicationName.length}/50 characters`}
                                     />
-                                </div>
-                                {userIsAdmin && (
+                                    <div>
+                                        <label className="block mb-2 font-medium text-theme-secondary text-sm">
+                                            Application Icon
+                                        </label>
+                                        <IconPicker
+                                            value={applicationIcon}
+                                            onChange={(icon) => setApplicationIcon(icon)}
+                                        />
+                                    </div>
                                     <Button
                                         onClick={handleSaveApplicationName}
                                         disabled={!hasAppNameChanges || savingAppName}
@@ -656,9 +638,9 @@ const CustomizationSettings = () => {
                                     >
                                         {savingAppName ? 'Saving...' : 'Save Application Name & Icon'}
                                     </Button>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Dashboard Greeting Section */}
                         <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
@@ -686,7 +668,7 @@ const CustomizationSettings = () => {
                                             onChange={(e) => setGreetingEnabled(e.target.checked)}
                                             className="sr-only peer"
                                         />
-                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                        <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                     </label>
                                 </div>
 
@@ -745,7 +727,7 @@ const CustomizationSettings = () => {
                                         disabled={savingFlattenUI}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                 </label>
                             </div>
                         </div>
@@ -866,7 +848,7 @@ const CustomizationSettings = () => {
                                         onChange={(e) => handleToggleCustomColors(e.target.checked)}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
                                 </label>
                             </div>
 
@@ -1101,115 +1083,6 @@ const CustomizationSettings = () => {
                     }}
                 >
                     <FaviconSettings />
-                </div>
-
-                <div
-                    style={{
-                        opacity: activeSubTab === 'notifications' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'notifications' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'notifications' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
-                    <div className="space-y-6">
-                        {/* Notification Preferences */}
-                        <div className="glass-subtle rounded-xl shadow-medium p-6 border border-theme">
-                            <h3 className="text-lg font-semibold text-theme-primary mb-4">
-                                Notification Preferences
-                            </h3>
-                            <p className="text-sm text-theme-secondary mb-6">
-                                Configure how you receive notifications throughout the application.
-                            </p>
-
-                            <div className="space-y-6">
-                                {/* Enable Notifications Toggle */}
-                                <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-theme-primary mb-1">
-                                            Enable Notifications
-                                        </div>
-                                        <div className="text-xs text-theme-tertiary">
-                                            {notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}
-                                        </div>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={notificationsEnabled}
-                                            onChange={(e) => setNotificationsEnabled(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                    </label>
-                                </div>
-
-                                {/* Sound Toggle */}
-                                <div className="flex items-center justify-between p-4 bg-theme-tertiary rounded-lg border border-theme">
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-theme-primary mb-1">
-                                            Notification Sound
-                                        </div>
-                                        <div className="text-xs text-theme-tertiary">
-                                            {notificationSound ? 'Sound enabled' : 'Sound disabled'}
-                                        </div>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={notificationSound}
-                                            onChange={(e) => setNotificationSound(e.target.checked)}
-                                            disabled={!notificationsEnabled}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-theme-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
-                                    </label>
-                                </div>
-
-                                {/* Test Notification Button */}
-                                <div className="p-4 bg-info/10 border border-info/30 rounded-lg">
-                                    <h4 className="text-sm font-medium text-theme-primary mb-2">
-                                        Test Notifications
-                                    </h4>
-                                    <p className="text-xs text-theme-secondary mb-4">
-                                        Send a test notification to preview how notifications will appear.
-                                    </p>
-                                    <Button
-                                        onClick={async () => {
-                                            try {
-                                                // Create notification in backend
-                                                const response = await axios.post('/api/notifications', {
-                                                    title: 'Test Notification',
-                                                    message: 'This is a test notification to demonstrate how notifications appear!',
-                                                    type: 'info'
-                                                }, {
-                                                    withCredentials: true
-                                                });
-
-                                                // Show toast popup
-                                                showInfoToast(
-                                                    'Test Notification',
-                                                    'This is a test notification to demonstrate how notifications appear!'
-                                                );
-
-                                                // Add to notification center immediately (from response)
-                                                if (response.data) {
-                                                    addNotification(response.data);
-                                                }
-                                            } catch (error) {
-                                                console.error('Failed to create test notification:', error);
-                                            }
-                                        }}
-                                        variant="secondary"
-                                        icon={Bell}
-                                    >
-                                        Send Test Notification
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

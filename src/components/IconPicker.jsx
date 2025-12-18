@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, Upload } from 'lucide-react';
+import { X, Search, Upload, Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import logger from '../utils/logger';
+import { useNotifications } from '../context/NotificationContext';
 
 // Popular icons for quick selection - 126 validated icons
 const POPULAR_ICONS = [
@@ -71,17 +72,28 @@ const POPULAR_ICONS = [
     'Code', 'Code2', 'Terminal', 'Box', 'Layout', 'LayoutGrid'
 ];
 
-const IconPicker = ({ value, onChange }) => {
+const IconPicker = ({ value, onChange, compact = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState('icons'); // 'icons' or 'upload'
     const [uploadedIcons, setUploadedIcons] = useState([]);
     const [loadingIcons, setLoadingIcons] = useState(false);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [triggerWidth, setTriggerWidth] = useState(0);
+    const triggerRef = useRef(null);
+    const { error: showError } = useNotifications();
 
     // Fetch uploaded icons when component mounts
     useEffect(() => {
         fetchUploadedIcons();
     }, []);
+
+    // Measure trigger width when popover opens
+    useEffect(() => {
+        if (isOpen && triggerRef.current) {
+            setTriggerWidth(triggerRef.current.offsetWidth);
+        }
+    }, [isOpen]);
 
     const fetchUploadedIcons = async () => {
         try {
@@ -188,11 +200,11 @@ const IconPicker = ({ value, onChange }) => {
                 await fetchUploadedIcons();
                 setIsOpen(false);
             } else {
-                alert('Failed to upload icon');
+                showError('Upload Failed', 'Failed to upload icon');
             }
         } catch (error) {
             logger.error('Failed to upload icon:', error);
-            alert('Failed to upload icon');
+            showError('Upload Failed', 'Failed to upload icon');
         }
 
         // Reset the input
@@ -200,10 +212,6 @@ const IconPicker = ({ value, onChange }) => {
     };
 
     const handleDeleteIcon = async (iconId) => {
-        if (!confirm('Delete this custom icon? This cannot be undone.')) {
-            return;
-        }
-
         try {
             const response = await fetch(`/api/custom-icons/${iconId}`, {
                 method: 'DELETE',
@@ -217,26 +225,37 @@ const IconPicker = ({ value, onChange }) => {
                 if (value === `custom:${iconId}`) {
                     onChange('Server');
                 }
+                setConfirmDeleteId(null);
             } else {
-                alert('Failed to delete icon');
+                showError('Delete Failed', 'Failed to delete icon');
+                setConfirmDeleteId(null);
             }
         } catch (error) {
             logger.error('Failed to delete icon:', error);
-            alert('Failed to delete icon');
+            showError('Delete Failed', 'Failed to delete icon');
+            setConfirmDeleteId(null);
         }
     };
 
     return (
-        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Root open={isOpen} onOpenChange={setIsOpen} modal={false}>
             <Popover.Trigger asChild>
                 <button
+                    ref={triggerRef}
                     type="button"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors w-full"
+                    className={compact
+                        ? "flex items-center justify-center p-2 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors"
+                        : "flex items-center gap-2 px-4 py-2.5 bg-theme-secondary border-theme rounded-lg text-theme-primary hover:border-accent transition-colors w-full"
+                    }
                     title={getIconDisplayName()}
                 >
-                    <CurrentIcon size={20} />
-                    <span className="flex-1 text-left truncate">{getIconDisplayName()}</span>
-                    <Search size={16} className="text-theme-secondary" />
+                    <CurrentIcon size={compact ? 18 : 20} />
+                    {!compact && (
+                        <>
+                            <span className="flex-1 text-left truncate">{getIconDisplayName()}</span>
+                            <Search size={16} className="text-theme-secondary" />
+                        </>
+                    )}
                 </button>
             </Popover.Trigger>
 
@@ -256,13 +275,22 @@ const IconPicker = ({ value, onChange }) => {
                                 exit={{ opacity: 0, scale: 0.96 }}
                                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
                                 style={{
-                                    width: window.innerWidth < 768 ? '100%' : '24rem',
-                                    zIndex: 9999
+                                    width: window.innerWidth < 640
+                                        ? `min(calc(100vw - 48px), 24rem)`
+                                        : '24rem',
+                                    minWidth: '280px',
+                                    maxWidth: '24rem',
+                                    zIndex: 100,
+                                    maxHeight: 'min(400px, calc(100vh - 200px))',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    touchAction: 'pan-y',
+                                    WebkitOverflowScrolling: 'touch'
                                 }}
-                                className="glass-card border-theme rounded-xl shadow-2xl overflow-hidden max-h-[50vh] overflow-y-auto"
+                                className="glass-card border-theme rounded-xl shadow-2xl"
                             >
-                                {/* Header */}
-                                <div className="flex items-center justify-between p-4 border-b border-theme">
+                                {/* Header - fixed */}
+                                <div className="flex items-center justify-between p-4 border-b border-theme flex-shrink-0">
                                     <h3 className="font-semibold text-theme-primary">Select Icon</h3>
                                     <button
                                         onClick={() => setIsOpen(false)}
@@ -273,8 +301,8 @@ const IconPicker = ({ value, onChange }) => {
                                 </div>
 
 
-                                {/* Tabs */}
-                                <div className="flex border-b border-theme relative">
+                                {/* Tabs - fixed */}
+                                <div className="flex border-b border-theme relative flex-shrink-0">
                                     {/* Sliding indicator */}
                                     {activeTab === 'icons' ? (
                                         <motion.div
@@ -317,8 +345,13 @@ const IconPicker = ({ value, onChange }) => {
                                     </button>
                                 </div>
 
-                                {/* Content */}
-                                <div className="p-4 max-h-96 overflow-y-auto">
+                                {/* Content - scrollable */}
+                                <div
+                                    className="p-4 flex-1 min-h-0 overflow-y-auto"
+                                    style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
+                                    onWheel={(e) => e.stopPropagation()}
+                                    onTouchMove={(e) => e.stopPropagation()}
+                                >
                                     <AnimatePresence mode="wait">
                                         {activeTab === 'icons' ? (
                                             <motion.div
@@ -410,6 +443,7 @@ const IconPicker = ({ value, onChange }) => {
                                                         <div className="grid grid-cols-4 gap-2">
                                                             {uploadedIcons.map((icon) => {
                                                                 const isSelected = value === `custom:${icon.id}`;
+                                                                const isSystemIcon = icon.isSystem === true;
                                                                 return (
                                                                     <div
                                                                         key={icon.id}
@@ -433,15 +467,38 @@ const IconPicker = ({ value, onChange }) => {
                                                                                 className="w-full h-full object-contain"
                                                                             />
                                                                         </motion.button>
-                                                                        {/* Delete Button - Shows on hover */}
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleDeleteIcon(icon.id)}
-                                                                            className="absolute -top-1 -right-1 w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                                                            title="Delete icon"
-                                                                        >
-                                                                            <X size={12} />
-                                                                        </button>
+                                                                        {/* Delete Button - hidden for system icons */}
+                                                                        {!isSystemIcon && (
+                                                                            confirmDeleteId !== icon.id ? (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setConfirmDeleteId(icon.id)}
+                                                                                    className="absolute -top-1 -right-1 w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                                                                    title="Delete icon"
+                                                                                >
+                                                                                    <X size={12} />
+                                                                                </button>
+                                                                            ) : (
+                                                                                <div className="absolute -top-1 -right-1 flex gap-0.5">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => handleDeleteIcon(icon.id)}
+                                                                                        className="w-5 h-5 bg-error hover:bg-error/80 text-white rounded-full flex items-center justify-center"
+                                                                                        title="Confirm delete"
+                                                                                    >
+                                                                                        <Check size={10} />
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => setConfirmDeleteId(null)}
+                                                                                        className="w-5 h-5 bg-theme-tertiary hover:bg-theme-hover text-white rounded-full flex items-center justify-center"
+                                                                                        title="Cancel"
+                                                                                    >
+                                                                                        <X size={10} />
+                                                                                    </button>
+                                                                                </div>
+                                                                            )
+                                                                        )}
                                                                     </div>
                                                                 );
                                                             })}

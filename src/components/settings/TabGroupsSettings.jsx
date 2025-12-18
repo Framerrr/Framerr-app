@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FolderTree, Plus, Edit, Trash2, X, Save, GripVertical, Loader } from 'lucide-react';
+import { FolderTree, Plus, Edit, Trash2, X, Save, GripVertical, Loader, Check } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '../common/Input';
@@ -22,9 +22,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import logger from '../../utils/logger';
+import { useNotifications } from '../../context/NotificationContext';
 
 // Sortable Group Item Component
-const SortableGroupItem = ({ group, onEdit, onDelete }) => {
+const SortableGroupItem = ({ group, onEdit, onDelete, confirmDeleteId, setConfirmDeleteId }) => {
     const {
         attributes,
         listeners,
@@ -83,16 +84,37 @@ const SortableGroupItem = ({ group, onEdit, onDelete }) => {
                     <Edit size={14} className="mr-1" />
                     <span className="hidden sm:inline">Edit</span>
                 </Button>
-                <Button
-                    onClick={() => onDelete(group)}
-                    variant="ghost"
-                    size="sm"
-                    className="text-error hover:bg-error/10"
-                    title="Delete group"
-                >
-                    <Trash2 size={14} className="mr-1" />
-                    <span className="hidden sm:inline">Delete</span>
-                </Button>
+                {confirmDeleteId !== group.id ? (
+                    <Button
+                        onClick={() => setConfirmDeleteId(group.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-error hover:bg-error/10"
+                        title="Delete group"
+                    >
+                        <Trash2 size={14} className="mr-1" />
+                        <span className="hidden sm:inline">Delete</span>
+                    </Button>
+                ) : (
+                    <div className="flex gap-1">
+                        <Button
+                            onClick={() => onDelete(group)}
+                            variant="danger"
+                            size="sm"
+                            title="Confirm delete"
+                        >
+                            <Check size={14} />
+                        </Button>
+                        <Button
+                            onClick={() => setConfirmDeleteId(null)}
+                            variant="secondary"
+                            size="sm"
+                            title="Cancel"
+                        >
+                            <X size={14} />
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -105,6 +127,8 @@ const TabGroupsSettings = () => {
     const [modalMode, setModalMode] = useState('create');
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [formData, setFormData] = useState({ id: '', name: '', order: 0 });
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const { error: showError, warning: showWarning, success: showSuccess } = useNotifications();
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -159,14 +183,14 @@ const TabGroupsSettings = () => {
         e.preventDefault();
 
         if (!formData.name.trim()) {
-            alert('Group name is required');
+            showWarning('Missing Name', 'Group name is required');
             return;
         }
 
         const groupId = modalMode === 'create' ? generateGroupId(formData.name) : formData.id;
 
         if (modalMode === 'create' && tabGroups.some(g => g.id === groupId)) {
-            alert(`A group with ID "${groupId}" already exists.`);
+            showWarning('Duplicate Group', `A group with ID "${groupId}" already exists.`);
             return;
         }
 
@@ -187,20 +211,20 @@ const TabGroupsSettings = () => {
             if (response.ok) {
                 setShowModal(false);
                 fetchTabGroups();
+                showSuccess(
+                    modalMode === 'create' ? 'Group Created' : 'Group Updated',
+                    `Tab group "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
+                );
             } else {
-                alert((await response.json()).error || 'Failed to save group');
+                showError('Save Failed', (await response.json()).error || 'Failed to save group');
             }
         } catch (error) {
             logger.error('Error saving group:', error);
-            alert('Failed to save group');
+            showError('Save Failed', 'Failed to save group');
         }
     };
 
     const handleDelete = async (group) => {
-        if (!confirm(`Delete tab group "${group.name}"?\n\nNote: Tabs in this group will not be deleted, but may not display in sidebar until reassigned.`)) {
-            return;
-        }
-
         try {
             const response = await fetch('/api/config/system', {
                 method: 'PUT',
@@ -209,11 +233,18 @@ const TabGroupsSettings = () => {
                 body: JSON.stringify({ tabGroups: tabGroups.filter(g => g.id !== group.id) })
             });
 
-            if (response.ok) fetchTabGroups();
-            else alert('Failed to delete group');
+            if (response.ok) {
+                setConfirmDeleteId(null);
+                fetchTabGroups();
+                showSuccess('Group Deleted', `Tab group "${group.name}" has been deleted`);
+            } else {
+                showError('Delete Failed', 'Failed to delete group');
+                setConfirmDeleteId(null);
+            }
         } catch (error) {
             logger.error('Error deleting group:', error);
-            alert('Failed to delete group');
+            showError('Delete Failed', 'Failed to delete group');
+            setConfirmDeleteId(null);
         }
     };
 
@@ -299,6 +330,8 @@ const TabGroupsSettings = () => {
                                     group={group}
                                     onEdit={handleEdit}
                                     onDelete={handleDelete}
+                                    confirmDeleteId={confirmDeleteId}
+                                    setConfirmDeleteId={setConfirmDeleteId}
                                 />
                             ))}
                         </div>

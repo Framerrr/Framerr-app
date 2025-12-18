@@ -75,6 +75,7 @@ async function getIconById(iconId) {
             mimeType: icon.mime_type,
             filePath: icon.file_path, // Include file path
             uploadedBy: icon.uploaded_by,
+            isSystem: icon.is_system === 1,
             uploadedAt: new Date(icon.uploaded_at * 1000).toISOString()
         };
     } catch (error) {
@@ -89,7 +90,7 @@ async function getIconById(iconId) {
  */
 async function listIcons() {
     try {
-        const icons = db.prepare('SELECT id, name, file_path, mime_type, uploaded_by, uploaded_at FROM custom_icons').all();
+        const icons = db.prepare('SELECT id, name, file_path, mime_type, uploaded_by, is_system, uploaded_at FROM custom_icons').all();
 
         // Return with legacy field names for compatibility (without file paths to reduce payload)
         return icons.map(icon => ({
@@ -98,6 +99,7 @@ async function listIcons() {
             originalName: icon.name,
             mimeType: icon.mime_type,
             uploadedBy: icon.uploaded_by,
+            isSystem: icon.is_system === 1,
             uploadedAt: new Date(icon.uploaded_at * 1000).toISOString()
         }));
     } catch (error) {
@@ -113,11 +115,18 @@ async function listIcons() {
  */
 async function deleteIcon(iconId) {
     try {
-        // First get the icon to return it and delete the file
+        // First get the icon to check if it's a system icon and to return it
         const icon = db.prepare('SELECT * FROM custom_icons WHERE id = ?').get(iconId);
 
         if (!icon) {
             return null;
+        }
+
+        // Prevent deletion of system icons
+        if (icon.is_system === 1) {
+            const error = new Error('System icons cannot be deleted');
+            error.isSystemIcon = true;
+            throw error;
         }
 
         // Delete physical file from disk
@@ -174,6 +183,85 @@ async function getIconPath(iconIdOrFilename) {
     }
 }
 
+/**
+ * Add a system icon (used during seeding)
+ * @param {object} iconData - Icon data (id, name, filePath, mimeType)
+ * @returns {Promise<object>} Created icon record
+ */
+async function addSystemIcon(iconData) {
+    try {
+        // Check if icon already exists
+        const existing = db.prepare('SELECT id FROM custom_icons WHERE id = ?').get(iconData.id);
+        if (existing) {
+            logger.debug(`System icon already exists: ${iconData.name}`);
+            return null;
+        }
+
+        const insert = db.prepare(`
+            INSERT INTO custom_icons (id, name, file_path, mime_type, uploaded_by, is_system, uploaded_at)
+            VALUES (?, ?, ?, ?, NULL, 1, strftime('%s', 'now'))
+        `);
+
+        insert.run(
+            iconData.id,
+            iconData.name,
+            iconData.filePath,
+            iconData.mimeType
+        );
+
+        logger.info(`System icon added: ${iconData.name}`);
+
+        return {
+            id: iconData.id,
+            filename: iconData.filePath,
+            originalName: iconData.name,
+            mimeType: iconData.mimeType,
+            isSystem: true
+        };
+    } catch (error) {
+        logger.error('Failed to add system icon', { error: error.message });
+        throw error;
+    }
+}
+
+/**
+ * Check if an icon is a system icon
+ * @param {string} iconId - Icon ID
+ * @returns {Promise<boolean>} True if system icon
+ */
+async function isSystemIcon(iconId) {
+    try {
+        const icon = db.prepare('SELECT is_system FROM custom_icons WHERE id = ?').get(iconId);
+        return icon?.is_system === 1;
+    } catch (error) {
+        logger.error('Failed to check if system icon', { error: error.message, iconId });
+        return false;
+    }
+}
+
+/**
+ * Get system icon by name (e.g., 'overseerr', 'radarr', 'sonarr')
+ * @param {string} name - Icon name
+ * @returns {Promise<object|null>} Icon object or null
+ */
+async function getSystemIconByName(name) {
+    try {
+        const icon = db.prepare('SELECT * FROM custom_icons WHERE name = ? AND is_system = 1').get(name);
+        if (!icon) return null;
+
+        return {
+            id: icon.id,
+            filename: icon.file_path,
+            originalName: icon.name,
+            mimeType: icon.mime_type,
+            isSystem: true
+        };
+    } catch (error) {
+        logger.error('Failed to get system icon by name', { error: error.message, name });
+        return null;
+    }
+}
+
 // Export ICONS_DIR for compatibility
 module.exports = {
     addIcon,
@@ -181,6 +269,9 @@ module.exports = {
     listIcons,
     deleteIcon,
     getIconPath,
+    addSystemIcon,
+    isSystemIcon,
+    getSystemIconByName,
     ICONS_DIR
 };
 

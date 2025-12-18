@@ -1,17 +1,37 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Star, Film, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
+import IntegrationConnectionError from '../common/IntegrationConnectionError';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const OverseerrWidget = ({ config }) => {
-    // Get integrations state from context
-    const { integrations } = useAppData();
-    const integration = integrations?.overseerr;
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
 
-    // Check if integration is enabled
+    // Get integrations state from context - ONLY source of truth for access
+    const { integrations, integrationsLoaded, integrationsError } = useAppData();
+
+    // Wait for integrations to load before checking status
+    if (!integrationsLoaded) {
+        return <LoadingSpinner size="sm" />;
+    }
+
+    // Show connection error if integrations failed to load
+    if (integrationsError) {
+        return <IntegrationConnectionError serviceName="Overseerr" />;
+    }
+
+    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    const integration = integrations?.overseerr || { enabled: false };
+
+    // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
-    const { enabled = false, url = '', apiKey = '' } = config || {};
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -57,9 +77,12 @@ const OverseerrWidget = ({ config }) => {
         }
     };
 
-    // Show integration disabled message if not enabled
+    // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        return <IntegrationDisabledMessage serviceName="Overseerr" />;
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="Overseerr" />
+            : <IntegrationNoAccessMessage serviceName="Overseerr" />;
     }
 
     if (loading && !data) return <div className="text-theme-secondary">Loading Requests...</div>;
@@ -118,6 +141,7 @@ const OverseerrWidget = ({ config }) => {
                     flex: 1,
                     overflowX: 'auto',
                     overflowY: 'hidden',
+                    overscrollBehaviorX: 'contain',
                     scrollBehavior: 'smooth',
                     scrollbarWidth: 'none', // Firefox
                     msOverflowStyle: 'none', // IE/Edge

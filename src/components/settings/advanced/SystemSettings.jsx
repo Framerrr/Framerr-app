@@ -405,8 +405,15 @@ const SystemSettings = () => {
                             </div>
                             {dbStatus.details && (
                                 <div className="text-sm text-theme-secondary space-y-1">
+                                    <p>Type: {dbStatus.details.type || 'Unknown'}</p>
                                     <p>Path: {dbStatus.details.path}</p>
                                     <p>Size: {dbStatus.details.sizeKB} KB</p>
+                                    {dbStatus.details.userCount !== undefined && (
+                                        <p>Users: {dbStatus.details.userCount}</p>
+                                    )}
+                                    {dbStatus.details.tableCount !== undefined && (
+                                        <p>Tables: {dbStatus.details.tableCount}</p>
+                                    )}
                                 </div>
                             )}
                             {dbStatus.error && (

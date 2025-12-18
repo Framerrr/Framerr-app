@@ -4,7 +4,12 @@ import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
+import { isAdmin } from '../../utils/permissions';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
+import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
+import IntegrationConnectionError from '../common/IntegrationConnectionError';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 // Metric Graph Popover Component
 const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
@@ -301,19 +306,33 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
 };
 
 const SystemStatusWidget = ({ config }) => {
-    // Get integrations state from context
-    const { integrations } = useAppData();
-    const integration = integrations?.systemstatus;
+    // Get auth state to determine admin status
+    const { user } = useAuth();
+    const userIsAdmin = isAdmin(user);
 
-    // Check if integration is enabled
+    // Get integrations state from context - ONLY source of truth for access
+    const { integrations, integrationsLoaded, integrationsError } = useAppData();
+
+    // Wait for integrations to load before checking status
+    if (!integrationsLoaded) {
+        return <LoadingSpinner size="sm" />;
+    }
+
+    // Show connection error if integrations failed to load
+    if (integrationsError) {
+        return <IntegrationConnectionError serviceName="System Health" />;
+    }
+
+    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    const integration = integrations?.systemstatus || { enabled: false };
+
+    // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && (
         (integration.backend === 'glances' && integration.glances?.url) ||
         (integration.backend === 'custom' && integration.custom?.url) ||
         (!integration.backend && integration.url) // Legacy format support
     );
 
-    // Extract config with defaults
-    const { enabled = false, url = '', token = '' } = config || {};
     const [statusData, setStatusData] = useState({ cpu: 0, memory: 0, temperature: 0, uptime: '--' });
     const [loading, setLoading] = useState(true);
 
@@ -385,9 +404,12 @@ const SystemStatusWidget = ({ config }) => {
         }
     }, []);
 
-    // Show integration disabled message if not enabled
+    // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        return <IntegrationDisabledMessage serviceName="System Health" />;
+        // Admins see "disabled" (can fix it), non-admins see "no access"
+        return userIsAdmin
+            ? <IntegrationDisabledMessage serviceName="System Health" />
+            : <IntegrationNoAccessMessage serviceName="System Health" />;
     }
 
     // Show loading state

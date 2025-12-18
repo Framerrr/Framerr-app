@@ -27,19 +27,47 @@ router.get('/', requireAuth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Get user config to fetch profilePicture from preferences
+        // Get user config to fetch profilePicture and displayName from preferences
         const config = await getUserConfig(req.user.id);
         const profilePicture = config.preferences?.profilePicture || null;
+        const displayName = config.preferences?.displayName || user.username;
 
-        // Return user without password hash, but include profilePicture from preferences
+        // Return user without password hash, but include fields from preferences
         const { passwordHash, ...userProfile } = user;
         res.json({
             ...userProfile,
-            profilePicture  // Add profilePicture from preferences
+            profilePicture,
+            displayName
         });
     } catch (error) {
         logger.error('Failed to get profile', { userId: req.user.id, error: error.message });
         res.status(500).json({ error: 'Failed to get profile' });
+    }
+});
+
+/**
+ * PUT /api/profile
+ * Update user's profile (displayName)
+ */
+router.put('/', requireAuth, async (req, res) => {
+    try {
+        const { displayName } = req.body;
+
+        if (displayName !== undefined) {
+            // Update displayName in preferences
+            await updateUserConfig(req.user.id, {
+                preferences: {
+                    displayName: displayName.trim() || null
+                }
+            });
+
+            logger.info('Profile updated', { userId: req.user.id, displayName });
+        }
+
+        res.json({ success: true, message: 'Profile updated successfully' });
+    } catch (error) {
+        logger.error('Failed to update profile', { userId: req.user.id, error: error.message });
+        res.status(500).json({ error: 'Failed to update profile' });
     }
 });
 

@@ -9,7 +9,7 @@ let cacheTimestamp = null;
 const DEFAULT_CONFIG = {
     server: {
         port: 3001,
-        name: 'Homelab Dashboard'
+        name: 'Framerr'
     },
     auth: {
         local: { enabled: true },
@@ -65,7 +65,8 @@ const DEFAULT_CONFIG = {
         { id: 'media', name: 'Media', order: 0 },
         { id: 'downloads', name: 'Downloads', order: 1 },
         { id: 'system', name: 'System', order: 2 }
-    ]
+    ],
+    webPushEnabled: true  // Global toggle for Web Push notifications
 };
 
 /**
@@ -113,6 +114,18 @@ function buildConfigFromKeyValues(rows) {
             case 'favicon':
                 config.favicon = parsed;
                 break;
+            case 'plexSSO':
+                config.plexSSO = parsed;
+                break;
+            case 'webhookBaseUrl':
+                config.webhookBaseUrl = parsed;
+                break;
+            case 'vapidKeys':
+                config.vapidKeys = parsed;
+                break;
+            case 'webPushEnabled':
+                config.webPushEnabled = parsed;
+                break;
         }
     }
 
@@ -155,6 +168,36 @@ async function getSystemConfig() {
 }
 
 /**
+ * Deep merge integration configs to preserve nested properties like webhookConfig
+ * @param {object} current - Current integrations config
+ * @param {object} updates - Integration updates
+ * @returns {object} Merged integrations
+ */
+function deepMergeIntegrations(current, updates) {
+    if (!updates) return current || {};
+
+    const merged = { ...current };
+
+    for (const [key, value] of Object.entries(updates)) {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            // Deep merge objects (like individual integration configs)
+            merged[key] = {
+                ...(merged[key] || {}),
+                ...value,
+                // Special handling for webhookConfig to preserve all nested properties
+                webhookConfig: value.webhookConfig !== undefined
+                    ? { ...(merged[key]?.webhookConfig || {}), ...value.webhookConfig }
+                    : merged[key]?.webhookConfig
+            };
+        } else {
+            merged[key] = value;
+        }
+    }
+
+    return merged;
+}
+
+/**
  * Update system configuration in SQLite
  * @param {object} updates - Partial updates to apply
  * @returns {Promise<object>} Updated configuration
@@ -176,12 +219,16 @@ async function updateSystemConfig(updates) {
             proxy: { ...currentConfig.auth?.proxy, ...(updates.auth?.proxy || {}) },
             iframe: { ...currentConfig.auth?.iframe, ...(updates.auth?.iframe || {}) }
         },
-        integrations: { ...currentConfig.integrations, ...(updates.integrations || {}) },
+        integrations: deepMergeIntegrations(currentConfig.integrations, updates.integrations),
         debug: { ...currentConfig.debug, ...(updates.debug || {}) },
         favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon, // Support null to delete
         groups: currentConfig.groups,  // Always preserve locked groups
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
-        tabGroups: updates.tabGroups || currentConfig.tabGroups
+        tabGroups: updates.tabGroups || currentConfig.tabGroups,
+        plexSSO: updates.plexSSO ? { ...currentConfig.plexSSO, ...updates.plexSSO } : currentConfig.plexSSO,
+        webhookBaseUrl: updates.webhookBaseUrl !== undefined ? updates.webhookBaseUrl : currentConfig.webhookBaseUrl,
+        vapidKeys: updates.vapidKeys ? { ...currentConfig.vapidKeys, ...updates.vapidKeys } : currentConfig.vapidKeys,
+        webPushEnabled: updates.webPushEnabled !== undefined ? updates.webPushEnabled : currentConfig.webPushEnabled
     };
 
     try {
@@ -223,6 +270,18 @@ async function updateSystemConfig(updates) {
             }
             if (updates.tabGroups) {
                 upsert.run('tabGroups', JSON.stringify(newConfig.tabGroups));
+            }
+            if (updates.plexSSO) {
+                upsert.run('plexSSO', JSON.stringify(newConfig.plexSSO));
+            }
+            if (updates.webhookBaseUrl !== undefined) {
+                upsert.run('webhookBaseUrl', JSON.stringify(newConfig.webhookBaseUrl));
+            }
+            if (updates.vapidKeys) {
+                upsert.run('vapidKeys', JSON.stringify(newConfig.vapidKeys));
+            }
+            if (updates.webPushEnabled !== undefined) {
+                upsert.run('webPushEnabled', JSON.stringify(newConfig.webPushEnabled));
             }
         });
 

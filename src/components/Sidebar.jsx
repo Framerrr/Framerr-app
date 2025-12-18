@@ -6,13 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useLayout } from '../context/LayoutContext';
 import NotificationCenter from './notifications/NotificationCenter';
 import logger from '../utils/logger';
 
 const Sidebar = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    // isMobile now comes from LayoutContext - single source of truth
+    const { isMobile } = useLayout();
     const [expandedGroups, setExpandedGroups] = useState({});
     const [tabs, setTabs] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
@@ -87,6 +89,10 @@ const Sidebar = () => {
                 });
                 if (response.ok) {
                     const data = await response.json();
+                    // Add cache-busting timestamp to profile picture
+                    if (data.profilePicture) {
+                        data.profilePicture = `${data.profilePicture}?t=${Date.now()}`;
+                    }
                     setCurrentUser(data);
                 }
             } catch (error) {
@@ -94,11 +100,21 @@ const Sidebar = () => {
             }
         };
         fetchUserProfile();
+
+        // Listen for profile picture updates from settings
+        const handleProfilePictureUpdate = (event) => {
+            const { profilePicture } = event.detail || {};
+            setCurrentUser(prev => prev ? { ...prev, profilePicture } : null);
+        };
+
+        window.addEventListener('profilePictureUpdated', handleProfilePictureUpdate);
+        return () => window.removeEventListener('profilePictureUpdated', handleProfilePictureUpdate);
     }, []);
 
     const handleLogout = async () => {
         await logout();
-        navigate('/login');
+        // Pass state to login page so it can show the toast
+        navigate('/login', { state: { loggedOut: true } });
     };
 
     // Initialize all groups as expanded by default
@@ -112,14 +128,23 @@ const Sidebar = () => {
         }
     }, [groups]);
 
-    // Handle window resize
+    // Listen for openNotificationCenter event (from toast body clicks)
     useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 768);
+        const handleOpenNotificationCenter = () => {
+            setShowNotificationCenter(true);
+            if (!isMobile) {
+                setIsExpanded(true);
+            } else {
+                setIsMobileMenuOpen(true);
+            }
         };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+
+        window.addEventListener('openNotificationCenter', handleOpenNotificationCenter);
+        return () => window.removeEventListener('openNotificationCenter', handleOpenNotificationCenter);
+    }, [isMobile]);
+
+    // Note: isMobile is now provided by LayoutContext (single source of truth)
+    // The resize handling is done there with debouncing
 
     // Delayed hover handlers to prevent snap-back when mouse crosses empty space
     const handleMouseEnter = (item) => {
@@ -132,11 +157,11 @@ const Sidebar = () => {
     };
 
     const handleMouseLeave = () => {
-        // Add small delay before clearing hover (150ms)
+        // Add small delay before clearing hover (350ms)
         hoverTimeoutRef.current = setTimeout(() => {
             setHoveredItem(null);
             hoverTimeoutRef.current = null;
-        }, 150);
+        }, 350);
     };
 
     const renderIcon = (iconValue, size = 20) => {
@@ -200,7 +225,10 @@ const Sidebar = () => {
                     }}
                     onMouseEnter={() => setIsExpanded(true)}
                     onMouseLeave={() => {
-                        setIsExpanded(false);
+                        // Don't collapse when notification center is open
+                        if (!showNotificationCenter) {
+                            setIsExpanded(false);
+                        }
                         // Clear any pending hover timeout when leaving sidebar
                         if (hoverTimeoutRef.current) {
                             clearTimeout(hoverTimeoutRef.current);
@@ -227,7 +255,10 @@ const Sidebar = () => {
                         <div className="flex-1 flex flex-col overflow-hidden">
                             <NotificationCenter
                                 isMobile={false}
-                                onClose={() => setShowNotificationCenter(false)}
+                                onClose={() => {
+                                    setShowNotificationCenter(false);
+                                    setIsExpanded(false);
+                                }}
                             />
                         </div>
                     ) : (
@@ -682,7 +713,10 @@ const Sidebar = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setShowNotificationCenter(false)}
+                            onClick={() => {
+                                setShowNotificationCenter(false);
+                                setIsExpanded(false);
+                            }}
                             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
                         />
                     )}
@@ -887,36 +921,45 @@ const Sidebar = () => {
                 >
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="flex flex-col items-center gap-1 text-theme-tertiary hover:text-theme-primary transition-all py-2 px-3 rounded-lg hover:bg-theme-hover"
+                        className="flex flex-col items-center gap-1 text-theme-tertiary active:text-theme-primary transition-all py-2 px-3 rounded-lg active:bg-theme-hover"
                         style={{
                             transition: 'transform 300ms ease-out',
                         }}
                     >
-                        <div style={{
+                        <div className="relative" style={{
                             transition: 'transform 300ms ease-out',
                             transform: isMobileMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                         }}>
                             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                            {/* Notification badge on hamburger icon */}
+                            {!isMobileMenuOpen && unreadCount > 0 && (
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="absolute -top-1 -right-2 bg-error text-white 
+                                        text-[8px] font-bold rounded-full min-w-[16px] h-[16px] 
+                                        flex items-center justify-center shadow-lg"
+                                >
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </motion.div>
+                            )}
                         </div>
                         <span className="text-[10px] font-medium">{isMobileMenuOpen ? 'Close' : 'Menu'}</span>
                     </button>
                     <a
                         href="/#dashboard"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        onMouseEnter={() => setHoveredMobileTab('dashboard')}
-                        onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
-                        {/* Animated sliding indicator */}
+                        {/* Animated sliding indicator - active state only */}
                         {(() => {
                             const hash = window.location.hash.slice(1);
                             const isActive = !hash || hash === 'dashboard';
-                            const shouldShowIndicator = isActive || hoveredMobileTab === 'dashboard';
 
-                            return shouldShowIndicator && (
+                            return isActive && (
                                 <motion.div
                                     layoutId="mobileTabIndicator"
-                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className="absolute inset-0 rounded-lg bg-accent/20 shadow-lg"
                                     transition={sidebarSpring}
                                 />
                             );
@@ -938,11 +981,9 @@ const Sidebar = () => {
                     <a
                         href="/#settings?tab=profile&source=profile"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        onMouseEnter={() => setHoveredMobileTab('profile')}
-                        onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
-                        {/* Animated sliding indicator */}
+                        {/* Animated sliding indicator - active state only */}
                         {(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
@@ -950,12 +991,11 @@ const Sidebar = () => {
                             const currentTab = searchParams.get('tab');
                             const source = searchParams.get('source');
                             const isActive = hash.startsWith('settings') && currentTab === 'profile' && source === 'profile';
-                            const shouldShowIndicator = isActive || hoveredMobileTab === 'profile';
 
-                            return shouldShowIndicator && (
+                            return isActive && (
                                 <motion.div
                                     layoutId="mobileTabIndicator"
-                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className="absolute inset-0 rounded-lg bg-accent/20 shadow-lg"
                                     transition={sidebarSpring}
                                 />
                             );
@@ -993,11 +1033,9 @@ const Sidebar = () => {
                     <a
                         href="/#settings"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        onMouseEnter={() => setHoveredMobileTab('settings')}
-                        onMouseLeave={() => setHoveredMobileTab(null)}
-                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary hover:text-theme-primary"
+                        className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
-                        {/* Animated sliding indicator */}
+                        {/* Animated sliding indicator - active state only */}
                         {(() => {
                             const hash = window.location.hash.slice(1);
                             const hashParts = hash.split('?');
@@ -1006,12 +1044,11 @@ const Sidebar = () => {
                             const source = searchParams.get('source');
                             const isProfilePage = currentTab === 'profile' && source === 'profile';
                             const isActive = hash.startsWith('settings') && !isProfilePage;
-                            const shouldShowIndicator = isActive || hoveredMobileTab === 'settings';
 
-                            return shouldShowIndicator && (
+                            return isActive && (
                                 <motion.div
                                     layoutId="mobileTabIndicator"
-                                    className={`absolute inset-0 rounded-lg ${isActive ? 'bg-accent/20 shadow-lg' : 'bg-slate-800/60'}`}
+                                    className="absolute inset-0 rounded-lg bg-accent/20 shadow-lg"
                                     transition={sidebarSpring}
                                 />
                             );

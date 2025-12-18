@@ -23,8 +23,8 @@ const ClockWidget = ({ config, editMode = false }) => {
 
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
-                // Switch to horizontal layout if width >= 280px (w:3 grid units)
-                setIsWide(entry.contentRect.width >= 280);
+                // Switch to horizontal layout if width >= 410px
+                setIsWide(entry.contentRect.width >= 410);
             }
         });
 
@@ -112,60 +112,57 @@ const ClockWidget = ({ config, editMode = false }) => {
 
     return (
         <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-            {/* Time Format Toggle - Top Left */}
+            {/* Edit Mode Controls */}
             {editMode && (
-                <button
-                    onClick={() => setPreferences({ ...preferences, format24h: !preferences.format24h })}
-                    className={`absolute top-2 left-2 ${toggleButtonClass} ${preferences.format24h ? activeToggleClass : inactiveToggleClass
-                        }`}
-                    title="Toggle time format"
-                >
-                    {preferences.format24h ? '24H' : '12H'}
-                </button>
+                <div className="absolute top-2 left-2 right-2 flex justify-between z-10">
+                    <button
+                        onClick={() => setPreferences({ ...preferences, format24h: !preferences.format24h })}
+                        className={`${toggleButtonClass} ${preferences.format24h ? activeToggleClass : inactiveToggleClass}`}
+                        title="Toggle time format"
+                    >
+                        {preferences.format24h ? '24H' : '12H'}
+                    </button>
+                    <button
+                        onClick={() => setPreferences({ ...preferences, showSeconds: !preferences.showSeconds })}
+                        className={`${toggleButtonClass} ${preferences.showSeconds ? activeToggleClass : inactiveToggleClass}`}
+                        title="Toggle seconds display"
+                    >
+                        :SS
+                    </button>
+                </div>
             )}
 
-            {/* Seconds Toggle - Top Right */}
-            {editMode && (
-                <button
-                    onClick={() => setPreferences({ ...preferences, showSeconds: !preferences.showSeconds })}
-                    className={`absolute top-2 right-2 ${toggleButtonClass} ${preferences.showSeconds ? activeToggleClass : inactiveToggleClass
-                        }`}
-                    title="Toggle seconds display"
-                >
-                    :SS
-                </button>
-            )}
-
-            {/* Dynamic Layout: Vertical (narrow) or Horizontal (wide) */}
-            <div className={`flex ${isWide ? 'flex-row items-center gap-4' : 'flex-col items-center'}`}>
+            {/* Main Content */}
+            <div className={`flex ${isWide ? 'flex-row items-center gap-6' : 'flex-col items-center text-center'}`}>
                 {/* Time Display */}
-                <div className={`font-bold text-text-primary ${isWide ? 'text-3xl' : 'text-4xl mb-2'}`}>
+                <div className={`font-bold text-theme-primary leading-none ${isWide ? 'text-4xl' : 'text-5xl'}`}>
                     {formatTime(time)}
                 </div>
 
-                {/* Date Display */}
-                {showDate && (
-                    <div className={`text-sm text-text-secondary ${isWide ? '' : 'mb-2'}`}>
-                        {formatDate(time)}
-                    </div>
-                )}
+                {/* Date & Edit Controls */}
+                <div className={`flex flex-col ${isWide ? 'items-start' : 'items-center mt-3'}`}>
+                    {showDate && (
+                        <div className={`text-theme-secondary ${isWide ? 'text-sm' : 'text-base'}`}>
+                            {formatDate(time)}
+                        </div>
+                    )}
 
-                {/* Date Toggle */}
-                {editMode && (
-                    <button
-                        onClick={() => setPreferences({ ...preferences, showDate: !preferences.showDate })}
-                        className={`${isWide ? 'ml-2' : 'mt-1'} ${toggleButtonClass} ${preferences.showDate ? activeToggleClass : inactiveToggleClass
-                            }`}
-                        title="Toggle date display"
-                    >
-                        {preferences.showDate ? 'Hide Date' : 'Show Date'}
-                    </button>
-                )}
+                    {/* Date Toggle - only in edit mode */}
+                    {editMode && (
+                        <button
+                            onClick={() => setPreferences({ ...preferences, showDate: !preferences.showDate })}
+                            className={`mt-2 ${toggleButtonClass} ${preferences.showDate ? activeToggleClass : inactiveToggleClass}`}
+                            title="Toggle date display"
+                        >
+                            {preferences.showDate ? 'Hide Date' : 'Show Date'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Timezone Display */}
             {timezone && (
-                <div className="absolute bottom-2 text-xs text-text-secondary opacity-70">
+                <div className="absolute bottom-2 left-0 right-0 text-center text-xs text-theme-secondary opacity-60">
                     {timezone}
                 </div>
             )}
