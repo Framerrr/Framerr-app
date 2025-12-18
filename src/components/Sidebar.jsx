@@ -112,9 +112,11 @@ const Sidebar = () => {
     }, []);
 
     const handleLogout = async () => {
-        await logout();
-        // Pass state to login page so it can show the toast
-        navigate('/login', { state: { loggedOut: true } });
+        const wasRedirected = await logout();
+        // Only navigate to login if logout didn't already redirect (proxy auth)
+        if (!wasRedirected) {
+            navigate('/login', { state: { loggedOut: true } });
+        }
     };
 
     // Initialize all groups as expanded by default

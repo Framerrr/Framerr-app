@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
     }, [navigate]);
 
     // Logout function - must be defined before useEffect that references it
+    // Returns true if proxy redirect happened (caller should skip navigation)
     const logout = useCallback(async () => {
         try {
             const response = await axios.post('/api/auth/logout');
@@ -34,13 +35,15 @@ export const AuthProvider = ({ children }) => {
             // Otherwise ProtectedRoute will navigate to /login first (race condition)
             if (response.data?.redirectUrl) {
                 window.location.href = response.data.redirectUrl;
-                return; // Don't continue, browser is navigating away
+                return true; // Indicate redirect happened - caller should not navigate
             }
 
             // Only clear user for local logout (no proxy redirect)
             setUser(null);
+            return false; // No redirect - caller can navigate
         } catch (err) {
             logger.error('Logout failed', err);
+            return false;
         }
     }, []);
 
