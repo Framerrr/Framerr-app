@@ -25,6 +25,25 @@ export const AuthProvider = ({ children }) => {
         navigate('/login', { replace: true });
     }, [navigate]);
 
+    // Logout function - must be defined before useEffect that references it
+    const logout = useCallback(async () => {
+        try {
+            const response = await axios.post('/api/auth/logout');
+
+            // If proxy auth redirect, do it BEFORE clearing user state
+            // Otherwise ProtectedRoute will navigate to /login first (race condition)
+            if (response.data?.redirectUrl) {
+                window.location.href = response.data.redirectUrl;
+                return; // Don't continue, browser is navigating away
+            }
+
+            // Only clear user for local logout (no proxy redirect)
+            setUser(null);
+        } catch (err) {
+            logger.error('Logout failed', err);
+        }
+    }, []);
+
     // Register logout function with axios interceptor for auto-logout on 401
     // Must use full logout() to respect proxy auth redirect, not just handleSessionExpiry
     useEffect(() => {
@@ -124,24 +143,6 @@ export const AuthProvider = ({ children }) => {
             return { success: false, error: msg };
         }
     };
-
-    const logout = useCallback(async () => {
-        try {
-            const response = await axios.post('/api/auth/logout');
-
-            // If proxy auth redirect, do it BEFORE clearing user state
-            // Otherwise ProtectedRoute will navigate to /login first (race condition)
-            if (response.data?.redirectUrl) {
-                window.location.href = response.data.redirectUrl;
-                return; // Don't continue, browser is navigating away
-            }
-
-            // Only clear user for local logout (no proxy redirect)
-            setUser(null);
-        } catch (err) {
-            logger.error('Logout failed', err);
-        }
-    }, []);
 
     const loginWithPlex = async (plexToken, plexUserId) => {
         try {
