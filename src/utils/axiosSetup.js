@@ -42,6 +42,8 @@ const AUTH_ENDPOINTS = [
 ];
 
 // Response interceptor for 401 errors
+// TEMPORARILY DISABLED: Auto-logout on 401 may be interfering with proxy auth logout
+// See docs/secondopinion/ for debugging context
 axios.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -63,10 +65,11 @@ axios.interceptors.response.use(
                 if (showErrorFn) {
                     showErrorFn('Session Expired', 'Please log in again');
                 }
-                // Auto-logout and redirect
-                if (logoutFn) {
-                    logoutFn();
-                }
+                // DISABLED: Auto-logout may be conflicting with proxy auth
+                // TODO: Re-enable after fixing auth proxy logout issue
+                // if (logoutFn) {
+                //     logoutFn();
+                // }
             }
         }
         return Promise.reject(error);
