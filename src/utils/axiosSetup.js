@@ -8,6 +8,7 @@ import axios from 'axios';
 // Store reference to notification and logout functions (set by providers)
 let showErrorFn = null;
 let logoutFn = null;
+let isLoggingOut = false; // Flag to prevent 401 handler during explicit logout
 
 /**
  * Set the notification functions for the interceptor to use
@@ -23,6 +24,13 @@ export const setNotificationFunctions = ({ error }) => {
  */
 export const setLogoutFunction = (logout) => {
     logoutFn = logout;
+};
+
+/**
+ * Set logging out flag to prevent 401 handler from firing during explicit logout
+ */
+export const setLoggingOut = (value) => {
+    isLoggingOut = value;
 };
 
 // URLs where 401 is expected and should NOT show "session expired"
@@ -50,7 +58,8 @@ axios.interceptors.response.use(
             const isSetupPage = window.location.hash.includes('setup');
 
             // Only handle unexpected 401s (actual session expiry)
-            if (!isAuthEndpoint && !isLoginPage && !isSetupPage) {
+            // Skip if we're in the middle of an explicit logout to prevent race conditions
+            if (!isAuthEndpoint && !isLoginPage && !isSetupPage && !isLoggingOut) {
                 if (showErrorFn) {
                     showErrorFn('Session Expired', 'Please log in again');
                 }

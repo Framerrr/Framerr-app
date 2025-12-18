@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { setLogoutFunction } from '../utils/axiosSetup';
+import { setLogoutFunction, setLoggingOut } from '../utils/axiosSetup';
 import logger from '../utils/logger';
 
 const AuthContext = createContext(null);
@@ -28,6 +28,8 @@ export const AuthProvider = ({ children }) => {
     // Logout function - must be defined before useEffect that references it
     // Returns true if proxy redirect happened (caller should skip navigation)
     const logout = useCallback(async () => {
+        // Prevent 401 handler from firing during logout (race condition with background requests)
+        setLoggingOut(true);
         try {
             const response = await axios.post('/api/auth/logout');
 
@@ -39,9 +41,11 @@ export const AuthProvider = ({ children }) => {
             }
 
             // Only clear user for local logout (no proxy redirect)
+            setLoggingOut(false);
             setUser(null);
             return false; // No redirect - caller can navigate
         } catch (err) {
+            setLoggingOut(false);
             logger.error('Logout failed', err);
             return false;
         }
