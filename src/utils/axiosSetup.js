@@ -41,6 +41,18 @@ const AUTH_ENDPOINTS = [
     '/api/auth/setup'
 ];
 
+// REQUEST interceptor - block ALL requests during logout to prevent race conditions
+// This stops FaviconInjector, AppTitle, etc from making API calls that Authentik intercepts
+axios.interceptors.request.use(
+    (config) => {
+        if (isLoggingOut && !config.url?.includes('/api/auth/logout')) {
+            // Block all requests except the logout request itself
+            return Promise.reject(new Error('Request blocked - logout in progress'));
+        }
+        return config;
+    }
+);
+
 // Response interceptor for 401 errors
 // TEMPORARILY DISABLED: Auto-logout on 401 may be interfering with proxy auth logout
 // See docs/secondopinion/ for debugging context
