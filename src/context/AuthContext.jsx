@@ -47,12 +47,13 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    // Register logout function with axios interceptor for auto-logout on 401
-    // Must use full logout() to respect proxy auth redirect, not just handleSessionExpiry
+    // Register session expiry handler with axios interceptor for auto-logout on 401
+    // Use handleSessionExpiry (just clears state) - don't call full logout() which makes API calls
+    // For proxy auth, the simple state clear + navigate is enough - Authentik will handle the rest
     useEffect(() => {
-        setLogoutFunction(logout);
+        setLogoutFunction(handleSessionExpiry);
         return () => setLogoutFunction(null);
-    }, [logout]);
+    }, [handleSessionExpiry]);
 
     // Check auth when tab becomes visible (handles sleeping tabs)
     useEffect(() => {
