@@ -25,20 +25,25 @@ export const AuthProvider = ({ children }) => {
         navigate('/login', { replace: true });
     }, [navigate]);
 
-    // Logout function - matches v1.1.10 pattern that worked with proxy auth
+    // Logout function - for proxy auth, redirect BEFORE clearing state to avoid race conditions
     const logout = useCallback(async () => {
         // Prevent 401 handler from firing during logout (race condition with background requests)
         setLoggingOut(true);
         try {
             const response = await axios.post('/api/auth/logout');
-            setUser(null);  // Clear user FIRST (v1.1.10 pattern)
 
-            // If backend returns redirectUrl (proxy auth logout), redirect to it
-            // This runs AFTER setUser(null) - the window.location.href will override
-            // any React Router navigation that ProtectedRoute might trigger
+            // PROXY AUTH: redirect BEFORE clearing state
+            // Setting setUser(null) triggers React re-renders which can cause API calls
+            // that Authentik intercepts and "remembers" as redirect targets
             if (response.data?.redirectUrl) {
+                // Don't clear user state - we're leaving the page entirely
+                // The window.location.href will cause a full page navigation
                 window.location.href = response.data.redirectUrl;
+                return; // Stop execution - nothing else should run
             }
+
+            // LOCAL AUTH: only clear user state for non-proxy logout
+            setUser(null);
         } catch (err) {
             logger.error('Logout failed', err);
         } finally {
