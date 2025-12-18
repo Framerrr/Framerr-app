@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { setLogoutFunction, setLoggingOut } from '../utils/axiosSetup';
 import logger from '../utils/logger';
 
 const AuthContext = createContext(null);
@@ -18,60 +17,6 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         checkSetupAndAuth();
     }, []);
-
-    // Session expiry handler - clears state and redirects
-    const handleSessionExpiry = useCallback(() => {
-        setUser(null);
-        navigate('/login', { replace: true });
-    }, [navigate]);
-
-    // Logout function - matches v1.1.10 pattern that worked with proxy auth
-    const logout = useCallback(async () => {
-        // Prevent 401 handler from firing during logout (race condition with background requests)
-        setLoggingOut(true);
-        try {
-            const response = await axios.post('/api/auth/logout');
-            setUser(null);  // Clear user FIRST (v1.1.10 pattern)
-
-            // If backend returns redirectUrl (proxy auth logout), redirect to it
-            // This runs AFTER setUser(null) - the window.location.href will override
-            // any React Router navigation that ProtectedRoute might trigger
-            if (response.data?.redirectUrl) {
-                window.location.href = response.data.redirectUrl;
-            }
-        } catch (err) {
-            logger.error('Logout failed', err);
-        } finally {
-            setLoggingOut(false);
-        }
-    }, []);
-
-    // Register session expiry handler with axios interceptor for auto-logout on 401
-    // Use handleSessionExpiry (just clears state) - don't call full logout() which makes API calls
-    // For proxy auth, the simple state clear + navigate is enough - Authentik will handle the rest
-    useEffect(() => {
-        setLogoutFunction(handleSessionExpiry);
-        return () => setLogoutFunction(null);
-    }, [handleSessionExpiry]);
-
-    // Check auth when tab becomes visible (handles sleeping tabs)
-    useEffect(() => {
-        const handleVisibilityChange = async () => {
-            // Only check if tab is becoming visible and user is logged in
-            if (document.visibilityState === 'visible' && user) {
-                try {
-                    await axios.get('/api/auth/me');
-                } catch (err) {
-                    // 401 will be handled by axios interceptor
-                    // which calls handleSessionExpiry
-                    logger.debug('Visibility auth check failed');
-                }
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [user]);
 
     // Handle redirects when setup status or auth changes
     useEffect(() => {
@@ -147,18 +92,17 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const loginWithPlex = async (plexToken, plexUserId) => {
+    const logout = async () => {
         try {
-            const response = await axios.post('/api/auth/plex-login', {
-                plexToken,
-                plexUserId
-            });
-            setUser(response.data.user);
-            return { success: true };
+            const response = await axios.post('/api/auth/logout');
+            setUser(null);
+
+            // If backend returns redirectUrl (proxy auth logout), redirect to it
+            if (response.data?.redirectUrl) {
+                window.location.href = response.data.redirectUrl;
+            }
         } catch (err) {
-            const msg = err.response?.data?.error || 'Plex login failed';
-            setError(msg);
-            return { success: false, error: msg };
+            logger.error('Logout failed', err);
         }
     };
 
@@ -169,7 +113,6 @@ export const AuthProvider = ({ children }) => {
             error,
             needsSetup,
             login,
-            loginWithPlex,
             logout,
             checkAuth,
             checkSetupStatus,
@@ -180,7 +123,6 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
-
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
