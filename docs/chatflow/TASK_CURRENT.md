@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-19 11:35 EST  
+**Last Updated:** 2025-12-19 16:24 EST  
 **Branch:** `develop`
 
 ---
@@ -9,38 +9,49 @@
 
 | Field | Value |
 |-------|-------|
-| **Last Released Version** | `1.2.1` |
+| **Last Released Version** | `1.2.2` |
 | **Release Status** | RELEASED |
-| **Draft Changelog** | (none - next session will create v1.2.2-draft.md if needed) |
-| **Draft Status** | N/A |
+| **Draft Changelog** | `docs/versions/v1.2.3-draft.md` |
+| **Draft Status** | Placeholder |
 
 ---
 
 ## Current State
 
-**Status:** ✅ Auth Proxy Logout Bug - FIXED
+**Status:** ✅ v1.2.2 Released
 
 **This Session:**
-- Fixed auth proxy logout bug that caused CORS errors with Authentik
-- Root cause: Service Worker was caching index.html and serving it after logout, bypassing nginx auth_request
-- Solution: SW now skips cache for navigation requests (`mode === 'navigate'`)
-- Additional: Browser-native logout via HTTP 302 redirect
-- Re-enabled Plex SSO check on login page
-- Released v1.2.1
+- Created Nebula theme (deep purple, magenta, cyan)
+- Fixed notification count desync bug (computed from array)
+- Fixed ProxyAuth log spam (DEBUG level, once only)
+- Removed qBittorrent server_state log spam
+- Polished NotificationCenter animations:
+  - Subtle background tint for unread
+  - Directional slide animations based on filter navigation
+  - Smooth vertical collapse on delete
+  - Animated filter tab indicator
+- Updated sidebar button text "Back to Tabs" → "Tabs"
+- Clarified LinkedAccounts helper text
+- Released v1.2.2 to Docker Hub
 
 ---
 
-## v1.2.1 Release Summary
-
-**Changes:**
-- Service Worker no longer caches navigation requests (fixes auth proxy)
-- GET `/api/auth/logout` endpoint with HTTP 302 redirect
-- Cleaned up debug logging
+## v1.2.2 Release Summary
 
 **Docker:**
-- `pickels23/framerr:1.2.1`
+- `pickels23/framerr:1.2.2`
 - `pickels23/framerr:latest`
+
+**GitHub:** Tagged `v1.2.2`
 
 ---
 
-**=== SESSION END 2025-12-19 11:35 EST ===**
+## Next Session
+
+- Monitor for any issues with v1.2.2
+- iOS notification grouping (deferred to v1.3.0)
+- WebSocket real-time progress (deferred to v1.3.0)
+
+---
+
+**=== SESSION END 2025-12-19 16:24 EST ===**
