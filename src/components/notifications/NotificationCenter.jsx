@@ -131,28 +131,37 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         });
     };
 
-    const renderNotification = (notification) => {
+    const renderNotification = (notification, index) => {
         const Icon = ICONS[notification.type] || Info;
 
         return (
             <motion.div
                 key={notification.id}
                 layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -50, scale: 0.9 }}
+                transition={{
+                    type: 'spring',
+                    stiffness: 400,
+                    damping: 30,
+                    delay: index * 0.03 // Stagger animation
+                }}
                 className={`
-                    p-4 border-b border-theme-light
-                    ${!notification.read ? 'bg-theme-hover' : 'bg-transparent'}
-                    hover:bg-theme-hover transition-colors cursor-pointer
+                    mx-4 mb-3 p-4 rounded-xl
+                    ${!notification.read
+                        ? 'glass-card border border-accent/20 shadow-lg shadow-accent/5'
+                        : 'glass-subtle border border-theme'
+                    }
+                    hover:shadow-xl hover:scale-[1.01]
+                    transition-all duration-200 cursor-pointer
                 `}
                 onClick={() => !notification.read && handleMarkAsRead(notification.id)}
             >
                 <div className="flex items-start gap-3">
                     {/* Icon - custom icon or type-based icon */}
                     {notification.iconId ? (
-                        <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-theme-tertiary flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-theme-tertiary/50 flex items-center justify-center shadow-sm">
                             <img
                                 src={`/api/custom-icons/${notification.iconId}/file`}
                                 alt=""
@@ -161,10 +170,10 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                         </div>
                     ) : (
                         <div
-                            className="p-2 rounded-lg flex-shrink-0"
+                            className="p-2.5 rounded-xl flex-shrink-0 shadow-sm"
                             style={{
-                                backgroundColor: `var(--${notification.type})`,
-                                opacity: 0.2
+                                backgroundColor: `color-mix(in srgb, var(--${notification.type}) 15%, transparent)`,
+                                border: `1px solid color-mix(in srgb, var(--${notification.type}) 20%, transparent)`
                             }}
                         >
                             <Icon
@@ -177,14 +186,14 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                            <h4 className={`text-sm font-semibold ${notification.read ? 'text-theme-secondary' : 'text-theme-primary'}`}>
+                            <h4 className={`text-sm font-semibold leading-tight ${notification.read ? 'text-theme-secondary' : 'text-theme-primary'}`}>
                                 {notification.title}
                             </h4>
-                            <span className="text-xs text-theme-tertiary whitespace-nowrap">
+                            <span className="text-xs text-theme-tertiary whitespace-nowrap font-medium">
                                 {formatTime(notification.createdAt)}
                             </span>
                         </div>
-                        <p className="text-sm text-theme-secondary mt-1">
+                        <p className="text-sm text-theme-secondary mt-1.5 leading-relaxed">
                             {notification.message}
                         </p>
 
@@ -197,7 +206,9 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                         handleRequestAction(notification.id, 'approve');
                                     }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                                        bg-success/20 text-success hover:bg-success/30 transition-colors"
+                                        bg-success/20 text-success hover:bg-success/30 
+                                        border border-success/20 hover:border-success/40
+                                        transition-all duration-200 hover:scale-105"
                                 >
                                     <Check size={14} />
                                     Approve
@@ -208,7 +219,9 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                         handleRequestAction(notification.id, 'decline');
                                     }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                                        bg-error/20 text-error hover:bg-error/30 transition-colors"
+                                        bg-error/20 text-error hover:bg-error/30 
+                                        border border-error/20 hover:border-error/40
+                                        transition-all duration-200 hover:scale-105"
                                 >
                                     <XCircle size={14} />
                                     Decline
@@ -225,9 +238,9 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                     e.stopPropagation();
                                     handleMarkAsRead(notification.id);
                                 }}
-                                className="p-1.5 rounded-lg text-theme-tertiary 
-                                    hover:text-theme-primary hover:bg-theme-hover 
-                                    transition-colors"
+                                className="p-2 rounded-lg text-theme-tertiary 
+                                    hover:text-success hover:bg-success/10 
+                                    transition-all duration-200"
                                 title="Mark as read"
                             >
                                 <Check size={16} />
@@ -238,9 +251,9 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                 e.stopPropagation();
                                 handleDelete(notification.id);
                             }}
-                            className="p-1.5 rounded-lg text-theme-tertiary 
+                            className="p-2 rounded-lg text-theme-tertiary 
                                 hover:text-error hover:bg-error/10 
-                                transition-colors"
+                                transition-all duration-200"
                             title="Delete"
                         >
                             <Trash2 size={16} />
@@ -255,12 +268,13 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         if (items.length === 0) return null;
 
         return (
-            <div key={title} className="mb-4">
-                <div className="px-6 py-2 text-xs font-semibold text-theme-tertiary uppercase tracking-wider">
-                    {title}
+            <div key={title} className="mb-6">
+                <div className="mx-4 mb-2 px-2 py-1.5 text-xs font-bold text-theme-tertiary uppercase tracking-wider flex items-center gap-2">
+                    <span>{title}</span>
+                    <span className="text-theme-tertiary/50 font-medium normal-case">({items.length})</span>
                 </div>
-                <AnimatePresence>
-                    {items.map(renderNotification)}
+                <AnimatePresence mode="popLayout">
+                    {items.map((notification, index) => renderNotification(notification, index))}
                 </AnimatePresence>
             </div>
         );
