@@ -510,14 +510,6 @@ router.post('/qbittorrent/transfer-info', async (req, res) => {
         // Extract server_state which contains all transfer info including alltime_dl and alltime_ul
         const serverState = syncResponse.data?.server_state || {};
 
-        // Debug: Log the response to verify we're getting alltime stats
-        logger.debug('qBittorrent server_state:', {
-            alltime_dl: serverState.alltime_dl,
-            alltime_ul: serverState.alltime_ul,
-            dl_info_data: serverState.dl_info_data,
-            up_info_data: serverState.up_info_data
-        });
-
         res.json(serverState);
     } catch (error) {
         logger.error('qBittorrent transfer info proxy error:', error.message);

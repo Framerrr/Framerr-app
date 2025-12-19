@@ -28,7 +28,11 @@ function validateProxyWhitelist() {
 
         // Skip if proxy auth is disabled or no whitelist configured
         if (!systemConfig?.auth?.proxy?.enabled || !systemConfig?.auth?.proxy?.whitelist) {
-            logger.warn('[ProxyAuth] Proxy headers present but proxy auth not configured - removing headers');
+            // Log once per session, not every request - use app flag
+            if (!req.app.get('proxyHeadersWarningLogged')) {
+                logger.debug('[ProxyAuth] Proxy headers detected but proxy auth not enabled - headers will be ignored');
+                req.app.set('proxyHeadersWarningLogged', true);
+            }
             // Remove ALL possible proxy headers to prevent spoofing
             delete req.headers[configuredHeader];
             delete req.headers[configuredEmailHeader];
