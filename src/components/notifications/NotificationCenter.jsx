@@ -58,6 +58,14 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         return notifications;
     }, [notifications, activeFilter]);
 
+    // Compute counts directly from notifications array (more reliable than separate unreadCount state)
+    const computedUnreadCount = useMemo(() =>
+        notifications.filter(n => !n.read).length
+        , [notifications]);
+    const computedReadCount = useMemo(() =>
+        notifications.filter(n => n.read).length
+        , [notifications]);
+
     // Group notifications by date
     const groupedNotifications = useMemo(() => {
         const groups = {
@@ -320,8 +328,8 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                 <div className="flex gap-1 mb-3 bg-theme-tertiary/30 p-1 rounded-lg">
                     {[
                         { id: 'all', label: 'All', count: notifications.length },
-                        { id: 'unread', label: 'Unread', count: unreadCount },
-                        { id: 'read', label: 'Read', count: notifications.length - unreadCount }
+                        { id: 'unread', label: 'Unread', count: computedUnreadCount },
+                        { id: 'read', label: 'Read', count: computedReadCount }
                     ].map(filter => (
                         <button
                             key={filter.id}
