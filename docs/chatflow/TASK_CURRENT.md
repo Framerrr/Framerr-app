@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-17 23:14 EST  
+**Last Updated:** 2025-12-19 09:35 EST  
 **Branch:** `develop`
 
 ---
@@ -18,19 +18,33 @@
 
 ## Current State
 
-**Status:** 🔄 Ready for v1.2.1 development
+**Status:** 🔴 Auth Proxy Logout Bug - WIP
 
-**Previous Session:**
-- Renamed version 1.1.11 → 1.2.0
-- Updated package.json, CHANGELOG.md
-- Git tag v1.2.0 created and pushed
-- Docker image pickels23/framerr:1.2.0 pushed
-- Local backup created: `backup_12_17_2025`
+**This Session:**
+- Deep debugging of auth proxy logout issue
+- Identified root cause: Framerr's API calls during logout transition are captured by Authentik as redirect targets
+- This breaks the redirect chain and causes CORS errors
+- Organizr handles this correctly with the same Authentik setup
+- Multiple code changes made (may need to revert):
+  - `AuthContext.jsx` - Boolean return from logout()
+  - `Sidebar.jsx` - Conditional navigation
+  - `axiosSetup.js` - Request blocking during logout
+  - `Login.jsx` - Disabled Plex SSO check on mount
+
+**Second opinions gathered:**
+- `docs/secondopinion/chatgpt-authproxy-bug.md`
+- `docs/secondopinion/gemini-authproxy-bug.md`
 
 ---
 
 ## Next Step
 
-Awaiting user direction for v1.2.1 work.
+**Deep dive into Organizr's auth proxy implementation:**
+1. Study Organizr's security and auth routes
+2. Understand how Organizr handles proxy logout
+3. Identify what Organizr does differently
+4. Apply learnings to Framerr
 
 ---
+
+**=== SESSION END 2025-12-19 09:35 EST ===**
