@@ -83,21 +83,13 @@ router.get('/logout', async (req, res) => {
         const systemConfig = await getSystemConfig();
         const proxy = systemConfig?.auth?.proxy || {};
 
-        // Debug: log proxy config to diagnose redirect issues
-        logger.info('[Logout] Proxy config:', {
-            enabled: proxy.enabled,
-            overrideLogout: proxy.overrideLogout,
-            logoutUrl: proxy.logoutUrl,
-            conditionMet: Boolean(proxy.enabled && proxy.overrideLogout && proxy.logoutUrl)
-        });
-
         if (proxy.enabled && proxy.overrideLogout && proxy.logoutUrl) {
-            logger.info('[Logout] Redirecting to proxy logout URL:', proxy.logoutUrl);
+            logger.info('[Logout] Redirecting to proxy logout URL');
             return res.redirect(302, proxy.logoutUrl);
         }
 
         // Local auth - redirect to login page
-        logger.info('[Logout] Redirecting to login page (proxy condition not met)');
+        logger.info('[Logout] Redirecting to login page');
         res.redirect(302, '/login');
     } catch (error) {
         logger.error('Logout error', { error: error.message });

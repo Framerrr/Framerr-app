@@ -22,20 +22,18 @@ const Login = () => {
     const from = location.state?.from?.pathname || '/';
     const loggedOut = location.state?.loggedOut;
 
-    // TODO: Re-enable this after fixing auth proxy logout issue
-    // DISABLED: This API call on mount causes Authentik to capture the URL as redirect target
-    // during logout, breaking the logout flow. See docs/secondopinion/ for details.
-    // useEffect(() => {
-    //     const timer = setTimeout(async () => {
-    //         try {
-    //             const response = await axios.get('/api/plex/sso/status');
-    //             setPlexSSOEnabled(response.data.enabled);
-    //         } catch (error) {
-    //             // SSO not available or CORS error from auth proxy - that's fine
-    //         }
-    //     }, 100);
-    //     return () => clearTimeout(timer);
-    // }, []);
+    // Check if Plex SSO is enabled (delayed slightly to avoid race with auth check)
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            try {
+                const response = await axios.get('/api/plex/sso/status');
+                setPlexSSOEnabled(response.data.enabled);
+            } catch (error) {
+                // SSO not available - that's fine, just hide the Plex login button
+            }
+        }, 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Show logout message if coming from logout
     useEffect(() => {
