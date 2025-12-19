@@ -6,7 +6,7 @@ import logger from '../utils/logger';
 // Import all theme CSS files
 import '../styles/themes/dark-pro.css';
 import '../styles/themes/nord.css';
-// import '../styles/themes/catppuccin.css'; // Not recovered
+import '../styles/themes/catppuccin.css';
 import '../styles/themes/dracula.css';
 import '../styles/themes/light.css';
 
