@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Trash2, Check, XCircle } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
@@ -35,6 +35,18 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
 
     const [activeFilter, setActiveFilter] = useState('all');
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+    // Track filter direction for animations (all=0, unread=1, read=2)
+    const filterOrder = { all: 0, unread: 1, read: 2 };
+    const prevFilterRef = useRef(activeFilter);
+    const [slideDirection, setSlideDirection] = useState(0); // -1 = left, 1 = right
+
+    useEffect(() => {
+        const prevIndex = filterOrder[prevFilterRef.current];
+        const newIndex = filterOrder[activeFilter];
+        setSlideDirection(newIndex > prevIndex ? 1 : -1);
+        prevFilterRef.current = activeFilter;
+    }, [activeFilter]);
 
     // Filter notifications
     const filteredNotifications = useMemo(() => {
@@ -137,13 +149,12 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         return (
             <motion.div
                 key={notification.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, x: -50 }}
+                initial={{ opacity: 0, x: slideDirection * 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
                 transition={{
-                    duration: 0.2,
-                    delay: index * 0.02,
-                    exit: { duration: 0.15 }
+                    duration: 0.15,
+                    delay: index * 0.02
                 }}
                 className={`
                     mx-4 mb-3 p-4 rounded-xl border border-theme
@@ -271,7 +282,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                     <span>{title}</span>
                     <span className="text-theme-tertiary/50 font-medium normal-case">({items.length})</span>
                 </div>
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="sync">
                     {items.map((notification, index) => renderNotification(notification, index))}
                 </AnimatePresence>
             </div>
