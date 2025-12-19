@@ -52,15 +52,15 @@ const ThemeSettings = () => {
                         <div className="flex gap-2 mt-3">
                             <div
                                 className="w-8 h-8 rounded"
-                                style={{ backgroundColor: t.id === 'light' ? '#0ea5e9' : t.id === 'nord' ? '#88c0d0' : t.id === 'catppuccin' ? '#89b4fa' : t.id === 'dracula' ? '#bd93f9' : t.id === 'noir' ? '#8a9ba8' : '#3b82f6' }}
+                                style={{ backgroundColor: t.id === 'light' ? '#0ea5e9' : t.id === 'nord' ? '#88c0d0' : t.id === 'catppuccin' ? '#89b4fa' : t.id === 'dracula' ? '#bd93f9' : t.id === 'noir' ? '#8a9ba8' : t.id === 'nebula' ? '#a855f7' : '#3b82f6' }}
                             />
                             <div
                                 className="w-8 h-8 rounded"
-                                style={{ backgroundColor: t.id === 'light' ? '#10b981' : t.id === 'nord' ? '#a3be8c' : t.id === 'catppuccin' ? '#a6e3a1' : t.id === 'dracula' ? '#50fa7b' : t.id === 'noir' ? '#4ade80' : '#10b981' }}
+                                style={{ backgroundColor: t.id === 'light' ? '#10b981' : t.id === 'nord' ? '#a3be8c' : t.id === 'catppuccin' ? '#a6e3a1' : t.id === 'dracula' ? '#50fa7b' : t.id === 'noir' ? '#4ade80' : t.id === 'nebula' ? '#ec4899' : '#10b981' }}
                             />
                             <div
                                 className="w-8 h-8 rounded"
-                                style={{ backgroundColor: t.id === 'light' ? '#f59e0b' : t.id === 'nord' ? '#ebcb8b' : t.id === 'catppuccin' ? '#f9e2af' : t.id === 'dracula' ? '#f1fa8c' : t.id === 'noir' ? '#fbbf24' : '#f59e0b' }}
+                                style={{ backgroundColor: t.id === 'light' ? '#f59e0b' : t.id === 'nord' ? '#ebcb8b' : t.id === 'catppuccin' ? '#f9e2af' : t.id === 'dracula' ? '#f1fa8c' : t.id === 'noir' ? '#fbbf24' : t.id === 'nebula' ? '#22d3ee' : '#f59e0b' }}
                             />
                         </div>
                     </button>

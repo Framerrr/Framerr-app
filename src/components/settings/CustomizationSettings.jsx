@@ -792,7 +792,8 @@ const CustomizationSettings = () => {
                                                         t.id === 'dracula' ? '#282a36' :
                                                             t.id === 'catppuccin' ? '#1e1e2e' :
                                                                 t.id === 'nord' ? '#2e3440' :
-                                                                    t.id === 'noir' ? '#0a0a0a' : '#0a0e1a'
+                                                                    t.id === 'noir' ? '#0a0a0a' :
+                                                                        t.id === 'nebula' ? '#0f0a1a' : '#0a0e1a'
                                             }} />
                                             {/* Primary Accent */}
                                             <div className="w-8 h-8 rounded" style={{
@@ -801,7 +802,8 @@ const CustomizationSettings = () => {
                                                         t.id === 'dracula' ? '#bd93f9' :
                                                             t.id === 'catppuccin' ? '#89b4fa' :
                                                                 t.id === 'nord' ? '#88c0d0' :
-                                                                    t.id === 'noir' ? '#8a9ba8' : '#0ea5e9'
+                                                                    t.id === 'noir' ? '#8a9ba8' :
+                                                                        t.id === 'nebula' ? '#a855f7' : '#0ea5e9'
                                             }} />
                                             {/* Secondary Accent / Text */}
                                             <div className="w-8 h-8 rounded" style={{
@@ -810,7 +812,8 @@ const CustomizationSettings = () => {
                                                         t.id === 'dracula' ? '#ff79c6' :
                                                             t.id === 'catppuccin' ? '#74c7ec' :
                                                                 t.id === 'nord' ? '#81a1c1' :
-                                                                    t.id === 'noir' ? '#6b7a87' : '#38bdf8'
+                                                                    t.id === 'noir' ? '#6b7a87' :
+                                                                        t.id === 'nebula' ? '#22d3ee' : '#38bdf8'
                                             }} />
                                         </div>
                                     </button>
