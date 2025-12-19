@@ -8,6 +8,7 @@ import axios from 'axios';
 // Store reference to notification and logout functions (set by providers)
 let showErrorFn = null;
 let logoutFn = null;
+let isLoggingOut = false; // Flag to prevent 401 handler during explicit logout
 
 /**
  * Set the notification functions for the interceptor to use
@@ -25,6 +26,13 @@ export const setLogoutFunction = (logout) => {
     logoutFn = logout;
 };
 
+/**
+ * Set logging out flag to prevent 401 handler from firing during explicit logout
+ */
+export const setLoggingOut = (value) => {
+    isLoggingOut = value;
+};
+
 // URLs where 401 is expected and should NOT show "session expired"
 const AUTH_ENDPOINTS = [
     '/api/auth/login',
@@ -33,7 +41,21 @@ const AUTH_ENDPOINTS = [
     '/api/auth/setup'
 ];
 
+// REQUEST interceptor - block ALL requests during logout to prevent race conditions
+// This stops FaviconInjector, AppTitle, etc from making API calls that Authentik intercepts
+axios.interceptors.request.use(
+    (config) => {
+        if (isLoggingOut && !config.url?.includes('/api/auth/logout')) {
+            // Block all requests except the logout request itself
+            return Promise.reject(new Error('Request blocked - logout in progress'));
+        }
+        return config;
+    }
+);
+
 // Response interceptor for 401 errors
+// TEMPORARILY DISABLED: Auto-logout on 401 may be interfering with proxy auth logout
+// See docs/secondopinion/ for debugging context
 axios.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -50,14 +72,16 @@ axios.interceptors.response.use(
             const isSetupPage = window.location.hash.includes('setup');
 
             // Only handle unexpected 401s (actual session expiry)
-            if (!isAuthEndpoint && !isLoginPage && !isSetupPage) {
+            // Skip if we're in the middle of an explicit logout to prevent race conditions
+            if (!isAuthEndpoint && !isLoginPage && !isSetupPage && !isLoggingOut) {
                 if (showErrorFn) {
                     showErrorFn('Session Expired', 'Please log in again');
                 }
-                // Auto-logout and redirect
-                if (logoutFn) {
-                    logoutFn();
-                }
+                // DISABLED: Auto-logout may be conflicting with proxy auth
+                // TODO: Re-enable after fixing auth proxy logout issue
+                // if (logoutFn) {
+                //     logoutFn();
+                // }
             }
         }
         return Promise.reject(error);

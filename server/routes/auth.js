@@ -66,7 +66,39 @@ router.post('/login', async (req, res) => {
     }
 });
 /**
+ * GET /api/auth/logout
+ * Browser-native logout with HTTP redirect (for auth proxy compatibility)
+ * This eliminates race conditions by letting the browser handle the redirect
+ */
+router.get('/logout', async (req, res) => {
+    try {
+        const sessionId = req.cookies?.sessionId;
+        if (sessionId) {
+            const { revokeSession } = require('../db/users');
+            await revokeSession(sessionId);
+        }
+        res.clearCookie('sessionId');
+
+        // Check if proxy auth redirect is configured
+        const systemConfig = await getSystemConfig();
+        const proxy = systemConfig?.auth?.proxy || {};
+
+        if (proxy.enabled && proxy.overrideLogout && proxy.logoutUrl) {
+            logger.info('[Logout] Redirecting to proxy logout URL');
+            return res.redirect(302, proxy.logoutUrl);
+        }
+
+        // Local auth - redirect to login page
+        logger.info('[Logout] Redirecting to login page');
+        res.redirect(302, '/login');
+    } catch (error) {
+        logger.error('Logout error', { error: error.message });
+        res.redirect(302, '/login?error=logout_failed');
+    }
+});
+/**
  * POST /api/auth/logout
+ * JSON API logout (kept for backward compatibility)
  */
 router.post('/logout', async (req, res) => {
     try {

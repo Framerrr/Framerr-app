@@ -113,12 +113,43 @@ feature/*    ← Isolated features (with user approval)
 7. **Squash merge to main** (requires user approval)
    ```bash
    git checkout main
+   git pull origin main
    git merge --squash develop
+   ```
+   
+   **If conflicts occur:**
+   - Accept develop version for ALL files: `git checkout --theirs <file>`
+   - For deleted files: `git rm <file>`
+   - Stage all: `git add -A`
+   
+   ```bash
    git commit -m "release: vX.X.X - [summary of changes]"
    git push origin main
    ```
    
    ⚠️ Squash merge creates ONE clean commit on main with all develop changes
+
+7.5. **CRITICAL: Sync develop with main** (prevents future conflicts)
+   
+   After pushing to main, merge main back into develop:
+   ```bash
+   git checkout develop
+   git merge main
+   ```
+   
+   **Why this is required:**
+   - Squash merge creates a NEW commit on main with no relationship to develop's commits
+   - Without this step, git doesn't know develop's changes are already on main
+   - Next squash merge would show ALL old commits as conflicts
+   
+   **If conflicts occur:**
+   - Keep develop's version: `git checkout --ours <file>`
+   - Commit: `git commit -m "Merge main into develop after vX.X.X release"`
+   
+   Push the sync commit:
+   ```bash
+   git push origin develop
+   ```
 
 8. **Tag release**
    ```bash

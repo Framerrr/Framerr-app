@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-17 17:17 EST  
+**Last Updated:** 2025-12-19 09:35 EST  
 **Branch:** `develop`
 
 ---
@@ -9,54 +9,42 @@
 
 | Field | Value |
 |-------|-------|
-| **Last Released Version** | `1.1.10` |
+| **Last Released Version** | `1.2.0` |
 | **Release Status** | RELEASED |
-| **Draft Changelog** | `docs/versions/v1.1.11-draft.md` |
-| **Draft Status** | DRAFT |
-
-> **IMPORTANT FOR AGENTS:** If "Draft Status" is "DRAFT", do NOT create a new draft. Continue updating the existing draft changelog.
+| **Draft Changelog** | `docs/versions/v1.2.1-draft.md` |
+| **Draft Status** | DRAFT - In Development |
 
 ---
 
 ## Current State
 
-**Status:** 🔄 In Progress — v1.1.11 Release Preparation
+**Status:** 🔴 Auth Proxy Logout Bug - WIP
 
-**This Session Summary:**
+**This Session:**
+- Deep debugging of auth proxy logout issue
+- Identified root cause: Framerr's API calls during logout transition are captured by Authentik as redirect targets
+- This breaks the redirect chain and causes CORS errors
+- Organizr handles this correctly with the same Authentik setup
+- Multiple code changes made (may need to revert):
+  - `AuthContext.jsx` - Boolean return from logout()
+  - `Sidebar.jsx` - Conditional navigation
+  - `axiosSetup.js` - Request blocking during logout
+  - `Login.jsx` - Disabled Plex SSO check on mount
 
-### Merge Complete ✅
-- Merged `feature/notification-integration` → `develop` (fast-forward, no conflicts)
-- Pushed 22 commits to origin/develop
-- All notification integration work now on develop
-
-### Release Prep Tasks
-- [ ] Verify build passes
-- [ ] Review/cleanup draft changelog
-- [ ] Final testing checklist
-- [ ] Docker build when ready
-
----
-
-## Previous Session Work (Now Merged)
-
-### Widget Loading Race Condition Fix ✅
-- Added `integrationsLoaded` and `integrationsError` states to AppDataContext
-- Created `IntegrationConnectionError` component for network failures
-- Updated all 7 integration widgets to wait for data before showing status
-
-### Session Expiry Auto-Redirect ✅
-- Axios interceptor now triggers logout on 401 errors
-- Visibility change listener checks auth when tab wakes from sleep
-
-### Dashboard Loading Indicator Fixes ✅
-- Dashboard loading now invisible placeholder (prevents layout shift)
-
-### Clock & Weather Widget Layout Improvements ✅
-- Larger time display, centered design
-- Weather: location fully visible, compact horizontal mode
+**Second opinions gathered:**
+- `docs/secondopinion/chatgpt-authproxy-bug.md`
+- `docs/secondopinion/gemini-authproxy-bug.md`
 
 ---
 
 ## Next Step
 
-**Preparing for v1.1.11 release** — awaiting user direction on specific prep tasks.
+**Deep dive into Organizr's auth proxy implementation:**
+1. Study Organizr's security and auth routes
+2. Understand how Organizr handles proxy logout
+3. Identify what Organizr does differently
+4. Apply learnings to Framerr
+
+---
+
+**=== SESSION END 2025-12-19 09:35 EST ===**

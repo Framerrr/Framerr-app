@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2025-12-19
+
+### Fixed
+- **Critical:** Auth proxy logout bug - logout now works correctly with Authentik and other auth proxies
+  - Service Worker no longer caches navigation requests, allowing nginx auth_request to intercept
+  - Browser-native logout with HTTP 302 redirect eliminates race conditions
+- Re-enabled Plex SSO status check on login page
+
+### Changed
+- Logout uses full page navigation instead of async JavaScript for better compatibility with auth proxies
+
+---
+
+## [1.2.0] - 2025-12-17
+
+### Added
+- **Complete Notification System:**
+  - Toast notifications (success/error/warning/info) for all user actions
+  - Real-time notifications via Server-Sent Events (SSE)
+  - Web Push notifications for background delivery (Safari/iOS 16.4+ supported)
+  - Cross-device notification sync (read, delete, mark all read)
+  - Actionable notifications (Approve/Decline Overseerr requests from toast)
+  - System icons for integration notifications (9 icons: Overseerr, Sonarr, Radarr, Plex, etc.)
+
+- **Webhook Integration:**
+  - Overseerr, Sonarr, Radarr webhook receivers with token authentication
+  - 36 event types (Overseerr: 10, Sonarr: 13, Radarr: 13)
+  - Smart event routing (admin events → admins, user events → requesting user)
+  - Seerr/Jellyseerr fork support
+
+- **Layout Controller System:**
+  - Centralized responsive layout control via React Context
+  - Unified breakpoint handling (lg ≥768px, sm <768px)
+  - Eliminated breakpoint thrashing between viewport and container-based decisions
+
+- **Integrations Settings Restructure:**
+  - Widget Gallery and Active Widgets now accessible to all users
+  - New "My Linked Accounts" tab for notification preferences
+  - Complete notification settings UI with admin/user views
+
+- **Plex SSO Authentication:**
+  - Full Plex SSO login flow
+  - Library access verification (only users with actual library access can login)
+  - Admin user linking
+
+- **Dynamic PWA Manifest:**
+  - App name and icons dynamically served
+  - Custom favicon fallback mechanism
+
+### Fixed
+- **Critical:** Safari Web Push (changed VAPID subject from `.local` to valid domain)
+- **Critical:** iOS scroll/zoom issues (100dvh, viewport-fit, safe-area-inset)
+- **Critical:** Widget loading race condition (no more premature "disabled" messages)
+- Session expiry auto-redirect (no stale dashboard visible)
+- 403 errors for non-admin users (proper access control)
+- Dashboard loading indicator (centered, no duplicates)
+- Scroll position bleeding between pages
+- Clock and Weather widget layouts improved
+
+### Changed
+- Application Branding UI merged into single section
+- Debug Overlay v2.0 with Layout Controller info
+- Mobile tab bar touch optimization (active states instead of hover)
+
+---
+
 ## [1.1.10] - 2025-12-13
 
 ### Added

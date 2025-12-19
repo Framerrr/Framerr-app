@@ -22,17 +22,17 @@ const Login = () => {
     const from = location.state?.from?.pathname || '/';
     const loggedOut = location.state?.loggedOut;
 
-    // Check if Plex SSO is enabled
+    // Check if Plex SSO is enabled (delayed slightly to avoid race with auth check)
     useEffect(() => {
-        const checkPlexSSO = async () => {
+        const timer = setTimeout(async () => {
             try {
                 const response = await axios.get('/api/plex/sso/status');
                 setPlexSSOEnabled(response.data.enabled);
             } catch (error) {
-                // SSO not available, that's fine
+                // SSO not available - that's fine, just hide the Plex login button
             }
-        };
-        checkPlexSSO();
+        }, 100);
+        return () => clearTimeout(timer);
     }, []);
 
     // Show logout message if coming from logout
