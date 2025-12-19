@@ -137,24 +137,22 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         return (
             <motion.div
                 key={notification.id}
-                layout
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -50, scale: 0.9 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, x: -50 }}
                 transition={{
-                    type: 'spring',
-                    stiffness: 400,
-                    damping: 30,
-                    delay: index * 0.03 // Stagger animation
+                    duration: 0.2,
+                    delay: index * 0.02,
+                    exit: { duration: 0.15 }
                 }}
                 className={`
-                    mx-4 mb-3 p-4 rounded-xl
+                    mx-4 mb-3 p-4 rounded-xl border border-theme
                     ${!notification.read
-                        ? 'glass-card border border-accent/20 shadow-lg shadow-accent/5'
-                        : 'glass-subtle border border-theme'
+                        ? 'bg-accent/5 glass-card'
+                        : 'glass-subtle'
                     }
-                    hover:shadow-xl hover:scale-[1.01]
-                    transition-all duration-200 cursor-pointer
+                    hover:shadow-md
+                    transition-shadow duration-200 cursor-pointer
                 `}
                 onClick={() => !notification.read && handleMarkAsRead(notification.id)}
             >
@@ -273,7 +271,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                     <span>{title}</span>
                     <span className="text-theme-tertiary/50 font-medium normal-case">({items.length})</span>
                 </div>
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="wait">
                     {items.map((notification, index) => renderNotification(notification, index))}
                 </AnimatePresence>
             </div>
@@ -306,7 +304,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                 </div>
 
                 {/* Filter Tabs */}
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-1 mb-3 bg-theme-tertiary/30 p-1 rounded-lg">
                     {[
                         { id: 'all', label: 'All', count: notifications.length },
                         { id: 'unread', label: 'Unread', count: unreadCount },
@@ -315,15 +313,18 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                         <button
                             key={filter.id}
                             onClick={() => setActiveFilter(filter.id)}
-                            className={`
-                                px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                                ${activeFilter === filter.id
-                                    ? 'bg-accent text-white'
-                                    : 'text-theme-secondary hover:bg-theme-hover'
-                                }
-                            `}
+                            className="relative px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex-1"
                         >
-                            {filter.label} ({filter.count})
+                            {activeFilter === filter.id && (
+                                <motion.div
+                                    layoutId="notificationFilterIndicator"
+                                    className="absolute inset-0 bg-accent rounded-md"
+                                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                />
+                            )}
+                            <span className={`relative z-10 ${activeFilter === filter.id ? 'text-white' : 'text-theme-secondary'}`}>
+                                {filter.label} ({filter.count})
+                            </span>
                         </button>
                     ))}
                 </div>
@@ -377,35 +378,37 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
             </div>
 
             {/* Notification List */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {loading ? (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-theme-secondary">Loading...</p>
-                    </div>
-                ) : filteredNotifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                        <div className="p-4 rounded-full bg-theme-tertiary/10 mb-4">
-                            <Info size={32} className="text-theme-tertiary" />
+            <div className="flex-1 overflow-hidden">
+                <div className="h-full overflow-y-auto custom-scrollbar">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-theme-secondary">Loading...</p>
                         </div>
-                        <h3 className="text-lg font-semibold text-theme-primary mb-2">
-                            No notifications
-                        </h3>
-                        <p className="text-sm text-theme-secondary">
-                            {activeFilter === 'unread'
-                                ? "You're all caught up!"
-                                : activeFilter === 'read'
-                                    ? 'No read notifications'
-                                    : 'You have no notifications yet'}
-                        </p>
-                    </div>
-                ) : (
-                    <div>
-                        {renderGroup('Today', groupedNotifications.today)}
-                        {renderGroup('Yesterday', groupedNotifications.yesterday)}
-                        {renderGroup('This Week', groupedNotifications.thisWeek)}
-                        {renderGroup('Older', groupedNotifications.older)}
-                    </div>
-                )}
+                    ) : filteredNotifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                            <div className="p-4 rounded-full bg-theme-tertiary/10 mb-4">
+                                <Info size={32} className="text-theme-tertiary" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-theme-primary mb-2">
+                                No notifications
+                            </h3>
+                            <p className="text-sm text-theme-secondary">
+                                {activeFilter === 'unread'
+                                    ? "You're all caught up!"
+                                    : activeFilter === 'read'
+                                        ? 'No read notifications'
+                                        : 'You have no notifications yet'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div>
+                            {renderGroup('Today', groupedNotifications.today)}
+                            {renderGroup('Yesterday', groupedNotifications.yesterday)}
+                            {renderGroup('This Week', groupedNotifications.thisWeek)}
+                            {renderGroup('Older', groupedNotifications.older)}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
