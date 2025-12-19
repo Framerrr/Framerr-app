@@ -5,13 +5,15 @@
  */
 
 // VERSION - Update this to force new SW installation
-const SW_VERSION = '1.2.0';
+const SW_VERSION = '1.2.1';
 
 // Cache name for app shell resources
-const CACHE_NAME = 'framerr-cache-v2';
+const CACHE_NAME = 'framerr-cache-v3';
+// Note: We intentionally don't cache navigation URLs ('/', '/index.html')
+// This ensures nginx auth_request can intercept and enforce authentication
 const STATIC_ASSETS = [
-    '/',
-    '/index.html'
+    // Static assets like icons can still be cached
+    // '/favicon/web-app-manifest-192x192.png'
 ];
 
 console.log('[SW] Framerr Service Worker version', SW_VERSION);
@@ -60,6 +62,13 @@ self.addEventListener('fetch', (event) => {
     // Skip API requests and external resources
     const url = new URL(event.request.url);
     if (url.pathname.startsWith('/api/') || !url.origin.includes(self.location.origin)) {
+        return;
+    }
+
+    // CRITICAL: Skip cache for navigation requests (page loads)
+    // This allows nginx auth_request to intercept and redirect to Authentik login
+    // Without this, cached HTML would load even when user is logged out
+    if (event.request.mode === 'navigate') {
         return;
     }
 
