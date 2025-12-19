@@ -149,12 +149,14 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         return (
             <motion.div
                 key={notification.id}
+                layout="position"
                 initial={{ opacity: 0, x: slideDirection * 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -30 }}
                 transition={{
-                    duration: 0.15,
-                    delay: index * 0.02
+                    duration: 0.2,
+                    delay: index * 0.02,
+                    layout: { duration: 0.25, ease: 'easeOut' }
                 }}
                 className={`
                     mx-4 mb-3 p-4 rounded-xl border border-theme
