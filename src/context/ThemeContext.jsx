@@ -9,6 +9,7 @@ import '../styles/themes/nord.css';
 import '../styles/themes/catppuccin.css';
 import '../styles/themes/dracula.css';
 import '../styles/themes/light.css';
+import '../styles/themes/noir.css';
 
 const ThemeContext = createContext(null);
 
@@ -23,7 +24,8 @@ export const ThemeProvider = ({ children }) => {
         { id: 'nord', name: 'Nord', description: 'Nature-inspired teal & green' },
         { id: 'catppuccin', name: 'Catppuccin Mocha', description: 'Cozy pastel colors' },
         { id: 'dracula', name: 'Dracula', description: 'Vibrant purple theme' },
-        { id: 'light', name: 'Light Modern', description: 'Clean white & sky blue' }
+        { id: 'light', name: 'Light Modern', description: 'Clean white & sky blue' },
+        { id: 'noir', name: 'Noir', description: 'Premium black with silver accents' }
     ];
 
     // Load theme from user config on mount
