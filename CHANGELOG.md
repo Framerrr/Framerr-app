@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.2] - 2025-12-19
+
+### Added
+- **Nebula Theme** - Deep space purple with magenta and cyan accents
+
+### Fixed
+- **Notification Count Bug** - Read/unread counts now sync correctly when marking as read
+- **ProxyAuth Log Spam** - Reduced to DEBUG level, logs only once at startup
+- **qBittorrent Log Spam** - Removed noisy server_state debug logging
+
+### Changed
+- **NotificationCenter Polish:**
+  - Subtle background tint for unread notifications
+  - Directional slide animations based on filter navigation
+  - Smooth vertical collapse animation when deleting
+  - Animated filter tab indicator
+- Sidebar "Back to Tabs" → "Tabs"
+- Linked Accounts helper text clarified for Overseerr matching
+
+---
+
 ## [1.2.1] - 2025-12-19
 
 ### Fixed

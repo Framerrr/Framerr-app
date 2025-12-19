@@ -558,7 +558,7 @@ const Sidebar = () => {
                                         transition={{ duration: 0.1 }}
                                         className={`whitespace-nowrap relative z-10 ${showNotificationCenter ? 'text-accent' : ''}`}
                                     >
-                                        {showNotificationCenter ? 'Back to Tabs' : 'Notifications'}
+                                        {showNotificationCenter ? 'Tabs' : 'Notifications'}
                                     </motion.span>
                                 )}
                             </AnimatePresence>
@@ -898,7 +898,7 @@ const Sidebar = () => {
                                     </motion.div>
                                 )}
                             </div>
-                            <span className="font-medium">{showNotificationCenter ? 'Back to Tabs' : 'Notifications'}</span>
+                            <span className="font-medium">{showNotificationCenter ? 'Tabs' : 'Notifications'}</span>
                         </button>
 
                         {/* Logout Button */}

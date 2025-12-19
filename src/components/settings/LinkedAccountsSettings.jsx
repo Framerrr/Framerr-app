@@ -194,8 +194,8 @@ const LinkedAccountsSettings = () => {
                                     ? `Often same as Plex: ${plexAccount.externalUsername}`
                                     : 'Your Overseerr username'}
                                 helperText={isPlexLinked
-                                    ? "This is often the same as your Plex username shown above"
-                                    : "This should match your username in Overseerr exactly"}
+                                    ? "Your account is automatically matched using your Plex username. Only enter a value here if automatic matching fails."
+                                    : "Enter your Overseerr username to receive personalized notifications. Must match exactly."}
                             />
                         </div>
                     </div>

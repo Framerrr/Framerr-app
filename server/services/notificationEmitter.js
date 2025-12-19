@@ -271,19 +271,26 @@ class NotificationEmitter extends EventEmitter {
     async sendNotification(userId, notification, options = {}) {
         const { forceWebPush = false } = options;
 
+        // Skip Web Push for sync events (SSE-only, used for cross-tab state sync)
+        if (notification.type === 'sync') {
+            if (this.hasConnection(userId)) {
+                this.sendSSE(userId, notification);
+            }
+            return;
+        }
+
         // If forcing Web Push (for testing), send push regardless of SSE
         if (forceWebPush) {
             await this.sendWebPush(userId, notification);
             return;
         }
 
-        // TEMPORARY: Send BOTH SSE and Web Push for all notifications
-        // This helps debug Safari push issues
-        // TODO: Revert to selective routing after Safari issue is resolved
+        // Send to ALL channels for real notifications:
+        // - SSE to any open browser tabs
+        // - Web Push to all subscribed devices (phone, other browsers)
         if (this.hasConnection(userId)) {
             this.sendSSE(userId, notification);
         }
-        // Always send Web Push too (for testing)
         await this.sendWebPush(userId, notification);
     }
 
