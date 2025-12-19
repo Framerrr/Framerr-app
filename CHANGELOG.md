@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2025-12-19
+
+### Fixed
+- **Critical:** Auth proxy logout bug - logout now works correctly with Authentik and other auth proxies
+  - Service Worker no longer caches navigation requests, allowing nginx auth_request to intercept
+  - Browser-native logout with HTTP 302 redirect eliminates race conditions
+- Re-enabled Plex SSO status check on login page
+
+### Changed
+- Logout uses full page navigation instead of async JavaScript for better compatibility with auth proxies
+
+---
+
 ## [1.2.0] - 2025-12-17
 
 ### Added

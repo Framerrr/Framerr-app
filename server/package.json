@@ -1,6 +1,6 @@
 {
     "name": "framerr-server",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Backend API server for Framerr",
     "main": "index.js",
     "scripts": {
