@@ -111,13 +111,10 @@ const Sidebar = () => {
         return () => window.removeEventListener('profilePictureUpdated', handleProfilePictureUpdate);
     }, []);
 
-    const handleLogout = async () => {
-        // logout() returns true for local auth, false for proxy redirect
-        const shouldNavigate = await logout();
-        if (shouldNavigate) {
-            navigate('/login');
-        }
-        // If false, browser is redirecting to proxy logout - do NOT navigate
+    const handleLogout = () => {
+        // Browser-native logout - server handles redirect
+        // This eliminates race conditions with auth proxy
+        window.location.href = '/api/auth/logout';
     };
 
     // Initialize all groups as expanded by default

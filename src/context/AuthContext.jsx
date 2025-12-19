@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { setLogoutFunction, setLoggingOut } from '../utils/axiosSetup';
+import { setLogoutFunction } from '../utils/axiosSetup';
 import logger from '../utils/logger';
 
 const AuthContext = createContext(null);
@@ -25,32 +25,11 @@ export const AuthProvider = ({ children }) => {
         navigate('/login', { replace: true });
     }, [navigate]);
 
-    // Logout function - returns boolean indicating if caller should handle navigation
-    // Returns FALSE for proxy auth (browser is redirecting, do NOT navigate)
-    // Returns TRUE for local auth (caller should navigate to /login)
-    const logout = useCallback(async () => {
-        setLoggingOut(true);
-        try {
-            const response = await axios.post('/api/auth/logout');
-
-            // PROXY AUTH: redirect and return false (caller must NOT navigate)
-            if (response.data?.redirectUrl) {
-                // Use replace() to avoid broken state in browser history
-                window.location.replace(response.data.redirectUrl);
-                return false; // Signal: "STOP! Browser is redirecting externally."
-            }
-
-            // LOCAL AUTH: clear state and return true (caller can navigate)
-            setUser(null);
-            setLoggingOut(false);
-            return true; // Signal: "Local logout done. You may navigate."
-        } catch (err) {
-            logger.error('Logout failed', err);
-            setLoggingOut(false);
-            return false; // On error, don't navigate
-        }
-        // Note: No finally block - we handle setLoggingOut(false) explicitly above
-        // to avoid it running after window.location.replace()
+    // Logout function - uses browser navigation for seamless auth proxy support
+    const logout = useCallback(() => {
+        // Browser-native logout - server handles redirect
+        // This eliminates race conditions with auth proxy
+        window.location.href = '/api/auth/logout';
     }, []);
 
     // Register session expiry handler with axios interceptor for auto-logout on 401
