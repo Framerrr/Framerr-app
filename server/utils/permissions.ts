@@ -1,26 +1,33 @@
-const { getSystemConfig } = require('../db/systemConfig');
-const logger = require('./logger');
+import { getSystemConfig } from '../db/systemConfig';
+import logger from './logger';
+import type { PermissionGroup } from '../types/config';
+
+interface User {
+    username: string;
+    group: string;
+}
+
+interface SystemConfigWithGroups {
+    groups: PermissionGroup[] | Record<string, PermissionGroup>;
+}
 
 /**
  * Check if a user has a specific permission
- * @param {object} user - User object
- * @param {string} permission - Permission to check
- * @returns {Promise<boolean>} True if user has permission
  */
-async function hasPermission(user, permission) {
+export async function hasPermission(user: User | null | undefined, permission: string): Promise<boolean> {
     if (!user || !user.group) return false;
 
     try {
-        const config = await getSystemConfig();
+        const config = await getSystemConfig() as SystemConfigWithGroups;
 
         // Handle both array format (new) and object format (legacy)
         // Array: [{id: 'admin', ...}, {id: 'user', ...}]
         // Object: {'admin': {...}, 'user': {...}}
-        let group;
+        let group: PermissionGroup | undefined;
         if (Array.isArray(config.groups)) {
             group = config.groups.find(g => g.id === user.group);
         } else {
-            group = config.groups[user.group];
+            group = (config.groups as Record<string, PermissionGroup>)[user.group];
         }
 
         if (!group) {
@@ -40,38 +47,31 @@ async function hasPermission(user, permission) {
         // Check specific permission
         return group.permissions.includes(permission);
     } catch (error) {
-        logger.error('Permission check failed', { error: error.message });
+        logger.error('Permission check failed', { error: (error as Error).message });
         return false;
     }
 }
 
 /**
  * Get all permissions for a user
- * @param {object} user - User object
- * @returns {Promise<string[]>} Array of permissions
  */
-async function getUserPermissions(user) {
+export async function getUserPermissions(user: User | null | undefined): Promise<string[]> {
     if (!user || !user.group) return [];
 
     try {
-        const config = await getSystemConfig();
+        const config = await getSystemConfig() as SystemConfigWithGroups;
 
         // Handle both array format (new) and object format (legacy)
-        let group;
+        let group: PermissionGroup | undefined;
         if (Array.isArray(config.groups)) {
             group = config.groups.find(g => g.id === user.group);
         } else {
-            group = config.groups[user.group];
+            group = (config.groups as Record<string, PermissionGroup>)[user.group];
         }
 
         return group && group.permissions ? group.permissions : [];
     } catch (error) {
-        logger.error('Failed to get user permissions', { error: error.message });
+        logger.error('Failed to get user permissions', { error: (error as Error).message });
         return [];
     }
 }
-
-module.exports = {
-    hasPermission,
-    getUserPermissions
-};

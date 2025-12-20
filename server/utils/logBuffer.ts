@@ -4,14 +4,28 @@
  * Stores recent log entries in memory for display in Debug UI
  */
 
+interface LogEntry {
+    timestamp: string;
+    level: string;
+    message: string;
+    [key: string]: unknown;
+}
+
+interface LogMeta {
+    [key: string]: unknown;
+}
+
 class LogBuffer {
-    constructor(maxSize = 500) {
+    private logs: LogEntry[];
+    private maxSize: number;
+
+    constructor(maxSize: number = 500) {
         this.logs = [];
         this.maxSize = maxSize;
     }
 
-    add(level, message, meta = {}) {
-        const entry = {
+    add(level: string, message: string, meta: LogMeta = {}): void {
+        const entry: LogEntry = {
             timestamp: new Date().toISOString(),
             level: level.toUpperCase(),
             message,
@@ -26,15 +40,15 @@ class LogBuffer {
         }
     }
 
-    get() {
+    get(): LogEntry[] {
         return [...this.logs];
     }
 
-    clear() {
+    clear(): void {
         this.logs = [];
     }
 
-    toText() {
+    toText(): string {
         return this.logs
             .map(log => `${log.timestamp} [${log.level}] ${log.message}`)
             .join('\n');
@@ -42,4 +56,4 @@ class LogBuffer {
 }
 
 // Export singleton
-module.exports = new LogBuffer();
+export default new LogBuffer();

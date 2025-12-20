@@ -5,9 +5,9 @@
  * Uses better-sqlite3 for synchronous, fast SQLite operations.
  */
 
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
 
 // Determine database location
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
@@ -18,13 +18,16 @@ if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+// Database instance type
+type DatabaseInstance = ReturnType<typeof Database>;
+
 // Create database connection
-let db;
+let db: DatabaseInstance;
 
 try {
     db = new Database(DB_PATH, {
         // Verbose logging disabled - was causing UUID truncation in console output
-        verbose: null
+        verbose: undefined
     });
 
     // Enable WAL mode for better concurrency (allows simultaneous reads and writes)
@@ -37,7 +40,7 @@ try {
     console.log(`[DB] WAL mode enabled, foreign keys enforced`);
 
 } catch (error) {
-    console.error('[DB] Failed to initialize database:', error.message);
+    console.error('[DB] Failed to initialize database:', (error as Error).message);
     throw error;
 }
 
@@ -45,7 +48,7 @@ try {
  * Initialize database schema from schema.sql file
  * This should be called once on first startup
  */
-function initializeSchema() {
+function initializeSchema(): void {
     const schemaPath = path.join(__dirname, 'schema.sql');
 
     if (!fs.existsSync(schemaPath)) {
@@ -59,20 +62,24 @@ function initializeSchema() {
         db.exec(schema);
         console.log('[DB] Schema initialized successfully');
     } catch (error) {
-        console.error('[DB] Failed to initialize schema:', error.message);
+        console.error('[DB] Failed to initialize schema:', (error as Error).message);
         throw error;
     }
+}
+
+interface TableCountResult {
+    count: number;
 }
 
 /**
  * Check if database is initialized (has tables)
  */
-function isInitialized() {
+function isInitialized(): boolean {
     const result = db.prepare(`
         SELECT COUNT(*) as count 
         FROM sqlite_master 
         WHERE type='table' AND name='users'
-    `).get();
+    `).get() as TableCountResult;
 
     return result.count > 0;
 }
@@ -81,7 +88,7 @@ function isInitialized() {
  * Close database connection
  * Should only be called on graceful shutdown
  */
-function closeDatabase() {
+function closeDatabase(): void {
     if (db) {
         db.close();
         console.log('[DB] Database connection closed');
@@ -89,7 +96,7 @@ function closeDatabase() {
 }
 
 // Export singleton instance and utilities
-module.exports = {
+export {
     db,
     initializeSchema,
     isInitialized,

@@ -8,7 +8,7 @@
  * This allows containers to access services running on the host machine
  * Requires container to be started with --add-host=host.local:host-gateway
  */
-function translateHostUrl(url) {
+export function translateHostUrl(url: string): string {
     try {
         const parsedUrl = new URL(url);
         const hostname = parsedUrl.hostname;
@@ -44,10 +44,8 @@ function translateHostUrl(url) {
 
         // Remove trailing slash from original URL too for consistency
         return url.replace(/\/$/, '');
-    } catch (error) {
+    } catch {
         // If URL parsing fails, return original
         return url;
     }
 }
-
-module.exports = { translateHostUrl };

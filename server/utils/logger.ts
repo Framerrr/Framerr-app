@@ -7,12 +7,31 @@
  * - Development: Verbose, structured JSON logs with metadata
  * 
  * Usage:
- *   const logger = require('./utils/logger');
+ *   import logger from './utils/logger';
  *   logger.info('Server started', { port: 3001 });
  *   logger.error('Database error', { error: err.message });
  */
 
-const LOG_LEVELS = {
+type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+interface LogMeta {
+    [key: string]: unknown;
+}
+
+interface LogLevels {
+    error: number;
+    warn: number;
+    info: number;
+    debug: number;
+}
+
+interface StartupConfig {
+    version?: string;
+    port?: number;
+    env?: string;
+}
+
+const LOG_LEVELS: LogLevels = {
     error: 0,
     warn: 1,
     info: 2,
@@ -20,22 +39,27 @@ const LOG_LEVELS = {
 };
 
 class Logger {
+    private level: LogLevel;
+    private isProduction: boolean;
+
     constructor() {
         // Get log level from environment, default to 'info'
-        this.level = process.env.LOG_LEVEL || 'info';
+        const envLevel = process.env.LOG_LEVEL || 'info';
         this.isProduction = process.env.NODE_ENV === 'production';
 
         // Validate log level
-        if (!LOG_LEVELS.hasOwnProperty(this.level)) {
-            console.warn(`Invalid LOG_LEVEL "${this.level}", defaulting to "info"`);
+        if (!Object.prototype.hasOwnProperty.call(LOG_LEVELS, envLevel)) {
+            console.warn(`Invalid LOG_LEVEL "${envLevel}", defaulting to "info"`);
             this.level = 'info';
+        } else {
+            this.level = envLevel as LogLevel;
         }
     }
 
     /**
      * Format log message based on environment
      */
-    format(level, message, meta = {}) {
+    private format(level: LogLevel, message: string, meta: LogMeta = {}): string {
         const timestamp = new Date().toISOString();
 
         // Production: Clean, human-readable format
@@ -59,7 +83,7 @@ class Logger {
     /**
      * Core logging method
      */
-    log(level, message, meta = {}) {
+    private log(level: LogLevel, message: string, meta: LogMeta = {}): void {
         // Check if this level should be logged
         if (LOG_LEVELS[level] > LOG_LEVELS[this.level]) {
             return;
@@ -69,9 +93,10 @@ class Logger {
 
         // Add to log buffer for Debug UI
         try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
             const logBuffer = require('./logBuffer');
             logBuffer.add(level, message, meta);
-        } catch (err) {
+        } catch {
             // Ignore errors loading logBuffer (e.g., during startup)
         }
 
@@ -87,44 +112,36 @@ class Logger {
 
     /**
      * Log error message
-     * @param {string} message - Error message
-     * @param {Object} meta - Additional metadata (e.g., { error: err.message, stack: err.stack })
      */
-    error(message, meta = {}) {
+    error(message: string, meta: LogMeta = {}): void {
         this.log('error', message, meta);
     }
 
     /**
      * Log warning message
-     * @param {string} message - Warning message
-     * @param {Object} meta - Additional metadata
      */
-    warn(message, meta = {}) {
+    warn(message: string, meta: LogMeta = {}): void {
         this.log('warn', message, meta);
     }
 
     /**
      * Log info message
-     * @param {string} message - Info message
-     * @param {Object} meta - Additional metadata
      */
-    info(message, meta = {}) {
+    info(message: string, meta: LogMeta = {}): void {
         this.log('info', message, meta);
     }
 
     /**
      * Log debug message (only in development with LOG_LEVEL=debug)
-     * @param {string} message - Debug message
-     * @param {Object} meta - Additional metadata
      */
-    debug(message, meta = {}) {
+    debug(message: string, meta: LogMeta = {}): void {
         this.log('debug', message, meta);
     }
 
     /**
      * Log startup information (always shown, formatted nicely)
      */
-    startup(appName, config = {}) {
+    startup(appName: string, config: StartupConfig = {}): void {
         const banner = `
 ╔═══════════════════════════════════════════════════════════╗
 ║  ${appName.padEnd(55)}  ║
@@ -147,12 +164,11 @@ class Logger {
 
     /**
      * Set log level dynamically at runtime
-     * @param {string} level - New log level (error, warn, info, debug)
      */
-    setLevel(level) {
+    setLevel(level: string): void {
         const lowercaseLevel = level.toLowerCase();
-        if (LOG_LEVELS.hasOwnProperty(lowercaseLevel)) {
-            this.level = lowercaseLevel;
+        if (Object.prototype.hasOwnProperty.call(LOG_LEVELS, lowercaseLevel)) {
+            this.level = lowercaseLevel as LogLevel;
             this.info(`Log level changed to: ${lowercaseLevel}`);
         } else {
             console.warn(`Invalid log level "${level}". Valid levels: error, warn, info, debug`);
@@ -161,4 +177,4 @@ class Logger {
 }
 
 // Export singleton instance
-module.exports = new Logger();
+export default new Logger();

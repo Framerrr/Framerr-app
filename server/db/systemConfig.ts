@@ -1,12 +1,87 @@
-const { db } = require('../database/db');
-const logger = require('../utils/logger');
+import { db } from '../database/db';
+import logger from '../utils/logger';
 
 // In-memory cache to prevent repeated database queries
-let configCache = null;
-let cacheTimestamp = null;
+let configCache: FullSystemConfig | null = null;
+let cacheTimestamp: number | null = null;
+
+interface SystemConfigRow {
+    key: string;
+    value: string;
+}
+
+interface IntegrationConfig {
+    enabled: boolean;
+    webhookConfig?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+interface IntegrationsMap {
+    [key: string]: IntegrationConfig;
+}
+
+interface AuthConfig {
+    local: { enabled: boolean };
+    proxy: {
+        enabled: boolean;
+        headerName: string;
+        emailHeaderName: string;
+        whitelist: string[];
+        overrideLogout: boolean;
+        logoutUrl: string;
+    };
+    iframe: {
+        enabled: boolean;
+        endpoint: string;
+        clientId: string;
+        redirectUri: string;
+        scopes: string;
+    };
+    session: { timeout: number };
+}
+
+interface PermissionGroup {
+    id: string;
+    name: string;
+    description?: string;
+    permissions: string[];
+    locked?: boolean;
+}
+
+interface TabGroup {
+    id: string;
+    name: string;
+    order: number;
+}
+
+interface FaviconConfig {
+    enabled: boolean;
+    htmlSnippet?: string;
+}
+
+interface ServerConfig {
+    port: number;
+    name: string;
+}
+
+// Standalone FullSystemConfig - not extending external types to avoid conflicts
+interface FullSystemConfig {
+    server: ServerConfig;
+    auth: AuthConfig;
+    integrations: IntegrationsMap;
+    groups: PermissionGroup[];
+    tabGroups: TabGroup[];
+    defaultGroup?: string;
+    debug?: Record<string, unknown>;
+    favicon?: FaviconConfig;
+    plexSSO?: Record<string, unknown>;
+    webhookBaseUrl?: string;
+    vapidKeys?: Record<string, string>;
+    webPushEnabled?: boolean;
+}
 
 // Default system configuration
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG: FullSystemConfig = {
     server: {
         port: 3001,
         name: 'Framerr'
@@ -15,48 +90,48 @@ const DEFAULT_CONFIG = {
         local: { enabled: true },
         proxy: {
             enabled: false,
-            headerName: '',  // Empty by default - user must configure
-            emailHeaderName: '',  // Empty by default - user must configure
-            whitelist: [],  // Empty by default - user must configure
+            headerName: '',
+            emailHeaderName: '',
+            whitelist: [],
             overrideLogout: false,
-            logoutUrl: ''  // Empty by default - user must configure
+            logoutUrl: ''
         },
         iframe: {
             enabled: false,
-            endpoint: '',  // OAuth authorize endpoint
-            clientId: '',  // OAuth client ID
-            redirectUri: '',  // OAuth redirect URI (defaults to current origin + /login-complete)
-            scopes: 'openid profile email'  // OAuth scopes
+            endpoint: '',
+            clientId: '',
+            redirectUri: '',
+            scopes: 'openid profile email'
         },
-        session: { timeout: 86400000 } // 24 hours
-    },
+        session: { timeout: 86400000 }
+    } as AuthConfig,
     integrations: {
         plex: { enabled: false },
         sonarr: { enabled: false },
         radarr: { enabled: false },
         overseerr: { enabled: false },
         qbittorrent: { enabled: false }
-    },
+    } as IntegrationsMap,
     groups: [
         {
             id: 'admin',
             name: 'Administrators',
             description: 'Full system access',
-            permissions: ['*'],  // Superuser - all permissions
+            permissions: ['*'],
             locked: true
         },
         {
             id: 'user',
             name: 'Users',
             description: 'Personal customization',
-            permissions: ['view_dashboard', 'manage_widgets'],  // Standard user permissions
+            permissions: ['view_dashboard', 'manage_widgets'],
             locked: true
         },
         {
             id: 'guest',
             name: 'Guests',
             description: 'View only',
-            permissions: ['view_dashboard'],  // Read-only access
+            permissions: ['view_dashboard'],
             locked: true
         }
     ],
@@ -66,14 +141,14 @@ const DEFAULT_CONFIG = {
         { id: 'downloads', name: 'Downloads', order: 1 },
         { id: 'system', name: 'System', order: 2 }
     ],
-    webPushEnabled: true  // Global toggle for Web Push notifications
+    webPushEnabled: true
 };
 
 /**
  * Helper: Rebuild nested config object from flattened key-value pairs
  */
-function buildConfigFromKeyValues(rows) {
-    const config = { ...DEFAULT_CONFIG };
+function buildConfigFromKeyValues(rows: SystemConfigRow[]): FullSystemConfig {
+    const config: FullSystemConfig = { ...DEFAULT_CONFIG };
 
     for (const row of rows) {
         const { key, value } = row;
@@ -85,16 +160,16 @@ function buildConfigFromKeyValues(rows) {
                 config.server = { ...config.server, ...parsed };
                 break;
             case 'auth.local':
-                config.auth.local = { ...config.auth.local, ...parsed };
+                (config.auth as AuthConfig).local = { ...(config.auth as AuthConfig).local, ...parsed };
                 break;
             case 'auth.proxy':
-                config.auth.proxy = { ...config.auth.proxy, ...parsed };
+                (config.auth as AuthConfig).proxy = { ...(config.auth as AuthConfig).proxy, ...parsed };
                 break;
             case 'auth.iframe':
-                config.auth.iframe = { ...config.auth.iframe, ...parsed };
+                (config.auth as AuthConfig).iframe = { ...(config.auth as AuthConfig).iframe, ...parsed };
                 break;
             case 'auth.session':
-                config.auth.session = { ...config.auth.session, ...parsed };
+                (config.auth as AuthConfig).session = { ...(config.auth as AuthConfig).session, ...parsed };
                 break;
             case 'integrations':
                 config.integrations = { ...config.integrations, ...parsed };
@@ -134,16 +209,15 @@ function buildConfigFromKeyValues(rows) {
 
 /**
  * Read system configuration from SQLite (with in-memory caching)
- * @returns {Promise<object>} System configuration
  */
-async function getSystemConfig() {
+export async function getSystemConfig(): Promise<FullSystemConfig> {
     try {
         // Return cached config if available
         if (configCache !== null) {
             return configCache;
         }
 
-        const rows = db.prepare('SELECT key, value FROM system_config').all();
+        const rows = db.prepare('SELECT key, value FROM system_config').all() as SystemConfigRow[];
 
         // If no config exists, cache and return defaults
         if (rows.length === 0) {
@@ -162,33 +236,32 @@ async function getSystemConfig() {
 
         return config;
     } catch (error) {
-        logger.error('Failed to read system config from database', { error: error.message });
+        logger.error('Failed to read system config from database', { error: (error as Error).message });
         throw error;
     }
 }
 
 /**
  * Deep merge integration configs to preserve nested properties like webhookConfig
- * @param {object} current - Current integrations config
- * @param {object} updates - Integration updates
- * @returns {object} Merged integrations
  */
-function deepMergeIntegrations(current, updates) {
+function deepMergeIntegrations(
+    current: IntegrationsMap | undefined,
+    updates: IntegrationsMap | undefined
+): IntegrationsMap {
     if (!updates) return current || {};
 
-    const merged = { ...current };
+    const merged: IntegrationsMap = { ...current };
 
     for (const [key, value] of Object.entries(updates)) {
         if (value && typeof value === 'object' && !Array.isArray(value)) {
-            // Deep merge objects (like individual integration configs)
+            const currentIntegration = merged[key] as IntegrationConfig | undefined;
             merged[key] = {
-                ...(merged[key] || {}),
+                ...(currentIntegration || {}),
                 ...value,
-                // Special handling for webhookConfig to preserve all nested properties
                 webhookConfig: value.webhookConfig !== undefined
-                    ? { ...(merged[key]?.webhookConfig || {}), ...value.webhookConfig }
-                    : merged[key]?.webhookConfig
-            };
+                    ? { ...(currentIntegration?.webhookConfig || {}), ...value.webhookConfig }
+                    : currentIntegration?.webhookConfig
+            } as IntegrationConfig;
         } else {
             merged[key] = value;
         }
@@ -199,10 +272,8 @@ function deepMergeIntegrations(current, updates) {
 
 /**
  * Update system configuration in SQLite
- * @param {object} updates - Partial updates to apply
- * @returns {Promise<object>} Updated configuration
  */
-async function updateSystemConfig(updates) {
+export async function updateSystemConfig(updates: Partial<FullSystemConfig>): Promise<FullSystemConfig> {
     const currentConfig = await getSystemConfig();
 
     // VALIDATION: Prevent modification/deletion of system groups
@@ -210,19 +281,25 @@ async function updateSystemConfig(updates) {
         throw new Error('Permission groups cannot be modified. Groups are locked to: admin, user, guest');
     }
 
+    const currentAuth = currentConfig.auth as AuthConfig;
+    const updateAuth = updates.auth as Partial<AuthConfig> | undefined;
+
     // Build new config explicitly to avoid merge issues
-    const newConfig = {
+    const newConfig: FullSystemConfig = {
         server: { ...currentConfig.server, ...(updates.server || {}) },
         auth: {
-            local: { ...currentConfig.auth?.local, ...(updates.auth?.local || {}) },
-            session: { ...currentConfig.auth?.session, ...(updates.auth?.session || {}) },
-            proxy: { ...currentConfig.auth?.proxy, ...(updates.auth?.proxy || {}) },
-            iframe: { ...currentConfig.auth?.iframe, ...(updates.auth?.iframe || {}) }
-        },
-        integrations: deepMergeIntegrations(currentConfig.integrations, updates.integrations),
+            local: { ...currentAuth?.local, ...(updateAuth?.local || {}) },
+            session: { ...currentAuth?.session, ...(updateAuth?.session || {}) },
+            proxy: { ...currentAuth?.proxy, ...(updateAuth?.proxy || {}) },
+            iframe: { ...currentAuth?.iframe, ...(updateAuth?.iframe || {}) }
+        } as AuthConfig,
+        integrations: deepMergeIntegrations(
+            currentConfig.integrations as IntegrationsMap,
+            updates.integrations as IntegrationsMap
+        ),
         debug: { ...currentConfig.debug, ...(updates.debug || {}) },
-        favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon, // Support null to delete
-        groups: currentConfig.groups,  // Always preserve locked groups
+        favicon: updates.favicon !== undefined ? updates.favicon : currentConfig.favicon,
+        groups: currentConfig.groups,
         defaultGroup: updates.defaultGroup || currentConfig.defaultGroup,
         tabGroups: updates.tabGroups || currentConfig.tabGroups,
         plexSSO: updates.plexSSO ? { ...currentConfig.plexSSO, ...updates.plexSSO } : currentConfig.plexSSO,
@@ -232,29 +309,27 @@ async function updateSystemConfig(updates) {
     };
 
     try {
-        // Prepare UPSERT statements for each top-level config key
         const upsert = db.prepare(`
             INSERT INTO system_config (key, value)
             VALUES (?, ?)
             ON CONFLICT(key) DO UPDATE SET value = excluded.value
         `);
 
-        // Update all config sections as separate key-value pairs
         const updateMany = db.transaction(() => {
             if (updates.server) {
                 upsert.run('server', JSON.stringify(newConfig.server));
             }
-            if (updates.auth?.local) {
-                upsert.run('auth.local', JSON.stringify(newConfig.auth.local));
+            if (updateAuth?.local) {
+                upsert.run('auth.local', JSON.stringify((newConfig.auth as AuthConfig).local));
             }
-            if (updates.auth?.proxy) {
-                upsert.run('auth.proxy', JSON.stringify(newConfig.auth.proxy));
+            if (updateAuth?.proxy) {
+                upsert.run('auth.proxy', JSON.stringify((newConfig.auth as AuthConfig).proxy));
             }
-            if (updates.auth?.iframe) {
-                upsert.run('auth.iframe', JSON.stringify(newConfig.auth.iframe));
+            if (updateAuth?.iframe) {
+                upsert.run('auth.iframe', JSON.stringify((newConfig.auth as AuthConfig).iframe));
             }
-            if (updates.auth?.session) {
-                upsert.run('auth.session', JSON.stringify(newConfig.auth.session));
+            if (updateAuth?.session) {
+                upsert.run('auth.session', JSON.stringify((newConfig.auth as AuthConfig).session));
             }
             if (updates.integrations) {
                 upsert.run('integrations', JSON.stringify(newConfig.integrations));
@@ -294,13 +369,9 @@ async function updateSystemConfig(updates) {
 
         return newConfig;
     } catch (error) {
-        logger.error('Failed to update system config in database', { error: error.message });
+        logger.error('Failed to update system config in database', { error: (error as Error).message });
         throw error;
     }
 }
 
-module.exports = {
-    getSystemConfig,
-    updateSystemConfig,
-    DEFAULT_CONFIG
-};
+export { DEFAULT_CONFIG };

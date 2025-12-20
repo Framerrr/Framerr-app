@@ -1,4 +1,4 @@
-const https = require('https');
+import https from 'https';
 
 /**
  * HTTPS Agent for handling self-signed certificates
@@ -9,8 +9,6 @@ const https = require('https');
  * WARNING: Only use in trusted local network environments.
  * For production with public internet, use proper CA certificates.
  */
-const httpsAgent = new https.Agent({
+export const httpsAgent = new https.Agent({
     rejectUnauthorized: false
 });
-
-module.exports = { httpsAgent };
