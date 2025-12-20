@@ -3,28 +3,38 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshCw, ExternalLink, AlertCircle, Lock, X } from 'lucide-react';
 import logger from '../utils/logger';
 import { useSystemConfig } from '../context/SystemConfigContext';
-import { detectAuthNeed, isAuthDetectionEnabled, getSensitivity, getUserAuthPatterns } from '../utils/authDetection';
+import { detectAuthNeed, isAuthDetectionEnabled, getSensitivity, getUserAuthPatterns, AuthDetectionResult } from '../utils/authDetection';
 import { useNotifications } from '../context/NotificationContext';
 
-const TabContainer = () => {
+interface Tab {
+    slug: string;
+    name: string;
+    url: string;
+}
+
+interface TabsApiResponse {
+    tabs: Tab[];
+}
+
+const TabContainer = (): React.JSX.Element | null => {
     const navigate = useNavigate();
     const { systemConfig } = useSystemConfig();
     const { warning: showWarning } = useNotifications();
-    const [tabs, setTabs] = useState([]);
-    const [loadedTabs, setLoadedTabs] = useState(new Set()); // Track which tabs have been loaded
-    const [activeSlug, setActiveSlug] = useState(null); // Current visible tab
-    const [reloadKeys, setReloadKeys] = useState({}); // Per-tab reload triggers
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [iframeLoadingStates, setIframeLoadingStates] = useState({}); // Track loading per iframe
+    const [tabs, setTabs] = useState<Tab[]>([]);
+    const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set()); // Track which tabs have been loaded
+    const [activeSlug, setActiveSlug] = useState<string | null>(null); // Current visible tab
+    const [reloadKeys, setReloadKeys] = useState<Record<string, number>>({}); // Per-tab reload triggers
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [iframeLoadingStates, setIframeLoadingStates] = useState<Record<string, boolean>>({}); // Track loading per iframe
 
     // Auth detection state (per tab)
-    const [needsAuth, setNeedsAuth] = useState({}); // { slug: boolean }
-    const [authDetectionInfo, setAuthDetectionInfo] = useState({}); // { slug: detection info }
-    const [isReloading, setIsReloading] = useState({}); // { slug: boolean }
-    const iframeRefs = useRef({}); // { slug: iframe ref }
-    const authWindowRefs = useRef({}); // { slug: window ref }
-    const detectionIntervalRefs = useRef({}); // { slug: interval id }
+    const [needsAuth, setNeedsAuth] = useState<Record<string, boolean>>({}); // { slug: boolean }
+    const [authDetectionInfo, setAuthDetectionInfo] = useState<Record<string, AuthDetectionResult>>({}); // { slug: detection info }
+    const [isReloading, setIsReloading] = useState<Record<string, boolean>>({}); // { slug: boolean }
+    const iframeRefs = useRef<Record<string, HTMLIFrameElement | null>>({}); // { slug: iframe ref }
+    const authWindowRefs = useRef<Record<string, Window | null>>({}); // { slug: window ref }
+    const detectionIntervalRefs = useRef<Record<string, NodeJS.Timeout>>({}); // { slug: interval id }
 
     // Fetch all tabs on mount
     useEffect(() => {
@@ -33,19 +43,19 @@ const TabContainer = () => {
 
     // Listen for auth-complete messages from login-complete page
     useEffect(() => {
-        const handleAuthMessage = (event) => {
+        const handleAuthMessage = (event: MessageEvent): void => {
             // Security: verify origin matches Framerr's origin
             if (event.origin !== window.location.origin) {
-                logger.warn('Ignored auth message from untrusted origin:', event.origin);
+                logger.warn('Ignored auth message from untrusted origin:', { origin: event.origin });
                 return;
             }
 
             // Check for auth-complete message
             if (event.data?.type === 'auth-complete') {
-                logger.info('Auth complete message received via postMessage', event.data);
+                logger.info('Auth complete message received via postMessage', { data: event.data });
 
                 // Get tab from state if provided
-                const tab = event.data?.tab;
+                const tab = event.data?.tab as string | undefined;
 
                 if (tab) {
                     // Restore the specific tab
@@ -55,7 +65,7 @@ const TabContainer = () => {
                 } else {
                     // Fallback: find the tab that has an open auth window
                     Object.keys(authWindowRefs.current).forEach(slug => {
-                        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
+                        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug]?.closed) {
                             logger.info(`Handling auth completion for tab: ${slug}`);
                             handleAuthComplete(slug);
                         }
@@ -70,10 +80,10 @@ const TabContainer = () => {
 
     // Handle hash changes
     useEffect(() => {
-        const handleHashChange = () => {
+        const handleHashChange = (): void => {
             const hash = window.location.hash.slice(1); // Remove '#'
             if (hash && hash !== 'dashboard' && hash !== 'settings') {
-                logger.debug('Hash changed to:', hash);
+                logger.debug('Hash changed to:', { hash });
                 setActiveSlug(hash);
                 // Mark this tab as loaded (lazy loading)
                 setLoadedTabs(prev => new Set([...prev, hash]));
@@ -108,7 +118,7 @@ const TabContainer = () => {
                     if (currentSrc) {
                         const detection = detectAuthNeed(currentSrc, tab.url, userPatterns, sensitivity);
                         if (detection.needsAuth) {
-                            logger.info(`Auth detected for ${slug}:`, detection);
+                            logger.info(`Auth detected for ${slug}:`, { detection });
                             setNeedsAuth(prev => ({ ...prev, [slug]: true }));
                             setAuthDetectionInfo(prev => ({ ...prev, [slug]: detection }));
                         }
@@ -128,7 +138,7 @@ const TabContainer = () => {
         };
     }, [tabs, loadedTabs, systemConfig, needsAuth]);
 
-    const fetchTabs = async () => {
+    const fetchTabs = async (): Promise<void> => {
         try {
             setLoading(true);
             setError(null);
@@ -143,38 +153,38 @@ const TabContainer = () => {
                 return;
             }
 
-            const data = await response.json();
+            const data = await response.json() as TabsApiResponse;
             const fetchedTabs = data.tabs || [];
             setTabs(fetchedTabs);
             setError(null);
         } catch (err) {
-            logger.error('Error fetching tabs:', err);
+            logger.error('Error fetching tabs:', { error: err });
             setError('Failed to load tabs');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleIframeLoad = (slug) => {
-        logger.debug('Iframe loaded:', slug);
+    const handleIframeLoad = (slug: string): void => {
+        logger.debug('Iframe loaded:', { slug });
         setIframeLoadingStates(prev => ({ ...prev, [slug]: false }));
     };
 
-    const reloadTab = (slug) => {
-        logger.info('Reloading tab:', slug);
+    const reloadTab = (slug: string): void => {
+        logger.info('Reloading tab:', { slug });
         setIframeLoadingStates(prev => ({ ...prev, [slug]: true }));
         setReloadKeys(prev => ({ ...prev, [slug]: (prev[slug] || 0) + 1 }));
     };
 
     // Auth detection handlers
-    const handleOpenAuth = (slug, authUrl) => {
-        logger.info(`Opening auth in new tab for ${slug}:`, authUrl);
+    const handleOpenAuth = (slug: string, authUrl: string): void => {
+        logger.info(`Opening auth in new tab for ${slug}:`, { authUrl });
 
         // Get OAuth configuration from systemConfig
-        const clientId = systemConfig?.auth?.iframe?.clientId || '';
-        const redirectUri = systemConfig?.auth?.iframe?.redirectUri || `${window.location.origin}/login-complete`;
-        const oauthEndpoint = systemConfig?.auth?.iframe?.endpoint || '';
-        const scopes = systemConfig?.auth?.iframe?.scopes || 'openid profile email';
+        const clientId = (systemConfig as any)?.auth?.iframe?.clientId || '';
+        const redirectUri = (systemConfig as any)?.auth?.iframe?.redirectUri || `${window.location.origin}/login-complete`;
+        const oauthEndpoint = (systemConfig as any)?.auth?.iframe?.endpoint || '';
+        const scopes = (systemConfig as any)?.auth?.iframe?.scopes || 'openid profile email';
 
         // Validate configuration
         if (!clientId || !oauthEndpoint) {
@@ -192,7 +202,7 @@ const TabContainer = () => {
         // Build proper OAuth authorize URL from configured endpoint
         const oauthUrl = `${oauthEndpoint}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`;
 
-        logger.debug('OAuth authorize URL:', oauthUrl);
+        logger.debug('OAuth authorize URL:', { oauthUrl });
 
         const authWindow = window.open(oauthUrl, '_blank');
         authWindowRefs.current[slug] = authWindow;
@@ -216,12 +226,12 @@ const TabContainer = () => {
         }, 500);
     };
 
-    const handleAuthComplete = (slug) => {
+    const handleAuthComplete = (slug: string): void => {
         logger.info(`Auth window closed for ${slug}, reloading iframe`);
 
         // Close the auth window if still open and refocus Framerr
-        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug].closed) {
-            authWindowRefs.current[slug].close();
+        if (authWindowRefs.current[slug] && !authWindowRefs.current[slug]?.closed) {
+            authWindowRefs.current[slug]?.close();
         }
         window.focus();
 
@@ -256,7 +266,7 @@ const TabContainer = () => {
         }, 500);
     };
 
-    const handleManualAuth = (slug) => {
+    const handleManualAuth = (slug: string): void => {
         const tab = tabs.find(t => t.slug === slug);
         if (!tab) return;
 
@@ -276,7 +286,7 @@ const TabContainer = () => {
         }));
     };
 
-    const handleDismissOverlay = (slug) => {
+    const handleDismissOverlay = (slug: string): void => {
         setNeedsAuth(prev => ({ ...prev, [slug]: false }));
     };
 

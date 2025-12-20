@@ -1,6 +1,36 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence, Transition } from 'framer-motion';
 import '../styles/animations.css';
+
+interface Section {
+    id: string;
+    name: string;
+    icon: string;
+}
+
+interface Tab {
+    id: string;
+    label: string;
+    content: string;
+}
+
+interface MenuItem {
+    id: string;
+    icon: string;
+    label: string;
+}
+
+interface GroupItem {
+    id: string;
+    label: string;
+}
+
+interface Group {
+    id: string;
+    icon: string;
+    label: string;
+    items: GroupItem[];
+}
 
 /**
  * Animation Test Page
@@ -8,10 +38,10 @@ import '../styles/animations.css';
  * Isolated environment to test and refine animations before applying to production.
  * Access via: http://localhost:3001/animation-test
  */
-export default function AnimationTest() {
-    const [activeSection, setActiveSection] = useState('tabs');
+export default function AnimationTest(): React.JSX.Element {
+    const [activeSection, setActiveSection] = useState<string>('tabs');
 
-    const sections = [
+    const sections: Section[] = [
         { id: 'tabs', name: 'Tabs Animation', icon: '📑' },
         { id: 'sidebar', name: 'Sidebar Animation', icon: '📁' },
     ];
@@ -36,8 +66,8 @@ export default function AnimationTest() {
                             key={section.id}
                             onClick={() => setActiveSection(section.id)}
                             className={`px-6 py-3 rounded-lg font-medium transition-all relative ${activeSection === section.id
-                                    ? 'text-theme-primary'
-                                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                                ? 'text-theme-primary'
+                                : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                                 }`}
                         >
                             {activeSection === section.id && (
@@ -104,19 +134,19 @@ export default function AnimationTest() {
  * Tab Animation Tester
  * Tests smooth tab switching with sliding indicator and content transitions
  */
-function TabAnimationTester() {
-    const [activeTab, setActiveTab] = useState('account');
-    const [stiffness, setStiffness] = useState(220);
-    const [damping, setDamping] = useState(30);
+function TabAnimationTester(): React.JSX.Element {
+    const [activeTab, setActiveTab] = useState<string>('account');
+    const [stiffness, setStiffness] = useState<number>(220);
+    const [damping, setDamping] = useState<number>(30);
 
-    const tabs = [
+    const tabs: Tab[] = [
         { id: 'account', label: 'Account', content: 'Account settings and profile information' },
         { id: 'security', label: 'Security', content: 'Password and authentication settings' },
         { id: 'notifications', label: 'Notifications', content: 'Email and push notification preferences' },
         { id: 'privacy', label: 'Privacy', content: 'Privacy and data sharing settings' },
     ];
 
-    const springConfig = {
+    const springConfig: Transition = {
         type: 'spring',
         stiffness,
         damping,
@@ -179,8 +209,8 @@ function TabAnimationTester() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`relative px-6 py-3 font-medium transition-colors ${activeTab === tab.id
-                                    ? 'text-accent'
-                                    : 'text-theme-secondary hover:text-theme-primary'
+                                ? 'text-accent'
+                                : 'text-theme-secondary hover:text-theme-primary'
                                 }`}
                         >
                             {tab.label}
@@ -229,25 +259,25 @@ function TabAnimationTester() {
  * Sidebar Animation Tester
  * Tests sidebar expand/collapse animations
  */
-function SidebarAnimationTester() {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [stiffness, setStiffness] = useState(220);
-    const [damping, setDamping] = useState(30);
-    const [expandedGroups, setExpandedGroups] = useState({ group1: true });
+function SidebarAnimationTester(): React.JSX.Element {
+    const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const [stiffness, setStiffness] = useState<number>(220);
+    const [damping, setDamping] = useState<number>(30);
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ group1: true });
 
-    const springConfig = {
+    const springConfig: Transition = {
         type: 'spring',
         stiffness,
         damping,
     };
 
-    const menuItems = [
+    const menuItems: MenuItem[] = [
         { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
         { id: 'analytics', icon: '📊', label: 'Analytics' },
         { id: 'settings', icon: '⚙️', label: 'Settings' },
     ];
 
-    const groups = [
+    const groups: Group[] = [
         {
             id: 'group1',
             icon: '📁',
@@ -260,7 +290,7 @@ function SidebarAnimationTester() {
         },
     ];
 
-    const toggleGroup = (groupId) => {
+    const toggleGroup = (groupId: string): void => {
         setExpandedGroups((prev) => ({
             ...prev,
             [groupId]: !prev[groupId],

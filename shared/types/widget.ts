@@ -49,6 +49,7 @@ export interface WidgetLayouts {
  */
 export interface Widget {
     i: string;            // Grid layout ID (react-grid-layout)
+    id: string;           // Widget database ID (alias for i during migration)
     x: number;            // Column position (desktop)
     y: number;            // Row position (desktop)
     w: number;            // Width in columns
