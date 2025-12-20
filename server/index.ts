@@ -4,11 +4,52 @@
  * Main server application using Express.js
  */
 
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const logger = require('./utils/logger');
-const { version } = require('./package.json');
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import path from 'path';
+import fs from 'fs';
+
+import logger from './utils/logger';
+import { getSystemConfig } from './db/systemConfig';
+import { getUser, createUser, getUserById } from './db/users';
+import { hashPassword } from './auth/password';
+import { validateSession } from './auth/session';
+import { validateProxyWhitelist } from './middleware/proxyWhitelist';
+import { isInitialized, initializeSchema, db } from './database/db';
+import { checkMigrationStatus, runMigrations, setVersion } from './database/migrator';
+import { seedSystemIcons } from './services/seedSystemIcons';
+
+// Route imports
+import setupRoutes from './routes/setup';
+import authRoutes from './routes/auth';
+import profileRoutes from './routes/profile';
+import configRoutes from './routes/config';
+import adminRoutes from './routes/admin';
+import systemRoutes from './routes/system';
+import integrationsRoutes from './routes/integrations';
+import tabsRoutes from './routes/tabs';
+import widgetsRoutes from './routes/widgets';
+import themeRoutes from './routes/theme';
+import backupRoutes from './routes/backup';
+import customIconsRoutes from './routes/custom-icons';
+import advancedRoutes from './routes/advanced';
+import diagnosticsRoutes from './routes/diagnostics';
+import notificationsRoutes from './routes/notifications';
+import plexRoutes from './routes/plex';
+import linkedAccountsRoutes from './routes/linkedAccounts';
+import webhooksRoutes from './routes/webhooks';
+import requestActionsRoutes from './routes/requestActions';
+import proxyRoutes from './routes/proxy';
+
+// Type for package.json version
+interface PackageJson {
+    version: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { version }: PackageJson = require('./package.json');
 
 // Initialize Express app
 const app = express();
@@ -20,10 +61,9 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 // Body parsing middleware - increased limit for base64 image uploads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(require('cookie-parser')());
+app.use(cookieParser());
 
 // Proxy whitelist validation (must be before session middleware)
-const { validateProxyWhitelist } = require('./middleware/proxyWhitelist');
 app.use(validateProxyWhitelist());
 
 // Security middleware - configured for HTTP Docker deployments
@@ -39,10 +79,9 @@ app.use(cors({
 }));
 
 // Global session middleware - proxy auth takes precedence over local session
-app.use(async (req, res, next) => {
+app.use(async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Load fresh config from DB to respect runtime toggle changes
-        const { getSystemConfig } = require('./db/systemConfig');
         const systemConfig = await getSystemConfig();
 
         // Try proxy auth first (if enabled and headers present)
@@ -52,21 +91,19 @@ app.use(async (req, res, next) => {
             const emailHeaderName = (systemConfig.auth.proxy.emailHeaderName || 'X-authentik-email').toLowerCase();
 
             // Check configured header first, then common fallbacks
-            const username = req.headers[headerName] ||
+            const username = (req.headers[headerName] ||
                 req.headers['x-forwarded-user'] ||
-                req.headers['remote-user'];
-            const email = req.headers[emailHeaderName] ||
+                req.headers['remote-user']) as string | undefined;
+            const email = (req.headers[emailHeaderName] ||
                 req.headers['x-forwarded-email'] ||
-                req.headers['remote-email'];
+                req.headers['remote-email']) as string | undefined;
 
             if (username) {
-                const { getUser, createUser } = require('./db/users');
                 let user = await getUser(username);
 
                 // Auto-create user from proxy auth if doesn't exist
                 if (!user) {
                     logger.info(`[ProxyAuth] Auto-creating user: ${username}`);
-                    const { hashPassword } = require('./auth/password');
                     const passwordHash = await hashPassword('PROXY_AUTH_PLACEHOLDER');
 
                     user = await createUser({
@@ -77,7 +114,7 @@ app.use(async (req, res, next) => {
                     });
                 }
 
-                req.user = user;
+                req.user = user as unknown as Express.Request['user'];
                 req.proxyAuth = true;  // Flag to indicate proxy auth was used
                 return next();
             }
@@ -86,22 +123,19 @@ app.use(async (req, res, next) => {
         // Fall back to session-based auth if proxy auth not used
         const sessionId = req.cookies?.sessionId;
         if (sessionId) {
-            const { validateSession } = require('./auth/session');
-            const { getUserById } = require('./db/users');
-
             const session = await validateSession(sessionId);
             if (session) {
                 const user = await getUserById(session.userId);
                 if (user) {
-                    req.user = user;
+                    req.user = user as unknown as Express.Request['user'];
                 }
             }
         }
     } catch (error) {
         logger.error('Auth middleware error:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
+            message: (error as Error).message,
+            stack: (error as Error).stack,
+            name: (error as Error).name
         });
     }
     next();
@@ -109,7 +143,7 @@ app.use(async (req, res, next) => {
 
 // Request logging middleware (only in development)
 if (NODE_ENV !== 'production') {
-    app.use((req, res, next) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
         logger.debug('Incoming request', {
             method: req.method,
             path: req.path,
@@ -121,7 +155,6 @@ if (NODE_ENV !== 'production') {
 }
 
 // Serve static files with CORS for proxy compatibility
-const path = require('path');
 
 // Default Framerr favicons (always available, never deleted)
 // Always serve from server's public folder (these are bundled with the server, not the frontend)
@@ -132,14 +165,13 @@ app.use('/favicon-default', cors(), express.static(defaultFaviconPath));
 // ALWAYS serve from DATA_DIR for persistence across container restarts
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const customFaviconPath = path.join(DATA_DIR, 'public/favicon');
-const fs = require('fs');
 // Ensure directory exists
 if (!fs.existsSync(customFaviconPath)) {
     fs.mkdirSync(customFaviconPath, { recursive: true });
 }
 
 // Favicon with fallback: try custom first, then default
-app.use('/favicon', cors(), (req, res, next) => {
+app.use('/favicon', cors(), (req: Request, res: Response, next: NextFunction) => {
     const customFile = path.join(customFaviconPath, req.path);
 
     // Check if custom file exists
@@ -161,7 +193,7 @@ app.use('/favicon', cors(), (req, res, next) => {
 app.use('/profile-pictures', cors(), express.static('/config/upload/profile-pictures'));
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -172,38 +204,35 @@ app.get('/api/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth/setup', require('./routes/setup'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/profile', require('./routes/profile'));
-app.use('/api/config', require('./routes/config'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/system', require('./routes/system'));
-app.use('/api/integrations', require('./routes/integrations'));
-app.use('/api/tabs', require('./routes/tabs'));
-app.use('/api/widgets', require('./routes/widgets'));
-app.use('/api/theme', require('./routes/theme'));
-app.use('/api/backup', require('./routes/backup'));
-app.use('/api/custom-icons', require('./routes/custom-icons'));
-app.use('/api/advanced', require('./routes/advanced'));
-app.use('/api/diagnostics', require('./routes/diagnostics'));
-app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/plex', require('./routes/plex'));
-app.use('/api/linked-accounts', require('./routes/linkedAccounts'));
-app.use('/api/webhooks', require('./routes/webhooks'));
-app.use('/api/request-actions', require('./routes/requestActions'));
-
-
+app.use('/api/auth/setup', setupRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/system', systemRoutes);
+app.use('/api/integrations', integrationsRoutes);
+app.use('/api/tabs', tabsRoutes);
+app.use('/api/widgets', widgetsRoutes);
+app.use('/api/theme', themeRoutes);
+app.use('/api/backup', backupRoutes);
+app.use('/api/custom-icons', customIconsRoutes);
+app.use('/api/advanced', advancedRoutes);
+app.use('/api/diagnostics', diagnosticsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/plex', plexRoutes);
+app.use('/api/linked-accounts', linkedAccountsRoutes);
+app.use('/api/webhooks', webhooksRoutes);
+app.use('/api/request-actions', requestActionsRoutes);
 
 // Proxy routes for widgets (require authentication)
-app.use('/api', require('./routes/proxy'));
+app.use('/api', proxyRoutes);
 
 // In production, serve built frontend
 if (NODE_ENV === 'production') {
-    const path = require('path');
     const distPath = path.join(__dirname, '../dist');
 
     // Service Worker - prevent caching to ensure updates are picked up
-    app.get('/sw.js', (req, res) => {
+    app.get('/sw.js', (req: Request, res: Response) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -215,12 +244,12 @@ if (NODE_ENV === 'production') {
     app.use(express.static(distPath));
 
     // OAuth callback route - serve login-complete.html directly
-    app.get('/login-complete', (req, res) => {
+    app.get('/login-complete', (req: Request, res: Response) => {
         res.sendFile(path.join(distPath, 'login-complete.html'));
     });
 
     // SPA fallback - send index.html for all non-API routes
-    app.get('*', (req, res, next) => {
+    app.get('*', (req: Request, res: Response, next: NextFunction) => {
         // Skip API routes
         if (req.path.startsWith('/api') || req.path.startsWith('/favicon') || req.path.startsWith('/profile-pictures')) {
             return next();
@@ -230,7 +259,7 @@ if (NODE_ENV === 'production') {
 }
 
 // Root API endpoint (will be overridden by SPA in production)
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
     res.json({
         message: 'Framerr API',
         version,
@@ -241,7 +270,7 @@ app.get('/', (req, res) => {
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
     logger.warn('404 Not Found', { path: req.path, method: req.method });
     res.status(404).json({
         success: false,
@@ -253,7 +282,12 @@ app.use((req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+interface ServerError extends Error {
+    status?: number;
+    code?: string;
+}
+
+app.use((err: ServerError, req: Request, res: Response, next: NextFunction) => {
     logger.error('Server error', {
         error: err.message,
         stack: err.stack,
@@ -275,9 +309,6 @@ app.use((err, req, res, next) => {
 (async () => {
     try {
         // Initialize database schema if this is a fresh database
-        const { isInitialized, initializeSchema, db } = require('./database/db');
-        const { checkMigrationStatus, runMigrations, setVersion } = require('./database/migrator');
-
         if (!isInitialized()) {
             logger.info('Fresh database detected - initializing schema...');
             initializeSchema();
@@ -312,7 +343,6 @@ app.use((err, req, res, next) => {
         }
 
         // Load system config BEFORE starting server
-        const { getSystemConfig } = require('./db/systemConfig');
         const systemConfig = await getSystemConfig();
         app.set('systemConfig', systemConfig);
         logger.info('System config loaded');
@@ -323,7 +353,6 @@ app.use((err, req, res, next) => {
         }
 
         // Seed system icons (integration logos)
-        const { seedSystemIcons } = require('./services/seedSystemIcons');
         await seedSystemIcons();
 
         // Now start server with config loaded
@@ -358,4 +387,4 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
-module.exports = app;
+export default app;
