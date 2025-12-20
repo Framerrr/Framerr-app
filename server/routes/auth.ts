@@ -45,6 +45,11 @@ interface ParsedSharedServersXML {
     };
 }
 
+interface SessionConfig {
+    timeout?: number;
+    rememberMeDuration?: number;
+}
+
 // Get auth config helper
 const getAuthConfig = async () => {
     const config = await getSystemConfig();
@@ -80,9 +85,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         }
 
         // Create session
+        const sessionConfig = authConfig.session as SessionConfig | undefined;
         const expiresIn = rememberMe
-            ? (authConfig.session?.rememberMeDuration || 2592000000) // 30 days
-            : (authConfig.session?.timeout || 86400000); // 24 hours
+            ? (sessionConfig?.rememberMeDuration || 2592000000) // 30 days
+            : (sessionConfig?.timeout || 86400000); // 24 hours
 
         const session = await createUserSession(user, req, expiresIn);
 
@@ -270,14 +276,13 @@ router.post('/plex-login', async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
-        const clientId = ssoConfig.clientIdentifier;
-
         // Get user info from Plex
+        const clientId = ssoConfig.clientIdentifier || '';
         const userResponse = await axios.get<PlexUserResponse>('https://plex.tv/api/v2/user', {
             headers: {
                 'Accept': 'application/json',
-                'X-Plex-Token': plexToken,
-                'X-Plex-Client-Identifier': clientId
+                'X-Plex-Token': plexToken as string,
+                'X-Plex-Client-Identifier': clientId as string
             }
         });
 
@@ -309,8 +314,8 @@ router.post('/plex-login', async (req: Request, res: Response): Promise<void> =>
                     {
                         headers: {
                             'Accept': 'application/json',
-                            'X-Plex-Token': ssoConfig.adminToken,
-                            'X-Plex-Client-Identifier': clientId
+                            'X-Plex-Token': ssoConfig.adminToken as string,
+                            'X-Plex-Client-Identifier': clientId as string
                         }
                     }
                 );
@@ -346,7 +351,7 @@ router.post('/plex-login', async (req: Request, res: Response): Promise<void> =>
                 logger.error('[PlexSSO] Failed to fetch shared servers:', {
                     error: err.message,
                     status: err.response?.status,
-                    data: JSON.stringify(err.response?.data || {}).substring(0, 500)
+                    data: JSON.stringify(err.response?.data || '').substring(0, 500)
                 });
                 res.status(500).json({ error: 'Failed to verify library access' });
                 return;
@@ -426,7 +431,7 @@ router.post('/plex-login', async (req: Request, res: Response): Promise<void> =>
                     username: plexUser.username,
                     email: plexUser.email || `${plexUser.username}@plex.local`,
                     passwordHash,
-                    group: ssoConfig.defaultGroup || 'user'
+                    group: (ssoConfig.defaultGroup || 'user') as string
                 });
 
                 logger.info('[PlexSSO] Created new user', { username: plexUser.username });
