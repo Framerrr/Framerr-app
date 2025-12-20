@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tv } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,9 +10,30 @@ import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
 import LoadingSpinner from '../common/LoadingSpinner';
 
+interface Series {
+    title?: string;
+    overview?: string;
+}
+
+interface Episode {
+    id: number;
+    seriesTitle?: string;
+    series?: Series;
+    title?: string;
+    seasonNumber?: number;
+    episodeNumber?: number;
+    airDate?: string;
+    airDateUtc?: string;
+    overview?: string;
+}
+
+interface EpisodePopoverProps {
+    episode: Episode;
+}
+
 // Episode Detail Popover Component
-const EpisodePopover = ({ episode }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
 
     const seriesTitle = episode.series?.title || episode.seriesTitle || 'Unknown Series';
     const episodeTitle = episode.title || 'TBA';
@@ -67,7 +88,7 @@ const EpisodePopover = ({ episode }) => {
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
                                 style={{ minWidth: '200px', maxWidth: '300px' }}
                             >
-                                {/* Improved Arrow - matches glass-card with border */}
+                                {/* Improved Arrow */}
                                 <Popover.Arrow
                                     width={16}
                                     height={8}
@@ -76,7 +97,7 @@ const EpisodePopover = ({ episode }) => {
                                         filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
                                     }}
                                 />
-                                {/* SVG Gradient Definition for Glass Effect */}
+                                {/* SVG Gradient Definition */}
                                 <svg width="0" height="0" style={{ position: 'absolute' }}>
                                     <defs>
                                         <linearGradient id="glass-gradient-sonarr" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -122,7 +143,15 @@ const EpisodePopover = ({ episode }) => {
     );
 };
 
-const SonarrWidget = ({ config }) => {
+interface SonarrConfig {
+    [key: string]: unknown;
+}
+
+export interface SonarrWidgetProps {
+    config?: SonarrConfig;
+}
+
+const SonarrWidget = ({ config }: SonarrWidgetProps): React.JSX.Element => {
     // Get auth state to determine admin status
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
@@ -140,15 +169,15 @@ const SonarrWidget = ({ config }) => {
         return <IntegrationConnectionError serviceName="Sonarr" />;
     }
 
-    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    // ONLY use context integration
     const integration = integrations?.sonarr || { enabled: false };
 
-    // Check if integration is enabled (from context only)
+    // Check if integration is enabled
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [data, setData] = useState<Episode[] | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isIntegrationEnabled) {
@@ -156,32 +185,31 @@ const SonarrWidget = ({ config }) => {
             return;
         }
 
-        const fetchCalendar = async () => {
+        const fetchCalendar = async (): Promise<void> => {
             try {
                 setLoading(true);
                 const startDate = new Date().toISOString().split('T')[0];
                 const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-                const response = await fetch(`/api/sonarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(integration.url)}&apiKey=${encodeURIComponent(integration.apiKey)}`);
+                const response = await fetch(`/api/sonarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(integration.url as string)}&apiKey=${encodeURIComponent(integration.apiKey as string)}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
                 setError(null);
             } catch (err) {
-                setError(err.message);
+                setError((err as Error).message);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchCalendar();
-        const interval = setInterval(fetchCalendar, 60000); // Refresh every minute
+        const interval = setInterval(fetchCalendar, 60000);
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 
     // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        // Admins see "disabled" (can fix it), non-admins see "no access"
         return userIsAdmin
             ? <IntegrationDisabledMessage serviceName="Sonarr" />
             : <IntegrationNoAccessMessage serviceName="Sonarr" />;

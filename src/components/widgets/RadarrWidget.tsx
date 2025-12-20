@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Film } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,9 +10,23 @@ import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
 import LoadingSpinner from '../common/LoadingSpinner';
 
+interface Movie {
+    id: number;
+    title?: string;
+    year?: number;
+    physicalRelease?: string;
+    digitalRelease?: string;
+    inCinemas?: string;
+    overview?: string;
+}
+
+interface MoviePopoverProps {
+    movie: Movie;
+}
+
 // Movie Detail Popover Component
-const MoviePopover = ({ movie }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const MoviePopover = ({ movie }: MoviePopoverProps): React.JSX.Element => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
 
     const title = movie.title || 'Unknown Movie';
     const year = movie.year;
@@ -67,7 +81,7 @@ const MoviePopover = ({ movie }) => {
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
                                 style={{ minWidth: '200px', maxWidth: '300px' }}
                             >
-                                {/* Improved Arrow - matches glass-card with border */}
+                                {/* Improved Arrow */}
                                 <Popover.Arrow
                                     width={16}
                                     height={8}
@@ -76,7 +90,7 @@ const MoviePopover = ({ movie }) => {
                                         filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
                                     }}
                                 />
-                                {/* SVG Gradient Definition for Glass Effect */}
+                                {/* SVG Gradient Definition */}
                                 <svg width="0" height="0" style={{ position: 'absolute' }}>
                                     <defs>
                                         <linearGradient id="glass-gradient-radarr" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -123,12 +137,20 @@ const MoviePopover = ({ movie }) => {
     );
 };
 
-const RadarrWidget = ({ config }) => {
+interface RadarrConfig {
+    [key: string]: unknown;
+}
+
+export interface RadarrWidgetProps {
+    config?: RadarrConfig;
+}
+
+const RadarrWidget = ({ config }: RadarrWidgetProps): React.JSX.Element => {
     // Get auth state to determine admin status
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
 
-    // Get integrations state from context - ONLY source of truth for access
+    // Get integrations state from context
     const { integrations, integrationsLoaded, integrationsError } = useAppData();
 
     // Wait for integrations to load before checking status
@@ -141,15 +163,15 @@ const RadarrWidget = ({ config }) => {
         return <IntegrationConnectionError serviceName="Radarr" />;
     }
 
-    // ONLY use context integration - no fallback to config (ensures actual revocation)
+    // ONLY use context integration
     const integration = integrations?.radarr || { enabled: false };
 
-    // Check if integration is enabled (from context only)
+    // Check if integration is enabled
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [data, setData] = useState<Movie[] | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isIntegrationEnabled) {
@@ -157,32 +179,31 @@ const RadarrWidget = ({ config }) => {
             return;
         }
 
-        const fetchCalendar = async () => {
+        const fetchCalendar = async (): Promise<void> => {
             try {
                 setLoading(true);
                 const startDate = new Date().toISOString().split('T')[0];
                 const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-                const response = await fetch(`/api/radarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(integration.url)}&apiKey=${encodeURIComponent(integration.apiKey)}`);
+                const response = await fetch(`/api/radarr/calendar?start=${startDate}&end=${endDate}&url=${encodeURIComponent(integration.url as string)}&apiKey=${encodeURIComponent(integration.apiKey as string)}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
                 setError(null);
             } catch (err) {
-                setError(err.message);
+                setError((err as Error).message);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchCalendar();
-        const interval = setInterval(fetchCalendar, 60000); // Refresh every minute
+        const interval = setInterval(fetchCalendar, 60000);
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 
     // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
-        // Admins see "disabled" (can fix it), non-admins see "no access"
         return userIsAdmin
             ? <IntegrationDisabledMessage serviceName="Radarr" />
             : <IntegrationNoAccessMessage serviceName="Radarr" />;
