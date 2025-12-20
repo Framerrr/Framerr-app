@@ -349,7 +349,7 @@ app.use((err: ServerError, req: Request, res: Response, next: NextFunction) => {
 
         // Load log level from systemConfig if set
         if (systemConfig.debug?.logLevel) {
-            logger.setLevel(systemConfig.debug.logLevel);
+            logger.setLevel(systemConfig.debug.logLevel as string);
         }
 
         // Seed system icons (integration logos)

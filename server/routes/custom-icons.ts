@@ -6,14 +6,9 @@ import logger from '../utils/logger';
 
 const router = Router();
 
-interface AuthenticatedUser {
-    id: string;
-    username: string;
-    group: string;
-}
-
-interface AuthenticatedRequest extends Request {
-    user?: AuthenticatedUser;
+// Use Express.Request directly - it's augmented in types/express.d.ts
+// For multer file uploads
+interface RequestWithFile extends Request {
     file?: Express.Multer.File;
 }
 
@@ -26,19 +21,19 @@ interface DeleteIconError extends Error {
  */
 router.post('/', authenticateUser, iconUpload.single('icon'), async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
-        if (!authReq.file) {
+        const fileReq = req as RequestWithFile;
+        if (!fileReq.file) {
             res.status(400).json({ error: 'No file uploaded' });
             return;
         }
 
         // Store file path (relative to /config/upload/custom-icons/)
         const icon = await customIconsDB.addIcon({
-            filename: authReq.file.filename,
-            originalName: authReq.file.originalname,
-            mimeType: authReq.file.mimetype,
-            filePath: authReq.file.filename,
-            uploadedBy: authReq.user!.id
+            filename: fileReq.file.filename,
+            originalName: fileReq.file.originalname,
+            mimeType: fileReq.file.mimetype,
+            filePath: fileReq.file.filename,
+            uploadedBy: req.user!.id
         });
 
         res.status(201).json({ icon });
