@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, MouseEvent } from 'react';
 import { Activity, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, RefreshCw, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../../utils/logger';
@@ -8,27 +8,66 @@ import GlancesConfig from './backends/GlancesConfig';
 import CustomBackendConfig from './backends/CustomBackendConfig';
 import SharingDropdown from '../SharingDropdown';
 
+type BackendType = 'glances' | 'custom';
+
+interface GlancesConfigData {
+    url: string;
+    password: string;
+}
+
+interface CustomConfigData {
+    url: string;
+    token: string;
+}
+
+interface IntegrationConfig {
+    enabled: boolean;
+    backend: BackendType;
+    glances: GlancesConfigData;
+    custom: CustomConfigData;
+    _isValid?: boolean;
+    sharing?: SharingState;
+}
+
+interface SharingState {
+    enabled: boolean;
+    mode?: string;
+    groups?: string[];
+    users?: string[];
+    sharedBy?: string;
+    sharedAt?: string;
+}
+
+interface TestState {
+    loading: boolean;
+    success?: boolean;
+    message?: string;
+}
+
+export interface SystemHealthIntegrationProps {
+    integration?: Partial<IntegrationConfig>;
+    onUpdate: (config: IntegrationConfig) => void;
+    sharing?: SharingState;
+    onSharingChange: (sharing: SharingState) => void;
+}
+
 /**
  * SystemHealthIntegration - Multi-backend System Status configuration
- * Replaces the generic System Health section in IntegrationsSettings
  */
-const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChange }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [selectedBackend, setSelectedBackend] = useState(integration?.backend || 'glances');
-    const [config, setConfig] = useState(integration || {
+const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChange }: SystemHealthIntegrationProps): React.JSX.Element => {
+    const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const [selectedBackend, setSelectedBackend] = useState<BackendType>((integration?.backend as BackendType) || 'glances');
+    const [config, setConfig] = useState<IntegrationConfig>(integration as IntegrationConfig || {
         enabled: false,
         backend: 'glances',
         glances: { url: '', password: '' },
         custom: { url: '', token: '' }
     });
-    const [testState, setTestState] = useState(null);
-    const [confirmReset, setConfirmReset] = useState(false);
+    const [testState, setTestState] = useState<TestState | null>(null);
+    const [confirmReset, setConfirmReset] = useState<boolean>(false);
 
-    // Auto-expand behavior removed - section should stay collapsed on page load
-    // It will expand when user clicks the toggle or the header
-
-    const handleToggle = () => {
-        const newConfig = { ...config, enabled: !config.enabled, sharing };
+    const handleToggle = (): void => {
+        const newConfig: IntegrationConfig = { ...config, enabled: !config.enabled, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
 
@@ -37,15 +76,15 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
         }
     };
 
-    const handleBackendChange = (backend) => {
-        const newConfig = { ...config, backend, sharing };
+    const handleBackendChange = (backend: BackendType): void => {
+        const newConfig: IntegrationConfig = { ...config, backend, sharing };
         setSelectedBackend(backend);
         setConfig(newConfig);
         onUpdate(newConfig);
     };
 
-    const handleConfigChange = (field, value) => {
-        const newConfig = {
+    const handleConfigChange = (field: string, value: string): void => {
+        const newConfig: IntegrationConfig = {
             ...config,
             [selectedBackend]: {
                 ...config[selectedBackend],
@@ -57,24 +96,23 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
         onUpdate(newConfig);
     };
 
-    const handleTest = async () => {
+    const handleTest = async (): Promise<void> => {
         setTestState({ loading: true });
 
         const backendConfig = config[selectedBackend];
 
         try {
             let endpoint = '';
-            let params = new URLSearchParams();
+            const params = new URLSearchParams();
 
             if (selectedBackend === 'glances') {
                 endpoint = '/api/systemstatus/glances/status';
                 params.append('url', backendConfig.url);
                 if (backendConfig.password) params.append('password', backendConfig.password);
             } else {
-                // Custom backend
                 endpoint = '/api/systemstatus/status';
                 params.append('url', backendConfig.url);
-                if (backendConfig.token) params.append('token', backendConfig.token);
+                if ((backendConfig as CustomConfigData).token) params.append('token', (backendConfig as CustomConfigData).token);
             }
 
             const response = await fetch(`${endpoint}?${params}`, {
@@ -97,22 +135,21 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                 });
             }
         } catch (error) {
-            logger.error('System Health test error:', error);
+            logger.error('System Health test error:', { error });
             setTestState({
                 loading: false,
                 success: false,
-                message: error.message || 'Connection failed'
+                message: (error as Error).message || 'Connection failed'
             });
         }
 
-        // Clear test result after 5 seconds
         setTimeout(() => {
             setTestState(null);
         }, 5000);
     };
 
-    const handleReset = () => {
-        const resetConfig = {
+    const handleReset = (): void => {
+        const resetConfig: IntegrationConfig = {
             enabled: false,
             backend: 'glances',
             glances: { url: '', password: '' },
@@ -127,36 +164,32 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
 
     const backendConfig = config[selectedBackend] || {};
 
-    // Validation: Check if the selected backend has required fields
-    const isValidConfig = () => {
-        if (!config.enabled) return true; // If disabled, always valid
+    const isValidConfig = (): boolean => {
+        if (!config.enabled) return true;
 
         if (selectedBackend === 'glances') {
-            return !!backendConfig.url; // Glances requires URL
+            return !!backendConfig.url;
         } else if (selectedBackend === 'custom') {
-            return !!backendConfig.url; // Custom requires URL
+            return !!backendConfig.url;
         }
         return false;
     };
 
     const isConfigured = isValidConfig();
 
-    // Notify parent of validation state whenever it changes
     useEffect(() => {
         if (onUpdate) {
-            // Pass validation state along with config
-            const configWithValidation = {
+            const configWithValidation: IntegrationConfig = {
                 ...config,
                 _isValid: isConfigured
             };
             onUpdate(configWithValidation);
         }
-    }, [isConfigured, config.enabled, selectedBackend, backendConfig.url, backendConfig.password, backendConfig.token]);
-
+    }, [isConfigured, config.enabled, selectedBackend, backendConfig.url, (backendConfig as GlancesConfigData).password, (backendConfig as CustomConfigData).token]);
 
     return (
         <div className="glass-subtle shadow-medium rounded-xl overflow-hidden border border-theme card-glow">
-            {/* Header - Clickable to expand */}
+            {/* Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="w-full p-6 flex items-center justify-between hover:bg-theme-hover/30 transition-colors"
@@ -171,23 +204,21 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Connection status badge (when not expanded) */}
                     {!isExpanded && config.enabled && (
                         <span className={`
-                            px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
-                            ${isConfigured
+              px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
+              ${isConfigured
                                 ? 'bg-success/10 text-success sm:border sm:border-success/20'
                                 : 'bg-warning/10 text-warning sm:border sm:border-warning/20'
                             }
-                        `}>
+            `}>
                             <span>{isConfigured ? '🟢' : '🟡'}</span>
                             <span className="hidden sm:inline">{isConfigured ? 'Configured' : 'Setup Required'}</span>
                         </span>
                     )}
 
-                    {/* Toggle Switch */}
                     <div
-                        onClick={(e) => {
+                        onClick={(e: MouseEvent) => {
                             e.stopPropagation();
                             handleToggle();
                         }}
@@ -196,12 +227,11 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                         <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
                     </div>
 
-                    {/* Chevron */}
                     <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
             </button>
 
-            {/* Configuration Panel - Animated Collapsible */}
+            {/* Configuration Panel */}
             <AnimatePresence>
                 {isExpanded && (
                     <motion.div
@@ -211,14 +241,12 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden">
                         <div className="px-6 pb-6 border-t border-theme pt-6 space-y-6">
-                            {/* Backend Selector */}
                             <BackendSelector
                                 selected={selectedBackend}
                                 onSelect={handleBackendChange}
                                 disabled={false}
                             />
 
-                            {/* Backend-specific Configuration */}
                             <div>
                                 {selectedBackend === 'glances' ? (
                                     <GlancesConfig
@@ -233,7 +261,6 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                                 )}
                             </div>
 
-                            {/* Widget Sharing */}
                             <SharingDropdown
                                 service="systemstatus"
                                 sharing={sharing}
@@ -241,7 +268,6 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                                 disabled={!isConfigured}
                             />
 
-                            {/* Test Connection & Reset */}
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
                                 <div className="flex items-center gap-3">
                                     <Button
@@ -259,7 +285,6 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                                     </Button>
                                 </div>
 
-                                {/* Reset Integration Button with inline confirmation */}
                                 {config.enabled && (
                                     !confirmReset ? (
                                         <Button
