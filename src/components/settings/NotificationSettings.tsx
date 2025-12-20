@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Volume2, VolumeX, ChevronDown, Play, Copy, Zap, Star, Film, Tv, Check, AlertTriangle, RefreshCw, Link, Smartphone, Trash2, Send, Shield, ShieldOff, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect, ChangeEvent, MouseEvent } from 'react';
+import { Bell, Volume2, VolumeX, ChevronDown, Play, Copy, Zap, Star, Film, Tv, Check, AlertTriangle, RefreshCw, Link, Smartphone, Trash2, Send, Shield, ShieldOff, ShieldCheck, LucideIcon } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '../../context/NotificationContext';
@@ -9,6 +9,67 @@ import { Button } from '../common/Button';
 import EventSelectDropdown from './EventSelectDropdown';
 import { INTEGRATION_EVENTS, getDefaultAdminEvents, getDefaultUserEvents } from '../../constants/notificationEvents';
 import logger from '../../utils/logger';
+
+interface WebhookConfig {
+    webhookEnabled?: boolean;
+    webhookToken?: string;
+    adminEvents?: string[];
+    userEvents?: string[];
+}
+
+interface IntegrationConfig {
+    enabled?: boolean;
+    url?: string;
+    apiKey?: string;
+    webhookConfig?: WebhookConfig;
+    [key: string]: unknown;
+}
+
+interface IntegrationsState {
+    [key: string]: IntegrationConfig;
+}
+
+interface SharedIntegration {
+    name: string;
+    enabled: boolean;
+    webhookConfig?: WebhookConfig;
+}
+
+interface UserIntegrationSetting {
+    enabled?: boolean;
+    events?: string[];
+}
+
+interface UserIntegrationSettingsState {
+    [key: string]: UserIntegrationSetting;
+}
+
+interface WebhookIntegrationDef {
+    id: string;
+    name: string;
+    description: string;
+    icon: LucideIcon;
+}
+
+interface IntegrationEvent {
+    key: string;
+    label: string;
+    description?: string;
+}
+
+interface PushSubscription {
+    id: string;
+    endpoint: string;
+    deviceName?: string;
+    lastUsed?: number;
+    createdAt: number;
+}
+
+interface GeneralSettingsUpdates {
+    enabled?: boolean;
+    sound?: boolean;
+    receiveUnmatched?: boolean;
+}
 
 /**
  * NotificationSettings Component
@@ -23,7 +84,7 @@ import logger from '../../utils/logger';
  * 1. Integration is shared with them
  * 2. Admin has enabled at least one event for users
  */
-const NotificationSettings = () => {
+const NotificationSettings: React.FC = () => {
     const {
         info: showInfoToast,
         success: showSuccess,
@@ -44,32 +105,32 @@ const NotificationSettings = () => {
         fetchGlobalPushStatus
     } = useNotifications();
     const { user } = useAuth();
-    const [pushLoading, setPushLoading] = useState(false);
-    const [globalPushSaving, setGlobalPushSaving] = useState(false);
+    const [pushLoading, setPushLoading] = useState<boolean>(false);
+    const [globalPushSaving, setGlobalPushSaving] = useState<boolean>(false);
     const hasAdminAccess = isAdmin(user);
 
     // General settings
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const [notificationSound, setNotificationSound] = useState(false);
-    const [receiveUnmatched, setReceiveUnmatched] = useState(true);
-    const [webhookBaseUrl, setWebhookBaseUrl] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+    const [notificationSound, setNotificationSound] = useState<boolean>(false);
+    const [receiveUnmatched, setReceiveUnmatched] = useState<boolean>(true);
+    const [webhookBaseUrl, setWebhookBaseUrl] = useState<string>('');
+    const [saving, setSaving] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
 
     // Integration data from systemConfig (admin only loads full data)
-    const [integrations, setIntegrations] = useState({});
+    const [integrations, setIntegrations] = useState<IntegrationsState>({});
 
     // Shared integrations for non-admin users
-    const [sharedIntegrations, setSharedIntegrations] = useState([]);
+    const [sharedIntegrations, setSharedIntegrations] = useState<SharedIntegration[]>([]);
 
     // User's personal notification preferences
-    const [userIntegrationSettings, setUserIntegrationSettings] = useState({});
+    const [userIntegrationSettings, setUserIntegrationSettings] = useState<UserIntegrationSettingsState>({});
 
     // Expanded sections state
-    const [expandedSections, setExpandedSections] = useState({});
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
     // Webhook integrations that support notifications
-    const webhookIntegrations = [
+    const webhookIntegrations: WebhookIntegrationDef[] = [
         { id: 'overseerr', name: 'Overseerr', description: 'Media request notifications', icon: Star },
         { id: 'sonarr', name: 'Sonarr', description: 'TV show notifications', icon: Tv },
         { id: 'radarr', name: 'Radarr', description: 'Movie notifications', icon: Film }
@@ -80,7 +141,7 @@ const NotificationSettings = () => {
         loadData();
     }, [hasAdminAccess]);
 
-    const loadData = async () => {
+    const loadData = async (): Promise<void> => {
         setLoading(true);
         try {
             // Load user's notification preferences
@@ -109,16 +170,16 @@ const NotificationSettings = () => {
             } else {
                 // Non-admin: Load shared integrations
                 const sharedResponse = await axios.get('/api/integrations/shared', { withCredentials: true });
-                const sharedList = sharedResponse.data.integrations || [];
+                const sharedList: SharedIntegration[] = sharedResponse.data.integrations || [];
                 setSharedIntegrations(sharedList);
 
                 // Build integrations data from shared integrations for webhookConfig access
-                const integrationsData = {};
+                const integrationsData: IntegrationsState = {};
                 sharedList.forEach(si => {
                     // Include all integration data, especially webhookConfig
                     integrationsData[si.name] = {
                         enabled: si.enabled,
-                        webhookConfig: si.webhookConfig || null
+                        webhookConfig: si.webhookConfig || undefined
                     };
                 });
                 setIntegrations(integrationsData);
@@ -140,7 +201,7 @@ const NotificationSettings = () => {
     };
 
     // Save general settings
-    const saveGeneralSettings = async (updates) => {
+    const saveGeneralSettings = async (updates: GeneralSettingsUpdates): Promise<void> => {
         setSaving(true);
         try {
             await axios.put('/api/config/user', {
@@ -161,7 +222,7 @@ const NotificationSettings = () => {
     };
 
     // Save admin webhook config
-    const saveAdminWebhookConfig = async (integrationId, webhookConfig) => {
+    const saveAdminWebhookConfig = async (integrationId: string, webhookConfig: WebhookConfig): Promise<void> => {
         setSaving(true);
         try {
             const updatedIntegrations = {
@@ -186,7 +247,7 @@ const NotificationSettings = () => {
     };
 
     // Save user's integration preferences
-    const saveUserIntegrationSettings = async (integrationId, settings) => {
+    const saveUserIntegrationSettings = async (integrationId: string, settings: UserIntegrationSetting): Promise<void> => {
         const updated = {
             ...userIntegrationSettings,
             [integrationId]: settings
@@ -212,29 +273,29 @@ const NotificationSettings = () => {
         }
     };
 
-    const handleToggleNotifications = async (enabled) => {
+    const handleToggleNotifications = async (enabled: boolean): Promise<void> => {
         setNotificationsEnabled(enabled);
         await saveGeneralSettings({ enabled });
     };
 
-    const handleToggleSound = async (enabled) => {
+    const handleToggleSound = async (enabled: boolean): Promise<void> => {
         setNotificationSound(enabled);
         await saveGeneralSettings({ sound: enabled });
     };
 
-    const handleToggleReceiveUnmatched = async (enabled) => {
+    const handleToggleReceiveUnmatched = async (enabled: boolean): Promise<void> => {
         setReceiveUnmatched(enabled);
         await saveGeneralSettings({ receiveUnmatched: enabled });
     };
 
-    const toggleSection = (id) => {
+    const toggleSection = (id: string): void => {
         setExpandedSections(prev => ({
             ...prev,
             [id]: !prev[id]
         }));
     };
 
-    const sendTestNotification = async () => {
+    const sendTestNotification = async (): Promise<void> => {
         try {
             // Just create the notification via API - SSE will broadcast it and show the toast
             await axios.post('/api/notifications', {
@@ -249,7 +310,7 @@ const NotificationSettings = () => {
         }
     };
 
-    const copyWebhookUrl = (integrationId) => {
+    const copyWebhookUrl = (integrationId: string): void => {
         const webhookConfig = integrations[integrationId]?.webhookConfig;
         if (webhookConfig?.webhookToken) {
             const baseUrl = webhookBaseUrl || window.location.origin;
@@ -259,7 +320,7 @@ const NotificationSettings = () => {
         }
     };
 
-    const saveWebhookBaseUrl = async (url) => {
+    const saveWebhookBaseUrl = async (url: string): Promise<void> => {
         try {
             await axios.put('/api/config/system', {
                 webhookBaseUrl: url
@@ -272,13 +333,13 @@ const NotificationSettings = () => {
         }
     };
 
-    const resetWebhookBaseUrl = () => {
+    const resetWebhookBaseUrl = (): void => {
         const browserUrl = window.location.origin;
         setWebhookBaseUrl(browserUrl);
         saveWebhookBaseUrl(browserUrl);
     };
 
-    const generateWebhookToken = async (integrationId) => {
+    const generateWebhookToken = async (integrationId: string): Promise<void> => {
         // Generate UUID with fallback for non-HTTPS environments
         const token = typeof crypto.randomUUID === 'function'
             ? crypto.randomUUID()
@@ -301,7 +362,7 @@ const NotificationSettings = () => {
     };
 
     // Get visible integrations based on permissions
-    const getVisibleIntegrations = () => {
+    const getVisibleIntegrations = (): WebhookIntegrationDef[] => {
         if (hasAdminAccess) {
             // Admin: Only show integrations that are enabled and configured
             return webhookIntegrations.filter(integration => {
@@ -314,7 +375,7 @@ const NotificationSettings = () => {
         return webhookIntegrations.filter(integration => {
             const isShared = sharedIntegrations.some(si => si.name === integration.id);
             const webhookConfig = integrations[integration.id]?.webhookConfig;
-            const hasUserEvents = webhookConfig?.userEvents?.length > 0;
+            const hasUserEvents = webhookConfig?.userEvents && webhookConfig.userEvents.length > 0;
             return isShared && hasUserEvents;
         });
     };
@@ -368,7 +429,7 @@ const NotificationSettings = () => {
                             <input
                                 type="checkbox"
                                 checked={notificationsEnabled}
-                                onChange={(e) => handleToggleNotifications(e.target.checked)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleToggleNotifications(e.target.checked)}
                                 className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
@@ -398,7 +459,7 @@ const NotificationSettings = () => {
                             <input
                                 type="checkbox"
                                 checked={notificationSound}
-                                onChange={(e) => handleToggleSound(e.target.checked)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleToggleSound(e.target.checked)}
                                 disabled={!notificationsEnabled}
                                 className="sr-only peer"
                             />
@@ -424,7 +485,7 @@ const NotificationSettings = () => {
                                 <input
                                     type="checkbox"
                                     checked={receiveUnmatched}
-                                    onChange={(e) => handleToggleReceiveUnmatched(e.target.checked)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleToggleReceiveUnmatched(e.target.checked)}
                                     disabled={!notificationsEnabled}
                                     className="sr-only peer"
                                 />
@@ -580,7 +641,7 @@ const NotificationSettings = () => {
                                                 showSuccess('Push Enabled', 'This device will now receive push notifications');
                                             }
                                         } catch (err) {
-                                            showError('Error', err.message || 'Failed to update push settings');
+                                            showError('Error', (err as Error).message || 'Failed to update push settings');
                                         } finally {
                                             setPushLoading(false);
                                         }
@@ -595,7 +656,7 @@ const NotificationSettings = () => {
                             </div>
 
                             {/* Test Push - Only show when enabled */}
-                            {pushEnabled && pushSubscriptions.length > 0 && (
+                            {pushEnabled && (pushSubscriptions as PushSubscription[]).length > 0 && (
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-theme-tertiary rounded-lg border border-theme">
                                     <div className="flex items-center gap-3">
                                         <Send size={20} className="text-accent flex-shrink-0" />
@@ -614,7 +675,7 @@ const NotificationSettings = () => {
                                                 await testPushNotification();
                                                 showSuccess('Test Sent', 'Check your device for the push notification');
                                             } catch (err) {
-                                                showError('Error', err.message || 'Failed to send test push');
+                                                showError('Error', (err as Error).message || 'Failed to send test push');
                                             }
                                         }}
                                         variant="secondary"
@@ -627,14 +688,14 @@ const NotificationSettings = () => {
                             )}
 
                             {/* Subscribed Devices */}
-                            {pushSubscriptions.length > 0 && (
+                            {(pushSubscriptions as PushSubscription[]).length > 0 && (
                                 <div className="mt-4">
                                     <h4 className="text-sm font-medium text-theme-primary mb-3 flex items-center gap-2">
                                         <Smartphone size={16} />
-                                        Subscribed Devices ({pushSubscriptions.length})
+                                        Subscribed Devices ({(pushSubscriptions as PushSubscription[]).length})
                                     </h4>
                                     <div className="space-y-2">
-                                        {pushSubscriptions.map((sub) => {
+                                        {(pushSubscriptions as PushSubscription[]).map((sub) => {
                                             const isThisDevice = sub.endpoint === currentEndpoint;
                                             return (
                                                 <div
@@ -719,7 +780,7 @@ const NotificationSettings = () => {
                             <input
                                 type="text"
                                 value={webhookBaseUrl}
-                                onChange={(e) => setWebhookBaseUrl(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setWebhookBaseUrl(e.target.value)}
                                 placeholder="http://framerr:3001"
                                 className="w-full px-3 py-2 text-sm bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:ring-2 focus:ring-accent"
                             />
@@ -779,7 +840,7 @@ const NotificationSettings = () => {
                                 integration={integration}
                                 integrationConfig={integrations[integration.id] || {}}
                                 userSettings={userIntegrationSettings[integration.id] || {}}
-                                isExpanded={expandedSections[integration.id]}
+                                isExpanded={expandedSections[integration.id] || false}
                                 onToggleExpand={() => toggleSection(integration.id)}
                                 isAdmin={hasAdminAccess}
                                 onSaveAdminConfig={(config) => saveAdminWebhookConfig(integration.id, config)}
@@ -811,7 +872,22 @@ const NotificationSettings = () => {
  * 
  * Expandable card for a single integration's notification settings
  */
-const IntegrationCard = ({
+interface IntegrationCardProps {
+    integration: WebhookIntegrationDef;
+    integrationConfig: IntegrationConfig;
+    userSettings: UserIntegrationSetting;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    isAdmin: boolean;
+    onSaveAdminConfig: (config: WebhookConfig) => void;
+    onSaveUserSettings: (settings: UserIntegrationSetting) => void;
+    onCopyWebhookUrl: () => void;
+    onGenerateToken: () => void;
+    disabled: boolean;
+    webhookBaseUrl: string;
+}
+
+const IntegrationCard: React.FC<IntegrationCardProps> = ({
     integration,
     integrationConfig,
     userSettings,
@@ -826,7 +902,7 @@ const IntegrationCard = ({
     webhookBaseUrl
 }) => {
     const Icon = integration.icon;
-    const events = INTEGRATION_EVENTS[integration.id] || [];
+    const events: IntegrationEvent[] = (INTEGRATION_EVENTS as Record<string, IntegrationEvent[]>)[integration.id] || [];
     const webhookConfig = integrationConfig.webhookConfig || {};
 
     // Admin state
@@ -839,7 +915,7 @@ const IntegrationCard = ({
     const userEnabled = userSettings.enabled ?? true;
     const userSelectedEvents = userSettings.events || [];
 
-    const handleMasterToggle = () => {
+    const handleMasterToggle = (): void => {
         if (isAdmin) {
             onSaveAdminConfig({
                 ...webhookConfig,
@@ -853,21 +929,21 @@ const IntegrationCard = ({
         }
     };
 
-    const handleAdminEventsChange = (newEvents) => {
+    const handleAdminEventsChange = (newEvents: string[]): void => {
         onSaveAdminConfig({
             ...webhookConfig,
             adminEvents: newEvents
         });
     };
 
-    const handleUserEventsChange = (newEvents) => {
+    const handleUserEventsChange = (newEvents: string[]): void => {
         onSaveAdminConfig({
             ...webhookConfig,
             userEvents: newEvents
         });
     };
 
-    const handleUserSelectedEventsChange = (newEvents) => {
+    const handleUserSelectedEventsChange = (newEvents: string[]): void => {
         onSaveUserSettings({
             ...userSettings,
             events: newEvents
@@ -896,7 +972,7 @@ const IntegrationCard = ({
                 <div className="flex items-center gap-3">
                     {/* Toggle Switch */}
                     <div
-                        onClick={(e) => {
+                        onClick={(e: MouseEvent<HTMLDivElement>) => {
                             e.stopPropagation();
                             handleMasterToggle();
                         }}

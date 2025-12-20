@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Palette, RotateCcw, Save, Image as ImageIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
@@ -13,15 +13,54 @@ import FaviconSettings from './FaviconSettings';
 import IconPicker from '../IconPicker';
 import logger from '../../utils/logger';
 
-const CustomizationSettings = () => {
-    const [activeSubTab, setActiveSubTab] = useState('general');
+type SubTabId = 'general' | 'colors' | 'favicon';
+
+interface CustomColors {
+    'bg-primary': string;
+    'bg-secondary': string;
+    'bg-tertiary': string;
+    'accent': string;
+    'accent-secondary': string;
+    'text-primary': string;
+    'text-secondary': string;
+    'text-tertiary': string;
+    'border': string;
+    'border-light': string;
+    'success': string;
+    'warning': string;
+    'error': string;
+    'info': string;
+    'bg-hover': string;
+    'accent-hover': string;
+    'accent-light': string;
+    'border-accent': string;
+    [key: string]: string;
+}
+
+interface OriginalGreeting {
+    enabled: boolean;
+    text: string;
+}
+
+interface ThemeDefinition {
+    id: string;
+    name: string;
+    description: string;
+}
+
+const CustomizationSettings: React.FC = () => {
+    const [activeSubTab, setActiveSubTab] = useState<SubTabId>('general');
     const { theme, themes, changeTheme } = useTheme();
     const { user } = useAuth();
     const { error: showError, success: showSuccess } = useNotifications();
     const userIsAdmin = isAdmin(user);
 
     // Refs for auto-scrolling sub-tab buttons into view
-    const subTabRefs = useRef({});
+    const subTabRefs = useRef<Record<SubTabId, HTMLButtonElement | null>>({
+        general: null,
+        colors: null,
+        favicon: null
+    });
 
     // Scroll active sub-tab into view when it changes
     useEffect(() => {
@@ -36,7 +75,7 @@ const CustomizationSettings = () => {
     }, [activeSubTab]);
 
     // Default color values matching dark-pro.css - 21 customizable variables
-    const defaultColors = {
+    const defaultColors: CustomColors = {
         // Tier 1: Essentials (10)
         'bg-primary': '#0a0e1a',
         'bg-secondary': '#151922',
@@ -63,44 +102,44 @@ const CustomizationSettings = () => {
     };
 
     // Custom colors state - using kebab-case to match CSS variables
-    const [customColors, setCustomColors] = useState(defaultColors);
-    const [useCustomColors, setUseCustomColors] = useState(false);
-    const [customColorsEnabled, setCustomColorsEnabled] = useState(false); // Toggle state
-    const [lastSelectedTheme, setLastSelectedTheme] = useState('dark-pro'); // For reverting
-    const [autoSaving, setAutoSaving] = useState(false); // Auto-save indicator
-    const saveTimerRef = useRef(null); // Debounce timer
-    const [saving, setSaving] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [customColors, setCustomColors] = useState<CustomColors>(defaultColors);
+    const [useCustomColors, setUseCustomColors] = useState<boolean>(false);
+    const [customColorsEnabled, setCustomColorsEnabled] = useState<boolean>(false); // Toggle state
+    const [lastSelectedTheme, setLastSelectedTheme] = useState<string>('dark-pro'); // For reverting
+    const [autoSaving, setAutoSaving] = useState<boolean>(false); // Auto-save indicator
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // Debounce timer
+    const [saving, setSaving] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
 
     // Application name state
-    const [applicationName, setApplicationName] = useState('Framerr');
-    const [applicationIcon, setApplicationIcon] = useState('Server');
-    const [savingAppName, setSavingAppName] = useState(false);
+    const [applicationName, setApplicationName] = useState<string>('Framerr');
+    const [applicationIcon, setApplicationIcon] = useState<string>('Server');
+    const [savingAppName, setSavingAppName] = useState<boolean>(false);
 
     // Flatten UI state
-    const [flattenUI, setFlattenUI] = useState(false);
-    const [savingFlattenUI, setSavingFlattenUI] = useState(false);
+    const [flattenUI, setFlattenUI] = useState<boolean>(false);
+    const [savingFlattenUI, setSavingFlattenUI] = useState<boolean>(false);
 
     // Dashboard greeting state
-    const [greetingEnabled, setGreetingEnabled] = useState(true);
-    const [greetingText, setGreetingText] = useState('Your personal dashboard');
-    const [savingGreeting, setSavingGreeting] = useState(false);
+    const [greetingEnabled, setGreetingEnabled] = useState<boolean>(true);
+    const [greetingText, setGreetingText] = useState<string>('Your personal dashboard');
+    const [savingGreeting, setSavingGreeting] = useState<boolean>(false);
 
     // Collapsible sections state for Custom Colors
-    const [statusColorsExpanded, setStatusColorsExpanded] = useState(false);
-    const [advancedExpanded, setAdvancedExpanded] = useState(false);
+    const [statusColorsExpanded, setStatusColorsExpanded] = useState<boolean>(false);
+    const [advancedExpanded, setAdvancedExpanded] = useState<boolean>(false);
 
 
 
     // Change tracking for save buttons
-    const [originalAppName, setOriginalAppName] = useState('Framerr');
-    const [originalAppIcon, setOriginalAppIcon] = useState('Server');
-    const [originalGreeting, setOriginalGreeting] = useState({ enabled: true, text: 'Your personal dashboard' });
-    const [hasAppNameChanges, setHasAppNameChanges] = useState(false);
-    const [hasGreetingChanges, setHasGreetingChanges] = useState(false);
+    const [originalAppName, setOriginalAppName] = useState<string>('Framerr');
+    const [originalAppIcon, setOriginalAppIcon] = useState<string>('Server');
+    const [originalGreeting, setOriginalGreeting] = useState<OriginalGreeting>({ enabled: true, text: 'Your personal dashboard' });
+    const [hasAppNameChanges, setHasAppNameChanges] = useState<boolean>(false);
+    const [hasGreetingChanges, setHasGreetingChanges] = useState<boolean>(false);
 
     // Function to get current theme colors from CSS variables
-    const getCurrentThemeColors = () => {
+    const getCurrentThemeColors = (): CustomColors => {
         const root = document.documentElement;
         const computedStyle = getComputedStyle(root);
 
@@ -146,7 +185,7 @@ const CustomizationSettings = () => {
 
     // Load custom colors and application name from backend on mount
     useEffect(() => {
-        const loadSettings = async () => {
+        const loadSettings = async (): Promise<void> => {
             try {
                 // Load user colors
                 const userResponse = await axios.get('/api/config/user', {
@@ -156,7 +195,7 @@ const CustomizationSettings = () => {
                 if (userResponse.data?.theme?.customColors) {
                     // Merge saved colors with defaults to ensure all 21 variables exist
                     // This handles migration from old 7-variable structure to new 21-variable structure
-                    const mergedColors = {
+                    const mergedColors: CustomColors = {
                         ...defaultColors,
                         ...userResponse.data.theme.customColors
                     };
@@ -206,16 +245,11 @@ const CustomizationSettings = () => {
                             setOriginalAppIcon(icon);
                         }
 
-                        // Load iframe auth settings from system config
-                        if (systemResponse.data?.iframeAuth) {
-                            const authConfig = systemResponse.data.iframeAuth;
-                            setIframeAuthEnabled(authConfig.enabled !== false); // Default true
-                            setAuthSensitivity(authConfig.sensitivity || 'balanced');
-                            setCustomAuthPatterns(authConfig.customPatterns || []);
-                        }
+                        // Load iframe auth settings from system config (unused in this component but kept for compatibility)
+                        // These were previously used but are now handled in AuthSettings
                     } catch (error) {
                         // Silently handle 403 (expected for non-admins after race condition)
-                        if (error.response?.status !== 403) {
+                        if ((error as any).response?.status !== 403) {
                             logger.error('Failed to load system config:', error);
                         }
                     }
@@ -267,20 +301,20 @@ const CustomizationSettings = () => {
         );
     }, [greetingEnabled, greetingText, originalGreeting]);
 
-    const applyColorsToDOM = (colors) => {
+    const applyColorsToDOM = (colors: CustomColors): void => {
         Object.entries(colors).forEach(([key, value]) => {
             document.documentElement.style.setProperty(`--${key}`, value);
         });
     };
 
-    const removeColorsFromDOM = () => {
+    const removeColorsFromDOM = (): void => {
         // Remove all custom color CSS variables to let theme CSS take over
         Object.keys(defaultColors).forEach(key => {
             document.documentElement.style.removeProperty(`--${key}`);
         });
     };
 
-    const resetToThemeColors = async (themeId) => {
+    const resetToThemeColors = async (themeId: string): Promise<CustomColors> => {
         // Smart reset: remove custom colors, switch theme, wait, then read and apply theme colors
         removeColorsFromDOM();
 
@@ -291,7 +325,7 @@ const CustomizationSettings = () => {
         document.documentElement.offsetHeight;
 
         // Wait for theme CSS to fully load and apply (increased to 500ms)
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise<void>(resolve => setTimeout(resolve, 500));
 
         // Read theme colors from DOM
         const themeColors = getCurrentThemeColors();
@@ -303,7 +337,7 @@ const CustomizationSettings = () => {
     };
 
 
-    const handleColorChange = (key, value) => {
+    const handleColorChange = (key: string, value: string): void => {
         if (!customColorsEnabled) return; // Only allow changes when enabled
 
         setCustomColors(prev => {
@@ -346,7 +380,7 @@ const CustomizationSettings = () => {
         });
     };
 
-    const handleToggleCustomColors = async (enabled) => {
+    const handleToggleCustomColors = async (enabled: boolean): Promise<void> => {
         if (enabled) {
             // Turn ON custom colors
             setCustomColorsEnabled(true);
@@ -374,7 +408,7 @@ const CustomizationSettings = () => {
         }
     };
 
-    const handleSaveCustomColors = async () => {
+    const handleSaveCustomColors = async (): Promise<void> => {
         if (!customColorsEnabled) return; // Can't save when disabled
 
         setSaving(true);
@@ -400,7 +434,7 @@ const CustomizationSettings = () => {
         }
     };
 
-    const handleResetColors = async () => {
+    const handleResetColors = async (): Promise<void> => {
         try {
             // Reset to default colors
             setCustomColors(defaultColors);
@@ -426,7 +460,7 @@ const CustomizationSettings = () => {
         }
     };
 
-    const handleSaveApplicationName = async () => {
+    const handleSaveApplicationName = async (): Promise<void> => {
         setSavingAppName(true);
         try {
             await axios.put('/api/config/system', {
@@ -460,7 +494,7 @@ const CustomizationSettings = () => {
         }
     };
 
-    const handleToggleFlattenUI = async (value) => {
+    const handleToggleFlattenUI = async (value: boolean): Promise<void> => {
         setSavingFlattenUI(true);
         try {
             await axios.put('/api/config/user', {
@@ -485,7 +519,7 @@ const CustomizationSettings = () => {
         }
     };
 
-    const handleSaveGreeting = async () => {
+    const handleSaveGreeting = async (): Promise<void> => {
         setSavingGreeting(true);
         try {
             await axios.put('/api/config/user', {
@@ -517,7 +551,7 @@ const CustomizationSettings = () => {
         }
     };
 
-    const handleResetGreeting = () => {
+    const handleResetGreeting = (): void => {
         setGreetingEnabled(true);
         setGreetingText('Your personal dashboard');
     };
@@ -617,7 +651,7 @@ const CustomizationSettings = () => {
                                     <Input
                                         label="Application Name"
                                         value={applicationName}
-                                        onChange={(e) => setApplicationName(e.target.value)}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setApplicationName(e.target.value)}
                                         maxLength={50}
                                         placeholder="Framerr"
                                         helperText={`${applicationName.length}/50 characters`}
@@ -628,7 +662,7 @@ const CustomizationSettings = () => {
                                         </label>
                                         <IconPicker
                                             value={applicationIcon}
-                                            onChange={(icon) => setApplicationIcon(icon)}
+                                            onChange={(icon: string) => setApplicationIcon(icon)}
                                         />
                                     </div>
                                     <Button
@@ -665,7 +699,7 @@ const CustomizationSettings = () => {
                                         <input
                                             type="checkbox"
                                             checked={greetingEnabled}
-                                            onChange={(e) => setGreetingEnabled(e.target.checked)}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => setGreetingEnabled(e.target.checked)}
                                             className="sr-only peer"
                                         />
                                         <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
@@ -676,7 +710,7 @@ const CustomizationSettings = () => {
                                 <Input
                                     label="Custom Greeting Text"
                                     value={greetingText}
-                                    onChange={(e) => setGreetingText(e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setGreetingText(e.target.value)}
                                     disabled={!greetingEnabled}
                                     maxLength={100}
                                     placeholder="Your personal dashboard"
@@ -723,7 +757,7 @@ const CustomizationSettings = () => {
                                     <input
                                         type="checkbox"
                                         checked={flattenUI}
-                                        onChange={(e) => handleToggleFlattenUI(e.target.checked)}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleToggleFlattenUI(e.target.checked)}
                                         disabled={savingFlattenUI}
                                         className="sr-only peer"
                                     />
@@ -749,7 +783,7 @@ const CustomizationSettings = () => {
                         <div>
                             <h3 className="text-lg font-semibold text-theme-primary mb-4">Preset Themes</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {themes.map((t) => (
+                                {(themes as ThemeDefinition[]).map((t) => (
                                     <button
                                         key={t.id}
                                         onClick={async () => {
@@ -851,7 +885,7 @@ const CustomizationSettings = () => {
                                     <input
                                         type="checkbox"
                                         checked={customColorsEnabled}
-                                        onChange={(e) => handleToggleCustomColors(e.target.checked)}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleToggleCustomColors(e.target.checked)}
                                         className="sr-only peer"
                                     />
                                     <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
@@ -870,21 +904,21 @@ const CustomizationSettings = () => {
                                         <ColorPicker
                                             label="Primary Background"
                                             value={customColors['bg-primary']}
-                                            onChange={(val) => handleColorChange('bg-primary', val)}
+                                            onChange={(val: string) => handleColorChange('bg-primary', val)}
                                             description="Main page background"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Card Background"
                                             value={customColors['bg-secondary']}
-                                            onChange={(val) => handleColorChange('bg-secondary', val)}
+                                            onChange={(val: string) => handleColorChange('bg-secondary', val)}
                                             description="Cards and panels"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Button Background"
                                             value={customColors['bg-tertiary']}
-                                            onChange={(val) => handleColorChange('bg-tertiary', val)}
+                                            onChange={(val: string) => handleColorChange('bg-tertiary', val)}
                                             description="Buttons and inputs"
                                             disabled={!customColorsEnabled}
                                         />
@@ -896,14 +930,14 @@ const CustomizationSettings = () => {
                                         <ColorPicker
                                             label="Primary Accent"
                                             value={customColors['accent']}
-                                            onChange={(val) => handleColorChange('accent', val)}
+                                            onChange={(val: string) => handleColorChange('accent', val)}
                                             description="Buttons and highlights"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Secondary Accent"
                                             value={customColors['accent-secondary']}
-                                            onChange={(val) => handleColorChange('accent-secondary', val)}
+                                            onChange={(val: string) => handleColorChange('accent-secondary', val)}
                                             description="Links and secondary actions"
                                             disabled={!customColorsEnabled}
                                         />
@@ -915,21 +949,21 @@ const CustomizationSettings = () => {
                                         <ColorPicker
                                             label="Primary Text"
                                             value={customColors['text-primary']}
-                                            onChange={(val) => handleColorChange('text-primary', val)}
+                                            onChange={(val: string) => handleColorChange('text-primary', val)}
                                             description="Main text color"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Secondary Text"
                                             value={customColors['text-secondary']}
-                                            onChange={(val) => handleColorChange('text-secondary', val)}
+                                            onChange={(val: string) => handleColorChange('text-secondary', val)}
                                             description="Labels and descriptions"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Muted Text"
                                             value={customColors['text-tertiary']}
-                                            onChange={(val) => handleColorChange('text-tertiary', val)}
+                                            onChange={(val: string) => handleColorChange('text-tertiary', val)}
                                             description="Hints and timestamps"
                                             disabled={!customColorsEnabled}
                                         />
@@ -941,14 +975,14 @@ const CustomizationSettings = () => {
                                         <ColorPicker
                                             label="Primary Border"
                                             value={customColors['border']}
-                                            onChange={(val) => handleColorChange('border', val)}
+                                            onChange={(val: string) => handleColorChange('border', val)}
                                             description="Dividers and outlines"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Light Border"
                                             value={customColors['border-light']}
-                                            onChange={(val) => handleColorChange('border-light', val)}
+                                            onChange={(val: string) => handleColorChange('border-light', val)}
                                             description="Subtle separators"
                                             disabled={!customColorsEnabled}
                                         />
@@ -978,28 +1012,28 @@ const CustomizationSettings = () => {
                                         <ColorPicker
                                             label="Success"
                                             value={customColors['success']}
-                                            onChange={(val) => handleColorChange('success', val)}
+                                            onChange={(val: string) => handleColorChange('success', val)}
                                             description="Completed actions"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Warning"
                                             value={customColors['warning']}
-                                            onChange={(val) => handleColorChange('warning', val)}
+                                            onChange={(val: string) => handleColorChange('warning', val)}
                                             description="Cautions"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Error"
                                             value={customColors['error']}
-                                            onChange={(val) => handleColorChange('error', val)}
+                                            onChange={(val: string) => handleColorChange('error', val)}
                                             description="Errors"
                                             disabled={!customColorsEnabled}
                                         />
                                         <ColorPicker
                                             label="Info"
                                             value={customColors['info']}
-                                            onChange={(val) => handleColorChange('info', val)}
+                                            onChange={(val: string) => handleColorChange('info', val)}
                                             description="Information"
                                             disabled={!customColorsEnabled}
                                         />
@@ -1032,21 +1066,21 @@ const CustomizationSettings = () => {
                                             <ColorPicker
                                                 label="Hover Background"
                                                 value={customColors['bg-hover']}
-                                                onChange={(val) => handleColorChange('bg-hover', val)}
+                                                onChange={(val: string) => handleColorChange('bg-hover', val)}
                                                 description="Background on hover"
                                                 disabled={!customColorsEnabled}
                                             />
                                             <ColorPicker
                                                 label="Accent Hover"
                                                 value={customColors['accent-hover']}
-                                                onChange={(val) => handleColorChange('accent-hover', val)}
+                                                onChange={(val: string) => handleColorChange('accent-hover', val)}
                                                 description="Accent color on hover"
                                                 disabled={!customColorsEnabled}
                                             />
                                             <ColorPicker
                                                 label="Light Accent"
                                                 value={customColors['accent-light']}
-                                                onChange={(val) => handleColorChange('accent-light', val)}
+                                                onChange={(val: string) => handleColorChange('accent-light', val)}
                                                 description="Light accent variant"
                                                 disabled={!customColorsEnabled}
                                             />
@@ -1058,7 +1092,7 @@ const CustomizationSettings = () => {
                                             <ColorPicker
                                                 label="Accent Border"
                                                 value={customColors['border-accent']}
-                                                onChange={(val) => handleColorChange('border-accent', val)}
+                                                onChange={(val: string) => handleColorChange('border-accent', val)}
                                                 description="Highlighted borders"
                                                 disabled={!customColorsEnabled}
                                             />
@@ -1096,4 +1130,3 @@ const CustomizationSettings = () => {
 };
 
 export default CustomizationSettings;
-
