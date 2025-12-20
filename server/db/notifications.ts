@@ -8,7 +8,9 @@ let notificationEmitter: { sendNotification: (userId: string, notification: unkn
 function getEmitter() {
     if (!notificationEmitter) {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        notificationEmitter = require('../services/notificationEmitter');
+        const module = require('../services/notificationEmitter');
+        // Handle both CommonJS and ES module interop
+        notificationEmitter = module.default || module;
     }
     return notificationEmitter!;
 }
