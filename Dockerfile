@@ -52,6 +52,9 @@ COPY shared/ ./shared/
 # Compile TypeScript to JavaScript
 RUN cd server && npm run build
 
+# Copy package.json to dist/server for require('./package.json') in compiled code
+RUN cp server/package.json server/dist/server/
+
 # Remove devDependencies after build to reduce image size
 RUN cd server && npm prune --omit=dev
 
