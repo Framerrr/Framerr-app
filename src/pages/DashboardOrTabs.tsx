@@ -5,13 +5,13 @@ import TabContainer from './TabContainer';
 import { useLayout } from '../context/LayoutContext';
 import { LAYOUT } from '../constants/layout';
 
-const DashboardOrTabs = () => {
+const DashboardOrTabs = (): React.JSX.Element => {
     const location = useLocation();
     const { isMobile } = useLayout();
-    const [showTabs, setShowTabs] = useState(false);
+    const [showTabs, setShowTabs] = useState<boolean>(false);
 
     useEffect(() => {
-        const checkHash = () => {
+        const checkHash = (): void => {
             const hash = window.location.hash.slice(1); // Remove '#'
 
             // Auto-redirect root with no hash to /#dashboard
@@ -22,11 +22,11 @@ const DashboardOrTabs = () => {
 
             // Show tabs ONLY if hash exists AND it's not 'dashboard' or 'settings'
             // This excludes #dashboard, #dashboard?..., #settings, #settings?...
-            const isTabHash = hash &&
+            const isTabHash = !!(hash &&
                 hash !== 'dashboard' &&
                 !hash.startsWith('dashboard?') &&
                 hash !== 'settings' &&
-                !hash.startsWith('settings?');
+                !hash.startsWith('settings?'));
 
             setShowTabs(isTabHash);
         };

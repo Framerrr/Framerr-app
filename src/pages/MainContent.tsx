@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import DashboardOrTabs from './DashboardOrTabs';
 import UserSettings from './UserSettings';
 
-const MainContent = () => {
-    const [currentHash, setCurrentHash] = useState('');
+const MainContent = (): React.JSX.Element => {
+    const [currentHash, setCurrentHash] = useState<string>('');
 
     useEffect(() => {
-        const updateHash = () => {
+        const updateHash = (): void => {
             const hash = window.location.hash.slice(1); // Remove '#'
             setCurrentHash(hash);
         };

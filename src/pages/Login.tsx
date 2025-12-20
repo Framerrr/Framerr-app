@@ -1,32 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { Lock, User, AlertCircle, Loader, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Login = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [plexSSOEnabled, setPlexSSOEnabled] = useState(false);
-    const [plexLoading, setPlexLoading] = useState(false);
+interface PlexSSOStatusResponse {
+    enabled: boolean;
+}
+
+interface PlexPinResponse {
+    pinId: number;
+    authUrl: string;
+}
+
+interface PlexTokenResponse {
+    authToken?: string;
+    user?: {
+        id: string;
+        username: string;
+    };
+}
+
+interface LocationState {
+    from?: { pathname: string };
+    loggedOut?: boolean;
+}
+
+const Login = (): React.JSX.Element => {
+    const [username, setUsername] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [rememberMe, setRememberMe] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
+    const [plexSSOEnabled, setPlexSSOEnabled] = useState<boolean>(false);
+    const [plexLoading, setPlexLoading] = useState<boolean>(false);
     const { login, loginWithPlex, isAuthenticated, loading: authLoading } = useAuth();
     const { success: showSuccess, info: showInfo, error: showError } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
 
-    const from = location.state?.from?.pathname || '/';
-    const loggedOut = location.state?.loggedOut;
+    const locationState = location.state as LocationState | null;
+    const from = locationState?.from?.pathname || '/';
+    const loggedOut = locationState?.loggedOut;
 
     // Check if Plex SSO is enabled (delayed slightly to avoid race with auth check)
     useEffect(() => {
         const timer = setTimeout(async () => {
             try {
-                const response = await axios.get('/api/plex/sso/status');
+                const response = await axios.get<PlexSSOStatusResponse>('/api/plex/sso/status');
                 setPlexSSOEnabled(response.data.enabled);
             } catch (error) {
                 // SSO not available - that's fine, just hide the Plex login button
@@ -54,7 +77,7 @@ const Login = () => {
     useEffect(() => {
         let hasCompleted = false;
 
-        const completePlexAuth = async () => {
+        const completePlexAuth = async (): Promise<void> => {
             const pendingPinId = localStorage.getItem('plexPendingPinId');
             if (!pendingPinId || hasCompleted) return;
 
@@ -63,9 +86,9 @@ const Login = () => {
 
             try {
                 // Check if the PIN has been claimed
-                const tokenResponse = await axios.get(`/api/plex/auth/token?pinId=${pendingPinId}`);
+                const tokenResponse = await axios.get<PlexTokenResponse>(`/api/plex/auth/token?pinId=${pendingPinId}`);
 
-                if (tokenResponse.data.authToken) {
+                if (tokenResponse.data.authToken && tokenResponse.data.user) {
                     const { authToken, user } = tokenResponse.data;
                     const result = await loginWithPlex(authToken, user.id);
 
@@ -82,12 +105,13 @@ const Login = () => {
                     localStorage.removeItem('plexPendingPinId');
                     setError('Plex authentication incomplete. Please try again.');
                 }
-            } catch (error) {
+            } catch (err) {
+                const axiosError = err as AxiosError<{ error?: string }>;
                 localStorage.removeItem('plexPendingPinId');
-                if (error.response?.status === 404) {
+                if (axiosError.response?.status === 404) {
                     setError('Plex authentication expired. Please try again.');
                 } else {
-                    setError(error.response?.data?.error || 'Failed to complete Plex login');
+                    setError(axiosError.response?.data?.error || 'Failed to complete Plex login');
                 }
             } finally {
                 setPlexLoading(false);
@@ -98,7 +122,7 @@ const Login = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setError('');
         setLoading(true);
@@ -112,18 +136,19 @@ const Login = () => {
                 setError(result.error || 'Login failed');
             }
         } catch (err) {
-            setError(err.message || 'An unexpected error occurred');
+            const error = err as Error;
+            setError(error.message || 'An unexpected error occurred');
         } finally {
             setLoading(false);
         }
     };
 
-    const handlePlexLogin = async () => {
+    const handlePlexLogin = async (): Promise<void> => {
         setPlexLoading(true);
         setError('');
 
         try {
-            const pinResponse = await axios.post('/api/plex/auth/pin', {
+            const pinResponse = await axios.post<PlexPinResponse>('/api/plex/auth/pin', {
                 forwardUrl: `${window.location.origin}/login`
             });
 
@@ -135,8 +160,9 @@ const Login = () => {
             // Redirect to Plex (no popup, full page redirect)
             window.location.href = authUrl;
 
-        } catch (error) {
-            setError(error.response?.data?.error || 'Failed to connect to Plex');
+        } catch (err) {
+            const axiosError = err as AxiosError<{ error?: string }>;
+            setError(axiosError.response?.data?.error || 'Failed to connect to Plex');
             setPlexLoading(false);
         }
     };

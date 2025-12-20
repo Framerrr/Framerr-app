@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { User, Lock, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 
-const Setup = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [displayName, setDisplayName] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+interface SetupApiResponse {
+    success: boolean;
+}
+
+const Setup = (): React.JSX.Element => {
+    const [username, setUsername] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [confirmPassword, setConfirmPassword] = useState<string>('');
+    const [displayName, setDisplayName] = useState<string>('');
+    const [error, setError] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
     const { login, checkSetupStatus } = useAuth();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setError('');
         setLoading(true);
@@ -34,7 +38,7 @@ const Setup = () => {
 
         try {
             // Create admin user via setup endpoint
-            const setupResponse = await axios.post('/api/auth/setup', {
+            const setupResponse = await axios.post<SetupApiResponse>('/api/auth/setup', {
                 username,
                 password,
                 confirmPassword,
@@ -49,7 +53,8 @@ const Setup = () => {
                 navigate('/login', { replace: true });
             }
         } catch (err) {
-            const errorMsg = err.response?.data?.error || 'Setup failed. Please try again.';
+            const axiosError = err as AxiosError<{ error?: string }>;
+            const errorMsg = axiosError.response?.data?.error || 'Setup failed. Please try again.';
             setError(errorMsg);
         } finally {
             setLoading(false);

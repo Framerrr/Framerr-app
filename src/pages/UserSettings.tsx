@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell, LucideIcon } from 'lucide-react';
+import { motion, AnimatePresence, Transition } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
 import { LAYOUT } from '../constants/layout';
@@ -20,17 +20,23 @@ import TabGroupsSettings from '../components/settings/TabGroupsSettings';
 import AuthSettings from '../components/settings/AuthSettings';
 import AdvancedSettings from '../components/settings/AdvancedSettings';
 
-const UserSettings = () => {
-    const [activeTab, setActiveTab] = useState('tabs');
+interface SettingsTab {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+}
+
+const UserSettings = (): React.JSX.Element => {
+    const [activeTab, setActiveTab] = useState<string>('tabs');
     const { user } = useAuth();
     const { isMobile } = useLayout();
 
     // Refs for auto-scrolling tab buttons into view
-    const tabRefs = useRef({});
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     // Parse query params from hash manually 
     // (useSearchParams doesn't work with hash-based routing!)
-    const getHashParams = () => {
+    const getHashParams = (): URLSearchParams => {
         const hash = window.location.hash.slice(1); // Remove '#'
         const questionMarkIndex = hash.indexOf('?');
         if (questionMarkIndex === -1) return new URLSearchParams();
@@ -40,7 +46,7 @@ const UserSettings = () => {
 
     // Read tab from hash query parameter on mount and when hash changes
     useEffect(() => {
-        const updateTabFromHash = () => {
+        const updateTabFromHash = (): void => {
             const params = getHashParams();
             const tabFromUrl = params.get('tab');
             if (tabFromUrl) {
@@ -73,7 +79,7 @@ const UserSettings = () => {
     const hasAdminAccess = isAdmin(user);
 
     // User tabs (always visible)
-    const userTabs = [
+    const userTabs: SettingsTab[] = [
         { id: 'tabs', label: 'My Tabs', icon: Layout },
         ...(hasAdminAccess ? [{ id: 'tabgroups', label: 'Tab Groups', icon: FolderTree }] : []),
         { id: 'integrations', label: 'Integrations', icon: Puzzle },
@@ -83,7 +89,7 @@ const UserSettings = () => {
     ];
 
     // Admin tabs (only for admins)
-    const adminTabs = hasAdminAccess ? [
+    const adminTabs: SettingsTab[] = hasAdminAccess ? [
         { id: 'users', label: 'Users', icon: Users },
         { id: 'auth', label: 'Auth', icon: Shield },
         { id: 'advanced', label: 'Advanced', icon: Cpu },
@@ -93,14 +99,14 @@ const UserSettings = () => {
     const allTabs = [...userTabs, ...adminTabs];
 
     // Spring config for tab animations
-    const tabSpring = {
+    const tabSpring: Transition = {
         type: 'spring',
         stiffness: 350,
         damping: 35,
     };
 
     // Content transition spring (matching AnimationTest)
-    const contentSpring = {
+    const contentSpring: Transition = {
         type: 'spring',
         stiffness: 220,
         damping: 30,

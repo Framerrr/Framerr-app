@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TailwindTest = () => {
+const TailwindTest = (): React.JSX.Element => {
     return (
         <div className="p-8">
             <h1 className="text-3xl font-bold mb-4">Tailwind CSS Test Page</h1>
