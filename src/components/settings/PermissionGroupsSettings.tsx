@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent, MouseEvent } from 'react';
 import { Shield, Plus, Edit, Trash2, X, Save, AlertTriangle, Users, Loader, Check } from 'lucide-react';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
@@ -8,8 +8,15 @@ import { useNotifications } from '../../context/NotificationContext';
 // System groups that cannot be deleted
 const PROTECTED_GROUPS = ['admin', 'user', 'guest'];
 
+interface Permission {
+    id: string;
+    label: string;
+    description: string;
+    icon: string;
+}
+
 // Available permissions with descriptions
-const AVAILABLE_PERMISSIONS = [
+const AVAILABLE_PERMISSIONS: Permission[] = [
     { id: '*', label: 'Full Access (Admin)', description: 'Complete system access, overrides all other permissions', icon: '👑' },
     { id: 'view_dashboard', label: 'View Dashboard', description: 'Access to dashboard and navigation', icon: '📊' },
     { id: 'manage_widgets', label: 'Manage Widgets', description: 'Add, edit, and delete dashboard widgets', icon: '🧩' },
@@ -17,17 +24,29 @@ const AVAILABLE_PERMISSIONS = [
     { id: 'manage_users', label: 'Manage Users', description: 'Create, edit, and delete user accounts', icon: '👥' }
 ];
 
-const PermissionGroupsSettings = () => {
-    const [groups, setGroups] = useState([]);
-    const [defaultGroup, setDefaultGroup] = useState('user');
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState('create');
-    const [selectedGroup, setSelectedGroup] = useState(null);
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+interface PermissionGroup {
+    id: string;
+    name: string;
+    permissions: string[];
+}
+
+interface FormData {
+    id: string;
+    name: string;
+    permissions: string[];
+}
+
+const PermissionGroupsSettings: React.FC = () => {
+    const [groups, setGroups] = useState<PermissionGroup[]>([]);
+    const [defaultGroup, setDefaultGroup] = useState<string>('user');
+    const [loading, setLoading] = useState<boolean>(true);
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+    const [selectedGroup, setSelectedGroup] = useState<PermissionGroup | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const { error: showError, warning: showWarning, success: showSuccess } = useNotifications();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         id: '',
         name: '',
         permissions: ['view_dashboard']
@@ -37,15 +56,15 @@ const PermissionGroupsSettings = () => {
         fetchGroups();
     }, []);
 
-    const fetchGroups = async () => {
+    const fetchGroups = async (): Promise<void> => {
         try {
             const response = await fetch('/api/config/system', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
                 // Convert groups object to array: {"admin":{...}, "user":{...}} => [{id:"admin",...}, {id:"user",...}]
-                const groupsArray = Object.entries(data.groups || {}).map(([id, group]) => ({
+                const groupsArray: PermissionGroup[] = Object.entries(data.groups || {}).map(([id, group]) => ({
                     id,
-                    ...group
+                    ...(group as Omit<PermissionGroup, 'id'>)
                 }));
                 setGroups(groupsArray);
                 setDefaultGroup(data.defaultGroup || 'user');
@@ -57,31 +76,29 @@ const PermissionGroupsSettings = () => {
         }
     };
 
-    const generateGroupId = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const generateGroupId = (name: string): string => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-    const handleCreate = () => {
+    const handleCreate = (): void => {
         setModalMode('create');
         setFormData({ id: '', name: '', permissions: ['view_dashboard'] });
         setSelectedGroup(null);
         setShowModal(true);
     };
 
-    const handleEdit = (group) => {
+    const handleEdit = (group: PermissionGroup): void => {
         setModalMode('edit');
         setFormData({ id: group.id, name: group.name, permissions: [...group.permissions] });
         setSelectedGroup(group);
         setShowModal(true);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
 
         if (!formData.name.trim()) {
             showWarning('Missing Name', 'Group name is required');
             return;
         }
-
-        // Skip empty permissions check - the UI warning is sufficient
 
         const groupId = modalMode === 'create' ? generateGroupId(formData.name) : formData.id;
 
@@ -90,7 +107,7 @@ const PermissionGroupsSettings = () => {
             return;
         }
 
-        const newGroup = { id: groupId, name: formData.name, permissions: formData.permissions };
+        const newGroup: PermissionGroup = { id: groupId, name: formData.name, permissions: formData.permissions };
 
         try {
             const updatedGroupsArray = modalMode === 'create'
@@ -98,7 +115,7 @@ const PermissionGroupsSettings = () => {
                 : groups.map(g => g.id === groupId ? newGroup : g);
 
             // Convert array back to object format for backend: [{id:"admin",...}] => {"admin":{...}}
-            const groupsObject = updatedGroupsArray.reduce((acc, group) => {
+            const groupsObject = updatedGroupsArray.reduce<Record<string, Omit<PermissionGroup, 'id'>>>((acc, group) => {
                 const { id, ...groupData } = group;
                 acc[id] = groupData;
                 return acc;
@@ -119,7 +136,8 @@ const PermissionGroupsSettings = () => {
                     `Permission group "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
                 );
             } else {
-                showError('Save Failed', (await response.json()).error || 'Failed to save group');
+                const errorData = await response.json();
+                showError('Save Failed', errorData.error || 'Failed to save group');
             }
         } catch (error) {
             logger.error('Error saving group:', error);
@@ -127,7 +145,7 @@ const PermissionGroupsSettings = () => {
         }
     };
 
-    const handleDelete = async (group) => {
+    const handleDelete = async (group: PermissionGroup): Promise<void> => {
         if (PROTECTED_GROUPS.includes(group.id)) {
             showWarning('Cannot Delete', `Cannot delete system group "${group.name}".`);
             setConfirmDeleteId(null);
@@ -144,8 +162,8 @@ const PermissionGroupsSettings = () => {
             const updatedGroupsArray = groups.filter(g => g.id !== group.id);
 
             // Convert array back to object format for backend
-            const groupsObject = updatedGroupsArray.reduce((acc, group) => {
-                const { id, ...groupData } = group;
+            const groupsObject = updatedGroupsArray.reduce<Record<string, Omit<PermissionGroup, 'id'>>>((acc, g) => {
+                const { id, ...groupData } = g;
                 acc[id] = groupData;
                 return acc;
             }, {});
@@ -172,7 +190,7 @@ const PermissionGroupsSettings = () => {
         }
     };
 
-    const handleDefaultGroupChange = async (newDefaultGroup) => {
+    const handleDefaultGroupChange = async (newDefaultGroup: string): Promise<void> => {
         try {
             const response = await fetch('/api/config/system', {
                 method: 'PUT',
@@ -191,7 +209,7 @@ const PermissionGroupsSettings = () => {
         }
     };
 
-    const togglePermission = (permissionId) => {
+    const togglePermission = (permissionId: string): void => {
         setFormData(prev => {
             const current = prev.permissions;
 
@@ -233,8 +251,11 @@ const PermissionGroupsSettings = () => {
             <div className="mb-6 p-4 rounded-xl border border-theme bg-theme-tertiary/30" style={{ transition: 'all 0.3s ease' }}>
                 <label className="block mb-2 font-medium text-theme-primary">Default Group for New Users</label>
                 <p className="text-sm text-theme-secondary mb-3">New users are automatically assigned to this group</p>
-                <select value={defaultGroup} onChange={(e) => handleDefaultGroupChange(e.target.value)}
-                    className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all">
+                <select
+                    value={defaultGroup}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => handleDefaultGroupChange(e.target.value)}
+                    className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                >
                     {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
             </div>
@@ -314,7 +335,7 @@ const PermissionGroupsSettings = () => {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-                    <div onClick={(e) => e.stopPropagation()} className="glass-card rounded-xl shadow-deep border border-theme p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <div onClick={(e: MouseEvent) => e.stopPropagation()} className="glass-card rounded-xl shadow-deep border border-theme p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-theme-primary">{modalMode === 'create' ? 'Create Group' : `Edit: ${selectedGroup?.name}`}</h3>
                             <button
@@ -330,7 +351,7 @@ const PermissionGroupsSettings = () => {
                             <Input
                                 label="Group Name *"
                                 value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                                 required
                                 placeholder="e.g., Power Users"
                                 helperText={formData.name ? `ID: ${generateGroupId(formData.name)}` : ''}
@@ -347,8 +368,13 @@ const PermissionGroupsSettings = () => {
                                             <label key={perm.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${isDisabled ? 'bg-theme-tertiary/30 border-theme/30 opacity-50 cursor-not-allowed' :
                                                 isChecked ? 'bg-accent/10 border-accent/30 hover:bg-accent/15' : 'bg-theme-tertiary/30 border-theme/50 hover:bg-theme-tertiary/50'
                                                 }`}>
-                                                <input type="checkbox" checked={isChecked} onChange={() => togglePermission(perm.id)} disabled={isDisabled}
-                                                    className="mt-0.5 w-4 h-4 rounded border-theme text-accent" />
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => togglePermission(perm.id)}
+                                                    disabled={isDisabled}
+                                                    className="mt-0.5 w-4 h-4 rounded border-theme text-accent"
+                                                />
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2">
                                                         <span>{perm.icon}</span>

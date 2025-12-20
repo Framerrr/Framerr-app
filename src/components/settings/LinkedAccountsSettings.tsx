@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Link2, Save, Loader, CheckCircle2, Star, Info, Tv } from 'lucide-react';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
@@ -6,33 +6,53 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import logger from '../../utils/logger';
 
+interface PlexAccount {
+    linked: boolean;
+    externalUsername?: string;
+    externalEmail?: string;
+}
+
+interface DbLinkedAccounts {
+    plex?: PlexAccount;
+    [key: string]: unknown;
+}
+
+interface OverseerrAccount {
+    username: string;
+}
+
+interface PrefLinkedAccounts {
+    overseerr: OverseerrAccount;
+    [key: string]: unknown;
+}
+
 /**
  * LinkedAccountsSettings - User's linked external service accounts
  * Shows Plex SSO status (read-only) and editable Overseerr username
  * Allows users to link their Overseerr username for notification matching
  */
-const LinkedAccountsSettings = () => {
+const LinkedAccountsSettings: React.FC = () => {
     const { user } = useAuth();
     const { success: showSuccess, error: showError } = useNotifications();
 
     // Database-stored linked accounts (e.g., Plex via SSO)
-    const [dbLinkedAccounts, setDbLinkedAccounts] = useState({});
+    const [dbLinkedAccounts, setDbLinkedAccounts] = useState<DbLinkedAccounts>({});
 
     // User preference-based linked accounts (editable, e.g., Overseerr)
-    const [prefLinkedAccounts, setPrefLinkedAccounts] = useState({
+    const [prefLinkedAccounts, setPrefLinkedAccounts] = useState<PrefLinkedAccounts>({
         overseerr: { username: '' }
     });
 
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [hasChanges, setHasChanges] = useState(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [hasChanges, setHasChanges] = useState<boolean>(false);
 
     // Load both database-stored links and preference-based links
     useEffect(() => {
         fetchAllLinkedAccounts();
     }, []);
 
-    const fetchAllLinkedAccounts = async () => {
+    const fetchAllLinkedAccounts = async (): Promise<void> => {
         try {
             // Fetch database-stored linked accounts (Plex SSO, etc.)
             const dbResponse = await fetch('/api/linked-accounts/me', {
@@ -59,18 +79,18 @@ const LinkedAccountsSettings = () => {
         }
     };
 
-    const handleFieldChange = (service, field, value) => {
+    const handleFieldChange = (service: string, field: string, value: string): void => {
         setPrefLinkedAccounts(prev => ({
             ...prev,
             [service]: {
-                ...prev[service],
+                ...(prev[service] as Record<string, unknown>),
                 [field]: value
             }
         }));
         setHasChanges(true);
     };
 
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         setSaving(true);
         try {
             const response = await fetch('/api/config/user', {
@@ -189,8 +209,8 @@ const LinkedAccountsSettings = () => {
                             <Input
                                 label="Overseerr Username"
                                 value={prefLinkedAccounts.overseerr?.username || ''}
-                                onChange={(e) => handleFieldChange('overseerr', 'username', e.target.value)}
-                                placeholder={isPlexLinked && plexAccount.externalUsername
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleFieldChange('overseerr', 'username', e.target.value)}
+                                placeholder={isPlexLinked && plexAccount?.externalUsername
                                     ? `Often same as Plex: ${plexAccount.externalUsername}`
                                     : 'Your Overseerr username'}
                                 helperText={isPlexLinked

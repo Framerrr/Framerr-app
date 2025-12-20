@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
+import axios, { AxiosError } from 'axios';
 import { User, Save, RotateCcw, Lock, Mail, UserCircle, Upload, X } from 'lucide-react';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
@@ -7,38 +7,45 @@ import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 
-const ProfileSettings = () => {
+interface ProfileData {
+    username: string;
+    email: string;
+    displayName: string;
+    profilePicture: string | null;
+}
+
+const ProfileSettings: React.FC = () => {
     const { error: showError, success: showSuccess } = useNotifications();
     const { checkAuth } = useAuth();
 
     // User info
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [displayName, setDisplayName] = useState('');
-    const [profilePicture, setProfilePicture] = useState(null);
-    const fileInputRef = useRef(null);
+    const [username, setUsername] = useState<string>('');
+    const [email, setEmail] = useState<string>('');
+    const [displayName, setDisplayName] = useState<string>('');
+    const [profilePicture, setProfilePicture] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Password change
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const [currentPassword, setCurrentPassword] = useState<string>('');
+    const [newPassword, setNewPassword] = useState<string>('');
+    const [confirmPassword, setConfirmPassword] = useState<string>('');
 
     // UI state
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [changingPassword, setChangingPassword] = useState(false);
-    const [uploadingPicture, setUploadingPicture] = useState(false);
-    const [passwordError, setPasswordError] = useState('');
-    const [passwordSuccess, setPasswordSuccess] = useState(false);
-    const [confirmRemovePicture, setConfirmRemovePicture] = useState(false);
-    const [savingProfile, setSavingProfile] = useState(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [changingPassword, setChangingPassword] = useState<boolean>(false);
+    const [uploadingPicture, setUploadingPicture] = useState<boolean>(false);
+    const [passwordError, setPasswordError] = useState<string>('');
+    const [passwordSuccess, setPasswordSuccess] = useState<boolean>(false);
+    const [confirmRemovePicture, setConfirmRemovePicture] = useState<boolean>(false);
+    const [savingProfile, setSavingProfile] = useState<boolean>(false);
 
     // Load user profile and preferences on mount
     useEffect(() => {
-        const loadProfile = async () => {
+        const loadProfile = async (): Promise<void> => {
             try {
                 // Load profile info
-                const profileResponse = await axios.get('/api/profile', {
+                const profileResponse = await axios.get<ProfileData>('/api/profile', {
                     withCredentials: true
                 });
 
@@ -59,7 +66,7 @@ const ProfileSettings = () => {
         loadProfile();
     }, []);
 
-    const handleSaveProfile = async () => {
+    const handleSaveProfile = async (): Promise<void> => {
         setSavingProfile(true);
         try {
             await axios.put('/api/profile', {
@@ -74,13 +81,14 @@ const ProfileSettings = () => {
             showSuccess('Profile Saved', 'Your display name has been updated');
         } catch (error) {
             logger.error('Failed to save profile:', error);
-            showError('Save Failed', error.response?.data?.error || 'Failed to save profile');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            showError('Save Failed', axiosError.response?.data?.error || 'Failed to save profile');
         } finally {
             setSavingProfile(false);
         }
     };
 
-    const handleChangePassword = async (e) => {
+    const handleChangePassword = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setPasswordError('');
         setPasswordSuccess(false);
@@ -111,13 +119,14 @@ const ProfileSettings = () => {
             setConfirmPassword('');
             showSuccess('Password Changed', 'Your password has been updated successfully');
         } catch (error) {
-            setPasswordError(error.response?.data?.error || 'Failed to change password');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            setPasswordError(axiosError.response?.data?.error || 'Failed to change password');
         } finally {
             setChangingPassword(false);
         }
     };
 
-    const handleProfilePictureUpload = async (e) => {
+    const handleProfilePictureUpload = async (e: ChangeEvent<HTMLInputElement>): Promise<void> => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -132,7 +141,7 @@ const ProfileSettings = () => {
 
         setUploadingPicture(true);
         try {
-            const response = await axios.post('/api/profile/picture', formData, {
+            const response = await axios.post<{ profilePicture: string }>('/api/profile/picture', formData, {
                 withCredentials: true,
                 headers: {
                     'Content-Type': 'multipart/form-data'
@@ -150,13 +159,14 @@ const ProfileSettings = () => {
             showSuccess('Photo Updated', 'Profile picture uploaded successfully');
         } catch (error) {
             logger.error('Failed to upload profile picture:', error);
-            showError('Upload Failed', error.response?.data?.error || 'Failed to upload profile picture');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            showError('Upload Failed', axiosError.response?.data?.error || 'Failed to upload profile picture');
         } finally {
             setUploadingPicture(false);
         }
     };
 
-    const handleRemoveProfilePicture = async () => {
+    const handleRemoveProfilePicture = async (): Promise<void> => {
         try {
             await axios.delete('/api/profile/picture', {
                 withCredentials: true
@@ -301,7 +311,7 @@ const ProfileSettings = () => {
                         <Input
                             label="Display Name"
                             value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
                             placeholder={username}
                             helperText="This name is shown in greetings and throughout the app"
                         />
@@ -353,7 +363,7 @@ const ProfileSettings = () => {
                         label="Current Password"
                         type="password"
                         value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
                         required
                     />
 
@@ -361,7 +371,7 @@ const ProfileSettings = () => {
                         label="New Password"
                         type="password"
                         value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
                         required
                         minLength={6}
                         helperText="At least 6 characters"
@@ -371,7 +381,7 @@ const ProfileSettings = () => {
                         label="Confirm New Password"
                         type="password"
                         value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                         required
                         minLength={6}
                     />

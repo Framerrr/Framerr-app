@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutGrid, Cpu, Activity, Link2, Share2 } from 'lucide-react';
+import { LayoutGrid, Cpu, Activity, Link2, Share2, LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
@@ -9,6 +9,15 @@ import ActiveWidgets from './ActiveWidgets';
 import LinkedAccountsSettings from './LinkedAccountsSettings';
 import SharedWidgetsSettings from './SharedWidgetsSettings';
 
+type SubTabId = 'gallery' | 'active' | 'services' | 'shared' | 'linked';
+
+interface SubTab {
+    id: SubTabId;
+    label: string;
+    icon: LucideIcon;
+    adminOnly: boolean;
+}
+
 /**
  * Integrations Settings - Main wrapper with sub-tabs
  * Sub-tabs: 
@@ -17,13 +26,13 @@ import SharedWidgetsSettings from './SharedWidgetsSettings';
  *   - Service Settings (admin only - API keys, URLs)
  *   - My Linked Accounts (all users - link Overseerr username, etc.)
  */
-const WidgetsSettings = () => {
-    const [activeSubTab, setActiveSubTab] = useState('gallery');
+const WidgetsSettings: React.FC = () => {
+    const [activeSubTab, setActiveSubTab] = useState<SubTabId>('gallery');
     const { user } = useAuth();
     const hasAdminAccess = isAdmin(user);
 
     // Refs for auto-scrolling sub-tab buttons into view
-    const subTabRefs = useRef({});
+    const subTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     // Scroll active sub-tab into view when it changes
     useEffect(() => {
@@ -38,12 +47,12 @@ const WidgetsSettings = () => {
     }, [activeSubTab]);
 
     // Build sub-tabs based on permissions
-    const subTabs = [
+    const subTabs: SubTab[] = [
         { id: 'gallery', label: 'Widget Gallery', icon: LayoutGrid, adminOnly: false },
         { id: 'active', label: 'Active Widgets', icon: Activity, adminOnly: false },
         ...(hasAdminAccess ? [
-            { id: 'services', label: 'Service Settings', icon: Cpu, adminOnly: true },
-            { id: 'shared', label: 'Shared Widgets', icon: Share2, adminOnly: true }
+            { id: 'services' as const, label: 'Service Settings', icon: Cpu, adminOnly: true },
+            { id: 'shared' as const, label: 'Shared Widgets', icon: Share2, adminOnly: true }
         ] : []),
         { id: 'linked', label: 'My Linked Accounts', icon: Link2, adminOnly: false }
     ];
@@ -54,6 +63,15 @@ const WidgetsSettings = () => {
         stiffness: 350,
         damping: 35,
     };
+
+    const getTabStyle = (tabId: SubTabId): React.CSSProperties => ({
+        opacity: activeSubTab === tabId ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+        position: activeSubTab === tabId ? 'relative' : 'absolute',
+        visibility: activeSubTab === tabId ? 'visible' : 'hidden',
+        width: '100%',
+        top: 0
+    });
 
     return (
         <div className="fade-in">
@@ -102,74 +120,29 @@ const WidgetsSettings = () => {
 
             {/* Content - Crossfade between tabs */}
             <div style={{ position: 'relative', overflow: 'hidden' }}>
-                <div
-                    style={{
-                        opacity: activeSubTab === 'gallery' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'gallery' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'gallery' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
+                <div style={getTabStyle('gallery')}>
                     <WidgetGallery />
                 </div>
 
-                <div
-                    style={{
-                        opacity: activeSubTab === 'active' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'active' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'active' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
+                <div style={getTabStyle('active')}>
                     <ActiveWidgets />
                 </div>
 
                 {/* Admin-only: Service Settings */}
                 {hasAdminAccess && (
-                    <div
-                        style={{
-                            opacity: activeSubTab === 'services' ? 1 : 0,
-                            transition: 'opacity 0.3s ease',
-                            position: activeSubTab === 'services' ? 'relative' : 'absolute',
-                            visibility: activeSubTab === 'services' ? 'visible' : 'hidden',
-                            width: '100%',
-                            top: 0
-                        }}
-                    >
+                    <div style={getTabStyle('services')}>
                         <IntegrationsSettings />
                     </div>
                 )}
 
                 {/* Admin-only: Shared Widgets Management */}
                 {hasAdminAccess && (
-                    <div
-                        style={{
-                            opacity: activeSubTab === 'shared' ? 1 : 0,
-                            transition: 'opacity 0.3s ease',
-                            position: activeSubTab === 'shared' ? 'relative' : 'absolute',
-                            visibility: activeSubTab === 'shared' ? 'visible' : 'hidden',
-                            width: '100%',
-                            top: 0
-                        }}
-                    >
+                    <div style={getTabStyle('shared')}>
                         <SharedWidgetsSettings />
                     </div>
                 )}
 
-                <div
-                    style={{
-                        opacity: activeSubTab === 'linked' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'linked' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'linked' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
+                <div style={getTabStyle('linked')}>
                     <LinkedAccountsSettings />
                 </div>
             </div>
@@ -178,4 +151,3 @@ const WidgetsSettings = () => {
 };
 
 export default WidgetsSettings;
-

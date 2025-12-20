@@ -1,24 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, Users, User, Globe, Lock, Trash2, Settings, AlertCircle } from 'lucide-react';
+import { Share2, Users, User, Globe, Lock, Trash2, Settings, AlertCircle, LucideIcon } from 'lucide-react';
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import logger from '../../utils/logger';
+
+interface SharingConfig {
+    enabled: boolean;
+    mode?: 'everyone' | 'groups' | 'users';
+    groups?: string[];
+    users?: string[];
+}
+
+interface IntegrationConfig {
+    enabled: boolean;
+    sharing?: SharingConfig;
+    [key: string]: unknown;
+}
+
+interface SharedWidget extends IntegrationConfig {
+    serviceName: string;
+}
 
 /**
  * SharedWidgetsSettings - Admin view of currently shared widgets
  * Allows quick management of shared widgets (change sharing, revoke)
  */
-const SharedWidgetsSettings = () => {
-    const [integrations, setIntegrations] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+const SharedWidgetsSettings: React.FC = () => {
+    const [integrations, setIntegrations] = useState<Record<string, IntegrationConfig>>({});
+    const [loading, setLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState<boolean>(false);
     const { success: showSuccess, error: showError } = useNotifications();
 
     useEffect(() => {
         fetchIntegrations();
 
         // Listen for integration updates from IntegrationsSettings
-        const handleIntegrationsUpdated = () => {
+        const handleIntegrationsUpdated = (): void => {
             fetchIntegrations();
         };
         window.addEventListener('integrationsUpdated', handleIntegrationsUpdated);
@@ -28,7 +45,7 @@ const SharedWidgetsSettings = () => {
         };
     }, []);
 
-    const fetchIntegrations = async () => {
+    const fetchIntegrations = async (): Promise<void> => {
         try {
             const response = await fetch('/api/integrations', {
                 credentials: 'include'
@@ -44,7 +61,7 @@ const SharedWidgetsSettings = () => {
         }
     };
 
-    const handleRevokeSharing = async (serviceName) => {
+    const handleRevokeSharing = async (serviceName: string): Promise<void> => {
         setSaving(true);
         try {
             const updatedIntegrations = {
@@ -80,14 +97,14 @@ const SharedWidgetsSettings = () => {
     };
 
     // Get list of shared integrations
-    const sharedWidgets = Object.entries(integrations)
+    const sharedWidgets: SharedWidget[] = Object.entries(integrations)
         .filter(([_, config]) => config.enabled && config.sharing?.enabled)
         .map(([serviceName, config]) => ({
             serviceName,
             ...config
         }));
 
-    const getSharingDescription = (sharing) => {
+    const getSharingDescription = (sharing?: SharingConfig): string => {
         if (!sharing?.enabled) return '';
 
         switch (sharing.mode) {
@@ -106,7 +123,7 @@ const SharedWidgetsSettings = () => {
         }
     };
 
-    const getSharingIcon = (mode) => {
+    const getSharingIcon = (mode?: string): LucideIcon => {
         switch (mode) {
             case 'everyone':
                 return Globe;

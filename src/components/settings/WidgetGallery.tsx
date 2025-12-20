@@ -1,24 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, AlertCircle, CheckCircle2, Loader, Share2, User } from 'lucide-react';
-import { getWidgetsByCategory, getWidgetMetadata } from '../../utils/widgetRegistry';
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { Plus, Search, AlertCircle, CheckCircle2, Loader, Share2, User, LucideIcon } from 'lucide-react';
+import { getWidgetsByCategory, getWidgetMetadata, WidgetMetadata } from '../../utils/widgetRegistry';
 import axios from 'axios';
 import logger from '../../utils/logger';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
 
+interface IntegrationConfig {
+    enabled: boolean;
+    url?: string;
+    apiKey?: string;
+    backend?: 'glances' | 'custom';
+    glances?: { url?: string };
+    custom?: { url?: string };
+    [key: string]: unknown;
+}
+
+interface SharedIntegration {
+    name: string;
+    url?: string;
+    apiKey?: string;
+    sharedBy?: string;
+}
+
+interface Widget {
+    id: string;
+    type: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    config: Record<string, unknown>;
+}
+
 /**
  * Widget Gallery - Browse and add widgets to dashboard
  * For admins: Shows all widgets, integration status
  * For users: Shows utility widgets + widgets shared by admin
  */
-const WidgetGallery = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [integrations, setIntegrations] = useState({});
-    const [sharedIntegrations, setSharedIntegrations] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [addingWidget, setAddingWidget] = useState(null);
+const WidgetGallery: React.FC = () => {
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [integrations, setIntegrations] = useState<Record<string, IntegrationConfig>>({});
+    const [sharedIntegrations, setSharedIntegrations] = useState<SharedIntegration[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [addingWidget, setAddingWidget] = useState<string | null>(null);
     const { success: showSuccess, error: showError } = useNotifications();
     const { user } = useAuth();
     const hasAdminAccess = isAdmin(user);
@@ -35,7 +62,7 @@ const WidgetGallery = () => {
     }, [hasAdminAccess]);
 
     // Admin: fetch all integrations
-    const fetchIntegrations = async () => {
+    const fetchIntegrations = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/integrations');
             setIntegrations(response.data.integrations || {});
@@ -47,7 +74,7 @@ const WidgetGallery = () => {
     };
 
     // User: fetch only shared integrations
-    const fetchSharedIntegrations = async () => {
+    const fetchSharedIntegrations = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/integrations/shared');
             setSharedIntegrations(response.data.integrations || []);
@@ -59,7 +86,7 @@ const WidgetGallery = () => {
     };
 
     // Check if a widget should be visible to the current user
-    const isWidgetVisible = (widget) => {
+    const isWidgetVisible = (widget: WidgetMetadata): boolean => {
         // Utility widgets (no integration required) are always visible
         if (!widget.requiresIntegration && !widget.requiresIntegrations) {
             return true;
@@ -89,8 +116,8 @@ const WidgetGallery = () => {
     };
 
     // Get sharedBy info for a widget
-    const getSharedByInfo = (widget) => {
-        if (hasAdminAccess) return null; // Admins don't need to see this
+    const getSharedByInfo = (widget: WidgetMetadata): string | undefined => {
+        if (hasAdminAccess) return undefined; // Admins don't need to see this
 
         const requiredIntegration = widget.requiresIntegration;
         if (requiredIntegration) {
@@ -98,21 +125,25 @@ const WidgetGallery = () => {
             return shared?.sharedBy;
         }
 
-        return null;
+        return undefined;
     };
 
-    const handleAddWidget = async (widgetType) => {
+    const handleAddWidget = async (widgetType: string): Promise<void> => {
         setAddingWidget(widgetType);
 
         try {
             const metadata = getWidgetMetadata(widgetType);
+            if (!metadata) {
+                showError('Widget Not Found', 'Widget metadata not found');
+                return;
+            }
 
             // Fetch current widgets
             const currentResponse = await axios.get('/api/widgets');
-            const currentWidgets = currentResponse.data.widgets || [];
+            const currentWidgets: Widget[] = currentResponse.data.widgets || [];
 
             // Build widget config based on role
-            let widgetConfig = {
+            let widgetConfig: Record<string, unknown> = {
                 title: metadata.name
             };
 
@@ -133,7 +164,6 @@ const WidgetGallery = () => {
                     widgetConfig = {
                         ...widgetConfig,
                         enabled: true,
-                        // Include essential config from shared integration
                         url: sharedIntegration.url,
                         apiKey: sharedIntegration.apiKey
                     };
@@ -141,7 +171,7 @@ const WidgetGallery = () => {
             }
 
             // Create new widget with defaults
-            const newWidget = {
+            const newWidget: Widget = {
                 id: `widget-${Date.now()}`,
                 type: widgetType,
                 x: 0,
@@ -172,7 +202,7 @@ const WidgetGallery = () => {
     };
 
     // Filter widgets based on visibility and search
-    const filteredWidgets = Object.entries(widgetsByCategory).reduce((acc, [category, widgets]) => {
+    const filteredWidgets = Object.entries(widgetsByCategory).reduce<Record<string, WidgetMetadata[]>>((acc, [category, widgets]) => {
         if (selectedCategory !== 'all' && selectedCategory !== category) {
             return acc;
         }
@@ -233,7 +263,7 @@ const WidgetGallery = () => {
                         type="text"
                         placeholder="Search widgets..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-theme-tertiary focus:outline-none focus:border-accent"
                     />
                 </div>
@@ -241,7 +271,7 @@ const WidgetGallery = () => {
                 {/* Category Filter */}
                 <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCategory(e.target.value)}
                     className="px-4 py-2.5 bg-theme-primary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent capitalize"
                 >
                     {categories.map(cat => (
@@ -270,7 +300,7 @@ const WidgetGallery = () => {
                                 const Icon = widget.icon;
                                 const isIntegrationRequired = widget.requiresIntegration;
                                 const integration = hasAdminAccess && isIntegrationRequired
-                                    ? integrations[widget.requiresIntegration]
+                                    ? integrations[widget.requiresIntegration!]
                                     : null;
 
                                 // Check if integration is ready - handle special cases
@@ -278,14 +308,14 @@ const WidgetGallery = () => {
                                 if (isIntegrationRequired && hasAdminAccess) {
                                     if (widget.requiresIntegration === 'systemstatus') {
                                         // SystemStatus uses backend with glances/custom config
-                                        isIntegrationReady = integration?.enabled && (
+                                        isIntegrationReady = !!(integration?.enabled && (
                                             (integration.backend === 'glances' && integration.glances?.url) ||
                                             (integration.backend === 'custom' && integration.custom?.url) ||
                                             (!integration.backend && integration.url) // legacy
-                                        );
+                                        ));
                                     } else {
                                         // Standard integrations use url directly
-                                        isIntegrationReady = integration?.enabled && integration?.url;
+                                        isIntegrationReady = !!(integration?.enabled && integration?.url);
                                     }
                                 } else if (isIntegrationRequired && !hasAdminAccess) {
                                     isIntegrationReady = sharedIntegrations.some(si => si.name === widget.requiresIntegration);
@@ -368,4 +398,3 @@ const WidgetGallery = () => {
 };
 
 export default WidgetGallery;
-

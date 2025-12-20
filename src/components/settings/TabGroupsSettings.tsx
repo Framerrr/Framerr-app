@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { FolderTree, Plus, Edit, Trash2, X, Save, GripVertical, Loader, Check } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,7 @@ import {
     TouchSensor,
     useSensor,
     useSensors,
+    DragEndEvent,
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -24,8 +25,28 @@ import { CSS } from '@dnd-kit/utilities';
 import logger from '../../utils/logger';
 import { useNotifications } from '../../context/NotificationContext';
 
+interface TabGroup {
+    id: string;
+    name: string;
+    order: number;
+}
+
+interface FormData {
+    id: string;
+    name: string;
+    order: number;
+}
+
+interface SortableGroupItemProps {
+    group: TabGroup;
+    onEdit: (group: TabGroup) => void;
+    onDelete: (group: TabGroup) => void;
+    confirmDeleteId: string | null;
+    setConfirmDeleteId: (id: string | null) => void;
+}
+
 // Sortable Group Item Component
-const SortableGroupItem = ({ group, onEdit, onDelete, confirmDeleteId, setConfirmDeleteId }) => {
+const SortableGroupItem: React.FC<SortableGroupItemProps> = ({ group, onEdit, onDelete, confirmDeleteId, setConfirmDeleteId }) => {
     const {
         attributes,
         listeners,
@@ -35,9 +56,9 @@ const SortableGroupItem = ({ group, onEdit, onDelete, confirmDeleteId, setConfir
         isDragging,
     } = useSortable({ id: group.id });
 
-    const style = {
+    const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
-        transition: isDragging ? 'none' : transition,  // No transition while dragging
+        transition: isDragging ? 'none' : transition,
         opacity: isDragging ? 0.5 : 1,
         willChange: isDragging ? 'transform' : 'auto'
     };
@@ -60,7 +81,7 @@ const SortableGroupItem = ({ group, onEdit, onDelete, confirmDeleteId, setConfir
                     MozUserSelect: 'none',
                     msUserSelect: 'none',
                     WebkitTouchCallout: 'none'
-                }}
+                } as React.CSSProperties}
                 title="Drag to reorder"
             >
                 <GripVertical size={20} />
@@ -120,14 +141,14 @@ const SortableGroupItem = ({ group, onEdit, onDelete, confirmDeleteId, setConfir
     );
 };
 
-const TabGroupsSettings = () => {
-    const [tabGroups, setTabGroups] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState('create');
-    const [selectedGroup, setSelectedGroup] = useState(null);
-    const [formData, setFormData] = useState({ id: '', name: '', order: 0 });
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+const TabGroupsSettings: React.FC = () => {
+    const [tabGroups, setTabGroups] = useState<TabGroup[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+    const [selectedGroup, setSelectedGroup] = useState<TabGroup | null>(null);
+    const [formData, setFormData] = useState<FormData>({ id: '', name: '', order: 0 });
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const { error: showError, warning: showWarning, success: showSuccess } = useNotifications();
 
     // Drag and drop sensors
@@ -135,8 +156,8 @@ const TabGroupsSettings = () => {
         useSensor(PointerSensor),
         useSensor(TouchSensor, {
             activationConstraint: {
-                delay: 150,       // 150ms hold for smoother response
-                tolerance: 5      // Tighter tolerance for less jitter
+                delay: 150,
+                tolerance: 5
             }
         }),
         useSensor(KeyboardSensor, {
@@ -148,13 +169,12 @@ const TabGroupsSettings = () => {
         fetchTabGroups();
     }, []);
 
-    const fetchTabGroups = async () => {
+    const fetchTabGroups = async (): Promise<void> => {
         try {
             const response = await fetch('/api/config/system', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
-                // Tab groups stored in system config
-                setTabGroups((data.tabGroups || []).sort((a, b) => a.order - b.order));
+                setTabGroups((data.tabGroups || []).sort((a: TabGroup, b: TabGroup) => a.order - b.order));
             }
         } catch (error) {
             logger.error('Error fetching tab groups:', error);
@@ -163,23 +183,23 @@ const TabGroupsSettings = () => {
         }
     };
 
-    const generateGroupId = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const generateGroupId = (name: string): string => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-    const handleCreate = () => {
+    const handleCreate = (): void => {
         setModalMode('create');
         setFormData({ id: '', name: '', order: tabGroups.length });
         setSelectedGroup(null);
         setShowModal(true);
     };
 
-    const handleEdit = (group) => {
+    const handleEdit = (group: TabGroup): void => {
         setModalMode('edit');
         setFormData({ id: group.id, name: group.name, order: group.order });
         setSelectedGroup(group);
         setShowModal(true);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
 
         if (!formData.name.trim()) {
@@ -194,7 +214,7 @@ const TabGroupsSettings = () => {
             return;
         }
 
-        const newGroup = { id: groupId, name: formData.name, order: formData.order || 0 };
+        const newGroup: TabGroup = { id: groupId, name: formData.name, order: formData.order || 0 };
 
         try {
             const updatedGroups = modalMode === 'create'
@@ -216,7 +236,8 @@ const TabGroupsSettings = () => {
                     `Tab group "${formData.name}" ${modalMode === 'create' ? 'created' : 'updated'} successfully`
                 );
             } else {
-                showError('Save Failed', (await response.json()).error || 'Failed to save group');
+                const errorData = await response.json();
+                showError('Save Failed', errorData.error || 'Failed to save group');
             }
         } catch (error) {
             logger.error('Error saving group:', error);
@@ -224,7 +245,7 @@ const TabGroupsSettings = () => {
         }
     };
 
-    const handleDelete = async (group) => {
+    const handleDelete = async (group: TabGroup): Promise<void> => {
         try {
             const response = await fetch('/api/config/system', {
                 method: 'PUT',
@@ -248,7 +269,7 @@ const TabGroupsSettings = () => {
         }
     };
 
-    const handleDragEnd = async (event) => {
+    const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
         const { active, over } = event;
 
         if (!over || active.id === over.id) return;
@@ -380,7 +401,7 @@ const TabGroupsSettings = () => {
                                             <Input
                                                 label="Group Name *"
                                                 value={formData.name}
-                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                                                 required
                                                 placeholder="e.g., Media, Downloads, System"
                                                 helperText={formData.name ? `ID: ${generateGroupId(formData.name)}` : ''}

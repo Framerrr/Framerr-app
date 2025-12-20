@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bug, Wrench, Beaker, Code } from 'lucide-react';
+import { Bug, Wrench, Beaker, Code, LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Import subtab components
@@ -8,11 +8,19 @@ import SystemSettings from './advanced/SystemSettings';
 import ExperimentalSettings from './advanced/ExperimentalSettings';
 import DeveloperSettings from './advanced/DeveloperSettings';
 
-const AdvancedSettings = () => {
-    const [activeSubTab, setActiveSubTab] = useState('debug');
+type SubTabId = 'debug' | 'system' | 'experimental' | 'developer';
+
+interface SubTab {
+    id: SubTabId;
+    label: string;
+    icon: LucideIcon;
+}
+
+const AdvancedSettings: React.FC = () => {
+    const [activeSubTab, setActiveSubTab] = useState<SubTabId>('debug');
 
     // Refs for auto-scrolling sub-tab buttons into view
-    const subTabRefs = useRef({});
+    const subTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     // Scroll active sub-tab into view when it changes
     useEffect(() => {
@@ -26,7 +34,7 @@ const AdvancedSettings = () => {
         }
     }, [activeSubTab]);
 
-    const subTabs = [
+    const subTabs: SubTab[] = [
         { id: 'debug', label: 'Debug', icon: Bug },
         { id: 'system', label: 'System', icon: Wrench },
         { id: 'experimental', label: 'Experimental', icon: Beaker },
@@ -38,6 +46,15 @@ const AdvancedSettings = () => {
         stiffness: 350,
         damping: 35,
     };
+
+    const getTabStyle = (tabId: SubTabId): React.CSSProperties => ({
+        opacity: activeSubTab === tabId ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+        position: activeSubTab === tabId ? 'relative' : 'absolute',
+        visibility: activeSubTab === tabId ? 'visible' : 'hidden',
+        width: '100%',
+        top: 0
+    });
 
     return (
         <div className="fade-in">
@@ -83,55 +100,19 @@ const AdvancedSettings = () => {
 
             {/* Content - Crossfade between tabs */}
             <div style={{ position: 'relative', overflow: 'hidden' }}>
-                <div
-                    style={{
-                        opacity: activeSubTab === 'debug' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'debug' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'debug' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
+                <div style={getTabStyle('debug')}>
                     <DebugSettings />
                 </div>
 
-                <div
-                    style={{
-                        opacity: activeSubTab === 'system' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'system' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'system' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
+                <div style={getTabStyle('system')}>
                     <SystemSettings />
                 </div>
 
-                <div
-                    style={{
-                        opacity: activeSubTab === 'experimental' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'experimental' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'experimental' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
+                <div style={getTabStyle('experimental')}>
                     <ExperimentalSettings />
                 </div>
 
-                <div
-                    style={{
-                        opacity: activeSubTab === 'developer' ? 1 : 0,
-                        transition: 'opacity 0.3s ease',
-                        position: activeSubTab === 'developer' ? 'relative' : 'absolute',
-                        visibility: activeSubTab === 'developer' ? 'visible' : 'hidden',
-                        width: '100%',
-                        top: 0
-                    }}
-                >
+                <div style={getTabStyle('developer')}>
                     <DeveloperSettings />
                 </div>
             </div>

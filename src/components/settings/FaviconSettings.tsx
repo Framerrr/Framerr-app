@@ -1,27 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Upload, Trash2, AlertCircle, CheckCircle, Link as LinkIcon, Loader } from 'lucide-react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import logger from '../../utils/logger';
 import { Button } from '../common/Button';
 import { Textarea } from '../common/Input';
 
-const FaviconSettings = () => {
-    const [faviconFile, setFaviconFile] = useState(null);
-    const [htmlSnippet, setHtmlSnippet] = useState('');
-    const [currentFavicon, setCurrentFavicon] = useState(null);
-    const [faviconEnabled, setFaviconEnabled] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [resetting, setResetting] = useState(false);
-    const [showConfirmReset, setShowConfirmReset] = useState(false);
-    const [message, setMessage] = useState(null);
+interface FaviconConfig {
+    enabled: boolean;
+    htmlSnippet?: string;
+    uploadedAt?: string;
+    uploadedBy?: string;
+}
+
+interface Message {
+    type: 'success' | 'error';
+    text: string;
+}
+
+const FaviconSettings: React.FC = () => {
+    const [faviconFile, setFaviconFile] = useState<File | null>(null);
+    const [htmlSnippet, setHtmlSnippet] = useState<string>('');
+    const [currentFavicon, setCurrentFavicon] = useState<FaviconConfig | null>(null);
+    const [faviconEnabled, setFaviconEnabled] = useState<boolean>(true);
+    const [uploading, setUploading] = useState<boolean>(false);
+    const [resetting, setResetting] = useState<boolean>(false);
+    const [showConfirmReset, setShowConfirmReset] = useState<boolean>(false);
+    const [message, setMessage] = useState<Message | null>(null);
 
     useEffect(() => {
         fetchCurrentFavicon();
     }, []);
 
-    const fetchCurrentFavicon = async () => {
+    const fetchCurrentFavicon = async (): Promise<void> => {
         try {
-            const response = await axios.get('/api/config/favicon', {
+            const response = await axios.get<FaviconConfig>('/api/config/favicon', {
                 withCredentials: true
             });
             setCurrentFavicon(response.data);
@@ -36,8 +48,8 @@ const FaviconSettings = () => {
         }
     };
 
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
+        const file = e.target.files?.[0];
         if (file) {
             if (file.type !== 'application/zip' && file.type !== 'application/x-zip-compressed') {
                 setMessage({ type: 'error', text: 'Please select a ZIP file' });
@@ -48,7 +60,7 @@ const FaviconSettings = () => {
         }
     };
 
-    const handleUpload = async () => {
+    const handleUpload = async (): Promise<void> => {
         if (!faviconFile) {
             setMessage({ type: 'error', text: 'Please select a favicon ZIP file' });
             return;
@@ -67,7 +79,7 @@ const FaviconSettings = () => {
             formData.append('faviconZip', faviconFile);
             formData.append('htmlSnippet', htmlSnippet);
 
-            const response = await axios.post('/api/config/favicon', formData, {
+            await axios.post('/api/config/favicon', formData, {
                 withCredentials: true,
                 headers: {
                     'Content-Type': 'multipart/form-data'
@@ -80,21 +92,23 @@ const FaviconSettings = () => {
             fetchCurrentFavicon();
 
             // Reset file input
-            document.getElementById('faviconFileInput').value = '';
+            const fileInput = document.getElementById('faviconFileInput') as HTMLInputElement;
+            if (fileInput) fileInput.value = '';
 
             // Trigger favicon reload
             window.dispatchEvent(new Event('faviconUpdated'));
         } catch (error) {
+            const axiosError = error as AxiosError<{ error?: string }>;
             setMessage({
                 type: 'error',
-                text: error.response?.data?.error || 'Failed to upload favicon'
+                text: axiosError.response?.data?.error || 'Failed to upload favicon'
             });
         } finally {
             setUploading(false);
         }
     };
 
-    const handleToggleFavicon = async () => {
+    const handleToggleFavicon = async (): Promise<void> => {
         try {
             const newState = !faviconEnabled;
             await axios.patch('/api/config/favicon',
@@ -110,18 +124,19 @@ const FaviconSettings = () => {
             // Trigger favicon reload
             window.dispatchEvent(new Event('faviconUpdated'));
         } catch (error) {
+            const axiosError = error as AxiosError<{ error?: string }>;
             setMessage({
                 type: 'error',
-                text: error.response?.data?.error || 'Failed to toggle favicon'
+                text: axiosError.response?.data?.error || 'Failed to toggle favicon'
             });
         }
     };
 
-    const handleResetClick = () => {
+    const handleResetClick = (): void => {
         setShowConfirmReset(true);
     };
 
-    const handleConfirmReset = async () => {
+    const handleConfirmReset = async (): Promise<void> => {
         setShowConfirmReset(false);
         setResetting(true);
         setMessage(null);
@@ -134,21 +149,20 @@ const FaviconSettings = () => {
             setCurrentFavicon(null);
             setHtmlSnippet('');
 
-            // Don't call fetchCurrentFavicon - we want it to stay null
-
             // Trigger favicon reload
             window.dispatchEvent(new Event('faviconUpdated'));
         } catch (error) {
+            const axiosError = error as AxiosError<{ error?: string }>;
             setMessage({
                 type: 'error',
-                text: error.response?.data?.error || 'Failed to reset favicon'
+                text: axiosError.response?.data?.error || 'Failed to reset favicon'
             });
         } finally {
             setResetting(false);
         }
     };
 
-    const handleCancelReset = () => {
+    const handleCancelReset = (): void => {
         setShowConfirmReset(false);
     };
 
@@ -310,7 +324,7 @@ const FaviconSettings = () => {
                     </label>
                     <Textarea
                         value={htmlSnippet}
-                        onChange={(e) => setHtmlSnippet(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setHtmlSnippet(e.target.value)}
                         placeholder='<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
 ...'
