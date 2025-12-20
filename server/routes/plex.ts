@@ -348,7 +348,7 @@ router.get('/admin-resources', requireAuth, requireAdmin, async (req: Request, r
         const response = await axios.get<PlexDevice[]>(
             `${PLEX_TV_API}/resources`,
             {
-                headers: getPlexHeaders(clientId, ssoConfig.adminToken),
+                headers: getPlexHeaders(clientId, ssoConfig.adminToken as string),
                 params: { includeHttps: 1, includeRelay: 1 }
             }
         );
@@ -458,7 +458,7 @@ router.post('/verify-user', async (req: Request, res: Response): Promise<void> =
             // Get users with library access from Plex.tv (XML response)
             const usersResponse = await axios.get<string>('https://plex.tv/api/users', {
                 headers: {
-                    'X-Plex-Token': ssoConfig.adminToken
+                    'X-Plex-Token': ssoConfig.adminToken as string
                 }
             });
 

@@ -36,6 +36,8 @@ interface TokenValidationResult {
 interface WebhookConfig {
     webhookEnabled?: boolean;
     webhookToken?: string;
+    adminEvents?: string[];
+    userEvents?: string[];
     [key: string]: unknown;
 }
 

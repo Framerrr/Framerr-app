@@ -49,13 +49,17 @@ export interface IframeAuthConfig {
  * Combined authentication configuration
  */
 export interface AuthConfig {
-    local: {
+    local?: {
         enabled: boolean;
     };
-    proxy: ProxyAuthConfig;
-    plex: PlexSSOConfig;
-    iframe: IframeAuthConfig;
-    authPatterns: string[];
+    proxy?: ProxyAuthConfig;
+    plex?: PlexSSOConfig;
+    iframe?: IframeAuthConfig;
+    authPatterns?: string[];
+    session?: {
+        timeout?: number;
+        rememberMeDuration?: number;
+    };
 }
 
 /**

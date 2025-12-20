@@ -214,7 +214,7 @@ router.put('/auth', requireAdmin, async (req: Request, res: Response) => {
             });
         }
 
-        await updateSystemConfig({ auth: body });
+        await updateSystemConfig({ auth: body as unknown } as Parameters<typeof updateSystemConfig>[0]);
         const config = await getSystemConfig();
 
         logger.info('Auth config updated', {
@@ -273,7 +273,7 @@ router.post('/favicon', requireAdmin, upload.single('faviconZip'), async (req: R
                 htmlSnippet: htmlSnippet,
                 uploadedAt: new Date().toISOString(),
                 uploadedBy: req.user!.username
-            }
+            } as import('../types/config').FaviconConfig
         });
 
         logger.info('Favicon uploaded successfully', {
