@@ -2,29 +2,57 @@
  * Linked Accounts Database Module
  * Manages user's linked external service accounts (Plex, Overseerr, etc.)
  */
-const { db } = require('../database/db');
-const { v4: uuidv4 } = require('uuid');
-const logger = require('../utils/logger');
+import { db } from '../database/db';
+import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
+
+interface LinkedAccountRow {
+    id: string;
+    user_id: string;
+    service: string;
+    external_id: string;
+    external_username: string | null;
+    external_email: string | null;
+    metadata: string | null;
+    linked_at: number;
+}
+
+interface LinkedAccount {
+    id: string;
+    userId: string;
+    service: string;
+    externalId: string;
+    externalUsername: string | null;
+    externalEmail: string | null;
+    metadata: Record<string, unknown>;
+    linkedAt: number;
+}
+
+interface AccountData {
+    externalId: string;
+    externalUsername?: string;
+    externalEmail?: string;
+    metadata?: Record<string, unknown>;
+}
+
+interface UserServiceLink {
+    userId: string;
+    externalId: string;
+}
 
 /**
  * Link an external account to a Framerr user
- * @param {string} userId - Framerr user ID
- * @param {string} service - Service name (e.g., 'plex', 'overseerr')
- * @param {object} accountData - External account data
- * @returns {object} Created linked account
  */
-function linkAccount(userId, service, accountData) {
+export function linkAccount(userId: string, service: string, accountData: AccountData): LinkedAccount {
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
     try {
-        // Check if already linked (unique constraint on user_id + service)
         const existing = db.prepare(`
             SELECT id FROM linked_accounts WHERE user_id = ? AND service = ?
-        `).get(userId, service);
+        `).get(userId, service) as { id: string } | undefined;
 
         if (existing) {
-            // Update existing link
             db.prepare(`
                 UPDATE linked_accounts 
                 SET external_id = ?, external_username = ?, external_email = ?, 
@@ -41,10 +69,9 @@ function linkAccount(userId, service, accountData) {
             );
 
             logger.info('[LinkedAccounts] Updated linked account', { userId, service });
-            return getLinkedAccount(userId, service);
+            return getLinkedAccount(userId, service)!;
         }
 
-        // Create new link
         db.prepare(`
             INSERT INTO linked_accounts (id, user_id, service, external_id, external_username, external_email, metadata, linked_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -66,28 +93,25 @@ function linkAccount(userId, service, accountData) {
             userId,
             service,
             externalId: accountData.externalId,
-            externalUsername: accountData.externalUsername,
-            externalEmail: accountData.externalEmail,
+            externalUsername: accountData.externalUsername || null,
+            externalEmail: accountData.externalEmail || null,
             metadata: accountData.metadata || {},
             linkedAt: now
         };
     } catch (error) {
-        logger.error('[LinkedAccounts] Failed to link account:', error.message);
+        logger.error('[LinkedAccounts] Failed to link account', { error: (error as Error).message });
         throw error;
     }
 }
 
 /**
  * Get a linked account for a user and service
- * @param {string} userId - Framerr user ID
- * @param {string} service - Service name
- * @returns {object|null} Linked account or null
  */
-function getLinkedAccount(userId, service) {
+export function getLinkedAccount(userId: string, service: string): LinkedAccount | null {
     try {
         const row = db.prepare(`
             SELECT * FROM linked_accounts WHERE user_id = ? AND service = ?
-        `).get(userId, service);
+        `).get(userId, service) as LinkedAccountRow | undefined;
 
         if (!row) return null;
 
@@ -102,21 +126,19 @@ function getLinkedAccount(userId, service) {
             linkedAt: row.linked_at
         };
     } catch (error) {
-        logger.error('[LinkedAccounts] Failed to get linked account:', error.message);
+        logger.error('[LinkedAccounts] Failed to get linked account', { error: (error as Error).message });
         return null;
     }
 }
 
 /**
  * Get all linked accounts for a user
- * @param {string} userId - Framerr user ID
- * @returns {Array} Array of linked accounts
  */
-function getLinkedAccountsForUser(userId) {
+export function getLinkedAccountsForUser(userId: string): LinkedAccount[] {
     try {
         const rows = db.prepare(`
             SELECT * FROM linked_accounts WHERE user_id = ? ORDER BY service
-        `).all(userId);
+        `).all(userId) as LinkedAccountRow[];
 
         return rows.map(row => ({
             id: row.id,
@@ -129,37 +151,31 @@ function getLinkedAccountsForUser(userId) {
             linkedAt: row.linked_at
         }));
     } catch (error) {
-        logger.error('[LinkedAccounts] Failed to get linked accounts:', error.message);
+        logger.error('[LinkedAccounts] Failed to get linked accounts', { error: (error as Error).message });
         return [];
     }
 }
 
 /**
  * Find Framerr user by external ID
- * @param {string} service - Service name
- * @param {string} externalId - External account ID
- * @returns {string|null} Framerr user ID or null
  */
-function findUserByExternalId(service, externalId) {
+export function findUserByExternalId(service: string, externalId: string): string | null {
     try {
         const row = db.prepare(`
             SELECT user_id FROM linked_accounts WHERE service = ? AND external_id = ?
-        `).get(service, externalId);
+        `).get(service, externalId) as { user_id: string } | undefined;
 
         return row ? row.user_id : null;
     } catch (error) {
-        logger.error('[LinkedAccounts] Failed to find user by external ID:', error.message);
+        logger.error('[LinkedAccounts] Failed to find user by external ID', { error: (error as Error).message });
         return null;
     }
 }
 
 /**
  * Unlink an external account
- * @param {string} userId - Framerr user ID
- * @param {string} service - Service name
- * @returns {boolean} Success status
  */
-function unlinkAccount(userId, service) {
+export function unlinkAccount(userId: string, service: string): boolean {
     try {
         const result = db.prepare(`
             DELETE FROM linked_accounts WHERE user_id = ? AND service = ?
@@ -171,7 +187,7 @@ function unlinkAccount(userId, service) {
         }
         return false;
     } catch (error) {
-        logger.error('[LinkedAccounts] Failed to unlink account:', error.message);
+        logger.error('[LinkedAccounts] Failed to unlink account', { error: (error as Error).message });
         return false;
     }
 }
@@ -179,30 +195,19 @@ function unlinkAccount(userId, service) {
 /**
  * Get all users linked to a specific service
  * Useful for notification targeting
- * @param {string} service - Service name
- * @returns {Array} Array of { userId, externalId }
  */
-function getUsersLinkedToService(service) {
+export function getUsersLinkedToService(service: string): UserServiceLink[] {
     try {
         const rows = db.prepare(`
             SELECT user_id, external_id FROM linked_accounts WHERE service = ?
-        `).all(service);
+        `).all(service) as { user_id: string; external_id: string }[];
 
         return rows.map(row => ({
             userId: row.user_id,
             externalId: row.external_id
         }));
     } catch (error) {
-        logger.error('[LinkedAccounts] Failed to get users linked to service:', error.message);
+        logger.error('[LinkedAccounts] Failed to get users linked to service', { error: (error as Error).message });
         return [];
     }
 }
-
-module.exports = {
-    linkAccount,
-    getLinkedAccount,
-    getLinkedAccountsForUser,
-    findUserByExternalId,
-    unlinkAccount,
-    getUsersLinkedToService
-};

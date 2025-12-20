@@ -1,6 +1,6 @@
-const { v4: uuidv4 } = require('uuid');
-const logger = require('../utils/logger');
-const { db } = require('../database/db');
+import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
+import { db } from '../database/db';
 
 // Default user preferences
 const DEFAULT_PREFERENCES = {
@@ -9,12 +9,76 @@ const DEFAULT_PREFERENCES = {
     sidebarCollapsed: false
 };
 
+interface UserRow {
+    id: string;
+    username: string;
+    passwordHash?: string;
+    displayName: string;
+    group: string;
+    isSetupAdmin: number;
+    createdAt: number;
+    lastLogin: number | null;
+    preferences?: string;
+    requirePasswordReset?: number;
+}
+
+interface SessionRow {
+    id: string;
+    userId: string;
+    ipAddress: string | null;
+    userAgent: string | null;
+    createdAt: number;
+    expiresAt: number;
+}
+
+interface User {
+    id: string;
+    username: string;
+    passwordHash?: string;
+    displayName: string;
+    group: string;
+    isSetupAdmin: boolean;
+    createdAt: number;
+    lastLogin: number | null;
+    preferences?: Record<string, unknown>;
+}
+
+interface Session {
+    id: string;
+    userId: string;
+    ipAddress: string | null;
+    userAgent: string | null;
+    createdAt: number;
+    expiresAt: number;
+}
+
+interface CreateUserData {
+    username: string;
+    passwordHash: string;
+    email?: string;
+    group?: string;
+    isSetupAdmin?: boolean;
+}
+
+interface UpdateUserData {
+    username?: string;
+    passwordHash?: string;
+    displayName?: string;
+    group?: string;
+    lastLogin?: number;
+    id?: string;
+    createdAt?: number;
+}
+
+interface SessionData {
+    ipAddress?: string;
+    userAgent?: string;
+}
+
 /**
  * Get user by username
- * @param {string} username - Username
- * @returns {Promise<object|null>} User object or null
  */
-async function getUser(username) {
+export async function getUser(username: string): Promise<User | null> {
     try {
         const user = db.prepare(`
             SELECT id, username, password as passwordHash, username as displayName,
@@ -22,28 +86,25 @@ async function getUser(username) {
                    created_at as createdAt, last_login as lastLogin
             FROM users
             WHERE LOWER(username) = LOWER(?)
-        `).get(username);
+        `).get(username) as UserRow | undefined;
 
         if (!user) return null;
 
-        // Parse JSON preferences
-        if (user.preferences) {
-            user.preferences = JSON.parse(user.preferences);
-        }
-
-        return user;
+        return {
+            ...user,
+            isSetupAdmin: Boolean(user.isSetupAdmin),
+            preferences: user.preferences ? JSON.parse(user.preferences) : undefined
+        };
     } catch (error) {
-        logger.error('Failed to get user by username', { error: error.message, username });
+        logger.error('Failed to get user by username', { error: (error as Error).message, username });
         throw error;
     }
 }
 
 /**
  * Get user by ID
- * @param {string} userId - User ID
- * @returns {Promise<object|null>} User object or null
  */
-async function getUserById(userId) {
+export async function getUserById(userId: string): Promise<User | null> {
     try {
         const user = db.prepare(`
             SELECT id, username, password as passwordHash, username as displayName,
@@ -51,30 +112,26 @@ async function getUserById(userId) {
                    created_at as createdAt, last_login as lastLogin
             FROM users
             WHERE id = ?
-        `).get(userId);
+        `).get(userId) as UserRow | undefined;
 
         if (!user) return null;
 
-        // Parse JSON preferences
-        if (user.preferences) {
-            user.preferences = JSON.parse(user.preferences);
-        }
-
-        return user;
+        return {
+            ...user,
+            isSetupAdmin: Boolean(user.isSetupAdmin),
+            preferences: user.preferences ? JSON.parse(user.preferences) : undefined
+        };
     } catch (error) {
-        logger.error('Failed to get user by ID', { error: error.message, userId });
+        logger.error('Failed to get user by ID', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
  * Create a new user
- * @param {object} userData - User data
- * @returns {Promise<object>} Created user
  */
-async function createUser(userData) {
+export async function createUser(userData: CreateUserData): Promise<Omit<User, 'passwordHash'>> {
     try {
-        // Check if user already exists
         const existing = db.prepare(`
             SELECT id FROM users WHERE LOWER(username) = LOWER(?)
         `).get(userData.username);
@@ -100,13 +157,12 @@ async function createUser(userData) {
             userData.email || null,
             userData.group || 'user',
             userData.isSetupAdmin ? 1 : 0,
-            createdAt,  // Already in seconds from line 87
+            createdAt,
             null
         );
 
         logger.info(`User created: ${userData.username} (${userData.group || 'user'})`);
 
-        // Return user without password hash
         return {
             id,
             username: userData.username,
@@ -117,26 +173,21 @@ async function createUser(userData) {
             lastLogin: null
         };
     } catch (error) {
-        logger.error('Failed to create user', { error: error.message, username: userData.username });
+        logger.error('Failed to create user', { error: (error as Error).message, username: userData.username });
         throw error;
     }
 }
 
 /**
  * Update user
- * @param {string} userId - User ID
- * @param {object} updates - Updates to apply
- * @returns {Promise<object>} Updated user
  */
-async function updateUser(userId, updates) {
+export async function updateUser(userId: string, updates: UpdateUserData): Promise<Omit<User, 'passwordHash'>> {
     try {
-        // Get current user
         const currentUser = await getUserById(userId);
         if (!currentUser) {
             throw new Error('User not found');
         }
 
-        // If username is being changed, check for duplicates
         if (updates.username && updates.username !== currentUser.username) {
             const existing = db.prepare(`
                 SELECT id FROM users 
@@ -148,12 +199,10 @@ async function updateUser(userId, updates) {
             }
         }
 
-        // Prevent updating immutable fields
         const { id, createdAt, ...allowedUpdates } = updates;
 
-        // Build dynamic UPDATE query
-        const fields = [];
-        const values = [];
+        const fields: string[] = [];
+        const values: (string | number | null)[] = [];
 
         if (allowedUpdates.username !== undefined) {
             fields.push('username = ?');
@@ -163,41 +212,20 @@ async function updateUser(userId, updates) {
             fields.push('password = ?');
             values.push(allowedUpdates.passwordHash);
         }
-        // displayName not stored separately - it's same as username
-        // if (allowedUpdates.displayName !== undefined) {
-        //     fields.push('username = ?');
-        //     values.push(allowedUpdates.displayName);
-        // }
         if (allowedUpdates.group !== undefined) {
             fields.push('group_id = ?');
             values.push(allowedUpdates.group);
         }
-        // Preferences not stored in users table anymore
-        // if (allowedUpdates.preferences !== undefined) {
-        //     const mergedPrefs = {
-        //         ...currentUser.preferences,
-        //         ...allowedUpdates.preferences
-        //     };
-        //     fields.push('preferences = ?');
-        //     values.push(JSON.stringify(mergedPrefs));
-        // }
-        // require_password_reset not in schema
-        // if (allowedUpdates.requirePasswordReset !== undefined) {
-        //     fields.push('require_password_reset = ?');
-        //     values.push(allowedUpdates.requirePasswordReset ? 1 : 0);
-        // }
         if (allowedUpdates.lastLogin !== undefined) {
             fields.push('last_login = ?');
             values.push(allowedUpdates.lastLogin);
         }
 
         if (fields.length === 0) {
-            // No updates, return current user without password
             const { passwordHash, ...userWithoutPassword } = currentUser;
             return userWithoutPassword;
         }
 
-        // Add userId to values for WHERE clause
         values.push(userId);
 
         const stmt = db.prepare(`
@@ -208,42 +236,39 @@ async function updateUser(userId, updates) {
 
         stmt.run(...values);
 
-        // Fetch and return updated user
         const updatedUser = await getUserById(userId);
+        if (!updatedUser) throw new Error('User not found after update');
+
         const { passwordHash, ...userWithoutPassword } = updatedUser;
         return userWithoutPassword;
     } catch (error) {
-        logger.error('Failed to update user', { error: error.message, userId });
+        logger.error('Failed to update user', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
  * Delete user
- * @param {string} userId - User ID
- * @returns {boolean} True if deleted, false if user not found
  */
-async function deleteUser(userId) {
+export async function deleteUser(userId: string): Promise<boolean> {
     try {
         const user = await getUserById(userId);
         if (!user) return false;
 
-        // Delete user (CASCADE will handle sessions due to foreign key)
         db.prepare('DELETE FROM users WHERE id = ?').run(userId);
 
         logger.info(`User deleted: ${user.username}`);
         return true;
     } catch (error) {
-        logger.error('Failed to delete user', { error: error.message, userId });
+        logger.error('Failed to delete user', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
- * List all users
- * @returns {Promise<array>} Array of users (without password hashes)
+ * List all users (without password hashes)
  */
-async function listUsers() {
+export async function listUsers(): Promise<Omit<User, 'passwordHash'>[]> {
     try {
         const users = db.prepare(`
             SELECT id, username, username as displayName,
@@ -251,28 +276,23 @@ async function listUsers() {
                    created_at as createdAt, last_login as lastLogin
             FROM users
             ORDER BY created_at ASC
-        `).all();
+        `).all() as UserRow[];
 
-        // Parse JSON preferences for each user
         return users.map(user => ({
             ...user,
-            preferences: user.preferences ? JSON.parse(user.preferences) : DEFAULT_PREFERENCES,
-            requirePasswordReset: Boolean(user.requirePasswordReset)
+            isSetupAdmin: Boolean(user.isSetupAdmin),
+            preferences: user.preferences ? JSON.parse(user.preferences) : DEFAULT_PREFERENCES
         }));
     } catch (error) {
-        logger.error('Failed to list users', { error: error.message });
+        logger.error('Failed to list users', { error: (error as Error).message });
         throw error;
     }
 }
 
 /**
  * Create a session
- * @param {string} userId - User ID
- * @param {object} sessionData - Session data (ipAddress, userAgent)
- * @param {number} expiresIn - Expiration time in milliseconds
- * @returns {Promise<object>} Session object
  */
-async function createSession(userId, sessionData, expiresIn = 86400000) {
+export async function createSession(userId: string, sessionData: SessionData, expiresIn: number = 86400000): Promise<Session> {
     try {
         const token = uuidv4();
         const createdAt = Math.floor(Date.now() / 1000);
@@ -301,28 +321,25 @@ async function createSession(userId, sessionData, expiresIn = 86400000) {
             expiresAt
         };
     } catch (error) {
-        logger.error('Failed to create session', { error: error.message, userId });
+        logger.error('Failed to create session', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
  * Get session by ID
- * @param {string} sessionId - Session ID
- * @returns {Promise<object|null>} Session object or null
  */
-async function getSession(sessionId) {
+export async function getSession(sessionId: string): Promise<Session | null> {
     try {
         const session = db.prepare(`
             SELECT token as id, user_id as userId, ip_address as ipAddress, 
                    user_agent as userAgent, created_at as createdAt, expires_at as expiresAt
             FROM sessions
             WHERE token = ?
-        `).get(sessionId);
+        `).get(sessionId) as SessionRow | undefined;
 
         if (!session) return null;
 
-        // Check if session is expired (timestamps are Unix seconds)
         if (session.expiresAt < Math.floor(Date.now() / 1000)) {
             await revokeSession(sessionId);
             return null;
@@ -330,43 +347,39 @@ async function getSession(sessionId) {
 
         return session;
     } catch (error) {
-        logger.error('Failed to get session', { error: error.message, sessionId });
+        logger.error('Failed to get session', { error: (error as Error).message, sessionId });
         throw error;
     }
 }
 
 /**
  * Revoke a session
- * @param {string} sessionId - Session ID
  */
-async function revokeSession(sessionId) {
+export async function revokeSession(sessionId: string): Promise<void> {
     try {
         db.prepare('DELETE FROM sessions WHERE token = ?').run(sessionId);
     } catch (error) {
-        logger.error('Failed to revoke session', { error: error.message, sessionId });
+        logger.error('Failed to revoke session', { error: (error as Error).message, sessionId });
         throw error;
     }
 }
 
 /**
  * Revoke all sessions for a user
- * @param {string} userId - User ID
  */
-async function revokeAllUserSessions(userId) {
+export async function revokeAllUserSessions(userId: string): Promise<void> {
     try {
         db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
     } catch (error) {
-        logger.error('Failed to revoke all user sessions', { error: error.message, userId });
+        logger.error('Failed to revoke all user sessions', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
  * Get all sessions for a user
- * @param {string} userId - User ID
- * @returns {Promise<array>} Array of sessions
  */
-async function getUserSessions(userId) {
+export async function getUserSessions(userId: string): Promise<Session[]> {
     try {
         const currentTime = Math.floor(Date.now() / 1000);
         const sessions = db.prepare(`
@@ -375,11 +388,11 @@ async function getUserSessions(userId) {
             FROM sessions
             WHERE user_id = ? AND expires_at > ?
             ORDER BY created_at DESC
-        `).all(userId, currentTime);
+        `).all(userId, currentTime) as SessionRow[];
 
         return sessions;
     } catch (error) {
-        logger.error('Failed to get user sessions', { error: error.message, userId });
+        logger.error('Failed to get user sessions', { error: (error as Error).message, userId });
         throw error;
     }
 }
@@ -387,7 +400,7 @@ async function getUserSessions(userId) {
 /**
  * Clean up expired sessions
  */
-async function cleanupExpiredSessions() {
+export async function cleanupExpiredSessions(): Promise<void> {
     try {
         const currentTime = Math.floor(Date.now() / 1000);
         const result = db.prepare(`
@@ -398,16 +411,15 @@ async function cleanupExpiredSessions() {
             logger.debug(`Cleaned up ${result.changes} expired sessions`);
         }
     } catch (error) {
-        logger.error('Failed to cleanup expired sessions', { error: error.message });
+        logger.error('Failed to cleanup expired sessions', { error: (error as Error).message });
         throw error;
     }
 }
 
 /**
  * Get all users (including password hashes for backend use)
- * @returns {Promise<array>} Array of users
  */
-async function getAllUsers() {
+export async function getAllUsers(): Promise<User[]> {
     try {
         const users = db.prepare(`
             SELECT id, username, password as passwordHash, username as displayName,
@@ -415,27 +427,25 @@ async function getAllUsers() {
                    created_at as createdAt, last_login as lastLogin
             FROM users
             ORDER BY created_at ASC
-        `).all();
+        `).all() as UserRow[];
 
-        // Parse JSON preferences for each user
         return users.map(user => ({
             ...user,
-            preferences: user.preferences ? JSON.parse(user.preferences) : DEFAULT_PREFERENCES,
-            requirePasswordReset: Boolean(user.requirePasswordReset)
+            isSetupAdmin: Boolean(user.isSetupAdmin),
+            preferences: user.preferences ? JSON.parse(user.preferences) : DEFAULT_PREFERENCES
         }));
     } catch (error) {
-        logger.error('Failed to get all users', { error: error.message });
+        logger.error('Failed to get all users', { error: (error as Error).message });
         throw error;
     }
 }
 
 /**
  * Reset user password to temporary password
- * @param {string} userId - User ID
- * @returns {Promise<object>} Result with temporary password
  */
-async function resetUserPassword(userId) {
+export async function resetUserPassword(userId: string): Promise<{ success: boolean; tempPassword: string }> {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { hashPassword } = require('../auth/password');
         const user = await getUserById(userId);
 
@@ -459,24 +469,7 @@ async function resetUserPassword(userId) {
             tempPassword
         };
     } catch (error) {
-        logger.error('Failed to reset user password', { error: error.message, userId });
+        logger.error('Failed to reset user password', { error: (error as Error).message, userId });
         throw error;
     }
 }
-
-module.exports = {
-    getUser,
-    getUserById,
-    createUser,
-    updateUser,
-    deleteUser,
-    listUsers,
-    getAllUsers,
-    resetUserPassword,
-    createSession,
-    getSession,
-    revokeSession,
-    revokeAllUserSessions,
-    getUserSessions,
-    cleanupExpiredSessions
-};

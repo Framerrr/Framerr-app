@@ -1,29 +1,80 @@
-const { db } = require('../database/db');
-const { v4: uuidv4 } = require('uuid');
-const logger = require('../utils/logger');
+import { db } from '../database/db';
+import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
 
 // Lazy-load notificationEmitter to avoid circular dependency
-let notificationEmitter = null;
+let notificationEmitter: { sendNotification: (userId: string, notification: unknown) => void } | null = null;
+
 function getEmitter() {
     if (!notificationEmitter) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         notificationEmitter = require('../services/notificationEmitter');
     }
-    return notificationEmitter;
+    return notificationEmitter!;
+}
+
+interface NotificationData {
+    userId: string;
+    type?: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+    iconId?: string | null;
+    metadata?: Record<string, unknown> | null;
+    expiresAt?: string | null;
+}
+
+interface Notification {
+    id: string;
+    userId: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+    iconId: string | null;
+    read: boolean;
+    metadata: Record<string, unknown> | null;
+    createdAt: string;
+    expiresAt: string | null;
+}
+
+interface NotificationRow {
+    id: string;
+    user_id: string;
+    type: string;
+    title: string;
+    message: string;
+    icon_id: string | null;
+    read: number;
+    metadata: string | null;
+    created_at: number;
+}
+
+interface NotificationFilters {
+    unread?: boolean;
+    limit?: number | string;
+    offset?: number | string;
+}
+
+interface NotificationsResult {
+    notifications: Notification[];
+    unreadCount: number;
+    total: number;
+}
+
+interface CountResult {
+    count: number;
 }
 
 /**
  * Create a notification
- * @param {object} notificationData - Notification data
- * @returns {Promise<object>} Created notification
  */
-async function createNotification(notificationData) {
-    const notification = {
+export async function createNotification(notificationData: NotificationData): Promise<Notification> {
+    const notification: Notification = {
         id: uuidv4(),
         userId: notificationData.userId,
-        type: notificationData.type || 'info', // success, error, warning, info
+        type: notificationData.type || 'info',
         title: notificationData.title,
         message: notificationData.message,
-        iconId: notificationData.iconId || null, // Custom icon ID for integration logos
+        iconId: notificationData.iconId || null,
         read: false,
         metadata: notificationData.metadata || null,
         createdAt: new Date().toISOString(),
@@ -55,34 +106,29 @@ async function createNotification(notificationData) {
             metadata: notification.metadata
         });
 
-        // Send real-time notification via SSE
         try {
             getEmitter().sendNotification(notification.userId, notification);
         } catch (sseError) {
-            logger.debug('SSE emit failed (no active connections)', { error: sseError.message });
+            logger.debug('SSE emit failed (no active connections)', { error: (sseError as Error).message });
         }
 
         return notification;
     } catch (error) {
-        logger.error('Failed to create notification', { error: error.message });
+        logger.error('Failed to create notification', { error: (error as Error).message });
         throw error;
     }
 }
 
 /**
  * Get notifications for a user
- * @param {string} userId - User ID
- * @param {object} filters - Optional filters { unread, limit, offset }
- * @returns {Promise<object>} Notifications and counts
  */
-async function getNotifications(userId, filters = {}) {
+export async function getNotifications(userId: string, filters: NotificationFilters = {}): Promise<NotificationsResult> {
     try {
-        const offset = parseInt(filters.offset) || 0;
-        const limit = parseInt(filters.limit) || 50;
+        const offset = parseInt(String(filters.offset)) || 0;
+        const limit = parseInt(String(filters.limit)) || 50;
 
-        // Build query with optional unread filter
         let query = 'SELECT * FROM notifications WHERE user_id = ?';
-        const params = [userId];
+        const params: (string | number)[] = [userId];
 
         if (filters.unread === true) {
             query += ' AND read = 0';
@@ -91,40 +137,36 @@ async function getNotifications(userId, filters = {}) {
         query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
 
-        // Get paginated notifications
-        const notifications = db.prepare(query).all(...params);
+        const notifications = db.prepare(query).all(...params) as NotificationRow[];
 
-        // Get total count
         let countQuery = 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?';
-        const countParams = [userId];
+        const countParams: string[] = [userId];
 
         if (filters.unread === true) {
             countQuery += ' AND read = 0';
         }
 
-        const totalResult = db.prepare(countQuery).get(...countParams);
+        const totalResult = db.prepare(countQuery).get(...countParams) as CountResult;
         const total = totalResult.count;
 
-        // Get unread count
         const unreadResult = db.prepare(
             'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0'
-        ).get(userId);
+        ).get(userId) as CountResult;
         const unreadCount = unreadResult.count;
 
-        // Convert SQLite timestamps (unix seconds) to ISO strings
-        const formattedNotifications = notifications.map(n => {
-            let parsedMetadata = null;
+        const formattedNotifications: Notification[] = notifications.map(n => {
+            let parsedMetadata: Record<string, unknown> | null = null;
             if (n.metadata) {
                 try {
                     parsedMetadata = JSON.parse(n.metadata);
-                } catch (e) {
+                } catch {
                     logger.warn('Failed to parse notification metadata', { id: n.id });
                 }
             }
             return {
                 id: n.id,
                 userId: n.user_id,
-                type: n.type,
+                type: n.type as Notification['type'],
                 title: n.title,
                 message: n.message,
                 iconId: n.icon_id || null,
@@ -141,18 +183,15 @@ async function getNotifications(userId, filters = {}) {
             total
         };
     } catch (error) {
-        logger.error('Failed to get notifications', { error: error.message, userId });
+        logger.error('Failed to get notifications', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
  * Mark notification as read
- * @param {string} notificationId - Notification ID
- * @param {string} userId - User ID (for security)
- * @returns {Promise<object|null>} Updated notification or null
  */
-async function markAsRead(notificationId, userId) {
+export async function markAsRead(notificationId: string, userId: string): Promise<Notification | null> {
     try {
         const update = db.prepare(`
             UPDATE notifications
@@ -163,17 +202,15 @@ async function markAsRead(notificationId, userId) {
         const result = update.run(notificationId, userId);
 
         if (result.changes === 0) {
-            return null; // Notification not found or not owned by user
+            return null;
         }
 
-        // Fetch the updated notification
         const notification = db.prepare(
             'SELECT * FROM notifications WHERE id = ? AND user_id = ?'
-        ).get(notificationId, userId);
+        ).get(notificationId, userId) as NotificationRow;
 
         logger.debug('Notification marked as read', { id: notificationId, userId });
 
-        // Send sync event to other devices
         try {
             getEmitter().sendNotification(userId, {
                 type: 'sync',
@@ -181,33 +218,31 @@ async function markAsRead(notificationId, userId) {
                 notificationId
             });
         } catch (sseError) {
-            logger.debug('SSE sync emit failed', { error: sseError.message });
+            logger.debug('SSE sync emit failed', { error: (sseError as Error).message });
         }
 
         return {
             id: notification.id,
             userId: notification.user_id,
-            type: notification.type,
+            type: notification.type as Notification['type'],
             title: notification.title,
             message: notification.message,
+            iconId: notification.icon_id || null,
             read: notification.read === 1,
             metadata: null,
             createdAt: new Date(notification.created_at * 1000).toISOString(),
             expiresAt: null
         };
     } catch (error) {
-        logger.error('Failed to mark notification as read', { error: error.message, notificationId, userId });
+        logger.error('Failed to mark notification as read', { error: (error as Error).message, notificationId, userId });
         throw error;
     }
 }
 
 /**
  * Delete notification
- * @param {string} notificationId - Notification ID
- * @param {string} userId - User ID (for security)
- * @returns {Promise<boolean>} Success status
  */
-async function deleteNotification(notificationId, userId) {
+export async function deleteNotification(notificationId: string, userId: string): Promise<boolean> {
     try {
         const deleteStmt = db.prepare(`
             DELETE FROM notifications
@@ -217,12 +252,11 @@ async function deleteNotification(notificationId, userId) {
         const result = deleteStmt.run(notificationId, userId);
 
         if (result.changes === 0) {
-            return false; // Notification not found
+            return false;
         }
 
         logger.debug('Notification deleted', { id: notificationId, userId });
 
-        // Send sync event to other devices
         try {
             getEmitter().sendNotification(userId, {
                 type: 'sync',
@@ -230,22 +264,20 @@ async function deleteNotification(notificationId, userId) {
                 notificationId
             });
         } catch (sseError) {
-            logger.debug('SSE sync emit failed', { error: sseError.message });
+            logger.debug('SSE sync emit failed', { error: (sseError as Error).message });
         }
 
         return true;
     } catch (error) {
-        logger.error('Failed to delete notification', { error: error.message, notificationId, userId });
+        logger.error('Failed to delete notification', { error: (error as Error).message, notificationId, userId });
         throw error;
     }
 }
 
 /**
  * Mark all notifications as read for a user
- * @param {string} userId - User ID
- * @returns {Promise<number>} Number of notifications updated
  */
-async function markAllAsRead(userId) {
+export async function markAllAsRead(userId: string): Promise<number> {
     try {
         const update = db.prepare(`
             UPDATE notifications
@@ -259,30 +291,27 @@ async function markAllAsRead(userId) {
         if (updatedCount > 0) {
             logger.info('All notifications marked as read', { userId, count: updatedCount });
 
-            // Send sync event to other devices
             try {
                 getEmitter().sendNotification(userId, {
                     type: 'sync',
                     action: 'markAllRead'
                 });
             } catch (sseError) {
-                logger.debug('SSE sync emit failed', { error: sseError.message });
+                logger.debug('SSE sync emit failed', { error: (sseError as Error).message });
             }
         }
 
         return updatedCount;
     } catch (error) {
-        logger.error('Failed to mark all notifications as read', { error: error.message, userId });
+        logger.error('Failed to mark all notifications as read', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
  * Clear all notifications for a user
- * @param {string} userId - User ID
- * @returns {Promise<number>} Number of notifications deleted
  */
-async function clearAll(userId) {
+export async function clearAll(userId: string): Promise<number> {
     try {
         const deleteStmt = db.prepare(`
             DELETE FROM notifications
@@ -295,45 +324,41 @@ async function clearAll(userId) {
         if (deletedCount > 0) {
             logger.info('All notifications cleared', { userId, count: deletedCount });
 
-            // Send sync event to other devices
             try {
                 getEmitter().sendNotification(userId, {
                     type: 'sync',
                     action: 'clearAll'
                 });
             } catch (sseError) {
-                logger.debug('SSE sync emit failed', { error: sseError.message });
+                logger.debug('SSE sync emit failed', { error: (sseError as Error).message });
             }
         }
 
         return deletedCount;
     } catch (error) {
-        logger.error('Failed to clear all notifications', { error: error.message, userId });
+        logger.error('Failed to clear all notifications', { error: (error as Error).message, userId });
         throw error;
     }
 }
 
 /**
  * Get a single notification by ID
- * @param {string} notificationId - Notification ID
- * @param {string} userId - User ID (for security)
- * @returns {Promise<object|null>} Notification or null
  */
-async function getNotificationById(notificationId, userId) {
+export async function getNotificationById(notificationId: string, userId: string): Promise<Notification | null> {
     try {
         const notification = db.prepare(
             'SELECT * FROM notifications WHERE id = ? AND user_id = ?'
-        ).get(notificationId, userId);
+        ).get(notificationId, userId) as NotificationRow | undefined;
 
         if (!notification) {
             return null;
         }
 
-        let parsedMetadata = null;
+        let parsedMetadata: Record<string, unknown> | null = null;
         if (notification.metadata) {
             try {
                 parsedMetadata = JSON.parse(notification.metadata);
-            } catch (e) {
+            } catch {
                 logger.warn('Failed to parse notification metadata', { id: notification.id });
             }
         }
@@ -341,7 +366,7 @@ async function getNotificationById(notificationId, userId) {
         return {
             id: notification.id,
             userId: notification.user_id,
-            type: notification.type,
+            type: notification.type as Notification['type'],
             title: notification.title,
             message: notification.message,
             iconId: notification.icon_id || null,
@@ -351,30 +376,14 @@ async function getNotificationById(notificationId, userId) {
             expiresAt: null
         };
     } catch (error) {
-        logger.error('Failed to get notification by ID', { error: error.message, notificationId, userId });
+        logger.error('Failed to get notification by ID', { error: (error as Error).message, notificationId, userId });
         throw error;
     }
 }
 
 /**
- * Clean up expired notifications
- * Run periodically to remove old notifications
- * NOTE: Expiration feature not implemented in SQLite schema yet
- * This function is kept for API compatibility but does nothing
+ * Clean up expired notifications (no-op in current implementation)
  */
-async function cleanupExpiredNotifications() {
-    // Legacy function - expiration not stored in current SQLite schema
-    // Kept for API compatibility with existing code
+export async function cleanupExpiredNotifications(): Promise<void> {
     logger.debug('cleanupExpiredNotifications called (no-op in SQLite implementation)');
 }
-
-module.exports = {
-    createNotification,
-    getNotifications,
-    getNotificationById,
-    markAsRead,
-    deleteNotification,
-    markAllAsRead,
-    clearAll,
-    cleanupExpiredNotifications
-};
