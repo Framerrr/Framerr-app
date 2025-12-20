@@ -1,18 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { useLayout } from '../../context/LayoutContext';
 import { LAYOUT } from '../../constants/layout';
+import type { Widget } from '../../../shared/types/widget';
+
+interface LayoutItem {
+    i: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+interface LayoutState {
+    lg?: LayoutItem[];
+    sm?: LayoutItem[];
+    [key: string]: LayoutItem[] | undefined;
+}
+
+interface GridConfig {
+    cols?: Record<string, number>;
+    compactType?: string | null;
+    rowHeight?: number;
+    isDraggable?: boolean;
+}
+
+export interface DebugOverlayProps {
+    enabled?: boolean;
+    currentBreakpoint: string;
+    layouts: LayoutState;
+    widgets: Widget[];
+    gridConfig?: GridConfig;
+}
+
+interface SortedWidget extends LayoutItem {
+    index: number;
+    title: string;
+}
 
 /**
  * DebugOverlay - Shows dashboard grid and layout information
  * Helps diagnose responsive layout and sort order issues
  */
 const DebugOverlay = ({
-    enabled = true, // Default true for backward compatibility during development
+    enabled = true,
     currentBreakpoint,
     layouts,
     widgets,
     gridConfig
-}) => {
+}: DebugOverlayProps): React.JSX.Element | null => {
     // Don't render if not enabled
     if (!enabled) return null;
 
@@ -20,12 +55,12 @@ const DebugOverlay = ({
     const { mode, isMobile } = useLayout();
 
     // Track viewport width
-    const [viewportWidth, setViewportWidth] = useState(
+    const [viewportWidth, setViewportWidth] = useState<number>(
         typeof window !== 'undefined' ? window.innerWidth : 0
     );
 
     useEffect(() => {
-        const handleResize = () => setViewportWidth(window.innerWidth);
+        const handleResize = (): void => setViewportWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -33,7 +68,7 @@ const DebugOverlay = ({
     const currentLayout = layouts[currentBreakpoint] || [];
 
     // Sort widgets by their Y position to show stacking order
-    const sortedWidgets = [...currentLayout]
+    const sortedWidgets: SortedWidget[] = [...currentLayout]
         .sort((a, b) => {
             if (a.y !== b.y) return a.y - b.y;
             return a.x - b.x;
@@ -43,7 +78,7 @@ const DebugOverlay = ({
             return {
                 index: index + 1,
                 id: layout.i,
-                title: widget?.config?.title || widget?.type || 'Unknown',
+                title: (widget?.config?.title as string) || widget?.type || 'Unknown',
                 ...layout
             };
         });
@@ -51,8 +86,8 @@ const DebugOverlay = ({
     return (
         <div
             className="fixed bottom-4 right-4 z-[9999] w-80 max-h-[80vh] overflow-auto
-                       bg-slate-900/95 border-2 border-purple-500 rounded-lg shadow-2xl
-                       backdrop-blur-md text-white text-xs font-mono"
+                 bg-slate-900/95 border-2 border-purple-500 rounded-lg shadow-2xl
+                 backdrop-blur-md text-white text-xs font-mono"
         >
             {/* Header */}
             <div className="sticky top-0 bg-purple-600 px-3 py-2 flex items-center justify-between">
@@ -60,7 +95,7 @@ const DebugOverlay = ({
                 <span className="text-purple-200 text-[10px]">v2.0</span>
             </div>
 
-            {/* Layout Controller Info - NEW SECTION */}
+            {/* Layout Controller Info */}
             <div className="p-3 border-b border-slate-700 bg-slate-800/50">
                 <div className="font-bold text-blue-400 mb-2">📐 Layout Controller</div>
                 <div className="space-y-1">
@@ -94,8 +129,8 @@ const DebugOverlay = ({
                             <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
                                 <div
                                     className={`h-full transition-all duration-300 ${viewportWidth >= LAYOUT.MOBILE_THRESHOLD
-                                            ? 'bg-green-500'
-                                            : 'bg-orange-500'
+                                        ? 'bg-green-500'
+                                        : 'bg-orange-500'
                                         }`}
                                     style={{
                                         width: `${Math.min(100, (viewportWidth / 1200) * 100)}%`

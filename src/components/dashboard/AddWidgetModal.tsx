@@ -1,13 +1,34 @@
 import React, { useState } from 'react';
 import { X, Search, Plus, AlertCircle, CheckCircle2, Loader, Share2 } from 'lucide-react';
-import { getWidgetsByCategory, getWidgetMetadata } from '../../utils/widgetRegistry';
+import { getWidgetsByCategory, getWidgetMetadata, WidgetMetadata } from '../../utils/widgetRegistry';
+
+interface IntegrationConfig {
+    enabled?: boolean;
+    url?: string;
+    backend?: string;
+    glances?: { url?: string };
+    custom?: { url?: string };
+    [key: string]: unknown;
+}
+
+interface SharedIntegration {
+    name: string;
+    sharedBy?: string;
+    [key: string]: unknown;
+}
+
+export interface AddWidgetModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onAddWidget: (widgetType: string) => Promise<void>;
+    integrations?: Record<string, IntegrationConfig>;
+    isAdmin?: boolean;
+    sharedIntegrations?: SharedIntegration[];
+}
 
 /**
  * AddWidgetModal - Modal for browsing and adding widgets to dashboard
  * Supports both click-to-add and drag-and-drop interaction
- * 
- * For admins: Shows all widgets
- * For users: Shows utility widgets + widgets whose integration is shared with them
  */
 const AddWidgetModal = ({
     isOpen,
@@ -16,21 +37,18 @@ const AddWidgetModal = ({
     integrations = {},
     isAdmin = false,
     sharedIntegrations = []
-}) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [adding, setAdding] = useState(null);
+}: AddWidgetModalProps): React.JSX.Element | null => {
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [adding, setAdding] = useState<string | null>(null);
 
     const widgetsByCategory = getWidgetsByCategory();
     const categories = ['all', ...Object.keys(widgetsByCategory)];
 
     /**
      * Check if a widget is visible to the current user
-     * - Admins see all widgets
-     * - Users see utility widgets (no integration required)
-     * - Users see integration widgets only if shared with them
      */
-    const isWidgetVisible = (widget) => {
+    const isWidgetVisible = (widget: WidgetMetadata): boolean => {
         // Admins see all
         if (isAdmin) return true;
 
@@ -44,7 +62,7 @@ const AddWidgetModal = ({
             return sharedIntegrations.some(si => si.name === widget.requiresIntegration);
         }
 
-        // Multi-integration widgets (like calendar) - show if ANY required integration is shared
+        // Multi-integration widgets - show if ANY required integration is shared
         if (widget.requiresIntegrations) {
             return widget.requiresIntegrations.some(req =>
                 sharedIntegrations.some(si => si.name === req)
@@ -57,14 +75,13 @@ const AddWidgetModal = ({
     /**
      * Get share info for a widget (for badge display)
      */
-    const getSharedByInfo = (widget) => {
+    const getSharedByInfo = (widget: WidgetMetadata): string | null => {
         if (widget.requiresIntegration) {
             const shared = sharedIntegrations.find(si => si.name === widget.requiresIntegration);
             return shared?.sharedBy || null;
         }
 
         if (widget.requiresIntegrations) {
-            // Find the first shared integration among the required ones
             for (const reqIntegrationName of widget.requiresIntegrations) {
                 const shared = sharedIntegrations.find(si => si.name === reqIntegrationName);
                 if (shared) {
@@ -77,7 +94,7 @@ const AddWidgetModal = ({
     };
 
     // Filter widgets based on search, category, and permissions
-    const filteredWidgets = Object.entries(widgetsByCategory).reduce((acc, [category, widgets]) => {
+    const filteredWidgets = Object.entries(widgetsByCategory).reduce<Record<string, WidgetMetadata[]>>((acc, [category, widgets]) => {
         if (selectedCategory !== 'all' && selectedCategory !== category) {
             return acc;
         }
@@ -98,27 +115,27 @@ const AddWidgetModal = ({
         return acc;
     }, {});
 
-    const handleAddWidget = async (widgetType) => {
+    const handleAddWidget = async (widgetType: string): Promise<void> => {
         setAdding(widgetType);
         try {
             await onAddWidget(widgetType);
         } catch (error) {
-            console.error('Failed to add widget', { error: error.message, modal: 'AddWidget' });
+            console.error('Failed to add widget', { error: (error as Error).message, modal: 'AddWidget' });
         } finally {
             setAdding(null);
         }
     };
 
-    const handleDragStart = (e, widgetType) => {
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, widgetType: string): void => {
         e.dataTransfer.setData('widgetType', widgetType);
         e.dataTransfer.effectAllowed = 'copy';
 
         // Add visual feedback during drag
-        e.currentTarget.style.opacity = '0.5';
+        (e.currentTarget as HTMLElement).style.opacity = '0.5';
     };
 
-    const handleDragEnd = (e) => {
-        e.currentTarget.style.opacity = '1';
+    const handleDragEnd = (e: React.DragEvent<HTMLDivElement>): void => {
+        (e.currentTarget as HTMLElement).style.opacity = '1';
     };
 
     if (!isOpen) return null;
@@ -204,14 +221,14 @@ const AddWidgetModal = ({
                                         if (isIntegrationRequired && widget.requiresIntegration) {
                                             if (widget.requiresIntegration === 'systemstatus') {
                                                 // SystemStatus uses backend with glances/custom config
-                                                isIntegrationReady = integration?.enabled && (
-                                                    (integration.backend === 'glances' && integration.glances?.url) ||
-                                                    (integration.backend === 'custom' && integration.custom?.url) ||
-                                                    (!integration.backend && integration.url) // legacy
+                                                isIntegrationReady = !!integration?.enabled && (
+                                                    (integration.backend === 'glances' && !!integration.glances?.url) ||
+                                                    (integration.backend === 'custom' && !!integration.custom?.url) ||
+                                                    (!integration.backend && !!integration.url) // legacy
                                                 );
                                             } else {
                                                 // Standard integrations use url directly
-                                                isIntegrationReady = integration?.enabled && integration?.url;
+                                                isIntegrationReady = !!integration?.enabled && !!integration?.url;
                                             }
                                         } else if (isIntegrationRequired && widget.requiresIntegrations) {
                                             // Multi-integration widgets (calendar) - check if any integration is configured

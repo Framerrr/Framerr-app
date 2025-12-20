@@ -2,7 +2,11 @@ import React from 'react';
 import { Plus, LayoutGrid } from 'lucide-react';
 import { Button } from '../common/Button';
 
-const EmptyDashboard = ({ onAddWidget }) => {
+export interface EmptyDashboardProps {
+    onAddWidget: () => void;
+}
+
+const EmptyDashboard = ({ onAddWidget }: EmptyDashboardProps): React.JSX.Element => {
     return (
         <div className="flex items-center justify-center py-16 fade-in">
             <div className="glass-card rounded-2xl p-12 max-w-2xl w-full border border-theme text-center space-y-6">

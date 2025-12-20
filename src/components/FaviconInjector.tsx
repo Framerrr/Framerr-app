@@ -2,18 +2,23 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
-const FaviconInjector = () => {
-    const [authorizedFavicon, setAuthorizedFavicon] = useState(null);
-    const [isLoaded, setIsLoaded] = useState(false); // Track if we've loaded from API
-    const observerRef = useRef(null);
-    const isApplyingRef = useRef(false); // Prevent infinite loops
+interface FaviconResponse {
+    htmlSnippet?: string;
+    enabled?: boolean;
+}
+
+const FaviconInjector = (): null => {
+    const [authorizedFavicon, setAuthorizedFavicon] = useState<string | null>(null);
+    const [isLoaded, setIsLoaded] = useState<boolean>(false); // Track if we've loaded from API
+    const observerRef = useRef<MutationObserver | null>(null);
+    const isApplyingRef = useRef<boolean>(false); // Prevent infinite loops
 
     useEffect(() => {
         logger.debug('FaviconInjector mounted - loading favicon config');
 
-        const loadFavicon = async () => {
+        const loadFavicon = async (): Promise<void> => {
             try {
-                const response = await axios.get('/api/config/favicon', {
+                const response = await axios.get<FaviconResponse>('/api/config/favicon', {
                     withCredentials: true
                 });
 
@@ -29,7 +34,7 @@ const FaviconInjector = () => {
                 }
                 setIsLoaded(true); // Mark as loaded regardless of custom/default
             } catch (error) {
-                logger.error('Failed to load favicon config:', error);
+                logger.error('Failed to load favicon config:', { error });
                 setAuthorizedFavicon(null);
                 setIsLoaded(true); // Still mark as loaded, use default
             }
@@ -38,7 +43,7 @@ const FaviconInjector = () => {
         loadFavicon();
 
         // Listen for favicon update events from settings
-        const handleFaviconUpdate = () => {
+        const handleFaviconUpdate = (): void => {
             logger.debug('Favicon updated, reloading...');
             setIsLoaded(false); // Reset to trigger reload
             loadFavicon();
@@ -56,7 +61,7 @@ const FaviconInjector = () => {
             return;
         }
 
-        const applyAuthorizedFavicon = () => {
+        const applyAuthorizedFavicon = (): void => {
             if (isApplyingRef.current) return; // Prevent recursion
             isApplyingRef.current = true;
 
@@ -76,7 +81,7 @@ const FaviconInjector = () => {
                     temp.innerHTML = htmlWithCacheBust;
 
                     Array.from(temp.children).forEach(child => {
-                        child.setAttribute('data-favicon-authorized', 'true');
+                        (child as Element).setAttribute('data-favicon-authorized', 'true');
                         document.head.appendChild(child);
                     });
                     logger.debug('Applied custom favicon');
@@ -109,9 +114,9 @@ const FaviconInjector = () => {
                 // Check if any favicon-related nodes were added or removed
                 if (mutation.type === 'childList') {
                     mutation.addedNodes.forEach(node => {
-                        if (node.tagName === 'LINK' &&
-                            node.getAttribute('rel')?.includes('icon') &&
-                            !node.hasAttribute('data-favicon-authorized')) {
+                        if ((node as Element).tagName === 'LINK' &&
+                            (node as Element).getAttribute('rel')?.includes('icon') &&
+                            !(node as Element).hasAttribute('data-favicon-authorized')) {
                             // Unauthorized favicon added!
                             logger.warn('Unauthorized favicon detected, blocking');
                             needsReapply = true;
@@ -119,9 +124,9 @@ const FaviconInjector = () => {
                     });
 
                     mutation.removedNodes.forEach(node => {
-                        if (node.tagName === 'LINK' &&
-                            node.getAttribute('rel')?.includes('icon') &&
-                            node.hasAttribute('data-favicon-authorized')) {
+                        if ((node as Element).tagName === 'LINK' &&
+                            (node as Element).getAttribute('rel')?.includes('icon') &&
+                            (node as Element).hasAttribute('data-favicon-authorized')) {
                             // Our authorized favicon was removed!
                             logger.warn('Authorized favicon was removed, reapplying');
                             needsReapply = true;
@@ -131,8 +136,8 @@ const FaviconInjector = () => {
 
                 // Check if any authorized favicon had its attributes modified
                 if (mutation.type === 'attributes' &&
-                    mutation.target.tagName === 'LINK' &&
-                    mutation.target.hasAttribute('data-favicon-authorized')) {
+                    (mutation.target as Element).tagName === 'LINK' &&
+                    (mutation.target as Element).hasAttribute('data-favicon-authorized')) {
                     logger.warn('Authorized favicon modified, reapplying');
                     needsReapply = true;
                 }
@@ -165,4 +170,3 @@ const FaviconInjector = () => {
 };
 
 export default FaviconInjector;
-

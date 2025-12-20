@@ -1,13 +1,40 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { motion, useAnimation } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Check, XCircle } from 'lucide-react';
+import { motion, useAnimation, PanInfo } from 'framer-motion';
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Check, XCircle, LucideIcon } from 'lucide-react';
 
-const ICONS = {
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+const ICONS: Record<ToastType, LucideIcon> = {
     success: CheckCircle,
     error: AlertCircle,
     warning: AlertTriangle,
     info: Info
 };
+
+interface ToastAction {
+    label: string;
+    onClick: () => void;
+}
+
+interface ToastActionItem {
+    label: string;
+    onClick: () => void;
+    variant?: 'success' | 'danger' | 'default';
+}
+
+export interface ToastNotificationProps {
+    id: string;
+    type?: ToastType;
+    title: string;
+    message: string;
+    iconId?: string;
+    duration?: number;
+    action?: ToastAction;
+    actions?: ToastActionItem[];
+    onBodyClick?: () => void;
+    onDismiss: (id: string) => void;
+    createdAt?: number;
+}
 
 /**
  * ToastNotification Component
@@ -17,18 +44,6 @@ const ICONS = {
  * - Swipe-to-dismiss gestures
  * - Multiple action buttons support (for approve/decline)
  * - Body click to open notification center
- * 
- * @param {Object} props
- * @param {string} props.id - Unique toast ID
- * @param {string} props.type - Type: 'success' | 'error' | 'warning' | 'info'
- * @param {string} props.title - Toast title
- * @param {string} props.message - Toast message
- * @param {string} props.iconId - Optional custom icon ID (for integration logos)
- * @param {number} props.duration - Auto-dismiss duration in ms (default 10000)
- * @param {Object} props.action - Optional single action button { label, onClick }
- * @param {Array} props.actions - Optional multiple action buttons [{ label, onClick, variant }]
- * @param {Function} props.onBodyClick - Optional callback when toast body is clicked
- * @param {Function} props.onDismiss - Callback when dismissed
  */
 const ToastNotification = ({
     id,
@@ -42,19 +57,19 @@ const ToastNotification = ({
     onBodyClick,
     onDismiss,
     createdAt
-}) => {
-    const [progress, setProgress] = useState(100);
-    const [isDragging, setIsDragging] = useState(false);
-    const isPausedRef = useRef(false);
-    const elapsedRef = useRef(0);
-    const lastTickRef = useRef(Date.now());
-    const rafRef = useRef(null);
+}: ToastNotificationProps): React.JSX.Element => {
+    const [progress, setProgress] = useState<number>(100);
+    const [isDragging, setIsDragging] = useState<boolean>(false);
+    const isPausedRef = useRef<boolean>(false);
+    const elapsedRef = useRef<number>(0);
+    const lastTickRef = useRef<number>(Date.now());
+    const rafRef = useRef<number | null>(null);
     const controls = useAnimation();
 
     const Icon = ICONS[type] || Info;
 
     // Animation loop using requestAnimationFrame
-    const tick = useCallback(() => {
+    const tick = useCallback((): void => {
         if (!duration) return;
 
         const now = Date.now();
@@ -102,11 +117,11 @@ const ToastNotification = ({
         }
     }, [createdAt]);
 
-    const handleMouseEnter = () => {
+    const handleMouseEnter = (): void => {
         isPausedRef.current = true;
     };
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = (): void => {
         // Reset lastTick to now so we don't count pause time
         lastTickRef.current = Date.now();
         isPausedRef.current = false;
@@ -118,7 +133,7 @@ const ToastNotification = ({
     }, [controls]);
 
     // Handle swipe dismiss
-    const handleDragEnd = (event, info) => {
+    const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo): void => {
         setIsDragging(false);
         const threshold = 100;
 
@@ -138,10 +153,10 @@ const ToastNotification = ({
     };
 
     // Handle body click (open notification center)
-    const handleBodyClick = (e) => {
+    const handleBodyClick = (e: React.MouseEvent<HTMLDivElement>): void => {
         // Don't trigger if clicking buttons or during drag
         if (isDragging) return;
-        if (e.target.closest('button')) return;
+        if ((e.target as HTMLElement).closest('button')) return;
 
         if (onBodyClick) {
             onBodyClick();
@@ -166,7 +181,7 @@ const ToastNotification = ({
             onDragStart={() => setIsDragging(true)}
             onDragEnd={handleDragEnd}
             className={`glass-subtle border border-theme rounded-xl shadow-lg 
-                max-w-sm w-full overflow-hidden ${onBodyClick ? 'cursor-pointer' : ''}`}
+        max-w-sm w-full overflow-hidden ${onBodyClick ? 'cursor-pointer' : ''}`}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             onClick={handleBodyClick}
@@ -218,7 +233,7 @@ const ToastNotification = ({
                                 onDismiss(id);
                             }}
                             className="text-accent hover:text-accent-hover 
-                                text-sm font-medium mt-2 transition-colors"
+                text-sm font-medium mt-2 transition-colors"
                         >
                             {action.label}
                         </button>
@@ -257,7 +272,7 @@ const ToastNotification = ({
                         onDismiss(id);
                     }}
                     className="text-theme-tertiary hover:text-theme-primary 
-                        transition-colors flex-shrink-0 p-1"
+            transition-colors flex-shrink-0 p-1"
                     aria-label="Dismiss notification"
                 >
                     <X size={16} />
@@ -271,15 +286,15 @@ const ToastNotification = ({
                     style={{
                         width: `${progress}%`,
                         background: `linear-gradient(
-                            to right, 
-                            var(--${type}), 
-                            var(--${type}-hover, var(--${type}))
-                        )`
+              to right, 
+              var(--${type}), 
+              var(--${type}-hover, var(--${type}))
+            )`
                     }}
                     role="progressbar"
                     aria-valuenow={Math.round(progress)}
-                    aria-valuemin="0"
-                    aria-valuemax="100"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
                 />
             )}
         </motion.div>
