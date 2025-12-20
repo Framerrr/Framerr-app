@@ -11,6 +11,12 @@
         /* CommonJS interop for existing .js files */
         "allowJs": true,
         "checkJs": false,
+        /* Output settings for compiled JavaScript */
+        "outDir": "./dist",
+        "rootDir": "..",
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
         /* Path Aliases */
         "baseUrl": ".",
         "paths": {
@@ -24,11 +30,13 @@
     },
     "include": [
         "**/*.ts",
+        "**/*.js",
         "types/**/*.d.ts",
         "../shared/types/**/*.ts"
     ],
     "exclude": [
         "node_modules",
-        "scripts"
+        "scripts",
+        "dist"
     ]
 }
