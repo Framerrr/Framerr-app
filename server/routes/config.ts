@@ -75,9 +75,10 @@ router.put('/system', requireAdmin, async (req: Request, res: Response) => {
 router.get('/app-name', async (req: Request, res: Response) => {
     try {
         const config = await getSystemConfig();
+        const serverConfig = config.server as unknown as Record<string, unknown>;
         res.json({
             name: config.server?.name || 'Framerr',
-            icon: (config.server as Record<string, unknown>)?.icon as string || 'Server'
+            icon: (serverConfig?.icon as string) || 'Server'
         });
     } catch (error) {
         logger.error('Failed to get app name', { error: (error as Error).message });

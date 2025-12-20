@@ -127,7 +127,7 @@ async function getClientIdentifier(): Promise<string> {
 
     // Check if we already have a client ID stored in DB
     if (config.plexSSO?.clientIdentifier) {
-        cachedClientIdentifier = config.plexSSO.clientIdentifier;
+        cachedClientIdentifier = config.plexSSO.clientIdentifier as string;
         logger.debug('[Plex] Using existing client identifier from DB');
         return cachedClientIdentifier;
     }
@@ -256,7 +256,7 @@ router.get('/auth/token', async (req: Request, res: Response): Promise<void> => 
             thumb: userResponse.data.thumb
         };
 
-        logger.info('[Plex] Token obtained for user:', user.username);
+        logger.info('[Plex] Token obtained for user:', { username: user.username });
 
         res.json({
             authToken,

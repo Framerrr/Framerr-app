@@ -407,7 +407,7 @@ router.post('/plex-login', async (req: Request, res: Response): Promise<void> =>
             logger.debug('[PlexSSO] Found existing linked account', { plexUsername: plexUser.username, framerUser: user?.username });
         } else if (isPlexAdmin && ssoConfig.linkedUserId) {
             // Plex admin logging in - map to the configured Framerr admin user
-            user = await getUserById(ssoConfig.linkedUserId);
+            user = await getUserById(ssoConfig.linkedUserId as string);
             if (user) {
                 // Link this Plex account to the Framerr admin
                 linkAccount(user.id, 'plex', {
