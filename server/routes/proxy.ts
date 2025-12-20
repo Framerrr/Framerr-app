@@ -288,7 +288,7 @@ router.get('/plex/image', async (req: Request, res: Response): Promise<void> => 
         res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
         response.data.pipe(res);
     } catch (error) {
-        logger.error('Plex image proxy error:', (error as Error).message);
+        logger.error('Plex image proxy error:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to fetch image' });
     }
 });
@@ -421,7 +421,7 @@ router.get('/sonarr/calendar', async (req: Request, res: Response): Promise<void
                         }
                     };
                 } catch (err) {
-                    logger.error(`Error fetching series ${episode.seriesId}:`, (err as Error).message);
+                    logger.error(`Error fetching series ${episode.seriesId}:`, { message: (err as Error).message });
                     // Gracefully degrade - return episode with unknown series
                     return {
                         ...episode,
@@ -433,7 +433,7 @@ router.get('/sonarr/calendar', async (req: Request, res: Response): Promise<void
 
         res.json(enrichedData);
     } catch (error) {
-        logger.error('Sonarr calendar proxy error:', (error as Error).message);
+        logger.error('Sonarr calendar proxy error:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to fetch Sonarr calendar', details: (error as Error).message });
     }
 });
@@ -463,7 +463,7 @@ router.get('/radarr/calendar', async (req: Request, res: Response): Promise<void
 
         res.json(response.data);
     } catch (error) {
-        logger.error('Radarr calendar proxy error:', (error as Error).message);
+        logger.error('Radarr calendar proxy error:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to fetch Radarr calendar', details: (error as Error).message });
     }
 });
@@ -528,7 +528,7 @@ router.get('/overseerr/requests', async (req: Request, res: Response): Promise<v
 
                     return request;
                 } catch (err) {
-                    logger.error(`Error fetching media for request ${request.id}:`, (err as Error).message);
+                    logger.error(`Error fetching media for request ${request.id}:`, { message: (err as Error).message });
                     // Gracefully degrade - return request without enrichment
                     return request;
                 }
@@ -540,7 +540,7 @@ router.get('/overseerr/requests', async (req: Request, res: Response): Promise<v
             results: enrichedResults
         });
     } catch (error) {
-        logger.error('Overseerr requests proxy error:', (error as Error).message);
+        logger.error('Overseerr requests proxy error:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to fetch Overseerr requests', details: (error as Error).message });
     }
 });
@@ -590,7 +590,7 @@ router.post('/qbittorrent/torrents', async (req: Request, res: Response): Promis
         res.json(torrentsResponse.data);
     } catch (error) {
         const axiosErr = error as AxiosError;
-        logger.error('qBittorrent torrents proxy error:', axiosErr.message);
+        logger.error('qBittorrent torrents proxy error:', { message: axiosErr.message });
 
         // Check if it's an auth error
         if (axiosErr.response?.status === 401 || axiosErr.response?.status === 403) {
@@ -646,7 +646,7 @@ router.post('/qbittorrent/transfer-info', async (req: Request, res: Response): P
         res.json(serverState);
     } catch (error) {
         const axiosErr = error as AxiosError;
-        logger.error('qBittorrent transfer info proxy error:', axiosErr.message);
+        logger.error('qBittorrent transfer info proxy error:', { message: axiosErr.message });
 
         // Check if it's an auth error
         if (axiosErr.response?.status === 401 || axiosErr.response?.status === 403) {
@@ -793,7 +793,7 @@ router.get('/systemstatus/glances/status', async (req: Request, res: Response): 
                 // Fallback to first temperature sensor
                 const firstTempSensor = sensorsRes.data.find(s => s.value && s.unit === 'C');
                 if (firstTempSensor) {
-                    temperature = firstTempSensor.value;
+                    temperature = firstTempSensor.value ?? 0;
                 }
             }
         }
@@ -888,7 +888,7 @@ router.get('/systemstatus/glances/history', async (req: Request, res: Response):
             } else {
                 const firstTempSensor = sensorsRes.data.find(s => s.value && s.unit === 'C');
                 if (firstTempSensor) {
-                    temperature = firstTempSensor.value;
+                    temperature = firstTempSensor.value ?? 0;
                 }
             }
         }
