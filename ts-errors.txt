@@ -1,0 +1,159 @@
+server/index.ts(322,24): error TS2339: Property 'isDowngrade' does not exist on type 'Object'.
+server/index.ts(324,58): error TS2339: Property 'currentVersion' does not exist on type 'Object'.
+server/index.ts(324,132): error TS2339: Property 'expectedVersion' does not exist on type 'Object'.
+server/index.ts(329,24): error TS2339: Property 'needsMigration' does not exist on type 'Object'.
+server/index.ts(330,67): error TS2339: Property 'currentVersion' does not exist on type 'Object'.
+server/index.ts(330,95): error TS2339: Property 'expectedVersion' does not exist on type 'Object'.
+server/index.ts(333,29): error TS2339: Property 'success' does not exist on type 'Object'.
+server/index.ts(334,71): error TS2339: Property 'error' does not exist on type 'Object'.
+server/index.ts(339,72): error TS2339: Property 'migratedFrom' does not exist on type 'Object'.
+server/index.ts(339,98): error TS2339: Property 'migratedTo' does not exist on type 'Object'.
+server/index.ts(341,60): error TS2339: Property 'currentVersion' does not exist on type 'Object'.
+server/index.ts(352,29): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+server/index.ts(362,17): error TS2322: Type 'string | number' is not assignable to type 'number | undefined'.
+  Type 'string' is not assignable to type 'number'.
+server/index.ts(374,49): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'LogMeta | undefined'.
+server/routes/auth.ts(10,20): error TS7016: Could not find a declaration file for module 'xml2js'. 'C:/Users/Jonathan/Documents/Antigravity/Framerr-app/server/node_modules/xml2js/lib/xml2js.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/xml2js` if it exists or add a new declaration (.d.ts) file containing `declare module 'xml2js';`
+server/routes/auth.ts(84,36): error TS2339: Property 'rememberMeDuration' does not exist on type '{ timeout: number; }'.
+server/routes/auth.ts(280,17): error TS2322: Type 'unknown' is not assignable to type 'AxiosHeaderValue | undefined'.
+server/routes/auth.ts(287,38): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(290,34): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(291,36): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(312,29): error TS2322: Type 'unknown' is not assignable to type 'AxiosHeaderValue | undefined'.
+server/routes/auth.ts(313,29): error TS2322: Type 'unknown' is not assignable to type 'AxiosHeaderValue | undefined'.
+server/routes/auth.ts(359,40): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(360,46): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(367,71): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(379,42): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(380,44): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(388,87): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(390,113): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(397,68): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(402,94): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(405,38): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+server/routes/auth.ts(409,42): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(410,48): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(411,45): error TS2339: Property 'email' does not exist on type 'T'.
+server/routes/auth.ts(412,49): error TS2339: Property 'thumb' does not exist on type 'T'.
+server/routes/auth.ts(414,101): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(418,43): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(426,40): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(427,37): error TS2339: Property 'email' does not exist on type 'T'.
+server/routes/auth.ts(427,58): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(429,21): error TS2322: Type '{}' is not assignable to type 'string'.
+server/routes/auth.ts(432,80): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(438,42): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/auth.ts(439,48): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/auth.ts(440,45): error TS2339: Property 'email' does not exist on type 'T'.
+server/routes/auth.ts(441,49): error TS2339: Property 'thumb' does not exist on type 'T'.
+server/routes/auth.ts(447,116): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/config.ts(7,20): error TS7016: Could not find a declaration file for module 'adm-zip'. 'C:/Users/Jonathan/Documents/Antigravity/Framerr-app/server/node_modules/adm-zip/adm-zip.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/adm-zip` if it exists or add a new declaration (.d.ts) file containing `declare module 'adm-zip';`
+server/routes/config.ts(20,11): error TS2430: Interface 'AuthenticatedRequest' incorrectly extends interface 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+  Types of property 'user' are incompatible.
+    Type 'AuthenticatedUser | undefined' is not assignable to type 'User | undefined'.
+      Property 'isAdmin' is missing in type 'AuthenticatedUser' but required in type 'User'.
+server/routes/config.ts(84,34): error TS2339: Property 'icon' does not exist on type 'ServerConfig'.
+server/routes/config.ts(225,36): error TS2741: Property 'local' is missing in type 'AuthBody' but required in type 'AuthConfig'.
+server/routes/config.ts(282,17): error TS2353: Object literal may only specify known properties, and 'uploadedAt' does not exist in type 'FaviconConfig'.
+server/routes/config.ts(392,36): error TS2322: Type 'null' is not assignable to type 'FaviconConfig | undefined'.
+server/routes/custom-icons.ts(15,11): error TS2430: Interface 'AuthenticatedRequest' incorrectly extends interface 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+  Types of property 'user' are incompatible.
+    Type 'AuthenticatedUser | undefined' is not assignable to type 'User | undefined'.
+      Property 'isAdmin' is missing in type 'AuthenticatedUser' but required in type 'User'.
+server/routes/plex.ts(15,20): error TS7016: Could not find a declaration file for module 'xml2js'. 'C:/Users/Jonathan/Documents/Antigravity/Framerr-app/server/node_modules/xml2js/lib/xml2js.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/xml2js` if it exists or add a new declaration (.d.ts) file containing `declare module 'xml2js';`
+server/routes/plex.ts(129,9): error TS2322: Type '{}' is not assignable to type 'string'.
+server/routes/plex.ts(131,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+server/routes/plex.ts(148,60): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(163,61): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(169,15): error TS2322: Type 'PlexHeaders' is not assignable to type 'AxiosHeaders | (Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>) | undefined'.
+  Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>'.
+    Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }>'.
+      Index signature for type 'string' is missing in type 'PlexHeaders'.
+server/routes/plex.ts(172,17): error TS2339: Property 'id' does not exist on type 'unknown'.
+server/routes/plex.ts(172,28): error TS2339: Property 'code' does not exist on type 'unknown'.
+server/routes/plex.ts(200,56): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(228,15): error TS2322: Type 'PlexHeaders' is not assignable to type 'AxiosHeaders | (Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>) | undefined'.
+  Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>'.
+    Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }>'.
+      Index signature for type 'string' is missing in type 'PlexHeaders'.
+server/routes/plex.ts(232,46): error TS2339: Property 'authToken' does not exist on type 'T'.
+server/routes/plex.ts(233,41): error TS2339: Property 'expiresAt' does not exist on type 'T'.
+server/routes/plex.ts(236,17): error TS2339: Property 'authToken' does not exist on type 'unknown'.
+server/routes/plex.ts(247,15): error TS2322: Type 'PlexHeaders' is not assignable to type 'AxiosHeaders | (Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>) | undefined'.
+  Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>'.
+    Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }>'.
+      Index signature for type 'string' is missing in type 'PlexHeaders'.
+server/routes/plex.ts(251,35): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/plex.ts(252,37): error TS2339: Property 'uuid' does not exist on type 'T'.
+server/routes/plex.ts(253,41): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/plex.ts(254,38): error TS2339: Property 'email' does not exist on type 'T'.
+server/routes/plex.ts(255,38): error TS2339: Property 'thumb' does not exist on type 'T'.
+server/routes/plex.ts(302,17): error TS2322: Type 'PlexHeaders' is not assignable to type 'AxiosHeaders | (Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>) | undefined'.
+  Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>'.
+    Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }>'.
+      Index signature for type 'string' is missing in type 'PlexHeaders'.
+server/routes/plex.ts(309,14): error TS2339: Property 'filter' does not exist on type 'T'.
+server/routes/plex.ts(309,21): error TS7006: Parameter 'device' implicitly has an 'any' type.
+server/routes/plex.ts(310,18): error TS7006: Parameter 'device' implicitly has an 'any' type.
+server/routes/plex.ts(314,54): error TS7006: Parameter 'conn' implicitly has an 'any' type.
+server/routes/plex.ts(325,57): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(350,17): error TS2322: Type 'PlexHeaders' is not assignable to type 'AxiosHeaders | (Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>) | undefined'.
+  Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>'.
+    Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }>'.
+      Index signature for type 'string' is missing in type 'PlexHeaders'.
+server/routes/plex.ts(350,51): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+server/routes/plex.ts(357,14): error TS2339: Property 'filter' does not exist on type 'T'.
+server/routes/plex.ts(357,21): error TS7006: Parameter 'device' implicitly has an 'any' type.
+server/routes/plex.ts(358,18): error TS7006: Parameter 'device' implicitly has an 'any' type.
+server/routes/plex.ts(362,54): error TS7006: Parameter 'conn' implicitly has an 'any' type.
+server/routes/plex.ts(373,63): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(416,52): error TS2345: Argument of type 'number' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(420,53): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(460,21): error TS2322: Type '{}' is not assignable to type 'AxiosHeaderValue | undefined'.
+server/routes/plex.ts(477,70): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(487,19): error TS2322: Type 'PlexHeaders' is not assignable to type 'AxiosHeaders | (Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>) | undefined'.
+  Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }> & Partial<...>'.
+    Type 'PlexHeaders' is not assignable to type 'Partial<RawAxiosHeaders & { Accept: AxiosHeaderValue; "Content-Length": AxiosHeaderValue; "User-Agent": AxiosHeaderValue; "Content-Encoding": AxiosHeaderValue; Authorization: AxiosHeaderValue; } & { ...; }>'.
+      Index signature for type 'string' is missing in type 'PlexHeaders'.
+server/routes/plex.ts(490,39): error TS2339: Property 'id' does not exist on type 'T'.
+server/routes/plex.ts(491,45): error TS2339: Property 'username' does not exist on type 'T'.
+server/routes/plex.ts(492,42): error TS2339: Property 'email' does not exist on type 'T'.
+server/routes/plex.ts(493,42): error TS2339: Property 'thumb' does not exist on type 'T'.
+server/routes/plex.ts(497,66): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(501,55): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(540,59): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(567,58): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(585,58): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(617,60): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/plex.ts(625,56): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(3,20): error TS7016: Could not find a declaration file for module 'xml2js'. 'C:/Users/Jonathan/Documents/Antigravity/Framerr-app/server/node_modules/xml2js/lib/xml2js.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/xml2js` if it exists or add a new declaration (.d.ts) file containing `declare module 'xml2js';`
+server/routes/proxy.ts(291,49): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(424,80): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(436,54): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(466,54): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(531,85): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(543,57): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(593,59): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(649,64): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/proxy.ts(796,21): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+server/routes/proxy.ts(891,21): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+server/routes/webhooks.ts(180,59): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/webhooks.ts(263,63): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/webhooks.ts(319,60): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/webhooks.ts(375,60): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
+server/routes/webhooks.ts(437,88): error TS2559: Type 'WebhookConfig' has no properties in common with type 'WebhookConfig'.
+server/routes/webhooks.ts(446,21): error TS2322: Type 'NotificationMetadata | null' is not assignable to type 'Record<string, unknown> | null | undefined'.
+  Type 'NotificationMetadata' is not assignable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'NotificationMetadata'.
+server/routes/webhooks.ts(457,86): error TS2559: Type 'WebhookConfig' has no properties in common with type 'WebhookConfig'.
+server/routes/webhooks.ts(466,17): error TS2322: Type 'NotificationMetadata | null' is not assignable to type 'Record<string, unknown> | null | undefined'.
+  Type 'NotificationMetadata' is not assignable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'NotificationMetadata'.
+server/routes/webhooks.ts(524,92): error TS2559: Type 'WebhookConfig' has no properties in common with type 'WebhookConfig'.

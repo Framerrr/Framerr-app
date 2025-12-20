@@ -24,6 +24,7 @@ let cachedClientIdentifier: string | null = null;
 
 // Types
 interface PlexHeaders {
+    [key: string]: string | undefined;
     'Accept': string;
     'Content-Type': string;
     'X-Plex-Product': string;
@@ -145,7 +146,7 @@ async function getClientIdentifier(): Promise<string> {
     // Cache it in memory
     cachedClientIdentifier = clientId;
 
-    logger.info('[Plex] Generated new client identifier:', clientId);
+    logger.info('[Plex] Generated new client identifier:', { clientId });
     return clientId;
 }
 
@@ -160,7 +161,7 @@ router.post('/auth/pin', async (req: Request, res: Response): Promise<void> => {
         const clientId = await getClientIdentifier();
         const { forwardUrl } = req.body as PinBody;
 
-        logger.info('[Plex] Generating PIN with clientId:', clientId);
+        logger.info('[Plex] Generating PIN with clientId:', { clientId });
 
         // Generate PIN from Plex
         const pinResponse = await axios.post<PinResponse>(
@@ -197,7 +198,7 @@ router.post('/auth/pin', async (req: Request, res: Response): Promise<void> => {
             expiresIn: 1800 // 30 minutes
         });
     } catch (error) {
-        logger.error('[Plex] Failed to generate PIN:', (error as Error).message);
+        logger.error('[Plex] Failed to generate PIN:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to generate Plex PIN' });
     }
 });
@@ -318,11 +319,11 @@ router.get('/resources', async (req: Request, res: Response): Promise<void> => {
                 })) || []
             }));
 
-        logger.debug('[Plex] Found servers:', servers.length);
+        logger.debug('[Plex] Found servers:', { count: servers.length });
 
         res.json(servers);
     } catch (error) {
-        logger.error('[Plex] Failed to get resources:', (error as Error).message);
+        logger.error('[Plex] Failed to get resources:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to get Plex servers' });
     }
 });
@@ -366,11 +367,11 @@ router.get('/admin-resources', requireAuth, requireAdmin, async (req: Request, r
                 })) || []
             }));
 
-        logger.debug('[Plex] Found admin servers:', servers.length);
+        logger.debug('[Plex] Found admin servers:', { count: servers.length });
 
         res.json(servers);
     } catch (error) {
-        logger.error('[Plex] Failed to get admin resources:', (error as Error).message);
+        logger.error('[Plex] Failed to get admin resources:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to get Plex servers' });
     }
 });
@@ -413,11 +414,11 @@ router.get('/users', requireAuth, async (req: Request, res: Response): Promise<v
             thumb: user.thumb
         }));
 
-        logger.debug('[Plex] Found shared users:', users.length);
+        logger.debug('[Plex] Found shared users:', { count: users.length });
 
         res.json(users);
     } catch (error) {
-        logger.error('[Plex] Failed to get users:', (error as Error).message);
+        logger.error('[Plex] Failed to get users:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to get Plex users' });
     }
 });
@@ -474,7 +475,7 @@ router.post('/verify-user', async (req: Request, res: Response): Promise<void> =
         }
 
         if (!isAdmin && !hasLibraryAccess) {
-            logger.warn('[Plex] User does not have library access:', plexUserId);
+            logger.warn('[Plex] User does not have library access:', { plexUserId });
             res.json({ valid: false, reason: 'User does not have access to this Plex server' });
             return;
         }
@@ -494,11 +495,11 @@ router.post('/verify-user', async (req: Request, res: Response): Promise<void> =
             };
         }
 
-        logger.info('[Plex] User verified with library access:', plexUserId);
+        logger.info('[Plex] User verified with library access:', { plexUserId });
 
         res.json({ valid: true, isAdmin, user });
     } catch (error) {
-        logger.error('[Plex] Failed to verify user:', (error as Error).message);
+        logger.error('[Plex] Failed to verify user:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to verify Plex user' });
     }
 });
@@ -537,7 +538,7 @@ router.post('/sso/config', requireAuth, requireAdmin, async (req: Request, res: 
             adminToken: newConfig.adminToken ? '[CONFIGURED]' : null
         });
     } catch (error) {
-        logger.error('[Plex] Failed to save SSO config:', (error as Error).message);
+        logger.error('[Plex] Failed to save SSO config:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to save Plex SSO configuration' });
     }
 });
@@ -564,7 +565,7 @@ router.get('/sso/config', requireAuth, requireAdmin, async (req: Request, res: R
             linkedUserId: ssoConfig.linkedUserId || ''
         });
     } catch (error) {
-        logger.error('[Plex] Failed to get SSO config:', (error as Error).message);
+        logger.error('[Plex] Failed to get SSO config:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to get Plex SSO configuration' });
     }
 });
@@ -582,7 +583,7 @@ router.get('/sso/status', async (req: Request, res: Response): Promise<void> => 
             enabled: ssoConfig.enabled || false
         });
     } catch (error) {
-        logger.error('[Plex] Failed to get SSO status:', (error as Error).message);
+        logger.error('[Plex] Failed to get SSO status:', { message: (error as Error).message });
         res.status(500).json({ error: 'Failed to get Plex SSO status' });
     }
 });
@@ -614,7 +615,7 @@ router.get('/test', async (req: Request, res: Response): Promise<void> => {
 
         const serverName = response.data?.MediaContainer?.friendlyName || 'Plex Server';
 
-        logger.debug('[Plex] Test connection successful:', serverName);
+        logger.debug('[Plex] Test connection successful:', { serverName });
 
         res.json({
             success: true,
@@ -622,7 +623,7 @@ router.get('/test', async (req: Request, res: Response): Promise<void> => {
         });
     } catch (error) {
         const axiosErr = error as AxiosError<{ error?: string }>;
-        logger.error('[Plex] Test connection failed:', axiosErr.message);
+        logger.error('[Plex] Test connection failed:', { message: axiosErr.message });
         res.status(500).json({
             success: false,
             error: axiosErr.response?.data?.error || 'Connection failed'

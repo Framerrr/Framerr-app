@@ -18,7 +18,7 @@ import { hashPassword } from './auth/password';
 import { validateSession } from './auth/session';
 import { validateProxyWhitelist } from './middleware/proxyWhitelist';
 import { isInitialized, initializeSchema, db } from './database/db';
-import { checkMigrationStatus, runMigrations, setVersion } from './database/migrator';
+import { checkMigrationStatus, runMigrations, setVersion, MigrationStatus, MigrationResult } from './database/migrator';
 import { seedSystemIcons } from './services/seedSystemIcons';
 
 // Route imports
@@ -317,7 +317,7 @@ app.use((err: ServerError, req: Request, res: Response, next: NextFunction) => {
             logger.info('Database schema initialized (v1)');
         } else {
             // Check if migrations are needed
-            const status = checkMigrationStatus(db);
+            const status = checkMigrationStatus(db) as MigrationStatus;
 
             if (status.isDowngrade) {
                 // Database is newer than app expects - refuse to start
@@ -328,10 +328,10 @@ app.use((err: ServerError, req: Request, res: Response, next: NextFunction) => {
 
             if (status.needsMigration) {
                 logger.info(`Database migration needed: v${status.currentVersion} → v${status.expectedVersion}`);
-                const result = runMigrations(db);
+                const result = runMigrations(db) as MigrationResult;
 
                 if (!result.success) {
-                    logger.error('Database migration failed:', result.error);
+                    logger.error('Database migration failed:', { error: result.error });
                     logger.error('Please check logs and restore from backup if needed.');
                     process.exit(1);
                 }
@@ -356,10 +356,11 @@ app.use((err: ServerError, req: Request, res: Response, next: NextFunction) => {
         await seedSystemIcons();
 
         // Now start server with config loaded
-        app.listen(PORT, () => {
+        const portNum = typeof PORT === 'string' ? parseInt(PORT, 10) : PORT;
+        app.listen(portNum, () => {
             logger.startup('Homelab Dashboard', {
                 version,
-                port: PORT,
+                port: portNum,
                 env: NODE_ENV
             });
 
@@ -371,7 +372,7 @@ app.use((err: ServerError, req: Request, res: Response, next: NextFunction) => {
             }
         });
     } catch (error) {
-        logger.error('Failed to start server:', error);
+        logger.error('Failed to start server:', { error: error instanceof Error ? error.message : String(error) });
         process.exit(1);
     }
 })();
