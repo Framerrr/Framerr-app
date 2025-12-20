@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Trash2, Info, Loader, X, Search, Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { getWidgetMetadata, getWidgetIconName } from '../../utils/widgetRegistry';
@@ -61,34 +61,58 @@ const POPULAR_ICONS = [
     'Code', 'Code2', 'Terminal', 'Box', 'Layout', 'LayoutGrid'
 ];
 
+interface WidgetConfig {
+    title?: string;
+    customIcon?: string;
+    customName?: string;
+    flatten?: boolean;
+    showHeader?: boolean;
+    [key: string]: unknown;
+}
+
+interface Widget {
+    id: string;
+    type: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    config: WidgetConfig;
+}
+
+interface WidgetStats {
+    total: number;
+    byType: Record<string, number>;
+}
+
 /**
  * Active Widgets - Manage widgets currently on dashboard
  */
-const ActiveWidgets = () => {
-    const [widgets, setWidgets] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [removingWidget, setRemovingWidget] = useState(null);
-    const [iconPickerOpen, setIconPickerOpen] = useState(null); // Track which widget's picker is open
-    const [iconSearch, setIconSearch] = useState('');
-    const [confirmRemoveId, setConfirmRemoveId] = useState(null);
+const ActiveWidgets: React.FC = () => {
+    const [widgets, setWidgets] = useState<Widget[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [removingWidget, setRemovingWidget] = useState<string | null>(null);
+    const [iconPickerOpen, setIconPickerOpen] = useState<string | null>(null);
+    const [iconSearch, setIconSearch] = useState<string>('');
+    const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
     const { error: showError, success: showSuccess } = useNotifications();
 
     useEffect(() => {
         fetchWidgets();
     }, []);
 
-    const fetchWidgets = async () => {
+    const fetchWidgets = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/widgets');
             setWidgets(response.data.widgets || []);
         } catch (error) {
-            logger.error('Failed to fetch widgets', { error: error.message });
+            logger.error('Failed to fetch widgets', { error: (error as Error).message });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleRemove = async (widgetId) => {
+    const handleRemove = async (widgetId: string): Promise<void> => {
         setRemovingWidget(widgetId);
         try {
             const updatedWidgets = widgets.filter(w => w.id !== widgetId);
@@ -97,7 +121,7 @@ const ActiveWidgets = () => {
             setConfirmRemoveId(null);
             showSuccess('Widget Removed', 'Widget has been removed from the dashboard');
         } catch (error) {
-            logger.error('Failed to remove widget', { widgetId, error: error.message });
+            logger.error('Failed to remove widget', { widgetId, error: (error as Error).message });
             showError('Remove Failed', 'Failed to remove widget. Please try again.');
             setConfirmRemoveId(null);
         } finally {
@@ -105,7 +129,7 @@ const ActiveWidgets = () => {
         }
     };
 
-    const handleIconSelect = async (widgetId, iconName) => {
+    const handleIconSelect = async (widgetId: string, iconName: string): Promise<void> => {
         const updatedWidgets = widgets.map(w =>
             w.id === widgetId
                 ? { ...w, config: { ...w.config, customIcon: iconName } }
@@ -119,7 +143,7 @@ const ActiveWidgets = () => {
             setIconPickerOpen(null);
             setIconSearch('');
         } catch (error) {
-            logger.error('Failed to update widget icon', { widgetId, error: error.message });
+            logger.error('Failed to update widget icon', { widgetId, error: (error as Error).message });
             fetchWidgets();
         }
     };
@@ -139,9 +163,9 @@ const ActiveWidgets = () => {
     }
 
     // Calculate stats
-    const stats = {
+    const stats: WidgetStats = {
         total: widgets.length,
-        byType: widgets.reduce((acc, w) => {
+        byType: widgets.reduce<Record<string, number>>((acc, w) => {
             acc[w.type] = (acc[w.type] || 0) + 1;
             return acc;
         }, {})
@@ -190,7 +214,7 @@ const ActiveWidgets = () => {
                                     <div className="sm:hidden">
                                         <IconPicker
                                             value={customIcon || getWidgetIconName(widget.type)}
-                                            onChange={(iconName) => handleIconSelect(widget.id, iconName)}
+                                            onChange={(iconName: string) => handleIconSelect(widget.id, iconName)}
                                             compact
                                         />
                                     </div>
@@ -198,7 +222,7 @@ const ActiveWidgets = () => {
                                     <div className="hidden sm:block">
                                         <IconPicker
                                             value={customIcon || getWidgetIconName(widget.type)}
-                                            onChange={(iconName) => handleIconSelect(widget.id, iconName)}
+                                            onChange={(iconName: string) => handleIconSelect(widget.id, iconName)}
                                         />
                                     </div>
                                 </div>
@@ -206,10 +230,10 @@ const ActiveWidgets = () => {
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-semibold text-theme-primary mb-1 truncate text-sm sm:text-base">
-                                        {widget.config?.title || metadata.name}
+                                        {widget.config?.title || metadata?.name || widget.type}
                                     </h4>
                                     <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-xs text-theme-secondary">
-                                        <span className="whitespace-nowrap">{metadata.name}</span>
+                                        <span className="whitespace-nowrap">{metadata?.name || widget.type}</span>
                                         <span>•</span>
                                         <span className="whitespace-nowrap">{widget.w}x{widget.h}</span>
                                         <span className="hidden xs:inline">•</span>
@@ -267,19 +291,19 @@ const ActiveWidgets = () => {
                                 {/* Custom Name Input */}
                                 <Input
                                     label="Custom Name"
-                                    placeholder={metadata.name}
+                                    placeholder={metadata?.name || widget.type}
                                     value={widget.config?.customName || ''}
-                                    onChange={async (e) => {
+                                    onChange={async (e: ChangeEvent<HTMLInputElement>) => {
                                         const updatedWidgets = widgets.map(w =>
                                             w.id === widget.id
-                                                ? { ...w, config: { ...w.config, customName: e.target.value, title: e.target.value || metadata.name } }
+                                                ? { ...w, config: { ...w.config, customName: e.target.value, title: e.target.value || metadata?.name || widget.type } }
                                                 : w
                                         );
                                         setWidgets(updatedWidgets);
                                         try {
                                             await axios.put('/api/widgets', { widgets: updatedWidgets });
                                         } catch (error) {
-                                            logger.error('Failed to update widget custom name', { widgetId: widget.id, error: error.message });
+                                            logger.error('Failed to update widget custom name', { widgetId: widget.id, error: (error as Error).message });
                                             fetchWidgets();
                                         }
                                     }}
@@ -297,7 +321,7 @@ const ActiveWidgets = () => {
                                             <input
                                                 type="checkbox"
                                                 checked={widget.config?.flatten || false}
-                                                onChange={async (e) => {
+                                                onChange={async (e: ChangeEvent<HTMLInputElement>) => {
                                                     const updatedWidgets = widgets.map(w =>
                                                         w.id === widget.id
                                                             ? { ...w, config: { ...w.config, flatten: e.target.checked } }
@@ -311,7 +335,7 @@ const ActiveWidgets = () => {
                                                             detail: { widgetId: widget.id }
                                                         }));
                                                     } catch (error) {
-                                                        logger.error('Failed to update widget flatten setting', { widgetId: widget.id, error: error.message });
+                                                        logger.error('Failed to update widget flatten setting', { widgetId: widget.id, error: (error as Error).message });
                                                         showError('Update Failed', 'Failed to update widget. Please try again.');
                                                         fetchWidgets();
                                                     }
@@ -333,7 +357,7 @@ const ActiveWidgets = () => {
                                                 <input
                                                     type="checkbox"
                                                     checked={widget.config?.showHeader !== false}
-                                                    onChange={async (e) => {
+                                                    onChange={async (e: ChangeEvent<HTMLInputElement>) => {
                                                         const updatedWidgets = widgets.map(w =>
                                                             w.id === widget.id
                                                                 ? { ...w, config: { ...w.config, showHeader: e.target.checked } }
@@ -347,7 +371,7 @@ const ActiveWidgets = () => {
                                                                 detail: { widgetId: widget.id }
                                                             }));
                                                         } catch (error) {
-                                                            logger.error('Failed to update widget header setting', { widgetId: widget.id, error: error.message });
+                                                            logger.error('Failed to update widget header setting', { widgetId: widget.id, error: (error as Error).message });
                                                             showError('Update Failed', 'Failed to update widget. Please try again.');
                                                             fetchWidgets();
                                                         }

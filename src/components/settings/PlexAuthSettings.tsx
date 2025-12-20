@@ -8,19 +8,47 @@
  * - Auto-create users toggle
  * - Default group selector
  */
-import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useRef, ChangeEvent, MutableRefObject } from 'react';
+import axios, { AxiosError } from 'axios';
 import { Tv, Save, Loader, RefreshCw, Users, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { Input } from '../common/Input';
 import { useNotifications } from '../../context/NotificationContext';
 import logger from '../../utils/logger';
 
-const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
+interface PlexConfig {
+    enabled: boolean;
+    adminEmail: string;
+    machineId: string;
+    autoCreateUsers: boolean;
+    defaultGroup: string;
+    hasToken: boolean;
+    linkedUserId: string;
+}
+
+interface PlexServer {
+    machineId: string;
+    name: string;
+    owned: boolean;
+}
+
+interface PlexUser {
+    id: string;
+    username: string;
+    displayName?: string;
+    group: string;
+}
+
+interface PlexAuthSettingsProps {
+    onSaveNeeded?: (hasChanges: boolean) => void;
+    onSave?: MutableRefObject<(() => Promise<void>) | undefined>;
+}
+
+const PlexAuthSettings: React.FC<PlexAuthSettingsProps> = ({ onSaveNeeded, onSave }) => {
     const { success: showSuccess, error: showError } = useNotifications();
-    const pollIntervalRef = useRef(null);
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Config state
-    const [config, setConfig] = useState({
+    const [config, setConfig] = useState<PlexConfig>({
         enabled: false,
         adminEmail: '',
         machineId: '',
@@ -31,18 +59,18 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
     });
 
     // UI state
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [authenticating, setAuthenticating] = useState(false);
-    const [servers, setServers] = useState([]);
-    const [loadingServers, setLoadingServers] = useState(false);
-    const [groups, setGroups] = useState([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [authenticating, setAuthenticating] = useState<boolean>(false);
+    const [servers, setServers] = useState<PlexServer[]>([]);
+    const [loadingServers, setLoadingServers] = useState<boolean>(false);
+    const [groups, setGroups] = useState<string[]>([]);
 
     // State for admin user linking
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<PlexUser[]>([]);
 
     // Change tracking
-    const [originalConfig, setOriginalConfig] = useState(null);
+    const [originalConfig, setOriginalConfig] = useState<PlexConfig | null>(null);
 
     useEffect(() => {
         fetchConfig();
@@ -62,19 +90,20 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
         }
     }, [config.hasToken]);
 
-    const fetchConfig = async () => {
+    const fetchConfig = async (): Promise<void> => {
         try {
-            const response = await axios.get('/api/plex/sso/config', { withCredentials: true });
+            const response = await axios.get<PlexConfig>('/api/plex/sso/config', { withCredentials: true });
             setConfig(response.data);
             setOriginalConfig(response.data);
         } catch (error) {
-            logger.error('[PlexAuth] Failed to fetch config:', error.message);
+            const axiosError = error as AxiosError;
+            logger.error('[PlexAuth] Failed to fetch config:', axiosError.message);
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchGroups = async () => {
+    const fetchGroups = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/config/system', { withCredentials: true });
             if (response.data.groups) {
@@ -82,39 +111,42 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                 const groupsData = response.data.groups;
                 if (Array.isArray(groupsData)) {
                     // Array format: extract IDs
-                    setGroups(groupsData.map(g => g.id));
+                    setGroups(groupsData.map((g: { id: string }) => g.id));
                 } else {
                     // Object format: use keys
                     setGroups(Object.keys(groupsData));
                 }
             }
         } catch (error) {
-            logger.error('[PlexAuth] Failed to fetch groups:', error.message);
+            const axiosError = error as AxiosError;
+            logger.error('[PlexAuth] Failed to fetch groups:', axiosError.message);
         }
     };
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/admin/users', { withCredentials: true });
             setUsers(response.data.users || []);
         } catch (error) {
-            logger.error('[PlexAuth] Failed to fetch users:', error.message);
+            const axiosError = error as AxiosError;
+            logger.error('[PlexAuth] Failed to fetch users:', axiosError.message);
         }
     };
 
-    const fetchAdminServers = async () => {
+    const fetchAdminServers = async (): Promise<void> => {
         setLoadingServers(true);
         try {
-            const response = await axios.get('/api/plex/admin-resources', { withCredentials: true });
+            const response = await axios.get<PlexServer[]>('/api/plex/admin-resources', { withCredentials: true });
             setServers(response.data);
         } catch (error) {
-            logger.debug('[PlexAuth] Failed to fetch admin servers:', error.message);
+            const axiosError = error as AxiosError;
+            logger.debug('[PlexAuth] Failed to fetch admin servers:', axiosError.message);
         } finally {
             setLoadingServers(false);
         }
     };
 
-    const handlePlexLogin = async () => {
+    const handlePlexLogin = async (): Promise<void> => {
         setAuthenticating(true);
         try {
             // Generate PIN
@@ -139,8 +171,10 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                     });
 
                     if (tokenResponse.data.authToken) {
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
+                        if (pollIntervalRef.current) {
+                            clearInterval(pollIntervalRef.current);
+                            pollIntervalRef.current = null;
+                        }
                         popup?.close();
 
                         // Save token to config
@@ -165,10 +199,13 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                         setAuthenticating(false);
                     }
                 } catch (error) {
-                    if (error.response?.status === 404) {
+                    const axiosError = error as AxiosError;
+                    if (axiosError.response?.status === 404) {
                         // PIN expired
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
+                        if (pollIntervalRef.current) {
+                            clearInterval(pollIntervalRef.current);
+                            pollIntervalRef.current = null;
+                        }
                         showError('Plex Auth Failed', 'PIN expired. Please try again.');
                         setAuthenticating(false);
                     }
@@ -185,27 +222,29 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
             }, 300000);
 
         } catch (error) {
-            logger.error('[PlexAuth] OAuth error:', error.message);
-            showError('Plex Auth Failed', error.message);
+            const axiosError = error as AxiosError;
+            logger.error('[PlexAuth] OAuth error:', axiosError.message);
+            showError('Plex Auth Failed', axiosError.message);
             setAuthenticating(false);
         }
     };
 
-    const fetchServers = async (token) => {
+    const fetchServers = async (token: string): Promise<void> => {
         setLoadingServers(true);
         try {
-            const response = await axios.get(`/api/plex/resources?token=${token}`, {
+            const response = await axios.get<PlexServer[]>(`/api/plex/resources?token=${token}`, {
                 withCredentials: true
             });
             setServers(response.data);
         } catch (error) {
-            logger.error('[PlexAuth] Failed to fetch servers:', error.message);
+            const axiosError = error as AxiosError;
+            logger.error('[PlexAuth] Failed to fetch servers:', axiosError.message);
         } finally {
             setLoadingServers(false);
         }
     };
 
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         setSaving(true);
         try {
             await axios.post('/api/plex/sso/config', {
@@ -220,8 +259,9 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
             setOriginalConfig(config); // Reset change tracking
             if (onSaveNeeded) onSaveNeeded(false);
         } catch (error) {
-            logger.error('[PlexAuth] Failed to save:', error.message);
-            showError('Save Failed', error.message);
+            const axiosError = error as AxiosError;
+            logger.error('[PlexAuth] Failed to save:', axiosError.message);
+            showError('Save Failed', axiosError.message);
         } finally {
             setSaving(false);
         }
@@ -239,7 +279,7 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
         if (!originalConfig || !onSaveNeeded) return;
 
         // Normalize values for comparison (handle undefined/null/empty string)
-        const normalize = (val) => val ?? '';
+        const normalize = (val: unknown): string => (val as string) ?? '';
 
         const hasChanges =
             !!config.enabled !== !!originalConfig.enabled ||
@@ -251,7 +291,7 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
         onSaveNeeded(hasChanges);
     }, [config, originalConfig, onSaveNeeded]);
 
-    const handleChange = (field, value) => {
+    const handleChange = (field: keyof PlexConfig, value: string | boolean): void => {
         setConfig(prev => ({ ...prev, [field]: value }));
     };
 
@@ -280,7 +320,7 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                     <input
                         type="checkbox"
                         checked={config.enabled}
-                        onChange={(e) => handleChange('enabled', e.target.checked)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('enabled', e.target.checked)}
                         disabled={!config.hasToken}
                         className="sr-only peer"
                     />
@@ -340,7 +380,7 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                         </label>
                         <select
                             value={config.linkedUserId || ''}
-                            onChange={(e) => handleChange('linkedUserId', e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleChange('linkedUserId', e.target.value)}
                             className="w-full px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
                         >
                             <option value="">No user linked (optional)</option>
@@ -363,7 +403,7 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                         <div className="flex gap-2">
                             <select
                                 value={config.machineId || ''}
-                                onChange={(e) => handleChange('machineId', e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLSelectElement>) => handleChange('machineId', e.target.value)}
                                 className="flex-1 px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
                             >
                                 <option value="">Select a server...</option>
@@ -401,7 +441,7 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                             <input
                                 type="checkbox"
                                 checked={config.autoCreateUsers}
-                                onChange={(e) => handleChange('autoCreateUsers', e.target.checked)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('autoCreateUsers', e.target.checked)}
                                 className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
@@ -416,7 +456,7 @@ const PlexAuthSettings = ({ onSaveNeeded, onSave }) => {
                             </label>
                             <select
                                 value={config.defaultGroup}
-                                onChange={(e) => handleChange('defaultGroup', e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLSelectElement>) => handleChange('defaultGroup', e.target.value)}
                                 className="w-full px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
                             >
                                 {groups.map(group => (
