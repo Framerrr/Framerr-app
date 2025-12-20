@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Tv, MonitorPlay, Film, Download, Star, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save, Check, X } from 'lucide-react';
+import React, { useState, useEffect, ChangeEvent, MouseEvent } from 'react';
+import { Tv, MonitorPlay, Film, Download, Star, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, Save, Check, X, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
@@ -10,8 +10,57 @@ import SharingDropdown from './SharingDropdown';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 
-const IntegrationsSettings = () => {
-    const [integrations, setIntegrations] = useState({
+interface SharingConfig {
+    enabled: boolean;
+    sharedBy?: string | null;
+    sharedWith?: string[];
+}
+
+interface IntegrationConfig {
+    enabled: boolean;
+    url?: string;
+    token?: string;
+    apiKey?: string;
+    username?: string;
+    password?: string;
+    sharing?: SharingConfig;
+    _isValid?: boolean;
+    [key: string]: unknown;
+}
+
+interface IntegrationField {
+    key: string;
+    label: string;
+    placeholder: string;
+    type: 'text' | 'password';
+}
+
+interface IntegrationDefinition {
+    id: string;
+    name: string;
+    description: string;
+    icon: LucideIcon;
+    fields: IntegrationField[];
+}
+
+interface IntegrationsState {
+    systemstatus: IntegrationConfig;
+    plex: IntegrationConfig;
+    sonarr: IntegrationConfig;
+    radarr: IntegrationConfig;
+    qbittorrent: IntegrationConfig;
+    overseerr: IntegrationConfig;
+    [key: string]: IntegrationConfig;
+}
+
+interface TestState {
+    loading?: boolean;
+    success?: boolean;
+    message?: string;
+}
+
+const IntegrationsSettings: React.FC = () => {
+    const [integrations, setIntegrations] = useState<IntegrationsState>({
         systemstatus: { enabled: false, url: '', token: '' },
         plex: { enabled: false, url: '', token: '' },
         sonarr: { enabled: false, url: '', apiKey: '' },
@@ -20,11 +69,11 @@ const IntegrationsSettings = () => {
         overseerr: { enabled: false, url: '', apiKey: '' }
     });
 
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [expandedSections, setExpandedSections] = useState({});
-    const [testStates, setTestStates] = useState({});
-    const [confirmReset, setConfirmReset] = useState({});
+    const [loading, setLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+    const [testStates, setTestStates] = useState<Record<string, TestState | null>>({});
+    const [confirmReset, setConfirmReset] = useState<Record<string, boolean>>({});
     const { success: showSuccess, error: showError } = useNotifications();
     const { user } = useAuth();
 
@@ -32,7 +81,7 @@ const IntegrationsSettings = () => {
         fetchIntegrations();
 
         // Listen for integration updates from SharedWidgetsSettings (revoke)
-        const handleIntegrationsUpdated = () => {
+        const handleIntegrationsUpdated = (): void => {
             fetchIntegrations();
         };
         window.addEventListener('integrationsUpdated', handleIntegrationsUpdated);
@@ -42,7 +91,7 @@ const IntegrationsSettings = () => {
         };
     }, []);
 
-    const fetchIntegrations = async () => {
+    const fetchIntegrations = async (): Promise<void> => {
         try {
             const response = await fetch('/api/integrations', {
                 credentials: 'include'
@@ -62,7 +111,7 @@ const IntegrationsSettings = () => {
         }
     };
 
-    const handleToggle = (service) => {
+    const handleToggle = (service: string): void => {
         setIntegrations(prev => ({
             ...prev,
             [service]: {
@@ -77,7 +126,7 @@ const IntegrationsSettings = () => {
         }
     };
 
-    const handleFieldChange = (service, field, value) => {
+    const handleFieldChange = (service: string, field: string, value: string): void => {
         setIntegrations(prev => ({
             ...prev,
             [service]: {
@@ -87,7 +136,7 @@ const IntegrationsSettings = () => {
         }));
     };
 
-    const handleSharingChange = (service, sharingConfig) => {
+    const handleSharingChange = (service: string, sharingConfig: SharingConfig): void => {
         setIntegrations(prev => ({
             ...prev,
             [service]: {
@@ -100,7 +149,7 @@ const IntegrationsSettings = () => {
         }));
     };
 
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         setSaving(true);
         try {
             const response = await fetch('/api/integrations', {
@@ -127,7 +176,7 @@ const IntegrationsSettings = () => {
         }
     };
 
-    const handleTest = async (service) => {
+    const handleTest = async (service: string): Promise<void> => {
         setTestStates(prev => ({ ...prev, [service]: { loading: true } }));
         try {
             const response = await fetch('/api/integrations/test', {
@@ -162,19 +211,19 @@ const IntegrationsSettings = () => {
                 [service]: {
                     loading: false,
                     success: false,
-                    message: `✗ ${error.message || 'Connection failed'}`
+                    message: `✗ ${(error as Error).message || 'Connection failed'}`
                 }
             }));
         }
     };
 
-    const toggleSection = (service) => {
+    const toggleSection = (service: string): void => {
         setExpandedSections(prev => ({ ...prev, [service]: !prev[service] }));
     };
 
-    const handleReset = (service, fields) => {
+    const handleReset = (service: string, fields: IntegrationField[]): void => {
         // Reset to default values
-        const resetData = { enabled: false };
+        const resetData: IntegrationConfig = { enabled: false };
         fields.forEach(field => {
             resetData[field.key] = '';
         });
@@ -187,7 +236,7 @@ const IntegrationsSettings = () => {
     };
 
     // Helper to check if integration is configured
-    const isConfigured = (service) => {
+    const isConfigured = (service: string): boolean => {
         const config = integrations[service];
         if (!config?.enabled) return false;
         // Check if URL is filled (required for all integrations)
@@ -195,7 +244,7 @@ const IntegrationsSettings = () => {
     };
 
     // Define integration configuration metadata - excludes systemstatus and plex (handled separately)
-    const integrationConfigs = [
+    const integrationConfigs: IntegrationDefinition[] = [
         {
             id: 'sonarr',
             name: 'Sonarr',
@@ -274,27 +323,27 @@ const IntegrationsSettings = () => {
                 {/* System Health Integration - Special Multi-Backend Component */}
                 <SystemHealthIntegration
                     integration={integrations.systemstatus}
-                    onUpdate={(updated) => {
+                    onUpdate={(updated: IntegrationConfig) => {
                         setIntegrations(prev => ({
                             ...prev,
                             systemstatus: updated
                         }));
                     }}
                     sharing={integrations.systemstatus?.sharing}
-                    onSharingChange={(sharingConfig) => handleSharingChange('systemstatus', sharingConfig)}
+                    onSharingChange={(sharingConfig: SharingConfig) => handleSharingChange('systemstatus', sharingConfig)}
                 />
 
                 {/* Plex Integration - Special OAuth Component */}
                 <PlexIntegration
                     integration={integrations.plex}
-                    onUpdate={(updated) => {
+                    onUpdate={(updated: IntegrationConfig) => {
                         setIntegrations(prev => ({
                             ...prev,
                             plex: updated
                         }));
                     }}
                     sharing={integrations.plex?.sharing}
-                    onSharingChange={(sharingConfig) => handleSharingChange('plex', sharingConfig)}
+                    onSharingChange={(sharingConfig: SharingConfig) => handleSharingChange('plex', sharingConfig)}
                 />
 
                 {/* Other Integrations */}
@@ -337,7 +386,7 @@ const IntegrationsSettings = () => {
 
                                     {/* Toggle Switch */}
                                     <div
-                                        onClick={(e) => {
+                                        onClick={(e: MouseEvent<HTMLDivElement>) => {
                                             e.stopPropagation();
                                             handleToggle(config.id);
                                         }}
@@ -367,8 +416,8 @@ const IntegrationsSettings = () => {
                                                     key={field.key}
                                                     label={field.label}
                                                     type={field.type}
-                                                    value={integrations[config.id][field.key] || ''}
-                                                    onChange={(e) => handleFieldChange(config.id, field.key, e.target.value)}
+                                                    value={(integrations[config.id][field.key] as string) || ''}
+                                                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleFieldChange(config.id, field.key, e.target.value)}
                                                     placeholder={field.placeholder}
                                                 />
                                             ))}
@@ -377,7 +426,7 @@ const IntegrationsSettings = () => {
                                             <SharingDropdown
                                                 service={config.id}
                                                 sharing={integrations[config.id]?.sharing}
-                                                onChange={(sharingConfig) => handleSharingChange(config.id, sharingConfig)}
+                                                onChange={(sharingConfig: SharingConfig) => handleSharingChange(config.id, sharingConfig)}
                                                 disabled={!isConfigured(config.id)}
                                             />
 

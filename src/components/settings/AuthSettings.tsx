@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, ChangeEvent, FormEvent, KeyboardEvent, MutableRefObject } from 'react';
 import axios from 'axios';
 import { Shield, Save, Loader, Globe, Lock, ExternalLink, ChevronDown, ChevronUp, Check, X, Tv } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -8,11 +8,30 @@ import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import PlexAuthSettings from './PlexAuthSettings';
 
-const AuthSettings = () => {
+type TabId = 'proxy' | 'plex' | 'iframe';
+type DetectionSensitivity = 'conservative' | 'balanced' | 'aggressive';
+
+interface OriginalSettings {
+    proxyEnabled: boolean;
+    headerName: string;
+    emailHeaderName: string;
+    whitelist: string;
+    overrideLogout: boolean;
+    logoutUrl: string;
+    iframeEnabled: boolean;
+    oauthEndpoint: string;
+    clientId: string;
+    redirectUri: string;
+    scopes: string;
+    authDetectionSensitivity: DetectionSensitivity;
+    customAuthPatterns: string[];
+}
+
+const AuthSettings: React.FC = () => {
     const { error: showError, warning: showWarning } = useNotifications();
 
     // Subtab state
-    const [activeTab, setActiveTab] = useState('proxy'); // 'proxy', 'plex', or 'iframe'
+    const [activeTab, setActiveTab] = useState<TabId>('proxy');
 
     const tabSpring = {
         type: 'spring',
@@ -21,39 +40,57 @@ const AuthSettings = () => {
     };
 
     // Auth proxy state
-    const [proxyEnabled, setProxyEnabled] = useState(false);
-    const [headerName, setHeaderName] = useState('');
-    const [emailHeaderName, setEmailHeaderName] = useState('');
-    const [whitelist, setWhitelist] = useState('');
-    const [overrideLogout, setOverrideLogout] = useState(false);
-    const [logoutUrl, setLogoutUrl] = useState('');
+    const [proxyEnabled, setProxyEnabled] = useState<boolean>(false);
+    const [headerName, setHeaderName] = useState<string>('');
+    const [emailHeaderName, setEmailHeaderName] = useState<string>('');
+    const [whitelist, setWhitelist] = useState<string>('');
+    const [overrideLogout, setOverrideLogout] = useState<boolean>(false);
+    const [logoutUrl, setLogoutUrl] = useState<string>('');
 
     // iFrame auth state
-    const [iframeEnabled, setIframeEnabled] = useState(false);
-    const [oauthEndpoint, setOauthEndpoint] = useState('');
-    const [clientId, setClientId] = useState('');
-    const [redirectUri, setRedirectUri] = useState('');
-    const [scopes, setScopes] = useState('openid profile email');
+    const [iframeEnabled, setIframeEnabled] = useState<boolean>(false);
+    const [oauthEndpoint, setOauthEndpoint] = useState<string>('');
+    const [clientId, setClientId] = useState<string>('');
+    const [redirectUri, setRedirectUri] = useState<string>('');
+    const [scopes, setScopes] = useState<string>('openid profile email');
 
     // iFrame auth detection state
-    const [authDetectionSensitivity, setAuthDetectionSensitivity] = useState('balanced');
-    const [customAuthPatterns, setCustomAuthPatterns] = useState([]);
-    const [newAuthPattern, setNewAuthPattern] = useState('');
+    const [authDetectionSensitivity, setAuthDetectionSensitivity] = useState<DetectionSensitivity>('balanced');
+    const [customAuthPatterns, setCustomAuthPatterns] = useState<string[]>([]);
+    const [newAuthPattern, setNewAuthPattern] = useState<string>('');
 
     // UI state
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [hasChanges, setHasChanges] = useState(false);
-    const [originalSettings, setOriginalSettings] = useState({});
-    const [showAuthentikInstructions, setShowAuthentikInstructions] = useState(false);
-    const [testingOAuth, setTestingOAuth] = useState(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [hasChanges, setHasChanges] = useState<boolean>(false);
+    const [originalSettings, setOriginalSettings] = useState<OriginalSettings>({
+        proxyEnabled: false,
+        headerName: '',
+        emailHeaderName: '',
+        whitelist: '',
+        overrideLogout: false,
+        logoutUrl: '',
+        iframeEnabled: false,
+        oauthEndpoint: '',
+        clientId: '',
+        redirectUri: '',
+        scopes: '',
+        authDetectionSensitivity: 'balanced',
+        customAuthPatterns: []
+    });
+    const [showAuthentikInstructions, setShowAuthentikInstructions] = useState<boolean>(false);
+    const [testingOAuth, setTestingOAuth] = useState<boolean>(false);
 
     // Plex SSO integration
-    const [plexHasChanges, setPlexHasChanges] = useState(false);
-    const plexSaveRef = useRef(null);
+    const [plexHasChanges, setPlexHasChanges] = useState<boolean>(false);
+    const plexSaveRef = useRef<(() => Promise<void>) | null>(null);
 
     // Refs for auto-scrolling sub-tab buttons into view
-    const subTabRefs = useRef({});
+    const subTabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({
+        proxy: null,
+        plex: null,
+        iframe: null
+    });
 
     useEffect(() => {
         fetchSettings();
@@ -110,7 +147,7 @@ const AuthSettings = () => {
         }
     }, [proxyEnabled]);
 
-    const fetchSettings = async () => {
+    const fetchSettings = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/config/auth');
             const { proxy, iframe } = response.data;
@@ -150,13 +187,13 @@ const AuthSettings = () => {
                 customAuthPatterns: iframeAuth.customPatterns || []
             });
         } catch (error) {
-            logger.error('Failed to fetch auth settings', { error: error.message });
+            logger.error('Failed to fetch auth settings', { error: (error as Error).message });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         // If on Plex tab, delegate to PlexAuthSettings save
         if (activeTab === 'plex' && plexSaveRef.current) {
             await plexSaveRef.current();
@@ -215,21 +252,21 @@ const AuthSettings = () => {
 
             logger.info('Auth settings saved successfully');
         } catch (error) {
-            logger.error('Failed to save auth settings', { error: error.message });
-            showError('Save Failed', error.response?.data?.error || 'Failed to save settings. Please try again.');
+            logger.error('Failed to save auth settings', { error: (error as Error).message });
+            showError('Save Failed', (error as any).response?.data?.error || 'Failed to save settings. Please try again.');
         } finally {
             setSaving(false);
         }
     };
 
-    const handleUseAuthentikTemplate = () => {
+    const handleUseAuthentikTemplate = (): void => {
         setOauthEndpoint('https://auth.example.com/application/o/authorize/');
         setClientId('');
         setRedirectUri(`${window.location.origin}/login-complete`);
         setScopes('openid profile email');
     };
 
-    const handleTestOAuth = () => {
+    const handleTestOAuth = (): void => {
         if (!oauthEndpoint || !clientId) {
             showWarning('Missing Fields', 'Please fill in OAuth endpoint and client ID before testing');
             return;
@@ -241,21 +278,21 @@ const AuthSettings = () => {
         const testWindow = window.open(testUrl, '_blank', 'width=600,height=700');
 
         const interval = setInterval(() => {
-            if (testWindow.closed) {
+            if (testWindow?.closed) {
                 clearInterval(interval);
                 setTestingOAuth(false);
             }
         }, 500);
     };
 
-    const handleAddAuthPattern = () => {
+    const handleAddAuthPattern = (): void => {
         if (newAuthPattern.trim() && !customAuthPatterns.includes(newAuthPattern.trim())) {
             setCustomAuthPatterns([...customAuthPatterns, newAuthPattern.trim()]);
             setNewAuthPattern('');
         }
     };
 
-    const handleRemoveAuthPattern = (pattern) => {
+    const handleRemoveAuthPattern = (pattern: string): void => {
         setCustomAuthPatterns(customAuthPatterns.filter(p => p !== pattern));
     };
 
@@ -354,7 +391,7 @@ const AuthSettings = () => {
                             <input
                                 type="checkbox"
                                 checked={proxyEnabled}
-                                onChange={(e) => setProxyEnabled(e.target.checked)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setProxyEnabled(e.target.checked)}
                                 className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
@@ -367,7 +404,7 @@ const AuthSettings = () => {
                             label="Auth Proxy Header Name"
                             type="text"
                             value={headerName}
-                            onChange={(e) => setHeaderName(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setHeaderName(e.target.value)}
                             disabled={!proxyEnabled}
                             placeholder="X-Auth-User"
                             helperText="HTTP header containing the username"
@@ -376,7 +413,7 @@ const AuthSettings = () => {
                             label="Auth Proxy Header Name for Email"
                             type="text"
                             value={emailHeaderName}
-                            onChange={(e) => setEmailHeaderName(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmailHeaderName(e.target.value)}
                             disabled={!proxyEnabled}
                             placeholder="X-Auth-Email"
                             helperText="HTTP header containing the user email"
@@ -387,7 +424,7 @@ const AuthSettings = () => {
                         label="Auth Proxy Whitelist"
                         type="text"
                         value={whitelist}
-                        onChange={(e) => setWhitelist(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setWhitelist(e.target.value)}
                         disabled={!proxyEnabled}
                         placeholder="10.0.0.0/8, 172.16.0.0/12"
                         helperText="Trusted proxy source IPs (where auth headers come from) - comma-separated IPs or CIDR ranges"
@@ -407,7 +444,7 @@ const AuthSettings = () => {
                             <input
                                 type="checkbox"
                                 checked={overrideLogout}
-                                onChange={(e) => setOverrideLogout(e.target.checked)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setOverrideLogout(e.target.checked)}
                                 disabled={!proxyEnabled}
                                 className="sr-only peer"
                             />
@@ -420,7 +457,7 @@ const AuthSettings = () => {
                             label="Logout URL"
                             type="text"
                             value={logoutUrl}
-                            onChange={(e) => setLogoutUrl(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setLogoutUrl(e.target.value)}
                             placeholder="https://auth.example.com/logout"
                             helperText="URL to redirect to when user logs out"
                         />
@@ -432,7 +469,7 @@ const AuthSettings = () => {
             {activeTab === 'plex' && (
                 <PlexAuthSettings
                     onSaveNeeded={setPlexHasChanges}
-                    onSave={plexSaveRef}
+                    onSave={plexSaveRef as MutableRefObject<(() => Promise<void>) | null>}
                 />
             )}
 
@@ -463,7 +500,7 @@ const AuthSettings = () => {
                                 Detection Sensitivity
                             </label>
                             <div className="grid grid-cols-3 gap-3">
-                                {['conservative', 'balanced', 'aggressive'].map((level) => (
+                                {(['conservative', 'balanced', 'aggressive'] as DetectionSensitivity[]).map((level) => (
                                     <button
                                         key={level}
                                         onClick={() => setAuthDetectionSensitivity(level)}
@@ -502,8 +539,8 @@ const AuthSettings = () => {
                                 <input
                                     type="text"
                                     value={newAuthPattern}
-                                    onChange={(e) => setNewAuthPattern(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddAuthPattern()}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setNewAuthPattern(e.target.value)}
+                                    onKeyPress={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleAddAuthPattern()}
                                     placeholder="auth.yourdomain.com"
                                     className="flex-1 px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
                                 />
@@ -555,7 +592,7 @@ const AuthSettings = () => {
                                 <input
                                     type="checkbox"
                                     checked={iframeEnabled}
-                                    onChange={(e) => setIframeEnabled(e.target.checked)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setIframeEnabled(e.target.checked)}
                                     className="sr-only peer"
                                 />
                                 <div className="w-11 h-6 bg-theme-primary border border-theme peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
@@ -579,7 +616,7 @@ const AuthSettings = () => {
                                 label="OAuth Provider Endpoint"
                                 type="text"
                                 value={oauthEndpoint}
-                                onChange={(e) => setOauthEndpoint(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setOauthEndpoint(e.target.value)}
                                 placeholder="https://auth.example.com/application/o/authorize/"
                                 helperText="OAuth 2.0 authorization endpoint URL (must be HTTPS)"
                             />
@@ -588,7 +625,7 @@ const AuthSettings = () => {
                                 label="Client ID"
                                 type="text"
                                 value={clientId}
-                                onChange={(e) => setClientId(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setClientId(e.target.value)}
                                 placeholder="your-client-id-here"
                                 helperText="OAuth client ID from your provider"
                             />
@@ -597,7 +634,7 @@ const AuthSettings = () => {
                                 label="Redirect URI"
                                 type="text"
                                 value={redirectUri}
-                                onChange={(e) => setRedirectUri(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setRedirectUri(e.target.value)}
                                 placeholder={`${window.location.origin}/login-complete`}
                                 helperText="OAuth callback URL (auto-populated)"
                             />
@@ -606,7 +643,7 @@ const AuthSettings = () => {
                                 label="Scopes"
                                 type="text"
                                 value={scopes}
-                                onChange={(e) => setScopes(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setScopes(e.target.value)}
                                 placeholder="openid profile email"
                                 helperText="Space-separated OAuth scopes"
                             />

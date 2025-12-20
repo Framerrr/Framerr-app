@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent, ReactElement } from 'react';
 import { Plus, Edit, Trash2, X, Save, GripVertical, Loader, Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -14,6 +14,7 @@ import {
     TouchSensor,
     useSensor,
     useSensors,
+    DragEndEvent,
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -26,8 +27,49 @@ import { CSS } from '@dnd-kit/utilities';
 import logger from '../../utils/logger';
 import { useNotifications } from '../../context/NotificationContext';
 
+interface Tab {
+    id: string;
+    name: string;
+    url: string;
+    slug: string;
+    icon?: string;
+    groupId?: string;
+    enabled?: boolean;
+}
+
+interface TabGroup {
+    id: string;
+    name: string;
+}
+
+interface FormData {
+    name: string;
+    url: string;
+    icon: string;
+    groupId: string;
+    enabled: boolean;
+}
+
+type ModalMode = 'create' | 'edit';
+
+interface SortableTabItemProps {
+    tab: Tab;
+    onEdit: (tab: Tab) => void;
+    onDelete: (tabId: string, tabName: string) => void;
+    getIconComponent: (iconName: string) => ReactElement;
+    confirmDeleteId: string | null;
+    setConfirmDeleteId: (id: string | null) => void;
+}
+
 // Sortable Tab Item Component
-const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent, confirmDeleteId, setConfirmDeleteId }) => {
+const SortableTabItem: React.FC<SortableTabItemProps> = ({
+    tab,
+    onEdit,
+    onDelete,
+    getIconComponent,
+    confirmDeleteId,
+    setConfirmDeleteId
+}) => {
     const {
         attributes,
         listeners,
@@ -42,7 +84,7 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent, confirmDelet
         transition: isDragging ? 'none' : transition,  // No transition while dragging
         opacity: isDragging ? 0.5 : 1,
         willChange: isDragging ? 'transform' : 'auto'
-    };
+    } as React.CSSProperties;
 
     return (
         <div
@@ -62,7 +104,7 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent, confirmDelet
                     MozUserSelect: 'none',
                     msUserSelect: 'none',
                     WebkitTouchCallout: 'none'
-                }}
+                } as React.CSSProperties}
                 title="Drag to reorder"
             >
                 <GripVertical size={20} />
@@ -71,7 +113,7 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent, confirmDelet
             {/* Tab Info */}
             <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {getIconComponent(tab.icon)}
+                    {getIconComponent(tab.icon || 'Server')}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
@@ -135,17 +177,17 @@ const SortableTabItem = ({ tab, onEdit, onDelete, getIconComponent, confirmDelet
     );
 };
 
-const UserTabsSettings = () => {
-    const [tabs, setTabs] = useState([]);
-    const [tabGroups, setTabGroups] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState('create');
-    const [selectedTab, setSelectedTab] = useState(null);
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+const UserTabsSettings: React.FC = () => {
+    const [tabs, setTabs] = useState<Tab[]>([]);
+    const [tabGroups, setTabGroups] = useState<TabGroup[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [modalMode, setModalMode] = useState<ModalMode>('create');
+    const [selectedTab, setSelectedTab] = useState<Tab | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const { error: showError, success: showSuccess } = useNotifications();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         name: '',
         url: '',
         icon: 'Server',
@@ -172,7 +214,7 @@ const UserTabsSettings = () => {
         fetchTabGroups();
     }, []);
 
-    const fetchTabs = async () => {
+    const fetchTabs = async (): Promise<void> => {
         try {
             const response = await fetch('/api/tabs', {
                 credentials: 'include'
@@ -188,7 +230,7 @@ const UserTabsSettings = () => {
         }
     };
 
-    const fetchTabGroups = async () => {
+    const fetchTabGroups = async (): Promise<void> => {
         try {
             const response = await fetch('/api/config/system', {
                 credentials: 'include'
@@ -202,7 +244,7 @@ const UserTabsSettings = () => {
         }
     };
 
-    const handleAdd = () => {
+    const handleAdd = (): void => {
         setModalMode('create');
         setSelectedTab(null);
         setFormData({
@@ -215,7 +257,7 @@ const UserTabsSettings = () => {
         setShowModal(true);
     };
 
-    const handleEdit = (tab) => {
+    const handleEdit = (tab: Tab): void => {
         setModalMode('edit');
         setSelectedTab(tab);
         setFormData({
@@ -228,12 +270,12 @@ const UserTabsSettings = () => {
         setShowModal(true);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
 
         const url = modalMode === 'create'
             ? '/api/tabs'
-            : `/api/tabs/${selectedTab.id}`;
+            : `/api/tabs/${selectedTab?.id}`;
 
         const method = modalMode === 'create' ? 'POST' : 'PUT';
 
@@ -264,7 +306,7 @@ const UserTabsSettings = () => {
         }
     };
 
-    const handleDelete = async (tabId, tabName) => {
+    const handleDelete = async (tabId: string, tabName: string): Promise<void> => {
         try {
             const response = await fetch(`/api/tabs/${tabId}`, {
                 method: 'DELETE',
@@ -289,7 +331,7 @@ const UserTabsSettings = () => {
         }
     };
 
-    const handleDragEnd = async (event) => {
+    const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
         const { active, over } = event;
 
         if (!over || active.id === over.id) return;
@@ -321,8 +363,8 @@ const UserTabsSettings = () => {
         }
     };
 
-    const getIconComponent = (iconName) => {
-        const IconComponent = Icons[iconName] || Icons.Server;
+    const getIconComponent = (iconName: string): ReactElement => {
+        const IconComponent = (Icons as Record<string, React.ComponentType<{ size: number; className: string }>>)[iconName] || Icons.Server;
         return <IconComponent size={20} className="text-accent" />;
     };
 
@@ -435,7 +477,7 @@ const UserTabsSettings = () => {
                                         <Input
                                             label="Tab Name"
                                             value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                                             required
                                             placeholder="e.g., Radarr"
                                             helperText="Appears in sidebar (URL slug auto-generated)"
@@ -445,7 +487,7 @@ const UserTabsSettings = () => {
                                             label="URL"
                                             type="url"
                                             value={formData.url}
-                                            onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, url: e.target.value })}
                                             required
                                             placeholder="http://example.com"
                                         />
@@ -456,7 +498,7 @@ const UserTabsSettings = () => {
                                             </label>
                                             <IconPicker
                                                 value={formData.icon}
-                                                onChange={(icon) => setFormData({ ...formData, icon })}
+                                                onChange={(icon: string) => setFormData({ ...formData, icon })}
                                             />
                                         </div>
 
@@ -466,7 +508,7 @@ const UserTabsSettings = () => {
                                             </label>
                                             <select
                                                 value={formData.groupId}
-                                                onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
+                                                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, groupId: e.target.value })}
                                                 className="w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                                             >
                                                 <option value="">No Group</option>
@@ -486,7 +528,7 @@ const UserTabsSettings = () => {
                                                 type="checkbox"
                                                 id="enabled"
                                                 checked={formData.enabled}
-                                                onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+                                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, enabled: e.target.checked })}
                                                 className="w-4 h-4 rounded border-theme text-accent focus:ring-accent"
                                             />
                                             <label htmlFor="enabled" className="text-sm text-theme-secondary">

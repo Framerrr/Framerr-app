@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent, MouseEvent } from 'react';
 import { Users as UsersIcon, Plus, Edit, Trash2, Key, X, Save, Loader, Check, Copy } from 'lucide-react';
 import logger from '../../utils/logger';
 import { Input } from '../common/Input';
@@ -6,29 +6,56 @@ import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 
+interface PermissionGroup {
+    id: string;
+    name: string;
+}
+
 // Hardcoded permission groups - admin, user, guest
-const PERMISSION_GROUPS = [
+const PERMISSION_GROUPS: PermissionGroup[] = [
     { id: 'admin', name: 'Admin' },
     { id: 'user', name: 'User' },
     { id: 'guest', name: 'Guest' }
 ];
 
-const UsersSettings = () => {
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState('create');
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const [confirmResetId, setConfirmResetId] = useState(null);
-    const [tempPassword, setTempPassword] = useState(null);
+interface User {
+    id: string;
+    username: string;
+    email?: string;
+    group?: string;
+    createdAt?: number;
+}
+
+interface FormData {
+    username: string;
+    email: string;
+    password: string;
+    group: string;
+}
+
+interface TempPassword {
+    userId: string;
+    password: string;
+}
+
+type ModalMode = 'create' | 'edit';
+
+const UsersSettings: React.FC = () => {
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [modalMode, setModalMode] = useState<ModalMode>('create');
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [confirmResetId, setConfirmResetId] = useState<string | null>(null);
+    const [tempPassword, setTempPassword] = useState<TempPassword | null>(null);
     const { error: showError, success: showSuccess } = useNotifications();
     const { user: currentUser } = useAuth();
 
     // Check if editing self (to prevent group demotion)
     const isEditingSelf = modalMode === 'edit' && selectedUser?.id === currentUser?.id;
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         username: '',
         email: '',
         password: '',
@@ -36,13 +63,13 @@ const UsersSettings = () => {
     });
 
     // Check if group is admin
-    const isAdminGroup = (group) => group === 'admin';
+    const isAdminGroup = (group: string | undefined): boolean => group === 'admin';
 
     useEffect(() => {
         fetchUsers();
     }, []);
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (): Promise<void> => {
         try {
             const response = await fetch('/api/admin/users', {
                 credentials: 'include'
@@ -59,14 +86,14 @@ const UsersSettings = () => {
         }
     };
 
-    const handleCreateUser = () => {
+    const handleCreateUser = (): void => {
         setModalMode('create');
         setFormData({ username: '', email: '', password: '', group: 'user' });
         setSelectedUser(null);
         setShowModal(true);
     };
 
-    const handleEditUser = (user) => {
+    const handleEditUser = (user: User): void => {
         setModalMode('edit');
         setFormData({
             username: user.username,
@@ -78,13 +105,13 @@ const UsersSettings = () => {
         setShowModal(true);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
 
         try {
             const url = modalMode === 'create'
                 ? '/api/admin/users'
-                : `/api/admin/users/${selectedUser.id}`;
+                : `/api/admin/users/${selectedUser?.id}`;
 
             const method = modalMode === 'create' ? 'POST' : 'PUT';
 
@@ -116,7 +143,7 @@ const UsersSettings = () => {
         }
     };
 
-    const handleDeleteUser = async (userId, username) => {
+    const handleDeleteUser = async (userId: string, username: string): Promise<void> => {
         try {
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE',
@@ -139,7 +166,7 @@ const UsersSettings = () => {
         }
     };
 
-    const handleResetPassword = async (userId, username) => {
+    const handleResetPassword = async (userId: string, username: string): Promise<void> => {
         try {
             const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
                 method: 'POST',
@@ -350,7 +377,7 @@ const UsersSettings = () => {
                     onClick={() => setShowModal(false)}
                 >
                     <div
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
                         className="glass-card rounded-xl shadow-deep border border-theme p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
                     >
                         {/* Modal Header */}
@@ -372,7 +399,7 @@ const UsersSettings = () => {
                             <Input
                                 label="Username"
                                 value={formData.username}
-                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, username: e.target.value })}
                                 required
                             />
 
@@ -380,7 +407,7 @@ const UsersSettings = () => {
                                 label="Email (Optional)"
                                 type="email"
                                 value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
                                 placeholder="user@example.com"
                                 helperText="If set, user can login with either username or email"
                             />
@@ -389,7 +416,7 @@ const UsersSettings = () => {
                                 label={`Password ${modalMode === 'edit' ? '(leave blank to keep current)' : ''}`}
                                 type="password"
                                 value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
                                 required={modalMode === 'create'}
                             />
 
@@ -399,7 +426,7 @@ const UsersSettings = () => {
                                 </label>
                                 <select
                                     value={formData.group}
-                                    onChange={(e) => setFormData({ ...formData, group: e.target.value })}
+                                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, group: e.target.value })}
                                     disabled={isEditingSelf}
                                     className={`w-full px-4 py-3 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all ${isEditingSelf ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
