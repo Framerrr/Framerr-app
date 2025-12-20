@@ -1,11 +1,15 @@
 import React from 'react';
 import { WifiOff } from 'lucide-react';
 
+export interface IntegrationConnectionErrorProps {
+    serviceName: string;
+}
+
 /**
  * IntegrationConnectionError - Shown when integration data couldn't be loaded
  * due to network error (no internet, server unreachable, etc.)
  */
-const IntegrationConnectionError = ({ serviceName }) => {
+const IntegrationConnectionError = ({ serviceName }: IntegrationConnectionErrorProps): React.JSX.Element => {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <WifiOff size={32} className="text-theme-secondary opacity-50 mb-3" />

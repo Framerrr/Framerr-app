@@ -4,7 +4,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useSystemConfig } from '../../context/SystemConfigContext';
 import { hasPermission } from '../../utils/permissions';
 
-const ProtectedRoute = ({ children, requiredPermission = null }) => {
+export interface ProtectedRouteProps {
+    children: React.ReactNode;
+    requiredPermission?: string | null;
+}
+
+const ProtectedRoute = ({ children, requiredPermission = null }: ProtectedRouteProps): React.JSX.Element => {
     const { user, loading: authLoading, isAuthenticated } = useAuth();
     const { systemConfig, loading: configLoading } = useSystemConfig();
     const location = useLocation();
@@ -34,7 +39,7 @@ const ProtectedRoute = ({ children, requiredPermission = null }) => {
         }
     }
 
-    return children;
+    return <>{children}</>;
 };
 
 export default ProtectedRoute;

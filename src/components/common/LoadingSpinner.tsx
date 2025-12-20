@@ -1,13 +1,18 @@
 import React from 'react';
 
+type SpinnerSize = 'sm' | 'md' | 'lg' | 'small' | 'medium' | 'large';
+
+export interface LoadingSpinnerProps {
+    size?: SpinnerSize;
+    message?: string;
+}
+
 /**
  * LoadingSpinner - Animated loading indicator with theme support
- * @param {string} size - Size variant: 'sm'|'md'|'lg' (or 'small'|'medium'|'large')
- * @param {string} message - Optional loading message to display below spinner
  */
-const LoadingSpinner = ({ size = 'md', message }) => {
+const LoadingSpinner = ({ size = 'md', message }: LoadingSpinnerProps): React.JSX.Element => {
     // Size mapping with aliases
-    const sizeClasses = {
+    const sizeClasses: Record<SpinnerSize, string> = {
         sm: 'h-4 w-4',
         md: 'h-8 w-8',
         lg: 'h-12 w-12',

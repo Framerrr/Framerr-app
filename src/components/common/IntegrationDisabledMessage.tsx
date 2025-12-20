@@ -1,11 +1,15 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 
+export interface IntegrationDisabledMessageProps {
+    serviceName: string;
+}
+
 /**
  * IntegrationDisabledMessage - Reusable component for disabled integration state
  * Shows when a widget's integration is not enabled in settings
  */
-const IntegrationDisabledMessage = ({ serviceName }) => {
+const IntegrationDisabledMessage = ({ serviceName }: IntegrationDisabledMessageProps): React.JSX.Element => {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <AlertCircle size={32} className="text-warning opacity-50 mb-3" />

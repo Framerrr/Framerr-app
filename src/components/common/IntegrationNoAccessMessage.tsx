@@ -1,11 +1,15 @@
 import React from 'react';
 import { ShieldOff } from 'lucide-react';
 
+export interface IntegrationNoAccessMessageProps {
+    serviceName: string;
+}
+
 /**
  * IntegrationNoAccessMessage - Shown to non-admin users when they don't have access to an integration
  * Unlike IntegrationDisabledMessage (for admins), this doesn't link to settings
  */
-const IntegrationNoAccessMessage = ({ serviceName }) => {
+const IntegrationNoAccessMessage = ({ serviceName }: IntegrationNoAccessMessageProps): React.JSX.Element => {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <ShieldOff size={32} className="text-theme-secondary opacity-50 mb-3" />

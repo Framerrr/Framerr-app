@@ -1,5 +1,21 @@
 import React from 'react';
 
+type CardPadding = 'sm' | 'md' | 'lg' | 'xl';
+
+export interface CardProps {
+    children?: React.ReactNode;
+    className?: string;
+    hover?: boolean;
+    padding?: CardPadding;
+}
+
+export interface CardHeaderProps {
+    title: React.ReactNode;
+    description?: React.ReactNode;
+    action?: React.ReactNode;
+    divider?: boolean;
+}
+
 /**
  * Card Component - Simple modern container
  */
@@ -8,13 +24,15 @@ export const Card = ({
     className = '',
     hover = false,
     padding = 'lg'
-}) => {
-    const paddingClass = {
+}: CardProps): React.JSX.Element => {
+    const paddingClasses: Record<CardPadding, string> = {
         sm: 'p-4',
         md: 'p-5',
         lg: 'p-6',
         xl: 'p-8'
-    }[padding];
+    };
+
+    const paddingClass = paddingClasses[padding];
 
     const baseClasses = `${paddingClass} glass-card rounded-xl transition-all duration-200 relative`;
     const hoverClasses = hover ? 'hover:shadow-xl hover:shadow-accent/20 hover:-translate-y-1 hover:border-accent/50 cursor-pointer' : '';
@@ -35,7 +53,7 @@ export const CardHeader = ({
     description,
     action,
     divider = true
-}) => {
+}: CardHeaderProps): React.JSX.Element => {
     return (
         <div className={`mb-6 ${divider ? 'pb-4 border-b border-theme' : ''}`}>
             <div className="flex items-center justify-between gap-4">

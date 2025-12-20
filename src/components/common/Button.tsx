@@ -1,4 +1,16 @@
 import React from 'react';
+import { LucideIcon } from 'lucide-react';
+
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    children?: React.ReactNode;
+    variant?: ButtonVariant;
+    size?: ButtonSize;
+    icon?: LucideIcon;
+    fullWidth?: boolean;
+}
 
 /**
  * Button Component - Consistent button styling with variants
@@ -14,8 +26,8 @@ export const Button = ({
     className = '',
     fullWidth = false,
     ...props
-}) => {
-    const variants = {
+}: ButtonProps): React.JSX.Element => {
+    const variants: Record<ButtonVariant, string> = {
         primary: 'bg-accent text-white hover:bg-accent-hover border-none',
         secondary: 'bg-theme-tertiary text-theme-primary border border-theme hover:bg-theme-hover',
         danger: 'bg-error text-white border-none hover:bg-red-600',
@@ -23,7 +35,7 @@ export const Button = ({
         outline: 'bg-transparent text-accent border border-accent hover:bg-accent/10'
     };
 
-    const sizes = {
+    const sizes: Record<ButtonSize, string> = {
         sm: 'px-3 py-2 text-sm',
         md: 'px-4 py-3 text-base',
         lg: 'px-6 py-4 text-lg'

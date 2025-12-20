@@ -1,4 +1,19 @@
 import React from 'react';
+import { LucideIcon } from 'lucide-react';
+
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    label?: string;
+    error?: string;
+    helperText?: string;
+    icon?: LucideIcon;
+}
+
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+    label?: string;
+    error?: string;
+    helperText?: string;
+    rows?: number;
+}
 
 /**
  * Input Component - Consistent form input styling
@@ -10,7 +25,7 @@ export const Input = ({
     icon: Icon,
     className = '',
     ...props
-}) => {
+}: InputProps): React.JSX.Element => {
     return (
         <div className={`mb-4 ${className}`}>
             {label && (
@@ -27,13 +42,13 @@ export const Input = ({
                 <input
                     {...props}
                     className={`w-full rounded-lg transition-all focus:outline-none focus:ring-2 bg-theme-tertiary text-theme-primary text-base placeholder-theme-tertiary
-                        ${error
+            ${error
                             ? 'border-error focus:border-error focus:ring-error/20'
                             : 'border-theme focus:border-accent focus:ring-accent/20'
                         }
-                        ${Icon ? 'pl-10 pr-4 py-3' : 'px-4 py-3'}
-                        border
-                    `}
+            ${Icon ? 'pl-10 pr-4 py-3' : 'px-4 py-3'}
+            border
+          `}
                 />
             </div>
             {error && (
@@ -60,7 +75,7 @@ export const Textarea = ({
     className = '',
     rows = 4,
     ...props
-}) => {
+}: TextareaProps): React.JSX.Element => {
     return (
         <div className={`mb-4 ${className}`}>
             {label && (
@@ -72,12 +87,12 @@ export const Textarea = ({
                 {...props}
                 rows={rows}
                 className={`w-full rounded-lg transition-all focus:outline-none focus:ring-2 bg-theme-tertiary text-theme-primary text-base placeholder-theme-tertiary resize-y px-4 py-3
-                    ${error
+          ${error
                         ? 'border-error focus:border-error focus:ring-error/20'
                         : 'border-theme focus:border-accent focus:ring-accent/20'
                     }
-                    border
-                `}
+          border
+        `}
             />
             {error && (
                 <p className="mt-1 text-error text-sm">

@@ -2,15 +2,19 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+
+export interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    title: React.ReactNode;
+    children: React.ReactNode;
+    size?: ModalSize;
+    className?: string;
+}
+
 /**
  * Modal Component - Reusable modal dialog with glassmorphism support
- * 
- * @param {boolean} isOpen - Whether the modal is visible
- * @param {function} onClose - Function to call when closing
- * @param {string} title - Modal title
- * @param {React.ReactNode} children - Modal content
- * @param {string} size - Width size: 'sm', 'md', 'lg', 'xl', 'full'
- * @param {string} className - Additional classes
  */
 const Modal = ({
     isOpen,
@@ -19,10 +23,10 @@ const Modal = ({
     children,
     size = 'md',
     className = ''
-}) => {
+}: ModalProps): React.JSX.Element | null => {
     // Handle escape key
     useEffect(() => {
-        const handleEscape = (e) => {
+        const handleEscape = (e: KeyboardEvent): void => {
             if (e.key === 'Escape') onClose();
         };
 
@@ -39,7 +43,7 @@ const Modal = ({
 
     if (!isOpen) return null;
 
-    const sizeClasses = {
+    const sizeClasses: Record<ModalSize, string> = {
         sm: 'max-w-sm',
         md: 'max-w-md',
         lg: 'max-w-2xl',
@@ -59,12 +63,12 @@ const Modal = ({
             {/* Modal Container */}
             <div
                 className={`
-                    relative w-full ${sizeClasses[size]} 
-                    glass-subtle rounded-xl shadow-deep 
-                    border border-theme flex flex-col max-h-[90vh]
-                    animate-in fade-in zoom-in-95 duration-200
-                    ${className}
-                `}
+          relative w-full ${sizeClasses[size]} 
+          glass-subtle rounded-xl shadow-deep 
+          border border-theme flex flex-col max-h-[90vh]
+          animate-in fade-in zoom-in-95 duration-200
+          ${className}
+        `}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title"

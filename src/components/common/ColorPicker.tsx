@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Pipette } from 'lucide-react';
 
+interface ColorPreset {
+    name: string;
+    value: string;
+}
+
 // Quick color presets for common theme colors
-const COLOR_PRESETS = [
+const COLOR_PRESETS: ColorPreset[] = [
     { name: 'Blue', value: '#3B82F6' },
     { name: 'Purple', value: '#A855F7' },
     { name: 'Pink', value: '#EC4899' },
@@ -13,29 +18,32 @@ const COLOR_PRESETS = [
     { name: 'Cyan', value: '#06B6D4' }
 ];
 
+export interface ColorPickerProps {
+    value?: string;
+    onChange?: (color: string) => void;
+    label?: string;
+    disabled?: boolean;
+}
+
 /**
  * ColorPicker - Premium color picker with glassmorphism design
- * @param {string} value - Current hex color value
- * @param {function} onChange - Callback when color changes
- * @param {string} label - Display label
- * @param {boolean} disabled - Whether the picker is disabled
  */
-const ColorPicker = ({ value, onChange, label, disabled = false }) => {
-    const [color, setColor] = useState(value || '#3B82F6');
-    const colorInputRef = useRef(null);
+const ColorPicker = ({ value, onChange, label, disabled = false }: ColorPickerProps): React.JSX.Element => {
+    const [color, setColor] = useState<string>(value || '#3B82F6');
+    const colorInputRef = useRef<HTMLInputElement>(null);
 
     // Sync with parent value changes
     useEffect(() => {
         if (value) setColor(value);
     }, [value]);
 
-    const handleColorChange = (newColor) => {
+    const handleColorChange = (newColor: string): void => {
         if (disabled) return;
         setColor(newColor);
         if (onChange) onChange(newColor);
     };
 
-    const handleTextChange = (e) => {
+    const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         if (disabled) return;
 
         let newValue = e.target.value;
@@ -54,7 +62,7 @@ const ColorPicker = ({ value, onChange, label, disabled = false }) => {
     };
 
     // Trigger native color picker
-    const openColorPicker = () => {
+    const openColorPicker = (): void => {
         colorInputRef.current?.click();
     };
 

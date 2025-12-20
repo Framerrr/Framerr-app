@@ -1,15 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+
+export interface DropdownOption {
+    value: string;
+    label: string;
+}
+
+export interface DropdownProps {
+    label?: string;
+    value?: string;
+    onChange: (value: string) => void;
+    options?: DropdownOption[];
+    placeholder?: string;
+    disabled?: boolean;
+    className?: string;
+}
+
 /**
  * Dropdown Component - Custom select input styling
- * 
- * @param {string} label - Input label
- * @param {any} value - Current selected value
- * @param {function} onChange - Callback with new value
- * @param {Array} options - Array of {value, label} objects
- * @param {string} placeholder - Placeholder text
- * @param {boolean} disabled - Disabled state
- * @param {string} className - Additional classes
  */
 const Dropdown = ({
     label,
@@ -19,25 +27,29 @@ const Dropdown = ({
     placeholder = 'Select an option',
     disabled = false,
     className = ''
-}) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
+}: DropdownProps): React.JSX.Element => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
     // Close on click outside
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        const handleClickOutside = (event: MouseEvent): void => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
     const selectedOption = options.find(opt => opt.value === value);
-    const handleSelect = (option) => {
+
+    const handleSelect = (option: DropdownOption): void => {
         if (disabled) return;
         onChange(option.value);
         setIsOpen(false);
     };
+
     return (
         <div className={`mb-4 ${className}`} ref={dropdownRef}>
             {label && (
@@ -51,14 +63,14 @@ const Dropdown = ({
                     onClick={() => !disabled && setIsOpen(!isOpen)}
                     disabled={disabled}
                     className={`
-                        w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-all
-                        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                        ${isOpen
+            w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-all
+            ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            ${isOpen
                             ? 'border-accent ring-2 ring-accent/20'
                             : 'border-theme hover:border-theme-light'
                         }
-                        bg-theme-tertiary text-theme-primary
-                    `}
+            bg-theme-tertiary text-theme-primary
+          `}
                 >
                     <span className={selectedOption ? 'text-theme-primary' : 'text-theme-tertiary'}>
                         {selectedOption ? selectedOption.label : placeholder}
@@ -82,12 +94,12 @@ const Dropdown = ({
                                     type="button"
                                     onClick={() => handleSelect(option)}
                                     className={`
-                                        w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors
-                                        ${option.value === value
+                    w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors
+                    ${option.value === value
                                             ? 'bg-accent/10 text-accent'
                                             : 'text-theme-primary hover:bg-theme-hover'
                                         }
-                                    `}
+                  `}
                                 >
                                     <span>{option.label}</span>
                                     {option.value === value && (
@@ -102,4 +114,5 @@ const Dropdown = ({
         </div>
     );
 };
+
 export default Dropdown;
