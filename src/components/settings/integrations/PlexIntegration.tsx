@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, MouseEvent, ChangeEvent } from 'react';
 import { Tv, TestTube, ChevronDown, AlertCircle, CheckCircle2, Loader, ExternalLink, RefreshCw, Server } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -8,34 +8,80 @@ import { Input } from '../../common/Input';
 import SharingDropdown from '../SharingDropdown';
 import { useNotifications } from '../../../context/NotificationContext';
 
+interface PlexConnection {
+    uri: string;
+    local: boolean;
+}
+
+interface PlexServer {
+    name: string;
+    machineId: string;
+    owned: boolean;
+    connections?: PlexConnection[];
+}
+
+interface PlexUser {
+    username: string;
+    email?: string;
+    thumb?: string;
+}
+
+interface IntegrationConfig {
+    enabled: boolean;
+    url: string;
+    token: string;
+    machineId: string;
+    servers: PlexServer[];
+    sharing?: SharingState;
+}
+
+interface SharingState {
+    enabled: boolean;
+    mode?: string;
+    groups?: string[];
+    users?: string[];
+    sharedBy?: string;
+    sharedAt?: string;
+}
+
+interface TestState {
+    loading: boolean;
+    success?: boolean;
+    message?: string;
+}
+
+export interface PlexIntegrationProps {
+    integration?: Partial<IntegrationConfig>;
+    onUpdate: (config: IntegrationConfig) => void;
+    sharing?: SharingState;
+    onSharingChange: (sharing: SharingState) => void;
+}
+
 /**
  * PlexIntegration - Plex integration configuration with OAuth
- * Allows users to connect their Plex account and select a server
  */
-const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) => {
+const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: PlexIntegrationProps): React.JSX.Element => {
     const { success: showSuccess, error: showError } = useNotifications();
-    const pollIntervalRef = useRef(null);
+    const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [config, setConfig] = useState(integration || {
+    const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const [config, setConfig] = useState<IntegrationConfig>((integration as IntegrationConfig) || {
         enabled: false,
         url: '',
         token: '',
         machineId: '',
         servers: []
     });
-    const [testState, setTestState] = useState(null);
-    const [authenticating, setAuthenticating] = useState(false);
-    const [servers, setServers] = useState(integration?.servers || []);
-    const [loadingServers, setLoadingServers] = useState(false);
-    const [plexUser, setPlexUser] = useState(null);
+    const [testState, setTestState] = useState<TestState | null>(null);
+    const [authenticating, setAuthenticating] = useState<boolean>(false);
+    const [servers, setServers] = useState<PlexServer[]>(integration?.servers || []);
+    const [loadingServers, setLoadingServers] = useState<boolean>(false);
+    const [plexUser, setPlexUser] = useState<PlexUser | null>(null);
 
-    // Load servers from saved config on mount
     useEffect(() => {
-        if (integration?.servers?.length > 0) {
+        if (integration?.servers && integration.servers.length > 0) {
             setServers(integration.servers);
         } else if (integration?.token && servers.length === 0) {
-            // If we have a token but no saved servers, fetch them
             fetchServers(integration.token);
         }
     }, [integration?.token]);
@@ -48,11 +94,10 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
         };
     }, []);
 
-    // Helper to check if configured
     const isConfigured = config.enabled && config.token && config.url;
 
-    const handleToggle = () => {
-        const newConfig = { ...config, enabled: !config.enabled, sharing };
+    const handleToggle = (): void => {
+        const newConfig: IntegrationConfig = { ...config, enabled: !config.enabled, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
 
@@ -61,13 +106,13 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
         }
     };
 
-    const handleConfigChange = (field, value) => {
-        const newConfig = { ...config, [field]: value, sharing };
+    const handleConfigChange = (field: string, value: string): void => {
+        const newConfig: IntegrationConfig = { ...config, [field]: value, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
     };
 
-    const handlePlexLogin = async () => {
+    const handlePlexLogin = async (): Promise<void> => {
         setAuthenticating(true);
         try {
             const pinResponse = await axios.post('/api/plex/auth/pin', {
@@ -89,28 +134,30 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                     });
 
                     if (tokenResponse.data.authToken) {
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
+                        if (pollIntervalRef.current) {
+                            clearInterval(pollIntervalRef.current);
+                            pollIntervalRef.current = null;
+                        }
                         popup?.close();
 
                         const { authToken, user } = tokenResponse.data;
                         setPlexUser(user);
 
-                        // Update config with token
-                        const newConfig = { ...config, token: authToken, sharing };
+                        const newConfig: IntegrationConfig = { ...config, token: authToken, sharing };
                         setConfig(newConfig);
                         onUpdate(newConfig);
 
-                        // Fetch servers
                         await fetchServers(authToken);
 
                         showSuccess('Plex Connected', `Connected as ${user.username}`);
                         setAuthenticating(false);
                     }
                 } catch (error) {
-                    if (error.response?.status === 404) {
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
+                    if ((error as { response?: { status?: number } }).response?.status === 404) {
+                        if (pollIntervalRef.current) {
+                            clearInterval(pollIntervalRef.current);
+                            pollIntervalRef.current = null;
+                        }
                         showError('Plex Auth Failed', 'PIN expired. Please try again.');
                         setAuthenticating(false);
                     }
@@ -126,25 +173,23 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
             }, 300000);
 
         } catch (error) {
-            logger.error('[PlexIntegration] OAuth error:', error.message);
-            showError('Plex Auth Failed', error.message);
+            logger.error('[PlexIntegration] OAuth error:', (error as Error).message);
+            showError('Plex Auth Failed', (error as Error).message);
             setAuthenticating(false);
         }
     };
 
-    const fetchServers = async (token) => {
+    const fetchServers = async (token: string): Promise<void> => {
         setLoadingServers(true);
         try {
             const response = await axios.get(`/api/plex/resources?token=${token}`, {
                 withCredentials: true
             });
-            const fetchedServers = response.data;
+            const fetchedServers: PlexServer[] = response.data;
             setServers(fetchedServers);
 
-            // Save servers to config for persistence
-            let newConfig = { ...config, servers: fetchedServers, sharing };
+            let newConfig: IntegrationConfig = { ...config, servers: fetchedServers, sharing };
 
-            // Auto-select first owned server if none selected
             if (!config.machineId && fetchedServers.length > 0) {
                 const ownedServer = fetchedServers.find(s => s.owned) || fetchedServers[0];
                 newConfig = {
@@ -157,22 +202,22 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
             setConfig(newConfig);
             onUpdate(newConfig);
         } catch (error) {
-            logger.error('[PlexIntegration] Failed to fetch servers:', error.message);
+            logger.error('[PlexIntegration] Failed to fetch servers:', (error as Error).message);
         } finally {
             setLoadingServers(false);
         }
     };
 
-    const handleServerChange = (machineId) => {
+    const handleServerChange = (machineId: string): void => {
         const server = servers.find(s => s.machineId === machineId);
         const url = server?.connections?.find(c => c.local)?.uri || server?.connections?.[0]?.uri || '';
 
-        const newConfig = { ...config, machineId, url, sharing };
+        const newConfig: IntegrationConfig = { ...config, machineId, url, sharing };
         setConfig(newConfig);
         onUpdate(newConfig);
     };
 
-    const handleTest = async () => {
+    const handleTest = async (): Promise<void> => {
         setTestState({ loading: true });
 
         try {
@@ -198,11 +243,11 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                 });
             }
         } catch (error) {
-            logger.error('[PlexIntegration] Test error:', error);
+            logger.error('[PlexIntegration] Test error:', { error });
             setTestState({
                 loading: false,
                 success: false,
-                message: error.response?.data?.error || 'Connection failed'
+                message: (error as { response?: { data?: { error?: string } } }).response?.data?.error || 'Connection failed'
             });
         }
     };
@@ -222,23 +267,21 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Connection status badge (when not expanded) */}
                     {!isExpanded && config.enabled && (
                         <span className={`
-                            px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
-                            ${isConfigured
+              px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5
+              ${isConfigured
                                 ? 'bg-success/10 text-success sm:border sm:border-success/20'
                                 : 'bg-warning/10 text-warning sm:border sm:border-warning/20'
                             }
-                        `}>
+            `}>
                             <span>{isConfigured ? '🟢' : '🟡'}</span>
                             <span className="hidden sm:inline">{isConfigured ? 'Configured' : 'Setup Required'}</span>
                         </span>
                     )}
 
-                    {/* Toggle Switch */}
                     <div
-                        onClick={(e) => {
+                        onClick={(e: MouseEvent) => {
                             e.stopPropagation();
                             handleToggle();
                         }}
@@ -247,7 +290,6 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                         <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
                     </div>
 
-                    {/* Chevron */}
                     <ChevronDown size={20} className={`text-theme-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
             </button>
@@ -316,7 +358,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                                     <div className="flex gap-2">
                                         <select
                                             value={config.machineId || ''}
-                                            onChange={(e) => handleServerChange(e.target.value)}
+                                            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleServerChange(e.target.value)}
                                             className="flex-1 px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
                                         >
                                             <option value="">Select a server...</option>
@@ -338,17 +380,17 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                                 </div>
                             )}
 
-                            {/* Manual URL input (advanced) */}
+                            {/* Manual URL input */}
                             <Input
                                 label="Plex Server URL"
                                 type="text"
                                 value={config.url}
-                                onChange={(e) => handleConfigChange('url', e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleConfigChange('url', e.target.value)}
                                 placeholder="http://192.168.1.x:32400"
                                 helperText="Auto-filled from server selection, or enter manually"
                             />
 
-                            {/* Token input (hidden, advanced) */}
+                            {/* Token input */}
                             <div>
                                 <label className="block text-sm font-medium text-theme-primary mb-2">
                                     Plex Token
@@ -356,7 +398,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }) =>
                                 <input
                                     type="password"
                                     value={config.token}
-                                    onChange={(e) => handleConfigChange('token', e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleConfigChange('token', e.target.value)}
                                     placeholder="Auto-filled via Plex login"
                                     className="w-full px-4 py-2 bg-theme-primary border border-theme rounded-lg text-theme-primary text-sm focus:border-accent focus:outline-none transition-all"
                                 />
