@@ -11,15 +11,11 @@ import { createUserSession } from '../auth/session';
 
 const router = Router();
 
-interface AuthenticatedUser {
-    id: string;
-    username: string;
-    group: string;
-}
+// Use Express.Request directly - it's augmented in types/express.d.ts
+// to include user?: User and proxyAuth?: boolean
 
-interface AuthenticatedRequest extends Request {
-    user?: AuthenticatedUser;
-    proxyAuth?: boolean;
+// For multer file uploads
+interface RequestWithFile extends Request {
     file?: Express.Multer.File;
 }
 
@@ -32,6 +28,7 @@ interface FaviconToggleBody {
 }
 
 interface AuthBody {
+    local?: { enabled?: boolean };
     proxy?: { enabled?: boolean };
     iframe?: { enabled?: boolean; endpoint?: string };
     session?: { timeout?: number };
@@ -57,12 +54,11 @@ router.get('/system', requireAdmin, async (req: Request, res: Response) => {
  */
 router.put('/system', requireAdmin, async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
         const updatedConfig = await updateSystemConfig(req.body);
 
         logger.info('System config updated by admin', {
-            userId: authReq.user?.id,
-            username: authReq.user?.username
+            userId: req.user?.id,
+            username: req.user?.username
         });
 
         res.json(updatedConfig);
@@ -81,7 +77,7 @@ router.get('/app-name', async (req: Request, res: Response) => {
         const config = await getSystemConfig();
         res.json({
             name: config.server?.name || 'Framerr',
-            icon: config.server?.icon || 'Server'
+            icon: (config.server as Record<string, unknown>)?.icon as string || 'Server'
         });
     } catch (error) {
         logger.error('Failed to get app name', { error: (error as Error).message });
@@ -111,13 +107,11 @@ router.get('/web-push-status', requireAuth, async (req: Request, res: Response) 
  */
 router.get('/user', requireAuth, async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
-        const config = await getUserConfig(authReq.user!.id);
+        const config = await getUserConfig(req.user!.id);
         res.json(config);
     } catch (error) {
-        const authReq = req as AuthenticatedRequest;
         logger.error('Failed to get user config', {
-            userId: authReq.user?.id,
+            userId: req.user?.id,
             error: (error as Error).message
         });
         res.status(500).json({ error: 'Internal server error' });
@@ -130,18 +124,16 @@ router.get('/user', requireAuth, async (req: Request, res: Response) => {
  */
 router.put('/user', requireAuth, async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
-        const updatedConfig = await updateUserConfig(authReq.user!.id, req.body);
+        const updatedConfig = await updateUserConfig(req.user!.id, req.body);
 
         logger.debug('User config updated', {
-            userId: authReq.user!.id
+            userId: req.user!.id
         });
 
         res.json(updatedConfig);
     } catch (error) {
-        const authReq = req as AuthenticatedRequest;
         logger.error('Failed to update user config', {
-            userId: authReq.user?.id,
+            userId: req.user?.id,
             error: (error as Error).message
         });
         res.status(500).json({ error: 'Internal server error' });
@@ -168,7 +160,6 @@ router.get('/auth', requireAdmin, async (req: Request, res: Response) => {
  */
 router.put('/auth', requireAdmin, async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
         const body = req.body as AuthBody;
 
         // Validate iframe OAuth endpoint must be HTTPS
@@ -195,15 +186,15 @@ router.put('/auth', requireAdmin, async (req: Request, res: Response) => {
         const willProxyBeDisabled = !body.proxy?.enabled;
 
         // If disabling proxy auth while user is authenticated via proxy
-        if (wasProxyEnabled && willProxyBeDisabled && authReq.proxyAuth) {
+        if (wasProxyEnabled && willProxyBeDisabled && req.proxyAuth) {
             logger.info('Proxy auth being disabled - creating local session', {
-                userId: authReq.user!.id,
-                username: authReq.user!.username
+                userId: req.user!.id,
+                username: req.user!.username
             });
 
             // Create a session for the proxy-authenticated user
             const session = await createUserSession(
-                authReq.user!,
+                req.user!,
                 req,
                 currentConfig.auth?.session?.timeout || 86400000
             );
@@ -217,7 +208,7 @@ router.put('/auth', requireAdmin, async (req: Request, res: Response) => {
             });
 
             logger.info('Local session created for proxy user', {
-                userId: authReq.user!.id,
+                userId: req.user!.id,
                 sessionId: session.id
             });
         }
@@ -226,8 +217,8 @@ router.put('/auth', requireAdmin, async (req: Request, res: Response) => {
         const config = await getSystemConfig();
 
         logger.info('Auth config updated', {
-            userId: authReq.user?.id,
-            username: authReq.user?.username
+            userId: req.user?.id,
+            username: req.user?.username
         });
 
         res.json(config.auth);
@@ -243,15 +234,15 @@ router.put('/auth', requireAdmin, async (req: Request, res: Response) => {
  */
 router.post('/favicon', requireAdmin, upload.single('faviconZip'), async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
-        if (!authReq.file) {
+        const fileReq = req as RequestWithFile;
+        if (!fileReq.file) {
             res.status(400).json({ error: 'No file uploaded' });
             return;
         }
 
         const { htmlSnippet } = req.body as FaviconBody;
         if (!htmlSnippet || typeof htmlSnippet !== 'string') {
-            await fs.unlink(authReq.file.path);
+            await fs.unlink(fileReq.file.path);
             res.status(400).json({ error: 'HTML snippet is required' });
             return;
         }
@@ -268,11 +259,11 @@ router.post('/favicon', requireAdmin, upload.single('faviconZip'), async (req: R
         }
 
         // Extract ZIP to favicon directory
-        const zip = new AdmZip(authReq.file.path);
+        const zip = new AdmZip(fileReq.file.path);
         zip.extractAllTo(faviconDir, true);
 
         // Clean up uploaded ZIP file
-        await fs.unlink(authReq.file.path);
+        await fs.unlink(fileReq.file.path);
 
         // Update system config with HTML snippet
         await updateSystemConfig({
@@ -280,13 +271,13 @@ router.post('/favicon', requireAdmin, upload.single('faviconZip'), async (req: R
                 enabled: true,
                 htmlSnippet: htmlSnippet,
                 uploadedAt: new Date().toISOString(),
-                uploadedBy: authReq.user!.username
+                uploadedBy: req.user!.username
             }
         });
 
         logger.info('Favicon uploaded successfully', {
-            userId: authReq.user!.id,
-            username: authReq.user!.username
+            userId: req.user!.id,
+            username: req.user!.username
         });
 
         const updatedConfig = await getSystemConfig();
@@ -296,12 +287,12 @@ router.post('/favicon', requireAdmin, upload.single('faviconZip'), async (req: R
             favicon: updatedConfig.favicon
         });
     } catch (error) {
-        const authReq = req as AuthenticatedRequest;
+        const fileReq = req as RequestWithFile;
         logger.error('Failed to upload favicon', { error: (error as Error).message });
 
-        if (authReq.file) {
+        if (fileReq.file) {
             try {
-                await fs.unlink(authReq.file.path);
+                await fs.unlink(fileReq.file.path);
             } catch {
                 // Ignore cleanup errors
             }
@@ -332,7 +323,6 @@ router.get('/favicon', async (req: Request, res: Response) => {
  */
 router.patch('/favicon', requireAdmin, async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
         const { enabled } = req.body as FaviconToggleBody;
 
         if (typeof enabled !== 'boolean') {
@@ -355,8 +345,8 @@ router.patch('/favicon', requireAdmin, async (req: Request, res: Response) => {
         });
 
         logger.info(`Custom favicon ${enabled ? 'enabled' : 'disabled'}`, {
-            userId: authReq.user?.id,
-            username: authReq.user?.username
+            userId: req.user?.id,
+            username: req.user?.username
         });
 
         const updatedConfig = await getSystemConfig();
@@ -377,7 +367,6 @@ router.patch('/favicon', requireAdmin, async (req: Request, res: Response) => {
  */
 router.delete('/favicon', requireAdmin, async (req: Request, res: Response) => {
     try {
-        const authReq = req as AuthenticatedRequest;
         const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
         const faviconDir = path.join(DATA_DIR, 'public/favicon');
 
@@ -389,11 +378,11 @@ router.delete('/favicon', requireAdmin, async (req: Request, res: Response) => {
             // Directory might be empty
         }
 
-        await updateSystemConfig({ favicon: null });
+        await updateSystemConfig({ favicon: undefined });
 
         logger.info('Favicon reset to default', {
-            userId: authReq.user?.id,
-            username: authReq.user?.username
+            userId: req.user?.id,
+            username: req.user?.username
         });
 
         res.json({ success: true, message: 'Favicon reset to default' });
