@@ -6,11 +6,10 @@
  * the custom-icons upload directory with is_system = 1.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const logger = require('../utils/logger');
-const customIconsDB = require('../db/customIcons');
+import fs from 'fs';
+import path from 'path';
+import logger from '../utils/logger';
+import * as customIconsDB from '../db/customIcons';
 
 // Bundled system icons directory (shipped with server)
 const BUNDLED_ICONS_DIR = path.join(__dirname, '../assets/system-icons');
@@ -19,11 +18,18 @@ const BUNDLED_ICONS_DIR = path.join(__dirname, '../assets/system-icons');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 const TARGET_ICONS_DIR = path.join(DATA_DIR, 'upload/custom-icons');
 
+interface SystemIconConfig {
+    id: string;
+    filename: string;
+    name: string;
+    mimeType: string;
+}
+
 /**
  * System icons configuration
  * Each entry maps a stable ID to the icon file and display name
  */
-const SYSTEM_ICONS = [
+export const SYSTEM_ICONS: SystemIconConfig[] = [
     {
         id: 'system-overseerr',
         filename: 'overseerr.png',
@@ -84,7 +90,7 @@ const SYSTEM_ICONS = [
  * Seed system icons on server startup
  * Copies bundled icons to upload directory and registers in database
  */
-async function seedSystemIcons() {
+export async function seedSystemIcons(): Promise<void> {
     logger.info('[SystemIcons] Checking for system icons to seed...');
 
     // Ensure bundled icons directory exists
@@ -117,7 +123,7 @@ async function seedSystemIcons() {
                 fs.copyFileSync(sourcePath, targetPath);
                 logger.info(`[SystemIcons] Copied ${iconConfig.filename} to upload directory`);
             } catch (copyError) {
-                logger.error(`[SystemIcons] Failed to copy ${iconConfig.filename}`, { error: copyError.message });
+                logger.error(`[SystemIcons] Failed to copy ${iconConfig.filename}`, { error: (copyError as Error).message });
                 continue;
             }
         }
@@ -135,7 +141,7 @@ async function seedSystemIcons() {
                 seededCount++;
             }
         } catch (dbError) {
-            logger.error(`[SystemIcons] Failed to register ${iconConfig.name} in database`, { error: dbError.message });
+            logger.error(`[SystemIcons] Failed to register ${iconConfig.name} in database`, { error: (dbError as Error).message });
         }
     }
 
@@ -148,11 +154,9 @@ async function seedSystemIcons() {
 
 /**
  * Get the icon ID for a service (for use in notifications)
- * @param {string} service - Service name (e.g., 'overseerr', 'radarr', 'sonarr')
- * @returns {string|null} System icon ID or null
  */
-function getSystemIconIdForService(service) {
-    const serviceMap = {
+export function getSystemIconIdForService(service: string): string | null {
+    const serviceMap: Record<string, string> = {
         'overseerr': 'system-overseerr',
         'radarr': 'system-radarr',
         'sonarr': 'system-sonarr',
@@ -166,9 +170,3 @@ function getSystemIconIdForService(service) {
     };
     return serviceMap[service.toLowerCase()] || null;
 }
-
-module.exports = {
-    seedSystemIcons,
-    getSystemIconIdForService,
-    SYSTEM_ICONS
-};

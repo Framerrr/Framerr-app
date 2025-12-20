@@ -7,29 +7,62 @@
  * - If no SSE connection → send Web Push to subscribed devices
  */
 
-const EventEmitter = require('events');
-const webpush = require('web-push');
-const logger = require('../utils/logger');
+import { EventEmitter } from 'events';
+import webpush from 'web-push';
+import logger from '../utils/logger';
+import { Response } from 'express';
 
-// Lazy-load to avoid circular dependencies
-let pushSubscriptionsDb = null;
-let systemConfigDb = null;
+// Lazy-load imports to avoid circular dependencies
+type PushSubscriptionsDb = typeof import('../db/pushSubscriptions');
+type SystemConfigDb = typeof import('../db/systemConfig');
 
-function getPushSubscriptionsDb() {
+let pushSubscriptionsDb: PushSubscriptionsDb | null = null;
+let systemConfigDb: SystemConfigDb | null = null;
+
+function getPushSubscriptionsDb(): PushSubscriptionsDb {
     if (!pushSubscriptionsDb) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         pushSubscriptionsDb = require('../db/pushSubscriptions');
     }
-    return pushSubscriptionsDb;
+    return pushSubscriptionsDb!;
 }
 
-function getSystemConfigDb() {
+function getSystemConfigDb(): SystemConfigDb {
     if (!systemConfigDb) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         systemConfigDb = require('../db/systemConfig');
     }
-    return systemConfigDb;
+    return systemConfigDb!;
+}
+
+interface Notification {
+    id?: string;
+    type?: string;
+    title?: string;
+    message?: string;
+    iconId?: string | null;
+    metadata?: Record<string, unknown>;
+}
+
+interface SendOptions {
+    forceWebPush?: boolean;
+}
+
+interface PushSubscription {
+    id: string;
+    user_id: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    device_name: string | null;
+    created_at: number;
+    last_used: number | null;
 }
 
 class NotificationEmitter extends EventEmitter {
+    private connections: Map<string, Set<Response>>;
+    private vapidInitialized: boolean;
+
     constructor() {
         super();
         // Store active SSE connections by userId
@@ -43,7 +76,7 @@ class NotificationEmitter extends EventEmitter {
      * Initialize VAPID keys for Web Push
      * Called lazily on first push attempt
      */
-    async initializeVapid() {
+    async initializeVapid(): Promise<void> {
         if (this.vapidInitialized) return;
 
         try {
@@ -80,45 +113,40 @@ class NotificationEmitter extends EventEmitter {
             this.vapidInitialized = true;
             logger.info('[WebPush] Generated new VAPID keys');
         } catch (error) {
-            logger.error('[WebPush] Failed to initialize VAPID', { error: error.message });
+            logger.error('[WebPush] Failed to initialize VAPID', { error: (error as Error).message });
         }
     }
 
     /**
      * Get VAPID public key for frontend
-     * @returns {string|null} Public VAPID key
      */
-    async getVapidPublicKey() {
+    async getVapidPublicKey(): Promise<string | null> {
         await this.initializeVapid();
         try {
             const { getSystemConfig } = getSystemConfigDb();
             const config = await getSystemConfig();
             return config.vapidKeys?.publicKey || null;
         } catch (error) {
-            logger.error('[WebPush] Failed to get VAPID public key', { error: error.message });
+            logger.error('[WebPush] Failed to get VAPID public key', { error: (error as Error).message });
             return null;
         }
     }
 
     /**
      * Add a new SSE connection for a user
-     * @param {string} userId - User ID
-     * @param {object} res - Express response object
      */
-    addConnection(userId, res) {
+    addConnection(userId: string, res: Response): void {
         if (!this.connections.has(userId)) {
             this.connections.set(userId, new Set());
         }
-        this.connections.get(userId).add(res);
-        logger.debug('[SSE] Connection added', { userId, activeConnections: this.connections.get(userId).size });
+        this.connections.get(userId)!.add(res);
+        logger.debug('[SSE] Connection added', { userId, activeConnections: this.connections.get(userId)!.size });
     }
 
     /**
      * Remove an SSE connection for a user
-     * @param {string} userId - User ID
-     * @param {object} res - Express response object
      */
-    removeConnection(userId, res) {
+    removeConnection(userId: string, res: Response): void {
         const userConnections = this.connections.get(userId);
         if (userConnections) {
             userConnections.delete(res);
@@ -131,20 +159,16 @@ class NotificationEmitter extends EventEmitter {
 
     /**
      * Check if user has active SSE connection
-     * @param {string} userId - User ID
-     * @returns {boolean} True if user has SSE connection
      */
-    hasConnection(userId) {
+    hasConnection(userId: string): boolean {
         const userConnections = this.connections.get(userId);
-        return userConnections && userConnections.size > 0;
+        return userConnections !== undefined && userConnections.size > 0;
     }
 
     /**
      * Send notification via SSE to a specific user
-     * @param {string} userId - User ID
-     * @param {object} notification - Notification object
      */
-    sendSSE(userId, notification) {
+    sendSSE(userId: string, notification: Notification): boolean {
         const userConnections = this.connections.get(userId);
         if (userConnections && userConnections.size > 0) {
             const eventData = `data: ${JSON.stringify(notification)}\n\n`;
@@ -152,7 +176,7 @@ class NotificationEmitter extends EventEmitter {
                 try {
                     res.write(eventData);
                 } catch (error) {
-                    logger.error('[SSE] Failed to send notification', { userId, error: error.message });
+                    logger.error('[SSE] Failed to send notification', { userId, error: (error as Error).message });
                     this.removeConnection(userId, res);
                 }
             });
@@ -164,10 +188,8 @@ class NotificationEmitter extends EventEmitter {
 
     /**
      * Send Web Push notification to a user's subscribed devices
-     * @param {string} userId - User ID
-     * @param {object} notification - Notification object
      */
-    async sendWebPush(userId, notification) {
+    async sendWebPush(userId: string, notification: Notification): Promise<void> {
         // Check if Web Push is globally enabled
         try {
             const { getSystemConfig } = getSystemConfigDb();
@@ -177,7 +199,7 @@ class NotificationEmitter extends EventEmitter {
                 return;
             }
         } catch (configError) {
-            logger.warn('[WebPush] Could not check global config, proceeding', { error: configError.message });
+            logger.warn('[WebPush] Could not check global config, proceeding', { error: (configError as Error).message });
         }
 
         await this.initializeVapid();
@@ -189,7 +211,7 @@ class NotificationEmitter extends EventEmitter {
 
         try {
             const { getSubscriptionsByUser, deleteSubscriptionByEndpoint, updateLastUsed } = getPushSubscriptionsDb();
-            const subscriptions = getSubscriptionsByUser(userId);
+            const subscriptions = getSubscriptionsByUser(userId) as PushSubscription[];
 
             if (subscriptions.length === 0) {
                 logger.debug('[WebPush] No subscriptions for user', { userId });
@@ -239,17 +261,18 @@ class NotificationEmitter extends EventEmitter {
                         headers: result?.headers
                     });
                 } catch (pushError) {
+                    const err = pushError as { statusCode?: number; body?: string; message?: string };
                     // Handle expired/invalid subscriptions
-                    if (pushError.statusCode === 404 || pushError.statusCode === 410) {
+                    if (err.statusCode === 404 || err.statusCode === 410) {
                         logger.info('[WebPush] Subscription expired, removing', { endpoint: sub.endpoint.slice(-30) });
                         deleteSubscriptionByEndpoint(sub.endpoint);
                     } else {
                         logger.error('[WebPush] Failed to send', {
                             userId,
                             endpoint: sub.endpoint.slice(-30),
-                            statusCode: pushError.statusCode,
-                            body: pushError.body,
-                            error: pushError.message
+                            statusCode: err.statusCode,
+                            body: err.body,
+                            error: err.message
                         });
                     }
                 }
@@ -257,18 +280,15 @@ class NotificationEmitter extends EventEmitter {
 
             await Promise.allSettled(pushPromises);
         } catch (error) {
-            logger.error('[WebPush] Error sending push notifications', { error: error.message, stack: error.stack, userId });
+            logger.error('[WebPush] Error sending push notifications', { error: (error as Error).message, stack: (error as Error).stack, userId });
         }
     }
 
     /**
      * Send a notification to a specific user
      * Uses selective routing: SSE if connected, Web Push if not
-     * @param {string} userId - User ID
-     * @param {object} notification - Notification object
-     * @param {object} options - Options { forceWebPush: boolean }
      */
-    async sendNotification(userId, notification, options = {}) {
+    async sendNotification(userId: string, notification: Notification, options: SendOptions = {}): Promise<void> {
         const { forceWebPush = false } = options;
 
         // Skip Web Push for sync events (SSE-only, used for cross-tab state sync)
@@ -296,9 +316,8 @@ class NotificationEmitter extends EventEmitter {
 
     /**
      * Broadcast a notification to all connected users
-     * @param {object} notification - Notification object
      */
-    broadcast(notification) {
+    broadcast(notification: Notification): void {
         this.connections.forEach((connections, userId) => {
             this.sendSSE(userId, notification);
         });
@@ -306,9 +325,8 @@ class NotificationEmitter extends EventEmitter {
 
     /**
      * Get count of active connections
-     * @returns {number} Total number of active connections
      */
-    getConnectionCount() {
+    getConnectionCount(): number {
         let count = 0;
         this.connections.forEach(connections => {
             count += connections.size;
@@ -320,5 +338,4 @@ class NotificationEmitter extends EventEmitter {
 // Singleton instance
 const notificationEmitter = new NotificationEmitter();
 
-module.exports = notificationEmitter;
-
+export default notificationEmitter;
