@@ -74,6 +74,9 @@ export const ThemeProvider = ({ children }: ThemeProviderProps): React.JSX.Eleme
             // Optimistically update UI
             setTheme(newTheme);
 
+            // Save to localStorage for instant theme on next page load
+            localStorage.setItem('framerr-theme', newTheme);
+
             // Save to backend
             if (isAuthenticated) {
                 await axios.put('/api/theme', {
