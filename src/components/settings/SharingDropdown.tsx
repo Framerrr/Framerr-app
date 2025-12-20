@@ -1,8 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Share2, Users, User, Globe, Lock, ChevronDown, Check } from 'lucide-react';
+import { Share2, Users, User, Globe, Lock, ChevronDown, Check, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
+
+type SharingMode = 'none' | 'everyone' | 'groups' | 'users';
+
+interface SharingState {
+    enabled: boolean;
+    mode?: SharingMode;
+    groups?: string[];
+    users?: string[];
+    sharedBy?: string;
+    sharedAt?: string;
+}
+
+interface UserInfo {
+    id: string;
+    username: string;
+    displayName?: string;
+    group: string;
+}
+
+interface DropdownPosition {
+    top: number;
+    left: number;
+    width: number;
+}
+
+export interface SharingDropdownProps {
+    service: string;
+    sharing?: SharingState;
+    onChange: (sharing: SharingState) => void;
+    disabled?: boolean;
+}
 
 /**
  * SharingDropdown - Widget sharing control for admin
@@ -13,16 +44,16 @@ const SharingDropdown = ({
     sharing,
     onChange,
     disabled = false
-}) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [users, setUsers] = useState([]);
-    const [groups, setGroups] = useState([]);
-    const [loadingData, setLoadingData] = useState(false);
-    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-    const triggerRef = useRef(null);
+}: SharingDropdownProps): React.JSX.Element => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [users, setUsers] = useState<UserInfo[]>([]);
+    const [groups, setGroups] = useState<string[]>([]);
+    const [loadingData, setLoadingData] = useState<boolean>(false);
+    const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 0, left: 0, width: 0 });
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     // Current sharing state (defaults to not shared)
-    const currentMode = sharing?.enabled ? sharing.mode : 'none';
+    const currentMode: SharingMode = sharing?.enabled ? (sharing.mode || 'none') : 'none';
     const selectedGroups = sharing?.groups || [];
     const selectedUsers = sharing?.users || [];
 
@@ -45,7 +76,7 @@ const SharingDropdown = ({
         }
     }, [isOpen, currentMode]);
 
-    const fetchUsersAndGroups = async () => {
+    const fetchUsersAndGroups = async (): Promise<void> => {
         setLoadingData(true);
         try {
             // Fetch users from admin API
@@ -53,21 +84,21 @@ const SharingDropdown = ({
             if (usersResponse.ok) {
                 const data = await usersResponse.json();
                 // Filter out admin users (they always have access)
-                setUsers(data.users?.filter(u => u.group !== 'admin') || []);
+                setUsers(data.users?.filter((u: UserInfo) => u.group !== 'admin') || []);
 
                 // Extract unique groups from users
-                const uniqueGroups = [...new Set(data.users?.map(u => u.group) || [])];
+                const uniqueGroups = [...new Set<string>(data.users?.map((u: UserInfo) => u.group) || [])];
                 // Admin always has access, so only show non-admin groups
                 setGroups(uniqueGroups.filter(g => g !== 'admin'));
             }
         } catch (error) {
-            logger.error('Error fetching users/groups for sharing:', error);
+            logger.error('Error fetching users/groups for sharing:', { error });
         } finally {
             setLoadingData(false);
         }
     };
 
-    const handleModeChange = (mode) => {
+    const handleModeChange = (mode: SharingMode): void => {
         onChange({
             enabled: mode !== 'none',
             mode: mode === 'none' ? undefined : mode,
@@ -82,7 +113,7 @@ const SharingDropdown = ({
         }
     };
 
-    const handleGroupToggle = (group) => {
+    const handleGroupToggle = (group: string): void => {
         const newGroups = selectedGroups.includes(group)
             ? selectedGroups.filter(g => g !== group)
             : [...selectedGroups, group];
@@ -95,7 +126,7 @@ const SharingDropdown = ({
         });
     };
 
-    const handleUserToggle = (userId) => {
+    const handleUserToggle = (userId: string): void => {
         const newUsers = selectedUsers.includes(userId)
             ? selectedUsers.filter(u => u !== userId)
             : [...selectedUsers, userId];
@@ -108,7 +139,7 @@ const SharingDropdown = ({
         });
     };
 
-    const getModeLabel = () => {
+    const getModeLabel = (): string => {
         switch (currentMode) {
             case 'everyone':
                 return 'Shared with Everyone';
@@ -125,7 +156,7 @@ const SharingDropdown = ({
         }
     };
 
-    const getModeIcon = () => {
+    const getModeIcon = (): LucideIcon => {
         switch (currentMode) {
             case 'everyone':
                 return Globe;
@@ -290,12 +321,12 @@ const SharingDropdown = ({
                 onClick={() => setIsOpen(!isOpen)}
                 disabled={disabled}
                 className={`
-                    w-full flex items-center justify-between gap-2 px-4 py-2.5
-                    bg-theme-tertiary border border-theme rounded-lg
-                    text-sm text-theme-primary
-                    transition-colors
-                    ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-theme-hover cursor-pointer'}
-                `}
+          w-full flex items-center justify-between gap-2 px-4 py-2.5
+          bg-theme-tertiary border border-theme rounded-lg
+          text-sm text-theme-primary
+          transition-colors
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-theme-hover cursor-pointer'}
+        `}
             >
                 <div className="flex items-center gap-2">
                     <ModeIcon size={16} className={currentMode !== 'none' ? 'text-success' : 'text-theme-secondary'} />
@@ -307,11 +338,10 @@ const SharingDropdown = ({
                 />
             </button>
 
-            {/* Render dropdown via portal to escape card stacking context */}
+            {/* Render dropdown via portal */}
             {createPortal(dropdownContent, document.body)}
         </div>
     );
 };
 
 export default SharingDropdown;
-

@@ -3,21 +3,28 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, Check, CheckSquare, XSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface EventDefinition {
+    key: string;
+    label: string;
+}
+
+interface DropdownPosition {
+    top: number;
+    left: number;
+    width: number;
+}
+
+export interface EventSelectDropdownProps {
+    label?: string;
+    events?: EventDefinition[];
+    selectedEvents?: string[];
+    onChange: (selectedEvents: string[]) => void;
+    disabled?: boolean;
+    placeholder?: string;
+}
+
 /**
  * EventSelectDropdown - Multi-select dropdown for notification events
- * 
- * Features:
- * - Select All / Select None buttons
- * - Checkbox list of events
- * - Portal-based rendering to escape card stacking context
- * - Theme-compliant styling
- * 
- * @param {string} label - Dropdown label
- * @param {Array} events - Array of { key, label } event definitions
- * @param {Array} selectedEvents - Array of selected event keys
- * @param {function} onChange - Callback with new selected events array
- * @param {boolean} disabled - Disabled state
- * @param {string} placeholder - Placeholder when nothing selected
  */
 const EventSelectDropdown = ({
     label,
@@ -26,10 +33,10 @@ const EventSelectDropdown = ({
     onChange,
     disabled = false,
     placeholder = 'Select events...'
-}) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-    const triggerRef = useRef(null);
+}: EventSelectDropdownProps): React.JSX.Element => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 0, left: 0, width: 0 });
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     // Calculate dropdown position when opened
     useEffect(() => {
@@ -37,7 +44,7 @@ const EventSelectDropdown = ({
             const rect = triggerRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
-            const dropdownHeight = Math.min(events.length * 36 + 80, 300); // Estimate dropdown height
+            const dropdownHeight = Math.min(events.length * 36 + 80, 300);
 
             // Determine if dropdown should open upward
             const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
@@ -52,22 +59,22 @@ const EventSelectDropdown = ({
         }
     }, [isOpen, events.length]);
 
-    const handleSelectAll = () => {
+    const handleSelectAll = (): void => {
         onChange(events.map(e => e.key));
     };
 
-    const handleSelectNone = () => {
+    const handleSelectNone = (): void => {
         onChange([]);
     };
 
-    const handleToggleEvent = (eventKey) => {
+    const handleToggleEvent = (eventKey: string): void => {
         const newSelection = selectedEvents.includes(eventKey)
             ? selectedEvents.filter(k => k !== eventKey)
             : [...selectedEvents, eventKey];
         onChange(newSelection);
     };
 
-    const getDisplayText = () => {
+    const getDisplayText = (): string => {
         if (selectedEvents.length === 0) return placeholder;
         if (selectedEvents.length === events.length) return 'All events selected';
         if (selectedEvents.length === 1) {
@@ -137,12 +144,12 @@ const EventSelectDropdown = ({
                                     >
                                         <div
                                             className={`
-                                                w-4 h-4 rounded border flex items-center justify-center
-                                                ${isSelected
+                        w-4 h-4 rounded border flex items-center justify-center
+                        ${isSelected
                                                     ? 'bg-accent border-accent'
                                                     : 'bg-theme-primary border-theme'
                                                 }
-                                            `}
+                      `}
                                         >
                                             {isSelected && <Check size={12} className="text-white" />}
                                         </div>
@@ -184,15 +191,15 @@ const EventSelectDropdown = ({
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
                 className={`
-                    w-full flex items-center justify-between gap-2 px-4 py-2.5
-                    bg-theme-tertiary border border-theme rounded-lg
-                    text-sm text-left
-                    transition-colors
-                    ${disabled
+          w-full flex items-center justify-between gap-2 px-4 py-2.5
+          bg-theme-tertiary border border-theme rounded-lg
+          text-sm text-left
+          transition-colors
+          ${disabled
                         ? 'opacity-50 cursor-not-allowed text-theme-tertiary'
                         : 'hover:bg-theme-hover cursor-pointer text-theme-primary'
                     }
-                `}
+        `}
             >
                 <span className={selectedEvents.length === 0 ? 'text-theme-tertiary' : ''}>
                     {getDisplayText()}
@@ -203,7 +210,7 @@ const EventSelectDropdown = ({
                 />
             </button>
 
-            {/* Render dropdown via portal to escape card stacking context */}
+            {/* Render dropdown via portal */}
             {createPortal(dropdownContent, document.body)}
         </div>
     );

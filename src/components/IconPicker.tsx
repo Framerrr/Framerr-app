@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, Upload, Check } from 'lucide-react';
+import { X, Search, Upload, Check, LucideIcon } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import logger from '../utils/logger';
 import { useNotifications } from '../context/NotificationContext';
 
 // Popular icons for quick selection - 126 validated icons
-const POPULAR_ICONS = [
+const POPULAR_ICONS: string[] = [
     // Core & System
     'Server', 'Monitor', 'Settings', 'Home', 'Database', 'HardDrive',
 
@@ -72,15 +72,29 @@ const POPULAR_ICONS = [
     'Code', 'Code2', 'Terminal', 'Box', 'Layout', 'LayoutGrid'
 ];
 
-const IconPicker = ({ value, onChange, compact = false }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState('');
-    const [activeTab, setActiveTab] = useState('icons'); // 'icons' or 'upload'
-    const [uploadedIcons, setUploadedIcons] = useState([]);
-    const [loadingIcons, setLoadingIcons] = useState(false);
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-    const [triggerWidth, setTriggerWidth] = useState(0);
-    const triggerRef = useRef(null);
+interface UploadedIcon {
+    id: string;
+    originalName: string;
+    isSystem?: boolean;
+}
+
+type TabType = 'icons' | 'upload';
+
+export interface IconPickerProps {
+    value?: string;
+    onChange: (iconName: string) => void;
+    compact?: boolean;
+}
+
+const IconPicker = ({ value, onChange, compact = false }: IconPickerProps): React.JSX.Element => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [search, setSearch] = useState<string>('');
+    const [activeTab, setActiveTab] = useState<TabType>('icons');
+    const [uploadedIcons, setUploadedIcons] = useState<UploadedIcon[]>([]);
+    const [loadingIcons, setLoadingIcons] = useState<boolean>(false);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [triggerWidth, setTriggerWidth] = useState<number>(0);
+    const triggerRef = useRef<HTMLButtonElement>(null);
     const { error: showError } = useNotifications();
 
     // Fetch uploaded icons when component mounts
@@ -95,7 +109,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
         }
     }, [isOpen]);
 
-    const fetchUploadedIcons = async () => {
+    const fetchUploadedIcons = async (): Promise<void> => {
         try {
             setLoadingIcons(true);
             const response = await fetch('/api/custom-icons', {
@@ -106,41 +120,43 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                 setUploadedIcons(data.icons || []);
             }
         } catch (error) {
-            logger.error('Failed to fetch uploaded icons:', error);
+            logger.error('Failed to fetch uploaded icons:', { error });
         } finally {
             setLoadingIcons(false);
         }
     };
 
     // Get current icon component
-    const getCurrentIcon = () => {
+    const getCurrentIcon = (): React.FC<{ size?: number }> => {
         // Handle custom uploaded icons
         if (value && value.startsWith('custom:')) {
             const iconId = value.replace('custom:', '');
-            return () => (
+            return ({ size }: { size?: number }) => (
                 <img
                     src={`/api/custom-icons/${iconId}/file`}
                     alt="custom icon"
                     className="w-5 h-5 object-cover rounded"
+                    style={size ? { width: size, height: size } : undefined}
                 />
             );
         }
         // Handle legacy base64 images
         if (value && value.startsWith('data:image')) {
-            return () => (
+            return ({ size }: { size?: number }) => (
                 <img
                     src={value}
                     alt="icon"
                     className="w-5 h-5 object-cover rounded"
+                    style={size ? { width: size, height: size } : undefined}
                 />
             );
         }
         // Handle Lucide icons
-        return Icons[value] || Icons.Server;
+        return (Icons as Record<string, LucideIcon>)[value || ''] || Icons.Server;
     };
 
     // Get friendly display name for current icon
-    const getIconDisplayName = () => {
+    const getIconDisplayName = (): string => {
         if (!value) return 'Server';
 
         // Handle custom uploaded icons - show original filename
@@ -170,13 +186,13 @@ const IconPicker = ({ value, onChange, compact = false }) => {
         icon.toLowerCase().includes(search.toLowerCase())
     );
 
-    const handleIconSelect = (iconName) => {
+    const handleIconSelect = (iconName: string): void => {
         onChange(iconName);
         setIsOpen(false);
         setSearch('');
     };
 
-    const handleImageUpload = async (e) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -189,7 +205,6 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                 method: 'POST',
                 credentials: 'include',
                 body: formData
-                // Don't set Content-Type - browser will set it with boundary for multipart/form-data
             });
 
             if (response.ok) {
@@ -203,7 +218,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                 showError('Upload Failed', 'Failed to upload icon');
             }
         } catch (error) {
-            logger.error('Failed to upload icon:', error);
+            logger.error('Failed to upload icon:', { error });
             showError('Upload Failed', 'Failed to upload icon');
         }
 
@@ -211,7 +226,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
         e.target.value = '';
     };
 
-    const handleDeleteIcon = async (iconId) => {
+    const handleDeleteIcon = async (iconId: string): Promise<void> => {
         try {
             const response = await fetch(`/api/custom-icons/${iconId}`, {
                 method: 'DELETE',
@@ -231,7 +246,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                 setConfirmDeleteId(null);
             }
         } catch (error) {
-            logger.error('Failed to delete icon:', error);
+            logger.error('Failed to delete icon:', { error });
             showError('Delete Failed', 'Failed to delete icon');
             setConfirmDeleteId(null);
         }
@@ -378,7 +393,7 @@ const IconPicker = ({ value, onChange, compact = false }) => {
                                                 {/* Icon Grid */}
                                                 <div className="grid grid-cols-6 gap-2">
                                                     {filteredIcons.map(iconName => {
-                                                        const IconComponent = Icons[iconName] || Icons.Server;
+                                                        const IconComponent = (Icons as Record<string, LucideIcon>)[iconName] || Icons.Server;
                                                         const isSelected = value === iconName;
 
                                                         return (
