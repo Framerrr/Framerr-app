@@ -1,0 +1,30 @@
+{
+    "extends": "../tsconfig.base.json",
+    "compilerOptions": {
+        /* Frontend-specific settings */
+        "lib": [
+            "ES2022",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "jsx": "react-jsx",
+        /* Path Aliases */
+        "baseUrl": ".",
+        "paths": {
+            "@shared/*": [
+                "../shared/*"
+            ],
+            "@/*": [
+                "./*"
+            ]
+        }
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        "../shared/types/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
