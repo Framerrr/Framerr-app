@@ -55,8 +55,10 @@ RUN cd server && npm run build
 # Copy non-TypeScript files that aren't included in compilation
 # - schema.sql for database initialization
 # - migrations folder for database migrations
+# - public folder for default favicon files
 RUN cp server/database/schema.sql server/dist/server/database/ && \
-    cp -r server/database/migrations server/dist/server/database/
+    cp -r server/database/migrations server/dist/server/database/ && \
+    cp -r server/public server/dist/server/
 
 # Copy package.json to dist/server for require('./package.json') in compiled code
 RUN cp server/package.json server/dist/server/
