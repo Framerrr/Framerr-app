@@ -94,7 +94,9 @@ class Logger {
         // Add to log buffer for Debug UI
         try {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const logBuffer = require('./logBuffer');
+            const logBufferModule = require('./logBuffer');
+            // Handle both CommonJS and ES module interop
+            const logBuffer = logBufferModule.default || logBufferModule;
             logBuffer.add(level, message, meta);
         } catch {
             // Ignore errors loading logBuffer (e.g., during startup)
