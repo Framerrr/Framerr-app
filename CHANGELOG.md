@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2025-12-20
+
+### Changed
+- **Full TypeScript Migration:**
+  - Frontend: All `.jsx` files converted to `.tsx`
+  - Backend: All `.js` files converted to `.ts`
+  - Shared type definitions for cross-codebase consistency
+
+### Fixed
+- Docker build configuration for TypeScript compilation
+- ES module interop for dynamic `require()` calls
+- Log buffer integration in compiled TypeScript backend
+
+---
+
 ## [1.2.2] - 2025-12-19
 
 ### Added

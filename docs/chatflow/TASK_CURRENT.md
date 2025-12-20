@@ -1,7 +1,7 @@
 # Session State
 
-**Last Updated:** 2025-12-19 11:35 EST  
-**Branch:** `develop`
+**Last Updated:** 2025-12-20 02:35 EST  
+**Branch:** `feature/typescript-migration`
 
 ---
 
@@ -9,38 +9,55 @@
 
 | Field | Value |
 |-------|-------|
-| **Last Released Version** | `1.2.1` |
+| **Last Released Version** | `1.2.2` |
 | **Release Status** | RELEASED |
-| **Draft Changelog** | (none - next session will create v1.2.2-draft.md if needed) |
-| **Draft Status** | N/A |
+| **Draft Changelog** | `docs/versions/v1.2.3-draft.md` |
+| **Draft Status** | In Progress |
 
 ---
 
 ## Current State
 
-**Status:** ✅ Auth Proxy Logout Bug - FIXED
+**Status:** ✅ Backend TypeScript Migration - Phase 4 (Routes) COMPLETE
 
 **This Session:**
-- Fixed auth proxy logout bug that caused CORS errors with Authentik
-- Root cause: Service Worker was caching index.html and serving it after logout, bypassing nginx auth_request
-- Solution: SW now skips cache for navigation requests (`mode === 'navigate'`)
-- Additional: Browser-native logout via HTTP 302 redirect
-- Re-enabled Plex SSO check on login page
-- Released v1.2.1
+- Completed all remaining Phase 4 route files:
+  - `auth.ts` - login, logout, /me, plex-login endpoints
+  - `plex.ts` - Plex OAuth PIN flow, SSO config, resources
+  - `proxy.ts` - Plex, Sonarr, Radarr, Overseerr, qBittorrent, Glances proxies
+  - `webhooks.ts` - Overseerr, Sonarr, Radarr webhook handlers
+- All 21 route files now have TypeScript versions
+- Build passes (`npm run build`)
 
 ---
 
-## v1.2.1 Release Summary
+## Next Session
 
-**Changes:**
-- Service Worker no longer caches navigation requests (fixes auth proxy)
-- GET `/api/auth/logout` endpoint with HTTP 302 redirect
-- Cleaned up debug logging
+**⚠️ IMPORTANT: Start by saying:**
+```
+Continue backend TypeScript migration. Phase 4 Routes are complete.
+Next: Delete old .js route files and complete Phase 5 (index.ts).
+```
 
-**Docker:**
-- `pickels23/framerr:1.2.1`
-- `pickels23/framerr:latest`
+**Remaining Work:**
+1. Delete old `.js` route files after verifying all routes work
+2. Complete Phase 5: Convert `index.js` → `index.ts`
+3. Final typecheck cleanup (adm-zip declaration, etc.)
 
 ---
 
-**=== SESSION END 2025-12-19 11:35 EST ===**
+## Handoff Instructions
+
+**Tell the agent:**
+```
+Phase 4 Routes are COMPLETE. All 21 route .ts files created.
+Next: delete old .js route files, then convert server/index.js to TypeScript.
+```
+
+**Key Files:**
+- `server/routes/` - All .ts route files created
+- `server/index.js` - Next to convert (Phase 5)
+
+---
+
+**=== SESSION END 2025-12-20 02:35 EST ===**

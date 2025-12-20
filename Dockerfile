@@ -32,18 +32,31 @@ WORKDIR /app
 # Copy backend package files
 COPY server/package*.json ./server/
 
-# Install build dependencies, install npm packages, then remove build deps
+# Install build dependencies, install npm packages (including devDeps for TypeScript)
 # This ensures better-sqlite3 native module is compiled for the correct architecture
 RUN apk add --no-cache --virtual .build-deps \
     python3 \
     make \
     g++ \
     && cd server \
-    && npm ci --omit=dev \
+    && npm ci \
     && apk del .build-deps
 
 # Copy backend code
 COPY server/ ./server/
+
+# Copy TypeScript config and shared types for compilation
+COPY tsconfig.base.json ./
+COPY shared/ ./shared/
+
+# Compile TypeScript to JavaScript
+RUN cd server && npm run build
+
+# Copy package.json to dist/server for require('./package.json') in compiled code
+RUN cp server/package.json server/dist/server/
+
+# Remove devDependencies after build to reduce image size
+RUN cd server && npm prune --omit=dev
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/dist ./dist
@@ -76,7 +89,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Use entrypoint for PUID/PGID support
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["dumb-init", "node", "server/index.js"]
+CMD ["dumb-init", "node", "server/dist/server/index.js"]
 
 # Labels
 LABEL org.opencontainers.image.title="Framerr" \

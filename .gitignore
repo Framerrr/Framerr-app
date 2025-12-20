@@ -45,4 +45,6 @@ pnpm-lock.yaml
 develop-server/
 
 # Internal documentation (not for public GitHub)
-docs/
+# Ignore docs/ except docs/typescript/
+docs/*
+!docs/typescript/
