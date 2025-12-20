@@ -45,6 +45,10 @@ RUN apk add --no-cache --virtual .build-deps \
 # Copy backend code
 COPY server/ ./server/
 
+# Copy TypeScript config and shared types for compilation
+COPY tsconfig.base.json ./
+COPY shared/ ./shared/
+
 # Compile TypeScript to JavaScript
 RUN cd server && npm run build
 
