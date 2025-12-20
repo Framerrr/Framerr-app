@@ -8,6 +8,10 @@
         "types": [
             "node"
         ],
+        /* Override base config to emit files */
+        "noEmit": false,
+        "module": "CommonJS",
+        "moduleResolution": "node",
         /* CommonJS interop for existing .js files */
         "allowJs": true,
         "checkJs": false,

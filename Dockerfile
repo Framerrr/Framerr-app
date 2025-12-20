@@ -86,7 +86,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Use entrypoint for PUID/PGID support
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["dumb-init", "node", "server/dist/index.js"]
+CMD ["dumb-init", "node", "server/dist/server/index.js"]
 
 # Labels
 LABEL org.opencontainers.image.title="Framerr" \
