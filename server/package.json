@@ -31,6 +31,7 @@
         "xml2js": "^0.6.2"
     },
     "devDependencies": {
+        "@types/adm-zip": "^0.5.7",
         "@types/bcryptjs": "^2.4.6",
         "@types/better-sqlite3": "^7.6.13",
         "@types/cookie-parser": "^1.4.10",
@@ -41,6 +42,7 @@
         "@types/node": "^22.19.3",
         "@types/uuid": "^10.0.0",
         "@types/web-push": "^3.6.4",
+        "@types/xml2js": "^0.4.14",
         "nodemon": "^3.0.2",
         "rimraf": "^6.0.1",
         "supertest": "^7.1.4",
