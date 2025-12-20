@@ -1,40 +1,77 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import axios, { AxiosError } from 'axios';
 import { useAuth } from './AuthContext';
 import { setNotificationFunctions } from '../utils/axiosSetup';
 import logger from '../utils/logger';
+import type {
+    Notification,
+    Toast,
+    NotificationType,
+    ToastOptions,
+    ToastAction,
+    NotificationFilters,
+    PushSubscriptionRecord
+} from '../../shared/types/notification';
+import type { NotificationContextValue } from '../types/context/notification';
 
-export const NotificationContext = createContext(null);
+// API Response types
+interface NotificationsApiResponse {
+    notifications?: Notification[];
+    unreadCount?: number;
+}
 
-export const NotificationProvider = ({ children }) => {
+interface PushSubscriptionsResponse {
+    subscriptions?: PushSubscriptionRecord[];
+}
+
+interface VapidKeyResponse {
+    publicKey: string;
+}
+
+interface WebPushStatusResponse {
+    enabled?: boolean;
+}
+
+interface RequestActionResponse {
+    alreadyHandled?: boolean;
+    message?: string;
+    error?: string;
+}
+
+export const NotificationContext = createContext<NotificationContextValue | null>(null);
+
+interface NotificationProviderProps {
+    children: ReactNode;
+}
+
+export const NotificationProvider = ({ children }: NotificationProviderProps): React.JSX.Element => {
     const { isAuthenticated, user } = useAuth();
 
     // Toast state
-    const [toasts, setToasts] = useState([]);
+    const [toasts, setToasts] = useState<Toast[]>([]);
 
     // Notification center state
-    const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(false);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadCount, setUnreadCount] = useState<number>(0);
+    const [loading, setLoading] = useState<boolean>(false);
 
     // SSE connection state
-    const [connected, setConnected] = useState(false);
-    const [eventSource, setEventSource] = useState(null);
+    const [connected, setConnected] = useState<boolean>(false);
+    const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
     // Web Push state
-    const [pushSupported, setPushSupported] = useState(false);
-    const [pushPermission, setPushPermission] = useState('default');
-    const [pushEnabled, setPushEnabled] = useState(false);
-    const [pushSubscriptions, setPushSubscriptions] = useState([]);
-    const [swRegistration, setSwRegistration] = useState(null);
-    const [currentEndpoint, setCurrentEndpoint] = useState(null);  // This device's push endpoint
-    const [globalPushEnabled, setGlobalPushEnabled] = useState(true);  // Admin global toggle
+    const [pushSupported, setPushSupported] = useState<boolean>(false);
+    const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+    const [pushEnabled, setPushEnabled] = useState<boolean>(false);
+    const [pushSubscriptions, setPushSubscriptions] = useState<PushSubscriptionRecord[]>([]);
+    const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+    const [currentEndpoint, setCurrentEndpoint] = useState<string | null>(null);
+    const [globalPushEnabled, setGlobalPushEnabled] = useState<boolean>(true);
 
-    // Notification center open state (for toast body click)
-    const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
-    const openNotificationCenter = useCallback(() => {
+    // Notification center open state
+    const [notificationCenterOpen, setNotificationCenterOpen] = useState<boolean>(false);
+    const openNotificationCenter = useCallback((): void => {
         setNotificationCenterOpen(true);
-        // Emit event that Sidebar can listen to
         window.dispatchEvent(new CustomEvent('openNotificationCenter'));
     }, []);
 
@@ -57,50 +94,50 @@ export const NotificationProvider = ({ children }) => {
                 logger.info('[Push] Service Worker registered');
                 setSwRegistration(registration);
 
-                // Check if already subscribed and store endpoint
                 registration.pushManager.getSubscription()
                     .then((subscription) => {
                         setPushEnabled(!!subscription);
                         setCurrentEndpoint(subscription?.endpoint || null);
                     });
             })
-            .catch((error) => {
+            .catch((error: Error) => {
                 logger.error('[Push] Service Worker registration failed', { error: error.message });
             });
     }, [pushSupported]);
 
     // Fetch push subscriptions when authenticated
-    const fetchPushSubscriptions = useCallback(async () => {
+    const fetchPushSubscriptions = useCallback(async (): Promise<void> => {
         if (!isAuthenticated) return;
 
         try {
-            const response = await axios.get('/api/notifications/push/subscriptions', {
+            const response = await axios.get<PushSubscriptionsResponse>('/api/notifications/push/subscriptions', {
                 withCredentials: true
             });
             setPushSubscriptions(response.data.subscriptions || []);
         } catch (error) {
-            logger.error('[Push] Failed to fetch subscriptions', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('[Push] Failed to fetch subscriptions', { error: axiosError.message });
         }
     }, [isAuthenticated]);
 
     // Fetch global push status
-    const fetchGlobalPushStatus = useCallback(async () => {
+    const fetchGlobalPushStatus = useCallback(async (): Promise<void> => {
         if (!isAuthenticated) return;
 
         try {
-            const response = await axios.get('/api/config/web-push-status', {
+            const response = await axios.get<WebPushStatusResponse>('/api/config/web-push-status', {
                 withCredentials: true
             });
             setGlobalPushEnabled(response.data.enabled !== false);
         } catch (error) {
-            logger.error('[Push] Failed to fetch global push status', { error: error.message });
-            // Default to true if fetch fails
+            const axiosError = error as AxiosError;
+            logger.error('[Push] Failed to fetch global push status', { error: axiosError.message });
             setGlobalPushEnabled(true);
         }
     }, [isAuthenticated]);
 
     // Request push notification permission
-    const requestPushPermission = useCallback(async () => {
+    const requestPushPermission = useCallback(async (): Promise<NotificationPermission> => {
         if (!pushSupported) {
             throw new Error('Push notifications not supported');
         }
@@ -116,36 +153,30 @@ export const NotificationProvider = ({ children }) => {
     }, [pushSupported]);
 
     // Subscribe to push notifications
-    const subscribeToPush = useCallback(async (deviceName = null) => {
+    const subscribeToPush = useCallback(async (deviceName: string | null = null): Promise<boolean> => {
         if (!pushSupported || !swRegistration) {
             throw new Error('Push notifications not supported or SW not ready');
         }
 
-        // Request permission if not granted
         if (pushPermission !== 'granted') {
             await requestPushPermission();
         }
 
         try {
-            // Get VAPID public key
-            const vapidResponse = await axios.get('/api/notifications/push/vapid-key', {
+            const vapidResponse = await axios.get<VapidKeyResponse>('/api/notifications/push/vapid-key', {
                 withCredentials: true
             });
             const publicKey = vapidResponse.data.publicKey;
 
-            // Convert VAPID key to Uint8Array
             const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
-            // Subscribe to push
             const subscription = await swRegistration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey
+                applicationServerKey: applicationServerKey.buffer as ArrayBuffer
             });
 
-            // Auto-detect device name if not provided
             const autoDeviceName = deviceName || detectDeviceName();
 
-            // Send subscription to backend
             await axios.post('/api/notifications/push/subscribe', {
                 subscription: subscription.toJSON(),
                 deviceName: autoDeviceName
@@ -154,20 +185,21 @@ export const NotificationProvider = ({ children }) => {
             });
 
             setPushEnabled(true);
-            setCurrentEndpoint(subscription.endpoint);  // Track this device's endpoint
+            setCurrentEndpoint(subscription.endpoint);
             await fetchPushSubscriptions();
 
             logger.info('[Push] Subscribed successfully', { deviceName: autoDeviceName });
 
             return true;
         } catch (error) {
-            logger.error('[Push] Subscription failed', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('[Push] Subscription failed', { error: axiosError.message });
             throw error;
         }
     }, [pushSupported, swRegistration, pushPermission, requestPushPermission, fetchPushSubscriptions]);
 
     // Unsubscribe THIS device from push notifications
-    const unsubscribeFromPush = useCallback(async () => {
+    const unsubscribeFromPush = useCallback(async (): Promise<void> => {
         if (!swRegistration) return;
 
         try {
@@ -175,13 +207,10 @@ export const NotificationProvider = ({ children }) => {
             if (subscription) {
                 const endpoint = subscription.endpoint;
 
-                // Find matching subscription on server by exact endpoint
                 const matchingSub = pushSubscriptions.find(s => s.endpoint === endpoint);
 
-                // Unsubscribe from browser first
                 await subscription.unsubscribe();
 
-                // Delete from server if found
                 if (matchingSub) {
                     await axios.delete(`/api/notifications/push/subscriptions/${matchingSub.id}`, {
                         withCredentials: true
@@ -194,15 +223,15 @@ export const NotificationProvider = ({ children }) => {
             setCurrentEndpoint(null);
             logger.info('[Push] Unsubscribed this device successfully');
         } catch (error) {
-            logger.error('[Push] Unsubscribe failed', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('[Push] Unsubscribe failed', { error: axiosError.message });
             throw error;
         }
     }, [swRegistration, pushSubscriptions]);
 
     // Remove a specific push subscription
-    const removePushSubscription = useCallback(async (subscriptionId) => {
+    const removePushSubscription = useCallback(async (subscriptionId: string): Promise<void> => {
         try {
-            // Find the subscription being removed to check if it's THIS device
             const subToRemove = pushSubscriptions.find(s => s.id === subscriptionId);
             const isThisDevice = subToRemove && subToRemove.endpoint === currentEndpoint;
 
@@ -210,15 +239,12 @@ export const NotificationProvider = ({ children }) => {
                 withCredentials: true
             });
 
-            // Update local state
             setPushSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
 
-            // If we removed THIS device, update pushEnabled and unsubscribe browser
             if (isThisDevice) {
                 setPushEnabled(false);
                 setCurrentEndpoint(null);
 
-                // Unsubscribe browser's push manager to keep in sync
                 if (swRegistration) {
                     const browserSub = await swRegistration.pushManager.getSubscription();
                     if (browserSub) {
@@ -231,13 +257,14 @@ export const NotificationProvider = ({ children }) => {
                 logger.info('[Push] Other device subscription removed', { subscriptionId });
             }
         } catch (error) {
-            logger.error('[Push] Failed to remove subscription', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('[Push] Failed to remove subscription', { error: axiosError.message });
             throw error;
         }
     }, [swRegistration, pushSubscriptions, currentEndpoint]);
 
     // Send test push notification
-    const testPushNotification = useCallback(async () => {
+    const testPushNotification = useCallback(async (): Promise<boolean> => {
         try {
             await axios.post('/api/notifications/push/test', {}, {
                 withCredentials: true
@@ -245,7 +272,8 @@ export const NotificationProvider = ({ children }) => {
             logger.info('[Push] Test notification sent');
             return true;
         } catch (error) {
-            logger.error('[Push] Test notification failed', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('[Push] Test notification failed', { error: axiosError.message });
             throw error;
         }
     }, []);
@@ -262,17 +290,17 @@ export const NotificationProvider = ({ children }) => {
     }, [isAuthenticated, user, fetchPushSubscriptions, fetchGlobalPushStatus]);
 
     // Fetch notifications from backend
-    const fetchNotifications = useCallback(async (filters = {}) => {
+    const fetchNotifications = useCallback(async (filters: NotificationFilters = {}): Promise<void> => {
         if (!isAuthenticated) return;
 
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (filters.unread) params.append('unread', 'true');
-            if (filters.limit) params.append('limit', filters.limit);
-            if (filters.offset) params.append('offset', filters.offset);
+            if (filters.limit) params.append('limit', String(filters.limit));
+            if (filters.offset) params.append('offset', String(filters.offset));
 
-            const response = await axios.get(`/api/notifications?${params}`, {
+            const response = await axios.get<NotificationsApiResponse>(`/api/notifications?${params}`, {
                 withCredentials: true
             });
 
@@ -284,31 +312,31 @@ export const NotificationProvider = ({ children }) => {
                 unread: response.data.unreadCount
             });
         } catch (error) {
-            logger.error('Failed to fetch notifications', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('Failed to fetch notifications', { error: axiosError.message });
         } finally {
             setLoading(false);
         }
     }, [isAuthenticated]);
 
     // Add toast notification
-    const showToast = useCallback((type, title, message, options = {}) => {
+    const showToast = useCallback((type: NotificationType, title: string, message: string, options: ToastOptions = {}): string => {
         const id = `toast-${Date.now()}-${Math.random()}`;
-        const toast = {
+        const toast: Toast = {
             id,
-            type, // 'success' | 'error' | 'warning' | 'info'
+            type,
             title,
             message,
-            iconId: options.iconId || null, // Custom icon ID for integration logos
-            duration: options.duration || 5000, // Default 5 seconds
-            action: options.action, // { label, onClick } - single action (legacy)
-            actions: options.actions || null, // Array of actions for approve/decline
-            onBodyClick: options.onBodyClick || null, // Callback for body click
-            notificationId: options.notificationId || null, // Link to notification for dismissal sync
+            iconId: options.iconId || null,
+            duration: options.duration || 5000,
+            action: options.action,
+            actions: options.actions || undefined,
+            onBodyClick: options.onBodyClick,
+            notificationId: options.notificationId || null,
             createdAt: new Date()
         };
 
         setToasts(prev => {
-            // Keep max 5 toasts
             const updated = [toast, ...prev].slice(0, 5);
             return updated;
         });
@@ -319,24 +347,24 @@ export const NotificationProvider = ({ children }) => {
     }, []);
 
     // Remove toast
-    const dismissToast = useCallback((id) => {
+    const dismissToast = useCallback((id: string): void => {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
 
     // Convenience methods for toast types
-    const success = useCallback((title, message, options) => {
+    const success = useCallback((title: string, message: string, options?: ToastOptions): string => {
         return showToast('success', title, message, options);
     }, [showToast]);
 
-    const error = useCallback((title, message, options) => {
+    const error = useCallback((title: string, message: string, options?: ToastOptions): string => {
         return showToast('error', title, message, options);
     }, [showToast]);
 
-    const warning = useCallback((title, message, options) => {
+    const warning = useCallback((title: string, message: string, options?: ToastOptions): string => {
         return showToast('warning', title, message, options);
     }, [showToast]);
 
-    const info = useCallback((title, message, options) => {
+    const info = useCallback((title: string, message: string, options?: ToastOptions): string => {
         return showToast('info', title, message, options);
     }, [showToast]);
 
@@ -346,7 +374,7 @@ export const NotificationProvider = ({ children }) => {
     }, [error]);
 
     // Add notification to center (from backend or SSE)
-    const addNotification = useCallback((notification) => {
+    const addNotification = useCallback((notification: Notification): void => {
         setNotifications(prev => [notification, ...prev]);
         setUnreadCount(prev => prev + 1);
 
@@ -357,7 +385,7 @@ export const NotificationProvider = ({ children }) => {
     }, []);
 
     // Mark notification as read
-    const markAsRead = useCallback(async (notificationId) => {
+    const markAsRead = useCallback(async (notificationId: string): Promise<void> => {
         try {
             await axios.patch(`/api/notifications/${notificationId}/read`, {}, {
                 withCredentials: true
@@ -370,12 +398,13 @@ export const NotificationProvider = ({ children }) => {
 
             logger.debug('Notification marked as read', { id: notificationId });
         } catch (error) {
-            logger.error('Failed to mark notification as read', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('Failed to mark notification as read', { error: axiosError.message });
         }
     }, []);
 
     // Delete notification
-    const deleteNotification = useCallback(async (notificationId) => {
+    const deleteNotification = useCallback(async (notificationId: string): Promise<void> => {
         try {
             await axios.delete(`/api/notifications/${notificationId}`, {
                 withCredentials: true
@@ -389,12 +418,13 @@ export const NotificationProvider = ({ children }) => {
 
             logger.debug('Notification deleted', { id: notificationId });
         } catch (error) {
-            logger.error('Failed to delete notification', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('Failed to delete notification', { error: axiosError.message });
         }
     }, [notifications]);
 
     // Mark all as read
-    const markAllAsRead = useCallback(async () => {
+    const markAllAsRead = useCallback(async (): Promise<void> => {
         try {
             await axios.post('/api/notifications/mark-all-read', {}, {
                 withCredentials: true
@@ -407,12 +437,13 @@ export const NotificationProvider = ({ children }) => {
 
             logger.info('All notifications marked as read');
         } catch (error) {
-            logger.error('Failed to mark all as read', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('Failed to mark all as read', { error: axiosError.message });
         }
     }, []);
 
     // Clear all notifications
-    const clearAll = useCallback(async () => {
+    const clearAll = useCallback(async (): Promise<void> => {
         try {
             await axios.delete('/api/notifications/clear-all', {
                 withCredentials: true
@@ -423,33 +454,30 @@ export const NotificationProvider = ({ children }) => {
 
             logger.info('All notifications cleared');
         } catch (error) {
-            logger.error('Failed to clear all notifications', { error: error.message });
+            const axiosError = error as AxiosError;
+            logger.error('Failed to clear all notifications', { error: axiosError.message });
         }
     }, []);
 
     // Handle request action (approve/decline for Overseerr)
-    const handleRequestAction = useCallback(async (notificationId, action) => {
+    const handleRequestAction = useCallback(async (notificationId: string, action: 'approve' | 'decline'): Promise<unknown> => {
         try {
-            const response = await axios.post(
+            const response = await axios.post<RequestActionResponse>(
                 `/api/request-actions/overseerr/${action}/${notificationId}`,
                 {},
                 { withCredentials: true }
             );
 
-            // Remove notification from state using functional update
             setNotifications(prev => {
                 const notification = prev.find(n => n.id === notificationId);
-                // Update unread count if notification was unread
                 if (notification && !notification.read) {
                     setUnreadCount(count => Math.max(0, count - 1));
                 }
                 return prev.filter(n => n.id !== notificationId);
             });
 
-            // Dismiss any toast for this notification (match by notificationId property)
             setToasts(prev => prev.filter(t => t.notificationId !== notificationId));
 
-            // Show result toast
             if (response.data.alreadyHandled) {
                 showToast('info', 'Already Handled', 'This request was already handled in Overseerr.');
             } else {
@@ -462,18 +490,17 @@ export const NotificationProvider = ({ children }) => {
 
             return response.data;
         } catch (error) {
-            logger.error('Failed to process request action', { error: error.message });
-            showToast('error', 'Action Failed', error.response?.data?.error || 'Failed to process request');
+            const axiosError = error as AxiosError<{ error?: string }>;
+            logger.error('Failed to process request action', { error: axiosError.message });
+            showToast('error', 'Action Failed', axiosError.response?.data?.error || 'Failed to process request');
             throw error;
         }
     }, [showToast]);
 
-    // Show toast for a specific notification ID (used when clicking web push notification)
-    // Handles deduplication: if toast already exists, resets its timer
-    const showToastForNotification = useCallback((notificationId) => {
+    // Show toast for a specific notification ID
+    const showToastForNotification = useCallback((notificationId: string): void => {
         logger.info('[Push Click] showToastForNotification called', { notificationId });
 
-        // First, check if toast already exists and reset it
         setToasts(prevToasts => {
             const existingToast = prevToasts.find(t => t.notificationId === notificationId);
 
@@ -486,30 +513,23 @@ export const NotificationProvider = ({ children }) => {
                 );
             }
 
-            // Toast doesn't exist - return unchanged, we'll create below
             return prevToasts;
         });
 
-        // Now create a new toast if needed (using setTimeout to ensure first setToasts completes)
         setTimeout(() => {
             setToasts(prevToasts => {
-                // Check again if toast was just created
                 if (prevToasts.find(t => t.notificationId === notificationId)) {
                     logger.debug('[Push Click] Toast already exists after check');
                     return prevToasts;
                 }
 
-                // Need to find the notification - but we can't access notifications from here
-                // We'll use a workaround: access via the DOM/fetch from API
                 return prevToasts;
             });
 
-            // Access notifications state via a separate call
             setNotifications(prevNotifications => {
-                // Check if toast already exists
                 setToasts(currentToasts => {
                     if (currentToasts.find(t => t.notificationId === notificationId)) {
-                        return currentToasts; // Already exists
+                        return currentToasts;
                     }
 
                     const notification = prevNotifications.find(n => n.id === notificationId);
@@ -522,18 +542,18 @@ export const NotificationProvider = ({ children }) => {
                     logger.info('[Push Click] Creating toast for notification', { notificationId, title: notification.title });
 
                     const id = `toast-${Date.now()}-${Math.random()}`;
-                    const newToast = {
+                    const newToast: Toast = {
                         id,
                         type: notification.type || 'info',
                         title: notification.title,
                         message: notification.message,
                         iconId: notification.iconId || null,
                         duration: 10000,
-                        action: null,
+                        action: undefined,
                         actions: (notification.metadata?.actionable && notification.metadata?.requestId) ? [
                             { label: 'Approve', variant: 'success', onClick: () => handleRequestAction(notification.id, 'approve') },
                             { label: 'Decline', variant: 'danger', onClick: () => handleRequestAction(notification.id, 'decline') }
-                        ] : null,
+                        ] : undefined,
                         onBodyClick: openNotificationCenter,
                         notificationId: notification.id,
                         createdAt: new Date()
@@ -547,9 +567,9 @@ export const NotificationProvider = ({ children }) => {
         }, 50);
     }, [handleRequestAction, openNotificationCenter]);
 
-    // Listen for service worker messages (when push notification is clicked while app is open)
+    // Listen for service worker messages
     useEffect(() => {
-        const handleMessage = (event) => {
+        const handleMessage = (event: MessageEvent): void => {
             if (event.data?.type === 'NOTIFICATION_CLICK') {
                 logger.info('[SW Message] Notification click received', { notificationId: event.data.notificationId });
                 if (event.data.notificationId) {
@@ -562,9 +582,9 @@ export const NotificationProvider = ({ children }) => {
         return () => navigator.serviceWorker?.removeEventListener('message', handleMessage);
     }, [showToastForNotification]);
 
-    // Check URL hash on mount for notification ID (when app opened from push notification)
+    // Check URL hash on mount for notification ID
     useEffect(() => {
-        const checkNotificationHash = () => {
+        const checkNotificationHash = (): void => {
             const hash = window.location.hash;
             const match = hash.match(/#notification=([a-f0-9-]+)/i);
 
@@ -572,17 +592,14 @@ export const NotificationProvider = ({ children }) => {
                 const notificationId = match[1];
                 logger.info('[URL Hash] Notification ID found', { notificationId });
 
-                // Clear the hash to prevent re-triggering
                 window.history.replaceState(null, '', window.location.pathname);
 
-                // Wait a moment for notifications to load, then show toast
                 setTimeout(() => {
                     showToastForNotification(notificationId);
                 }, 500);
             }
         };
 
-        // Check on mount
         if (isAuthenticated && user) {
             checkNotificationHash();
         }
@@ -601,7 +618,6 @@ export const NotificationProvider = ({ children }) => {
     // SSE connection for real-time notifications
     useEffect(() => {
         if (!isAuthenticated || !user) {
-            // Close existing connection if not authenticated
             if (eventSource) {
                 eventSource.close();
                 setEventSource(null);
@@ -610,15 +626,14 @@ export const NotificationProvider = ({ children }) => {
             return;
         }
 
-        // Create SSE connection
         const source = new EventSource('/api/notifications/stream', { withCredentials: true });
 
-        source.onopen = () => {
+        source.onopen = (): void => {
             logger.info('[SSE] Connection established');
             setConnected(true);
         };
 
-        source.onmessage = (event) => {
+        source.onmessage = (event: MessageEvent): void => {
             try {
                 const data = JSON.parse(event.data);
 
@@ -627,7 +642,6 @@ export const NotificationProvider = ({ children }) => {
                     return;
                 }
 
-                // Handle sync events (from other devices)
                 if (data.type === 'sync') {
                     logger.info('[SSE] Sync event received', { action: data.action, notificationId: data.notificationId });
 
@@ -646,7 +660,6 @@ export const NotificationProvider = ({ children }) => {
                                 }
                                 return prev.filter(n => n.id !== data.notificationId);
                             });
-                            // Also dismiss any toast for this notification
                             setToasts(prev => prev.filter(t => t.notificationId !== data.notificationId));
                             break;
                         case 'markAllRead':
@@ -656,26 +669,22 @@ export const NotificationProvider = ({ children }) => {
                         case 'clearAll':
                             setNotifications([]);
                             setUnreadCount(0);
-                            setToasts(prev => prev.filter(t => !t.notificationId)); // Only keep non-notification toasts
+                            setToasts(prev => prev.filter(t => !t.notificationId));
                             break;
                     }
                     return;
                 }
 
-                // Real notification received
                 logger.info('[SSE] Notification received', { id: data.id, title: data.title, actionable: data.metadata?.actionable });
 
-                // Add to notification list
                 addNotification(data);
 
-                // Build toast options
-                const toastOptions = {
+                const toastOptions: ToastOptions = {
                     iconId: data.iconId,
-                    duration: 10000, // 10 second default for SSE notifications
+                    duration: 10000,
                     onBodyClick: openNotificationCenter
                 };
 
-                // Add action buttons for actionable notifications (Overseerr requests)
                 if (data.metadata?.actionable && data.metadata?.requestId) {
                     toastOptions.actions = [
                         {
@@ -689,21 +698,20 @@ export const NotificationProvider = ({ children }) => {
                             onClick: () => handleRequestAction(data.id, 'decline')
                         }
                     ];
-                    toastOptions.notificationId = data.id; // Track for syncing with notification center
+                    toastOptions.notificationId = data.id;
                 }
 
-                // Show toast for the notification
                 showToast(data.type || 'info', data.title, data.message, toastOptions);
             } catch (error) {
-                logger.error('[SSE] Failed to parse message', { error: error.message });
+                const parseError = error as Error;
+                logger.error('[SSE] Failed to parse message', { error: parseError.message });
             }
         };
 
-        source.onerror = (err) => {
-            logger.error('[SSE] Connection error', { error: err });
+        source.onerror = (): void => {
+            logger.error('[SSE] Connection error');
             setConnected(false);
 
-            // EventSource automatically reconnects, but we update state
             if (source.readyState === EventSource.CLOSED) {
                 logger.info('[SSE] Connection closed, will not reconnect');
             }
@@ -711,7 +719,6 @@ export const NotificationProvider = ({ children }) => {
 
         setEventSource(source);
 
-        // Cleanup on unmount or auth change
         return () => {
             logger.info('[SSE] Closing connection');
             source.close();
@@ -720,7 +727,7 @@ export const NotificationProvider = ({ children }) => {
         };
     }, [isAuthenticated, user, addNotification, showToast, handleRequestAction, openNotificationCenter]);
 
-    const value = {
+    const value: NotificationContextValue = {
         // Toast state
         toasts,
         showToast,
@@ -751,14 +758,16 @@ export const NotificationProvider = ({ children }) => {
 
         // SSE connection state
         connected,
+        setConnected,
+        setEventSource,
 
         // Web Push state
         pushSupported,
         pushPermission,
         pushEnabled,
         pushSubscriptions,
-        currentEndpoint,  // This device's push endpoint for identifying "this device"
-        globalPushEnabled,  // Admin global toggle status
+        currentEndpoint,
+        globalPushEnabled,
 
         // Web Push actions
         requestPushPermission,
@@ -767,11 +776,7 @@ export const NotificationProvider = ({ children }) => {
         removePushSubscription,
         testPushNotification,
         fetchPushSubscriptions,
-        fetchGlobalPushStatus,  // Refresh global status
-
-        // Internal state setters (for SSE)
-        setConnected,
-        setEventSource
+        fetchGlobalPushStatus
     };
 
     return (
@@ -782,7 +787,7 @@ export const NotificationProvider = ({ children }) => {
 };
 
 // Helper: Convert VAPID key to Uint8Array
-function urlBase64ToUint8Array(base64String) {
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)
         .replace(/-/g, '+')
@@ -798,7 +803,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // Helper: Auto-detect device name
-function detectDeviceName() {
+function detectDeviceName(): string {
     const ua = navigator.userAgent;
     let browser = 'Unknown Browser';
     let os = 'Unknown OS';
@@ -820,11 +825,10 @@ function detectDeviceName() {
     return `${browser} on ${os}`;
 }
 
-export const useNotifications = () => {
+export const useNotifications = (): NotificationContextValue => {
     const context = useContext(NotificationContext);
     if (!context) {
         throw new Error('useNotifications must be used within a NotificationProvider');
     }
     return context;
 };
-

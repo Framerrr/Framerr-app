@@ -36,6 +36,11 @@ export interface BaseIntegration {
     enabled: boolean;
     sharing?: IntegrationSharing;
     webhookConfig?: WebhookConfig;
+    // Common fields (optional for index signature compatibility)
+    name?: string;
+    url?: string;
+    apiKey?: string;
+    token?: string;
 }
 
 /**

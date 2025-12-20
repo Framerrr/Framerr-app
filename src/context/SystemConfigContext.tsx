@@ -1,17 +1,22 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import axios, { AxiosError } from 'axios';
 import { useAuth } from './AuthContext';
 import { isAdmin } from '../utils/permissions';
 import logger from '../utils/logger';
+import type { SystemConfigContextValue, SystemConfig } from '../types/context/systemConfig';
 
-const SystemConfigContext = createContext(null);
+const SystemConfigContext = createContext<SystemConfigContextValue | null>(null);
 
-export const SystemConfigProvider = ({ children }) => {
+interface SystemConfigProviderProps {
+    children: ReactNode;
+}
+
+export const SystemConfigProvider = ({ children }: SystemConfigProviderProps): React.JSX.Element => {
     const { isAuthenticated, user } = useAuth();
-    const [systemConfig, setSystemConfig] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [systemConfig, setSystemConfig] = useState<SystemConfig | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
 
-    const fetchSystemConfig = async () => {
+    const fetchSystemConfig = async (): Promise<void> => {
         if (!isAuthenticated) {
             setLoading(false);
             return;
@@ -32,14 +37,15 @@ export const SystemConfigProvider = ({ children }) => {
 
         try {
             setLoading(true);
-            const response = await axios.get('/api/config/system');
+            const response = await axios.get<SystemConfig>('/api/config/system');
             setSystemConfig(response.data);
         } catch (error) {
+            const axiosError = error as AxiosError;
             // Only log debug for 403 (expected for non-admins), error for other issues
-            if (error.response?.status === 403) {
+            if (axiosError.response?.status === 403) {
                 logger.debug('System config not accessible (not admin)');
             } else {
-                logger.error('Failed to fetch system config:', error);
+                logger.error('Failed to fetch system config', { error });
             }
             // Set empty config to prevent crashes
             setSystemConfig({ groups: [], tabGroups: [] });
@@ -52,18 +58,20 @@ export const SystemConfigProvider = ({ children }) => {
         fetchSystemConfig();
     }, [isAuthenticated, user]);
 
+    const value: SystemConfigContextValue = {
+        systemConfig,
+        loading,
+        refreshSystemConfig: fetchSystemConfig
+    };
+
     return (
-        <SystemConfigContext.Provider value={{
-            systemConfig,
-            loading,
-            refreshSystemConfig: fetchSystemConfig
-        }}>
+        <SystemConfigContext.Provider value={value}>
             {children}
         </SystemConfigContext.Provider>
     );
 };
 
-export const useSystemConfig = () => {
+export const useSystemConfig = (): SystemConfigContextValue => {
     const context = useContext(SystemConfigContext);
     if (!context) {
         throw new Error('useSystemConfig must be used within a SystemConfigProvider');
