@@ -3,6 +3,11 @@ import { getUserById } from './users';
 import { db } from '../database/db';
 import { v4 as uuidv4 } from 'uuid';
 
+// DeepPartial utility type for nested partial updates
+type DeepPartial<T> = T extends object ? {
+    [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
+
 interface DashboardConfig {
     layout: unknown[];
     widgets: unknown[];
@@ -45,6 +50,9 @@ interface UserConfig {
     sidebar: SidebarConfig;
     preferences: Preferences;
 }
+
+// Export types for use in routes
+export type { UserConfig, DeepPartial };
 
 interface UserPreferencesRow {
     user_id: string;
@@ -148,7 +156,7 @@ function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial
 /**
  * Update user configuration
  */
-export async function updateUserConfig(userId: string, updates: Partial<UserConfig>): Promise<UserConfig> {
+export async function updateUserConfig(userId: string, updates: DeepPartial<UserConfig>): Promise<UserConfig> {
     try {
         const user = await getUserById(userId);
         if (!user) {
