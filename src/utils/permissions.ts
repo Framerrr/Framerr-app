@@ -3,14 +3,35 @@
  * Mirrors backend logic for UI conditional rendering
  */
 
+import type { User } from '../../shared/types/user';
+
+/**
+ * Permission group from system config
+ */
+interface PermissionGroup {
+    id: string;
+    permissions: string[];
+}
+
+/**
+ * Minimal system config needed for permission checks
+ */
+interface SystemConfigWithGroups {
+    groups?: PermissionGroup[];
+}
+
 /**
  * Check if a user has a specific permission
- * @param {object} user - User object
- * @param {string} permission - Permission to check
- * @param {object} systemConfig - System configuration (containing groups)
- * @returns {boolean} True if user has permission
+ * @param user - User object
+ * @param permission - Permission to check
+ * @param systemConfig - System configuration (containing groups)
+ * @returns True if user has permission
  */
-export const hasPermission = (user, permission, systemConfig) => {
+export const hasPermission = (
+    user: User | null | undefined,
+    permission: string,
+    systemConfig: SystemConfigWithGroups | null | undefined
+): boolean => {
     if (!user || !user.group) return false;
     if (!systemConfig || !systemConfig.groups) return false;
 
@@ -32,14 +53,16 @@ export const PERMISSIONS = {
     MANAGE_WIDGETS: 'manage_widgets',
     MANAGE_SYSTEM: 'manage_system',
     MANAGE_USERS: 'manage_users'
-};
+} as const;
+
+export type PermissionKey = keyof typeof PERMISSIONS;
 
 /**
  * Check if user is admin 
- * @param {object} user - User object
- * @returns {boolean} True if user is in admin group
+ * @param user - User object
+ * @returns True if user is in admin group
  */
-export const isAdmin = (user) => {
+export const isAdmin = (user: User | null | undefined): boolean => {
     if (!user || !user.group) return false;
     return user.group === 'admin';
 };

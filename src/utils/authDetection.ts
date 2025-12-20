@@ -6,7 +6,7 @@
 /**
  * Common authentication URL patterns
  */
-const DEFAULT_AUTH_PATTERNS = [
+const DEFAULT_AUTH_PATTERNS: string[] = [
     '/auth',
     '/login',
     '/signin',
@@ -21,11 +21,42 @@ const DEFAULT_AUTH_PATTERNS = [
 ];
 
 /**
- * Check if a URL matches common authentication patterns
- * @param {string} url - URL to check
- * @returns {boolean} - True if URL likely requires authentication
+ * Detection sensitivity levels
  */
-export const matchesAuthPattern = (url) => {
+export type AuthDetectionSensitivity = 'conservative' | 'balanced' | 'aggressive';
+
+/**
+ * Auth detection result
+ */
+export interface AuthDetectionResult {
+    needsAuth: boolean;
+    confidence: number;
+    reasons: string[];
+    threshold: number;
+}
+
+/**
+ * IFrame auth config from system config
+ */
+interface IframeAuthConfig {
+    enabled?: boolean;
+    sensitivity?: AuthDetectionSensitivity;
+    customPatterns?: string[];
+}
+
+/**
+ * System config shape for auth detection
+ */
+interface SystemConfigForAuth {
+    iframeAuth?: IframeAuthConfig;
+}
+
+/**
+ * Check if a URL matches common authentication patterns
+ * @param url - URL to check
+ * @returns True if URL likely requires authentication
+ */
+export const matchesAuthPattern = (url: string | null | undefined): boolean => {
     if (!url) return false;
 
     const lowerUrl = url.toLowerCase();
@@ -34,10 +65,11 @@ export const matchesAuthPattern = (url) => {
 
 /**
  * Extract domain from URL
- * @param {string} url - Full URL
- * @returns {string|null} - Domain or null if invalid
+ * @param url - Full URL
+ * @returns Domain or null if invalid
  */
-export const extractDomain = (url) => {
+export const extractDomain = (url: string | null | undefined): string | null => {
+    if (!url) return null;
     try {
         const urlObj = new URL(url);
         return urlObj.hostname;
@@ -48,11 +80,14 @@ export const extractDomain = (url) => {
 
 /**
  * Check if iframe URL differs from expected URL domain
- * @param {string} currentUrl - Current iframe URL
- * @param {string} expectedUrl - Expected tab URL
- * @returns {boolean} - True if domains don't match
+ * @param currentUrl - Current iframe URL
+ * @param expectedUrl - Expected tab URL
+ * @returns True if domains don't match
  */
-export const hasDomainMismatch = (currentUrl, expectedUrl) => {
+export const hasDomainMismatch = (
+    currentUrl: string | null | undefined,
+    expectedUrl: string | null | undefined
+): boolean => {
     const currentDomain = extractDomain(currentUrl);
     const expectedDomain = extractDomain(expectedUrl);
 
@@ -63,11 +98,14 @@ export const hasDomainMismatch = (currentUrl, expectedUrl) => {
 
 /**
  * Check if URL matches user-configured auth patterns
- * @param {string} url - URL to check
- * @param {Array<string>} userPatterns - User-defined auth patterns
- * @returns {boolean} - True if matches user pattern
+ * @param url - URL to check
+ * @param userPatterns - User-defined auth patterns
+ * @returns True if matches user pattern
  */
-export const matchesUserPattern = (url, userPatterns = []) => {
+export const matchesUserPattern = (
+    url: string | null | undefined,
+    userPatterns: string[] = []
+): boolean => {
     if (!url || !userPatterns.length) return false;
 
     const lowerUrl = url.toLowerCase();
@@ -78,15 +116,20 @@ export const matchesUserPattern = (url, userPatterns = []) => {
 
 /**
  * Calculate confidence score that iframe needs authentication
- * @param {string} iframeUrl - Current iframe URL
- * @param {string} expectedUrl - Expected tab URL
- * @param {Array<string>} userPatterns - User-defined auth patterns
- * @param {string} sensitivity - Detection sensitivity ('conservative', 'balanced', 'aggressive')
- * @returns {Object} - { needsAuth: boolean, confidence: number, reasons: Array<string> }
+ * @param iframeUrl - Current iframe URL
+ * @param expectedUrl - Expected tab URL
+ * @param userPatterns - User-defined auth patterns
+ * @param sensitivity - Detection sensitivity
+ * @returns Detection result with confidence and reasons
  */
-export const detectAuthNeed = (iframeUrl, expectedUrl, userPatterns = [], sensitivity = 'balanced') => {
+export const detectAuthNeed = (
+    iframeUrl: string | null | undefined,
+    expectedUrl: string | null | undefined,
+    userPatterns: string[] = [],
+    sensitivity: AuthDetectionSensitivity = 'balanced'
+): AuthDetectionResult => {
     let confidence = 0;
-    const reasons = [];
+    const reasons: string[] = [];
 
     // Signal 1: User-configured auth URL (highest confidence)
     if (matchesUserPattern(iframeUrl, userPatterns)) {
@@ -113,7 +156,7 @@ export const detectAuthNeed = (iframeUrl, expectedUrl, userPatterns = [], sensit
     }
 
     // Determine threshold based on sensitivity
-    const thresholds = {
+    const thresholds: Record<AuthDetectionSensitivity, number> = {
         conservative: 5, // Only user-configured or very high confidence
         balanced: 3,     // Pattern match or multiple signals
         aggressive: 2,   // Any significant signal
@@ -132,27 +175,33 @@ export const detectAuthNeed = (iframeUrl, expectedUrl, userPatterns = [], sensit
 
 /**
  * Get detection sensitivity from config
- * @param {Object} config - System configuration
- * @returns {string} - Sensitivity level
+ * @param config - System configuration
+ * @returns Sensitivity level
  */
-export const getSensitivity = (config) => {
+export const getSensitivity = (
+    config: SystemConfigForAuth | null | undefined
+): AuthDetectionSensitivity => {
     return config?.iframeAuth?.sensitivity || 'balanced';
 };
 
 /**
  * Get user-configured auth patterns from config
- * @param {Object} config - System configuration
- * @returns {Array<string>} - User auth patterns
+ * @param config - System configuration
+ * @returns User auth patterns
  */
-export const getUserAuthPatterns = (config) => {
+export const getUserAuthPatterns = (
+    config: SystemConfigForAuth | null | undefined
+): string[] => {
     return config?.iframeAuth?.customPatterns || [];
 };
 
 /**
  * Check if iframe auth detection is enabled
- * @param {Object} config - System configuration
- * @returns {boolean} - True if enabled
+ * @param config - System configuration
+ * @returns True if enabled
  */
-export const isAuthDetectionEnabled = (config) => {
+export const isAuthDetectionEnabled = (
+    config: SystemConfigForAuth | null | undefined
+): boolean => {
     return config?.iframeAuth?.enabled !== false; // Enabled by default
 };

@@ -3,38 +3,46 @@
  * Shows toast notifications for authentication errors (401)
  * Auto-triggers logout on session expiry
  */
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+
+// Types
+type ErrorNotifyFn = (title: string, message: string) => void;
+type LogoutFn = () => void;
+
+interface NotificationFunctions {
+    error: ErrorNotifyFn;
+}
 
 // Store reference to notification and logout functions (set by providers)
-let showErrorFn = null;
-let logoutFn = null;
+let showErrorFn: ErrorNotifyFn | null = null;
+let logoutFn: LogoutFn | null = null;
 let isLoggingOut = false; // Flag to prevent 401 handler during explicit logout
 
 /**
  * Set the notification functions for the interceptor to use
  * Called from a component inside NotificationProvider
  */
-export const setNotificationFunctions = ({ error }) => {
-    showErrorFn = error;
+export const setNotificationFunctions = (fns: NotificationFunctions | null): void => {
+    showErrorFn = fns?.error ?? null;
 };
 
 /**
  * Set the logout function for the interceptor to use
  * Called from AuthContext after logout function is available
  */
-export const setLogoutFunction = (logout) => {
+export const setLogoutFunction = (logout: LogoutFn | null): void => {
     logoutFn = logout;
 };
 
 /**
  * Set logging out flag to prevent 401 handler from firing during explicit logout
  */
-export const setLoggingOut = (value) => {
+export const setLoggingOut = (value: boolean): void => {
     isLoggingOut = value;
 };
 
 // URLs where 401 is expected and should NOT show "session expired"
-const AUTH_ENDPOINTS = [
+const AUTH_ENDPOINTS: string[] = [
     '/api/auth/login',
     '/api/auth/logout',
     '/api/auth/me',
@@ -44,7 +52,7 @@ const AUTH_ENDPOINTS = [
 // REQUEST interceptor - block ALL requests during logout to prevent race conditions
 // This stops FaviconInjector, AppTitle, etc from making API calls that Authentik intercepts
 axios.interceptors.request.use(
-    (config) => {
+    (config: InternalAxiosRequestConfig) => {
         if (isLoggingOut && !config.url?.includes('/api/auth/logout')) {
             // Block all requests except the logout request itself
             return Promise.reject(new Error('Request blocked - logout in progress'));
@@ -58,7 +66,7 @@ axios.interceptors.request.use(
 // See docs/secondopinion/ for debugging context
 axios.interceptors.response.use(
     (response) => response,
-    (error) => {
+    (error: AxiosError) => {
         if (error.response?.status === 401) {
             const requestUrl = error.config?.url || '';
 
@@ -89,4 +97,3 @@ axios.interceptors.response.use(
 );
 
 export default axios;
-

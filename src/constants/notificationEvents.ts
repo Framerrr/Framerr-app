@@ -5,8 +5,23 @@
  * See docs/reference/notifications.md for full documentation.
  */
 
+/**
+ * Notification event definition
+ */
+export interface NotificationEvent {
+    key: string;
+    label: string;
+    defaultAdmin: boolean;
+    defaultUser: boolean;
+}
+
+/**
+ * Integration ID type
+ */
+export type IntegrationIdWithEvents = 'overseerr' | 'sonarr' | 'radarr';
+
 // Overseerr Events (10 total)
-export const OVERSEERR_EVENTS = [
+export const OVERSEERR_EVENTS: NotificationEvent[] = [
     { key: 'requestPending', label: 'Request Pending Approval', defaultAdmin: true, defaultUser: false },
     { key: 'requestAutoApproved', label: 'Request Auto-Approved', defaultAdmin: true, defaultUser: true },
     { key: 'requestApproved', label: 'Request Approved', defaultAdmin: true, defaultUser: true },
@@ -20,7 +35,7 @@ export const OVERSEERR_EVENTS = [
 ];
 
 // Sonarr Events (13 total)
-export const SONARR_EVENTS = [
+export const SONARR_EVENTS: NotificationEvent[] = [
     { key: 'grab', label: 'Episode Grabbed', defaultAdmin: false, defaultUser: false },
     { key: 'download', label: 'Episode Downloaded', defaultAdmin: true, defaultUser: false },
     { key: 'upgrade', label: 'Episode Upgraded', defaultAdmin: false, defaultUser: false },
@@ -37,7 +52,7 @@ export const SONARR_EVENTS = [
 ];
 
 // Radarr Events (13 total)
-export const RADARR_EVENTS = [
+export const RADARR_EVENTS: NotificationEvent[] = [
     { key: 'grab', label: 'Movie Grabbed', defaultAdmin: false, defaultUser: false },
     { key: 'download', label: 'Movie Downloaded', defaultAdmin: true, defaultUser: false },
     { key: 'upgrade', label: 'Movie Upgraded', defaultAdmin: false, defaultUser: false },
@@ -54,7 +69,7 @@ export const RADARR_EVENTS = [
 ];
 
 // Map integration names to their events
-export const INTEGRATION_EVENTS = {
+export const INTEGRATION_EVENTS: Record<IntegrationIdWithEvents, NotificationEvent[]> = {
     overseerr: OVERSEERR_EVENTS,
     sonarr: SONARR_EVENTS,
     radarr: RADARR_EVENTS
@@ -63,24 +78,24 @@ export const INTEGRATION_EVENTS = {
 /**
  * Get default admin events for an integration
  */
-export const getDefaultAdminEvents = (integrationId) => {
-    const events = INTEGRATION_EVENTS[integrationId] || [];
+export const getDefaultAdminEvents = (integrationId: string): string[] => {
+    const events = INTEGRATION_EVENTS[integrationId as IntegrationIdWithEvents] || [];
     return events.filter(e => e.defaultAdmin).map(e => e.key);
 };
 
 /**
  * Get default user events for an integration
  */
-export const getDefaultUserEvents = (integrationId) => {
-    const events = INTEGRATION_EVENTS[integrationId] || [];
+export const getDefaultUserEvents = (integrationId: string): string[] => {
+    const events = INTEGRATION_EVENTS[integrationId as IntegrationIdWithEvents] || [];
     return events.filter(e => e.defaultUser).map(e => e.key);
 };
 
 /**
  * Get event label by key
  */
-export const getEventLabel = (integrationId, eventKey) => {
-    const events = INTEGRATION_EVENTS[integrationId] || [];
+export const getEventLabel = (integrationId: string, eventKey: string): string => {
+    const events = INTEGRATION_EVENTS[integrationId as IntegrationIdWithEvents] || [];
     const event = events.find(e => e.key === eventKey);
     return event?.label || eventKey;
 };

@@ -1,12 +1,38 @@
 import logger from './logger';
 import { getWidgetMetadata } from './widgetRegistry';
-export const generateMobileLayout = (widgets, breakpoint = 'sm') => {
+import type { Widget, WidgetLayout } from '../../shared/types/widget';
+
+/**
+ * Breakpoint type for mobile layouts
+ */
+type MobileBreakpoint = 'sm' | 'xs';
+
+/**
+ * Desktop widget info for layout calculation
+ */
+interface DesktopWidgetInfo {
+    i: string;
+    type: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    yStart: number;
+    yEnd: number;
+    widget: Widget;
+}
+
+/**
+ * Generate mobile layout for widgets
+ */
+export const generateMobileLayout = (widgets: Widget[], breakpoint: MobileBreakpoint = 'sm'): Widget[] => {
     // Determine column count based on breakpoint
     // lg/md use 24 cols (handled separately), sm/xs use 2 cols (stacked)
     const cols = 2;
+
     // 1. Extract desktop layout info with Y range
-    const desktopWidgets = widgets.map(w => ({
-        id: w.id,
+    const desktopWidgets: DesktopWidgetInfo[] = widgets.map(w => ({
+        i: w.i,
         type: w.type,
         x: w.layouts?.lg?.x ?? w.x ?? 0,
         y: w.layouts?.lg?.y ?? w.y ?? 0,
@@ -24,8 +50,8 @@ export const generateMobileLayout = (widgets, breakpoint = 'sm') => {
         return a.x - b.x;
     });
 
-    const bands = [];
-    let currentBand = [];
+    const bands: DesktopWidgetInfo[][] = [];
+    let currentBand: DesktopWidgetInfo[] = [];
     let currentBandMaxY = -1;
 
     // Sweep line: Separate into horizontal bands
@@ -68,14 +94,15 @@ export const generateMobileLayout = (widgets, breakpoint = 'sm') => {
             if (a.x !== b.x) return a.x - b.x;
             return a.y - b.y;
         });
-
     });
+
     logger.debug('Final sorted order', { order: sorted.map(w => w.type) });
+
     // 5. Create stacked mobile layout
     let currentY = 0;
     return sorted.map((item) => {
         const mobileHeight = calculateMobileHeight(item.widget, breakpoint);
-        const mobileLayoutItem = {
+        const mobileLayoutItem: WidgetLayout = {
             x: 0,
             y: currentY,
             w: cols,
@@ -91,30 +118,33 @@ export const generateMobileLayout = (widgets, breakpoint = 'sm') => {
         };
     });
 };
+
 /**
  * Calculate appropriate widget height for mobile breakpoints
  */
-const calculateMobileHeight = (widget, breakpoint) => {
+const calculateMobileHeight = (widget: Widget, breakpoint: MobileBreakpoint): number => {
     const metadata = getWidgetMetadata(widget.type);
     if (metadata?.minSize?.h) {
         return metadata.minSize.h;
     }
-    const desktopHeight = widget.layouts?.lg?.h ?? widget.h ?? 2;
+    const desktopHeight = widget.layouts?.lg?.h ?? (widget as any).h ?? 2;
     const scaled = Math.ceil(desktopHeight * 0.75);
     const min = 2;
     const max = 6;
     return Math.max(min, Math.min(max, scaled));
 };
+
 /**
  * Generate mobile layout for sm breakpoint
  */
-export const generateAllMobileLayouts = (widgets) => {
+export const generateAllMobileLayouts = (widgets: Widget[]): Widget[] => {
     return generateMobileLayout(widgets, 'sm');
 };
+
 /**
  * Convert old widget format to new layouts format
  */
-export const migrateWidgetToLayouts = (widget) => {
+export const migrateWidgetToLayouts = (widget: Widget): Widget => {
     if (widget.layouts?.lg) {
         return widget;
     }
@@ -122,10 +152,10 @@ export const migrateWidgetToLayouts = (widget) => {
         ...widget,
         layouts: {
             lg: {
-                x: widget.x ?? 0,
-                y: widget.y ?? 0,
-                w: widget.w ?? 4,
-                h: widget.h ?? 2
+                x: (widget as any).x ?? 0,
+                y: (widget as any).y ?? 0,
+                w: (widget as any).w ?? 4,
+                h: (widget as any).h ?? 2
             }
         }
     };

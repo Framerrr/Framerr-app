@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, ComponentType } from 'react';
 import {
     Activity,
     Tv,
@@ -10,8 +10,47 @@ import {
     Code,
     Film,
     MonitorPlay,
-    Star
+    Star,
+    LucideIcon
 } from 'lucide-react';
+import type { WidgetTypeKey, WidgetCategory } from '../../shared/types/widget';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type WidgetComponent = React.ComponentType<any>;
+
+/**
+ * Widget metadata interface
+ */
+export interface WidgetMetadata {
+    component: WidgetComponent;
+    icon: LucideIcon;
+    name: string;
+    description: string;
+    category: WidgetCategory;
+    defaultSize: { w: number; h: number };
+    minSize?: { w?: number; h?: number };
+    maxSize?: { w?: number; h?: number };
+    requiresIntegration?: string | false;
+    requiresIntegrations?: string[];
+    defaultConfig?: Record<string, unknown>;
+}
+
+/**
+ * Widget registry type
+ */
+export type WidgetRegistry = Record<string, WidgetMetadata>;
+
+/**
+ * Widget with type info for category grouping
+ */
+export interface WidgetTypeInfo extends WidgetMetadata {
+    type: string;
+}
+
+/**
+ * Widgets grouped by category
+ */
+export type WidgetsByCategory = Record<string, WidgetTypeInfo[]>;
 
 // Lazy-loaded widgets
 const SystemStatusWidget = lazy(() => import('../components/widgets/SystemStatusWidget'));
@@ -30,7 +69,7 @@ const ClockWidget = lazy(() => import('../components/widgets/ClockWidget'));
  * Widget Type Registry
  * Maps widget type strings to their component, icon, and metadata
  */
-export const WIDGET_TYPES = {
+export const WIDGET_TYPES: WidgetRegistry = {
     // System Widgets
     'system-status': {
         component: SystemStatusWidget,
@@ -174,21 +213,21 @@ export const WIDGET_TYPES = {
  * Get widget component by type
  * Returns null if type not found
  */
-export function getWidgetComponent(type) {
+export function getWidgetComponent(type: string): WidgetComponent | null {
     return WIDGET_TYPES[type]?.component || null;
 }
 
 /**
  * Get widget icon by type
  */
-export function getWidgetIcon(type) {
+export function getWidgetIcon(type: string): LucideIcon {
     return WIDGET_TYPES[type]?.icon || Activity;
 }
 
 /**
  * Get widget metadata by type
  */
-export function getWidgetMetadata(type) {
+export function getWidgetMetadata(type: string): WidgetMetadata | null {
     return WIDGET_TYPES[type] || null;
 }
 
@@ -196,7 +235,7 @@ export function getWidgetMetadata(type) {
  * Get widget icon name (string) for IconPicker
  * Extracts the component name to use as icon name
  */
-export function getWidgetIconName(type) {
+export function getWidgetIconName(type: string): string {
     const metadata = WIDGET_TYPES[type];
     if (!metadata?.icon) return 'Server';
     // Get the component name (e.g., Activity, Tv, etc.)
@@ -206,8 +245,8 @@ export function getWidgetIconName(type) {
 /**
  * Get all available widgets grouped by category
  */
-export function getWidgetsByCategory() {
-    const categories = {};
+export function getWidgetsByCategory(): WidgetsByCategory {
+    const categories: WidgetsByCategory = {};
     Object.entries(WIDGET_TYPES).forEach(([type, config]) => {
         const category = config.category || 'other';
         if (!categories[category]) {

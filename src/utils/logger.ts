@@ -7,12 +7,24 @@
  * - Development: Verbose, structured JSON logs with metadata
  * 
  * Usage:
- *   const logger = require('./utils/logger');
+ *   import logger from './utils/logger';
  *   logger.info('Server started', { port: 3001 });
  *   logger.error('Database error', { error: err.message });
  */
 
-const LOG_LEVELS = {
+type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+interface LogMeta {
+    [key: string]: unknown;
+}
+
+interface StartupConfig {
+    version?: string;
+    port?: number;
+    env?: string;
+}
+
+const LOG_LEVELS: Record<LogLevel, number> = {
     error: 0,
     warn: 1,
     info: 2,
@@ -20,30 +32,36 @@ const LOG_LEVELS = {
 };
 
 class Logger {
+    level: LogLevel;
+    isProduction: boolean;
+
     constructor() {
         // Get log level from environment, default to 'info'
         // Use import.meta.env for Vite compatibility (works in dev server and builds)
-        this.level = import.meta.env.VITE_LOG_LEVEL || 'info';
+        const envLevel = import.meta.env.VITE_LOG_LEVEL || 'info';
         this.isProduction = import.meta.env.MODE === 'production';
 
         // Validate log level
-        if (!LOG_LEVELS.hasOwnProperty(this.level)) {
-            console.warn(`Invalid LOG_LEVEL "${this.level}", defaulting to "info"`);
+        if (!(envLevel in LOG_LEVELS)) {
+            console.warn(`Invalid LOG_LEVEL "${envLevel}", defaulting to "info"`);
             this.level = 'info';
+        } else {
+            this.level = envLevel as LogLevel;
         }
     }
 
     /**
      * Format log message based on environment
      */
-    format(level, message, meta = {}) {
+    private format(level: LogLevel, message: string, meta: LogMeta = {}): string {
         const timestamp = new Date().toISOString();
 
         // Production: Clean, human-readable format
         if (this.isProduction) {
             // Only show timestamp and message for non-error logs
             if (level === 'error') {
-                return `${timestamp} [ERROR] ${message} ${meta.error ? `- ${meta.error}` : ''}`;
+                const errorStr = meta.error ? ` - ${String(meta.error)}` : '';
+                return `${timestamp} [ERROR] ${message}${errorStr}`;
             }
             return `${timestamp} [${level.toUpperCase()}] ${message}`;
         }
@@ -62,7 +80,7 @@ class Logger {
     /**
      * Core logging method
      */
-    log(level, message, meta = {}) {
+    private log(level: LogLevel, message: string, meta: LogMeta = {}): void {
         // Check if this level should be logged
         if (LOG_LEVELS[level] > LOG_LEVELS[this.level]) {
             return;
@@ -82,44 +100,44 @@ class Logger {
 
     /**
      * Log error message
-     * @param {string} message - Error message
-     * @param {Object} meta - Additional metadata (e.g., { error: err.message, stack: err.stack })
+     * @param message - Error message
+     * @param meta - Additional metadata (e.g., { error: err.message, stack: err.stack })
      */
-    error(message, meta = {}) {
+    error(message: string, meta: LogMeta = {}): void {
         this.log('error', message, meta);
     }
 
     /**
      * Log warning message
-     * @param {string} message - Warning message
-     * @param {Object} meta - Additional metadata
+     * @param message - Warning message
+     * @param meta - Additional metadata
      */
-    warn(message, meta = {}) {
+    warn(message: string, meta: LogMeta = {}): void {
         this.log('warn', message, meta);
     }
 
     /**
      * Log info message
-     * @param {string} message - Info message
-     * @param {Object} meta - Additional metadata
+     * @param message - Info message
+     * @param meta - Additional metadata
      */
-    info(message, meta = {}) {
+    info(message: string, meta: LogMeta = {}): void {
         this.log('info', message, meta);
     }
 
     /**
      * Log debug message (only in development with LOG_LEVEL=debug)
-     * @param {string} message - Debug message
-     * @param {Object} meta - Additional metadata
+     * @param message - Debug message
+     * @param meta - Additional metadata
      */
-    debug(message, meta = {}) {
+    debug(message: string, meta: LogMeta = {}): void {
         this.log('debug', message, meta);
     }
 
     /**
      * Log startup information (always shown, formatted nicely)
      */
-    startup(appName, config = {}) {
+    startup(appName: string, config: StartupConfig = {}): void {
         const banner = `
 ╔═══════════════════════════════════════════════════════════╗
 ║  ${appName.padEnd(55)}                                    ║
