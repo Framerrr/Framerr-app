@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Film, Network, Info, ExternalLink, StopCircle, X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Film, Network, Info, ExternalLink, StopCircle, Loader2 } from 'lucide-react';
 import PlaybackDataModal from './modals/PlaybackDataModal';
 import MediaInfoModal from './modals/MediaInfoModal';
 import { useAppData } from '../../context/AppDataContext';
@@ -9,8 +9,67 @@ import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
 import LoadingSpinner from '../common/LoadingSpinner';
+import logger from '../../utils/logger';
 
-const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
+interface PlexWidgetProps {
+    config?: {
+        hideWhenEmpty?: boolean;
+        [key: string]: unknown;
+    };
+    editMode?: boolean;
+    widgetId?: string;
+    onVisibilityChange?: (widgetId: string, isVisible: boolean) => void;
+}
+
+interface PlexIntegration {
+    enabled?: boolean;
+    url?: string;
+    token?: string;
+}
+
+interface PlexUser {
+    title?: string;
+}
+
+interface PlexSession {
+    id?: string;
+}
+
+interface PlexMedia {
+    ratingKey?: string;
+    [key: string]: unknown;
+}
+
+interface PlexSessionData {
+    sessionKey: string;
+    user?: PlexUser;
+    grandparentTitle?: string;
+    title?: string;
+    duration?: number;
+    viewOffset?: number;
+    type?: string;
+    parentIndex?: number;
+    index?: number;
+    art?: string;
+    thumb?: string;
+    Session?: PlexSession;
+    Media?: PlexMedia;
+    [key: string]: unknown;
+}
+
+interface PlexSessionsResponse {
+    sessions?: PlexSessionData[];
+}
+
+interface WidgetData {
+    widgets?: Array<{
+        id?: string;
+        config?: Record<string, unknown>;
+        [key: string]: unknown;
+    }>;
+}
+
+const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
     // Get auth state to determine admin status
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
@@ -29,23 +88,23 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     }
 
     // ONLY use context integration - no fallback to config (ensures actual revocation)
-    const integration = integrations?.plex || { enabled: false };
+    const integration: PlexIntegration = (integrations as Record<string, PlexIntegration>)?.plex || { enabled: false };
 
     // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.token;
 
     const { hideWhenEmpty = true } = config || {};
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [hoveredSession, setHoveredSession] = useState(null);
-    const [showPlaybackData, setShowPlaybackData] = useState(null);
-    const [showMediaInfo, setShowMediaInfo] = useState(null);
-    const [confirmStop, setConfirmStop] = useState(null);
-    const [plexMachineId, setPlexMachineId] = useState(null);
-    const [localHideWhenEmpty, setLocalHideWhenEmpty] = useState(hideWhenEmpty);
-    const [stoppingSession, setStoppingSession] = useState(null);
-    const previousVisibilityRef = useRef(null);
+    const [data, setData] = useState<PlexSessionsResponse | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [hoveredSession, setHoveredSession] = useState<string | null>(null);
+    const [showPlaybackData, setShowPlaybackData] = useState<PlexSessionData | null>(null);
+    const [showMediaInfo, setShowMediaInfo] = useState<PlexSessionData | null>(null);
+    const [confirmStop, setConfirmStop] = useState<PlexSessionData | null>(null);
+    const [plexMachineId, setPlexMachineId] = useState<string | null>(null);
+    const [localHideWhenEmpty, setLocalHideWhenEmpty] = useState<boolean>(hideWhenEmpty);
+    const [stoppingSession, setStoppingSession] = useState<string | null>(null);
+    const previousVisibilityRef = useRef<boolean | null>(null);
 
     // Sync local state with config prop
     useEffect(() => {
@@ -58,16 +117,16 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
             return;
         }
 
-        const fetchSessions = async () => {
+        const fetchSessions = async (): Promise<void> => {
             try {
                 setLoading(true);
-                const response = await fetch(`/api/plex/sessions?url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`);
+                const response = await fetch(`/api/plex/sessions?url=${encodeURIComponent(integration.url || '')}&token=${encodeURIComponent(integration.token || '')}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
                 setError(null);
             } catch (err) {
-                setError(err.message);
+                setError((err as Error).message);
             } finally {
                 setLoading(false);
             }
@@ -82,16 +141,16 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
     useEffect(() => {
         if (!isIntegrationEnabled) return;
 
-        const fetchMachineId = async () => {
+        const fetchMachineId = async (): Promise<void> => {
             try {
-                const response = await fetch(`/api/plex/proxy?path=/&url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`);
+                const response = await fetch(`/api/plex/proxy?path=/&url=${encodeURIComponent(integration.url || '')}&token=${encodeURIComponent(integration.token || '')}`);
                 if (response.ok) {
                     const xml = await response.text();
                     const match = xml.match(/machineIdentifier="([^"]+)"/);
                     if (match) setPlexMachineId(match[1]);
                 }
             } catch (err) {
-                logger.error('Error fetching Plex machine ID', { error: err.message, widget: 'Plex' });
+                logger.error('Error fetching Plex machine ID', { error: (err as Error).message, widget: 'Plex' });
             }
         };
 
@@ -100,7 +159,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
 
     // Notify dashboard when visibility changes (for hideWhenEmpty)
     useEffect(() => {
-        if (!onVisibilityChange || !isIntegrationEnabled) return;
+        if (!onVisibilityChange || !isIntegrationEnabled || !widgetId) return;
 
         const sessions = data?.sessions || [];
         const shouldBeVisible = sessions.length > 0 || editMode;
@@ -115,7 +174,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
         }
     }, [data, localHideWhenEmpty, editMode, widgetId, onVisibilityChange, isIntegrationEnabled]);
 
-    const handleStopPlayback = async (session) => {
+    const handleStopPlayback = async (session: PlexSessionData): Promise<void> => {
         if (stoppingSession === session.sessionKey) return;
 
         setStoppingSession(session.sessionKey);
@@ -135,34 +194,34 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
 
             setConfirmStop(null);
             // Refresh sessions immediately
-            const refreshResponse = await fetch(`/api/plex/sessions?url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`);
+            const refreshResponse = await fetch(`/api/plex/sessions?url=${encodeURIComponent(integration.url || '')}&token=${encodeURIComponent(integration.token || '')}`);
             if (refreshResponse.ok) {
                 const result = await refreshResponse.json();
                 setData(result);
             }
         } catch (err) {
-            logger.error('Error stopping playback', { error: err.message, widget: 'Plex' });
-            setError('Failed to stop playback: ' + err.message);
+            logger.error('Error stopping playback', { error: (err as Error).message, widget: 'Plex' });
+            setError('Failed to stop playback: ' + (err as Error).message);
             setConfirmStop(null);
         } finally {
             setTimeout(() => setStoppingSession(null), 2000);
         }
     };
 
-    const getPlexUrl = (session) => {
+    const getPlexUrl = (session: PlexSessionData): string => {
         const ratingKey = session.Media?.ratingKey;
-        if (!ratingKey || !plexMachineId) return integration.url;
+        if (!ratingKey || !plexMachineId) return integration.url || '';
         return `${integration.url}/web/index.html#!/server/${plexMachineId}/details?key=/library/metadata/${ratingKey}`;
     };
 
-    const handleToggleHideWhenEmpty = async (newValue) => {
+    const handleToggleHideWhenEmpty = async (newValue: boolean): Promise<void> => {
         setLocalHideWhenEmpty(newValue);
 
         try {
             const response = await fetch('/api/widgets');
             if (!response.ok) throw new Error('Failed to fetch widgets');
-            const data = await response.json();
-            const widgets = data.widgets || [];
+            const fetchedData: WidgetData = await response.json();
+            const widgets = fetchedData.widgets || [];
 
             const updatedWidgets = widgets.map(widget => {
                 if (widget.id === widgetId) {
@@ -186,7 +245,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
             if (!saveResponse.ok) throw new Error('Failed to save widget config');
         } catch (err) {
             setLocalHideWhenEmpty(!newValue);
-            logger.error('Error updating hideWhenEmpty', { error: err.message, widget: 'Plex' });
+            logger.error('Error updating hideWhenEmpty', { error: (err as Error).message, widget: 'Plex' });
             setError('Failed to update hide when empty setting');
         }
     };
@@ -265,7 +324,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                 padding: '0.25rem'
             }}>
                 {sessions.map(session => {
-                    const user = session.user?.title || 'Unknown User';
+                    const userName = session.user?.title || 'Unknown User';
                     const grandparent = session.grandparentTitle || '';
                     const title = session.title || 'Unknown';
                     const duration = session.duration || 0;
@@ -280,9 +339,9 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                     }
 
                     const imageUrl = session.art
-                        ? `/api/plex/image?path=${encodeURIComponent(session.art)}&url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`
+                        ? `/api/plex/image?path=${encodeURIComponent(session.art)}&url=${encodeURIComponent(integration.url || '')}&token=${encodeURIComponent(integration.token || '')}`
                         : session.thumb
-                            ? `/api/plex/image?path=${encodeURIComponent(session.thumb)}&url=${encodeURIComponent(integration.url)}&token=${encodeURIComponent(integration.token)}`
+                            ? `/api/plex/image?path=${encodeURIComponent(session.thumb)}&url=${encodeURIComponent(integration.url || '')}&token=${encodeURIComponent(integration.token || '')}`
                             : null;
 
                     const isHovered = hoveredSession === session.sessionKey;
@@ -355,8 +414,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                                                 transition: 'all 0.2s',
                                                 color: 'var(--text-primary)'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                                            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                                             title="Playback Data"
                                         >
                                             <Network size={20} />
@@ -381,8 +440,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                                                 transition: 'all 0.2s',
                                                 color: 'var(--text-primary)'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                                            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                                             title="Media Info"
                                         >
                                             <Info size={20} />
@@ -407,8 +466,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                                                 transition: 'all 0.2s',
                                                 color: 'var(--text-primary)'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                                            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                                             title="Open in Plex"
                                         >
                                             <ExternalLink size={20} />
@@ -491,7 +550,7 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
                                             maxWidth: '80px'
-                                        }} title={user}>{user}</span>
+                                        }} title={userName}>{userName}</span>
                                     </div>
                                 </div>
                             </div>
@@ -579,8 +638,8 @@ const PlexWidget = ({ config, editMode = false, widgetId, onVisibilityChange }) 
             {showMediaInfo && (
                 <MediaInfoModal
                     session={showMediaInfo}
-                    url={integration.url}
-                    token={integration.token}
+                    url={integration.url || ''}
+                    token={integration.token || ''}
                     onClose={() => setShowMediaInfo(null)}
                 />
             )}
