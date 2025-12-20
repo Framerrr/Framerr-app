@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { Code, Lightbulb } from 'lucide-react';
 import { Input } from '../../../common/Input';
+
+interface CustomBackendConfigData {
+    url?: string;
+    token?: string;
+}
+
+export interface CustomBackendConfigProps {
+    config?: CustomBackendConfigData;
+    onChange: (field: string, value: string) => void;
+}
 
 /**
  * CustomBackendConfig - Custom API configuration panel
  * For users with their own monitoring solutions
  */
-const CustomBackendConfig = ({ config, onChange }) => {
+const CustomBackendConfig = ({ config, onChange }: CustomBackendConfigProps): React.JSX.Element => {
     return (
         <div className="space-y-4">
             {/* API Requirements banner */}
@@ -33,7 +43,7 @@ const CustomBackendConfig = ({ config, onChange }) => {
                 label="Base URL"
                 type="text"
                 value={config?.url || ''}
-                onChange={(e) => onChange('url', e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => onChange('url', e.target.value)}
                 placeholder="http://your-monitoring-service.local:3001"
                 required
             />
@@ -43,7 +53,7 @@ const CustomBackendConfig = ({ config, onChange }) => {
                 label="Authentication Token (Optional)"
                 type="password"
                 value={config?.token || ''}
-                onChange={(e) => onChange('token', e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => onChange('token', e.target.value)}
                 placeholder="Bearer token for API authentication"
             />
         </div>

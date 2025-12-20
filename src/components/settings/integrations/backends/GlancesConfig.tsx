@@ -1,12 +1,30 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { AlertCircle, Lightbulb } from 'lucide-react';
 import { Input } from '../../../common/Input';
+
+interface GlancesConfigData {
+    url?: string;
+    password?: string;
+}
+
+interface TestState {
+    testing: boolean;
+    success?: boolean;
+    error?: string;
+}
+
+export interface GlancesConfigProps {
+    config?: GlancesConfigData;
+    onChange: (field: string, value: string) => void;
+    onTest?: () => void;
+    testState?: TestState;
+}
 
 /**
  * GlancesConfig - Glances-specific configuration panel
  * Includes helpful tips and smart defaults
  */
-const GlancesConfig = ({ config, onChange, onTest, testState }) => {
+const GlancesConfig = ({ config, onChange, onTest, testState }: GlancesConfigProps): React.JSX.Element => {
     return (
         <div className="space-y-4">
             {/* Helpful tip banner */}
@@ -28,7 +46,7 @@ const GlancesConfig = ({ config, onChange, onTest, testState }) => {
                 label="Glances Server URL"
                 type="text"
                 value={config?.url || ''}
-                onChange={(e) => onChange('url', e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => onChange('url', e.target.value)}
                 placeholder="http://192.168.1.100:61208"
                 required
             />
@@ -38,7 +56,7 @@ const GlancesConfig = ({ config, onChange, onTest, testState }) => {
                 label="Password (Optional)"
                 type="password"
                 value={config?.password || ''}
-                onChange={(e) => onChange('password', e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => onChange('password', e.target.value)}
                 placeholder="Leave empty if no authentication"
             />
         </div>

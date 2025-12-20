@@ -2,12 +2,30 @@ import React from 'react';
 import { Activity, CheckCircle2, Server } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+type BackendId = 'glances' | 'custom';
+type BadgeColor = 'success' | 'info';
+
+interface Backend {
+    id: BackendId;
+    name: string;
+    icon: string;
+    tagline: string;
+    badge: string;
+    badgeColor: BadgeColor;
+}
+
+export interface BackendSelectorProps {
+    selected?: BackendId;
+    onSelect: (backendId: BackendId) => void;
+    disabled?: boolean;
+}
+
 /**
  * BackendSelector - Visual card-based backend picker
  * Modern glassmorphism cards with selection state
  */
-const BackendSelector = ({ selected, onSelect, disabled = false }) => {
-    const backends = [
+const BackendSelector = ({ selected, onSelect, disabled = false }: BackendSelectorProps): React.JSX.Element => {
+    const backends: Backend[] = [
         {
             id: 'glances',
             name: 'Glances',
@@ -42,14 +60,14 @@ const BackendSelector = ({ selected, onSelect, disabled = false }) => {
                             onClick={() => !disabled && onSelect(backend.id)}
                             disabled={disabled}
                             className={`
-                                relative p-6 rounded-xl text-left transition-all
-                                glass-subtle
-                                ${isSelected
+                relative p-6 rounded-xl text-left transition-all
+                glass-subtle
+                ${isSelected
                                     ? 'border-2 border-accent shadow-glow'
                                     : 'border border-theme hover:border-accent/50'
                                 }
-                                ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer card-glow'}
-                            `}
+                ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer card-glow'}
+              `}
                             whileHover={!disabled ? { scale: 1.02 } : {}}
                             transition={{
                                 type: 'spring',
@@ -91,12 +109,12 @@ const BackendSelector = ({ selected, onSelect, disabled = false }) => {
                                 {/* Badge */}
                                 <div className="flex">
                                     <span className={`
-                                        px-3 py-1 rounded-full text-xs font-medium
-                                        ${backend.badgeColor === 'success'
+                    px-3 py-1 rounded-full text-xs font-medium
+                    ${backend.badgeColor === 'success'
                                             ? 'bg-success/10 text-success border border-success/20'
                                             : 'bg-info/10 text-info border border-info/20'
                                         }
-                                    `}>
+                  `}>
                                         {backend.badge}
                                     </span>
                                 </div>
