@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Star, Film, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -8,7 +8,38 @@ import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
 import LoadingSpinner from '../common/LoadingSpinner';
 
-const OverseerrWidget = ({ config }) => {
+interface OverseerrWidgetProps {
+    config?: Record<string, unknown>;
+}
+
+interface OverseerrIntegration {
+    enabled?: boolean;
+    url?: string;
+    apiKey?: string;
+}
+
+interface Media {
+    title?: string;
+    status?: number;
+    posterPath?: string;
+}
+
+interface RequestedBy {
+    displayName?: string;
+}
+
+interface MediaRequest {
+    id: number;
+    status: number;
+    media?: Media;
+    requestedBy?: RequestedBy;
+}
+
+interface OverseerrData {
+    results?: MediaRequest[];
+}
+
+const OverseerrWidget: React.FC<OverseerrWidgetProps> = ({ config }) => {
     // Get auth state to determine admin status
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
@@ -27,15 +58,15 @@ const OverseerrWidget = ({ config }) => {
     }
 
     // ONLY use context integration - no fallback to config (ensures actual revocation)
-    const integration = integrations?.overseerr || { enabled: false };
+    const integration: OverseerrIntegration = (integrations as Record<string, OverseerrIntegration>)?.overseerr || { enabled: false };
 
     // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && integration?.url && integration?.apiKey;
 
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const scrollContainerRef = useRef(null);
+    const [data, setData] = useState<OverseerrData | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         if (!isIntegrationEnabled) {
@@ -43,16 +74,16 @@ const OverseerrWidget = ({ config }) => {
             return;
         }
 
-        const fetchRequests = async () => {
+        const fetchRequests = async (): Promise<void> => {
             try {
                 setLoading(true);
-                const response = await fetch(`/api/overseerr/requests?url=${encodeURIComponent(integration.url)}&apiKey=${encodeURIComponent(integration.apiKey)}`);
+                const response = await fetch(`/api/overseerr/requests?url=${encodeURIComponent(integration.url || '')}&apiKey=${encodeURIComponent(integration.apiKey || '')}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
                 setError(null);
             } catch (err) {
-                setError(err.message);
+                setError((err as Error).message);
             } finally {
                 setLoading(false);
             }
@@ -63,14 +94,14 @@ const OverseerrWidget = ({ config }) => {
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 
-    const scrollLeft = () => {
+    const scrollLeft = (): void => {
         if (scrollContainerRef.current) {
             const width = scrollContainerRef.current.clientWidth;
             scrollContainerRef.current.scrollBy({ left: -width * 0.8, behavior: 'smooth' });
         }
     };
 
-    const scrollRight = () => {
+    const scrollRight = (): void => {
         if (scrollContainerRef.current) {
             const width = scrollContainerRef.current.clientWidth;
             scrollContainerRef.current.scrollBy({ left: width * 0.8, behavior: 'smooth' });
@@ -158,7 +189,7 @@ const OverseerrWidget = ({ config }) => {
                     const media = req.media;
                     // Use enriched title from backend (works for both TV and movies)
                     const title = media?.title || 'Unknown';
-                    const user = req.requestedBy?.displayName || 'User';
+                    const userName = req.requestedBy?.displayName || 'User';
 
                     // Overseerr Status Logic:
                     // req.status: 1=Pending Approval, 2=Approved, 3=Declined
@@ -228,7 +259,7 @@ const OverseerrWidget = ({ config }) => {
                                     {title}
                                 </div>
                                 <div className="text-[10px] text-white/70 text-center">
-                                    {user}
+                                    {userName}
                                 </div>
                             </div>
                         </div>

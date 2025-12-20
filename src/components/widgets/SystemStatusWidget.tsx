@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Disc, Thermometer, Clock } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, LegacyRef } from 'react';
+import { Activity, Disc, Thermometer, Clock, LucideIcon } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
@@ -11,18 +11,80 @@ import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
 import LoadingSpinner from '../common/LoadingSpinner';
 
+type MetricType = 'cpu' | 'memory' | 'temperature';
+type TimeRange = '1h' | '6h' | '1d' | '3d';
+
+interface MetricConfig {
+    label: string;
+    color: string;
+    unit: string;
+}
+
+interface GraphDataPoint {
+    time: string;
+    cpu?: number;
+    memory?: number;
+    temp?: number;
+    [key: string]: unknown;
+}
+
+interface ChartDataPoint {
+    x: number;
+    y: number;
+}
+
+interface SystemStatusIntegration {
+    enabled?: boolean;
+    backend?: 'glances' | 'custom';
+    url?: string;
+    token?: string;
+    glances?: {
+        url?: string;
+        password?: string;
+    };
+    custom?: {
+        url?: string;
+        token?: string;
+    };
+}
+
+interface StatusData {
+    cpu: number;
+    memory: number;
+    temperature: number;
+    uptime: string;
+}
+
+interface MetricGraphPopoverProps {
+    metric: MetricType;
+    value: number;
+    icon: LucideIcon;
+    integration: SystemStatusIntegration;
+}
+
+interface SystemStatusWidgetProps {
+    config?: Record<string, unknown>;
+}
+
+// Extend Window interface for Chart.js
+declare global {
+    interface Window {
+        Chart: any;
+    }
+}
+
 // Metric Graph Popover Component
-const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [currentRange, setCurrentRange] = useState('1h');
-    const [chart, setChart] = useState(null);
-    const [graphData, setGraphData] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const canvasRef = useRef(null);
+const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, icon: Icon, integration }) => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [currentRange, setCurrentRange] = useState<TimeRange>('1h');
+    const [chart, setChart] = useState<any>(null);
+    const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     // Metric display configuration - memoized to prevent re-creation on every render
-    const config = React.useMemo(() => {
-        const configs = {
+    const config: MetricConfig = useMemo(() => {
+        const configs: Record<MetricType, MetricConfig> = {
             cpu: { label: 'CPU', color: 'var(--accent)', unit: '%' },
             memory: { label: 'Memory', color: 'var(--info)', unit: '%' },
             temperature: { label: 'Temperature', color: 'var(--warning)', unit: '°C' }
@@ -34,7 +96,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
     useEffect(() => {
         if (!isOpen) return;
 
-        const fetchGraphData = async () => {
+        const fetchGraphData = async (): Promise<void> => {
             setLoading(true);
             try {
                 const backend = integration.backend || 'custom';
@@ -47,12 +109,12 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
 
                 if (backend === 'glances') {
                     endpoint = '/api/systemstatus/glances/history';
-                    params.append('url', backendConfig.url);
-                    if (backendConfig.password) params.append('password', backendConfig.password);
+                    params.append('url', backendConfig?.url || '');
+                    if (backendConfig?.password) params.append('password', backendConfig.password);
                 } else {
                     endpoint = '/api/systemstatus/history';
-                    params.append('url', backendConfig.url);
-                    if (backendConfig.token) params.append('token', backendConfig.token);
+                    params.append('url', backendConfig?.url || '');
+                    if ((backendConfig as { token?: string })?.token) params.append('token', (backendConfig as { token?: string }).token || '');
                 }
 
                 const res = await fetch(`${endpoint}?${params}`);
@@ -76,7 +138,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
         if (!isOpen || !canvasRef.current || graphData.length === 0 || !window.Chart) return;
 
         // Calculate time range
-        const ranges = {
+        const ranges: Record<TimeRange, number> = {
             '1h': 60 * 60 * 1000,
             '6h': 6 * 60 * 60 * 1000,
             '1d': 24 * 60 * 60 * 1000,
@@ -88,7 +150,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
 
         // Prepare data points - map 'temperature' metric to 'temp' field
         const fieldName = metric === 'temperature' ? 'temp' : metric;
-        const points = graphData
+        const points: ChartDataPoint[] = graphData
             .map(d => ({ x: new Date(d.time).getTime(), y: Number(d[fieldName]) }))
             .filter(p => p.x >= cutoff && Number.isFinite(p.y))
             .sort((a, b) => a.x - b.x);
@@ -101,7 +163,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
         const gridColor = style.getPropertyValue('--text-tertiary').trim() || 'rgba(255, 255, 255, 0.1)';
 
         // Configure time format based on range
-        const timeFormats = {
+        const timeFormats: Record<TimeRange, { unit: string; displayFormats: Record<string, string> }> = {
             '1h': { unit: 'minute', displayFormats: { minute: 'h:mm a' } },
             '6h': { unit: 'hour', displayFormats: { hour: 'h a' } },
             '1d': { unit: 'hour', displayFormats: { hour: 'ha' } },
@@ -154,7 +216,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                         beginAtZero: true,
                         ticks: {
                             color: textColor,
-                            callback: (value) => `${value}${config.unit}`
+                            callback: (value: number) => `${value}${config.unit}`
                         },
                         grid: { color: gridColor }
                     }
@@ -168,7 +230,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                         borderColor: config.color,
                         borderWidth: 1,
                         callbacks: {
-                            label: (context) => `${config.label}: ${context.parsed.y.toFixed(1)}${config.unit}`
+                            label: (context: any) => `${config.label}: ${context.parsed.y.toFixed(1)}${config.unit}`
                         }
                     }
                 }
@@ -193,7 +255,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
         }
     }, [isOpen, chart]);
 
-    const getColor = (val) => {
+    const getColor = (val: number): string => {
         if (val < 50) return 'var(--success)';
         if (val < 80) return 'var(--warning)';
         return 'var(--error)';
@@ -267,7 +329,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
                                     </h3>
                                     {/* Range selector */}
                                     <div className="flex gap-1">
-                                        {['1h', '6h', '1d', '3d'].map((range) => (
+                                        {(['1h', '6h', '1d', '3d'] as TimeRange[]).map((range) => (
                                             <button
                                                 key={range}
                                                 onClick={() => setCurrentRange(range)}
@@ -305,7 +367,7 @@ const MetricGraphPopover = ({ metric, value, icon: Icon, integration }) => {
     );
 };
 
-const SystemStatusWidget = ({ config }) => {
+const SystemStatusWidget: React.FC<SystemStatusWidgetProps> = ({ config }) => {
     // Get auth state to determine admin status
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
@@ -324,7 +386,7 @@ const SystemStatusWidget = ({ config }) => {
     }
 
     // ONLY use context integration - no fallback to config (ensures actual revocation)
-    const integration = integrations?.systemstatus || { enabled: false };
+    const integration: SystemStatusIntegration = (integrations as Record<string, SystemStatusIntegration>)?.systemstatus || { enabled: false };
 
     // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && (
@@ -333,8 +395,8 @@ const SystemStatusWidget = ({ config }) => {
         (!integration.backend && integration.url) // Legacy format support
     );
 
-    const [statusData, setStatusData] = useState({ cpu: 0, memory: 0, temperature: 0, uptime: '--' });
-    const [loading, setLoading] = useState(true);
+    const [statusData, setStatusData] = useState<StatusData>({ cpu: 0, memory: 0, temperature: 0, uptime: '--' });
+    const [loading, setLoading] = useState<boolean>(true);
 
     // Fetch status data - only when integration is enabled
     useEffect(() => {
@@ -344,7 +406,7 @@ const SystemStatusWidget = ({ config }) => {
             return;
         }
 
-        const fetchStatus = async () => {
+        const fetchStatus = async (): Promise<void> => {
             try {
                 // Get backend and config from integration
                 const backend = integration.backend || 'custom';
@@ -358,12 +420,12 @@ const SystemStatusWidget = ({ config }) => {
 
                 if (backend === 'glances') {
                     endpoint = '/api/systemstatus/glances/status';
-                    params.append('url', backendConfig.url);
-                    if (backendConfig.password) params.append('password', backendConfig.password);
+                    params.append('url', backendConfig?.url || '');
+                    if (backendConfig?.password) params.append('password', backendConfig.password);
                 } else {
                     endpoint = '/api/systemstatus/status';
-                    params.append('url', backendConfig.url);
-                    if (backendConfig.token) params.append('token', backendConfig.token);
+                    params.append('url', backendConfig?.url || '');
+                    if ((backendConfig as { token?: string })?.token) params.append('token', (backendConfig as { token?: string }).token || '');
                 }
 
                 const res = await fetch(`${endpoint}?${params}`);

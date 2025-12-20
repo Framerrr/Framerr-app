@@ -10,7 +10,39 @@ import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
 import LoadingSpinner from '../common/LoadingSpinner';
 
-const QBittorrentWidget = ({ config }) => {
+interface QBittorrentWidgetProps {
+    config?: Record<string, unknown>;
+}
+
+interface Torrent {
+    hash: string;
+    name: string;
+    state: string;
+    progress: number;
+    size: number;
+    dlspeed: number;
+    upspeed: number;
+    added_on: number;
+    [key: string]: unknown;
+}
+
+interface TransferInfo {
+    dl_info_speed?: number;
+    dl_info_data?: number;
+    alltime_dl?: number;
+    up_info_speed?: number;
+    up_info_data?: number;
+    alltime_ul?: number;
+}
+
+interface QBittorrentIntegration {
+    enabled?: boolean;
+    url?: string;
+    username?: string;
+    password?: string;
+}
+
+const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
     // Get auth state to determine admin status
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
@@ -29,27 +61,27 @@ const QBittorrentWidget = ({ config }) => {
     }
 
     // ONLY use context integration - no fallback to config (ensures actual revocation)
-    const integration = integrations?.qbittorrent || { enabled: false };
+    const integration: QBittorrentIntegration = (integrations as Record<string, QBittorrentIntegration>)?.qbittorrent || { enabled: false };
 
     // Check if integration is enabled (from context only)
     const isIntegrationEnabled = integration?.enabled && integration?.url;
 
-    const [torrents, setTorrents] = useState([]);
-    const [transferInfo, setTransferInfo] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [sortBy, setSortBy] = useState('added_on');
-    const [sortDesc, setSortDesc] = useState(true);
-    const [limit, setLimit] = useState(20);
-    const [dlPopoverOpen, setDlPopoverOpen] = useState(false);
-    const [ulPopoverOpen, setUlPopoverOpen] = useState(false);
+    const [torrents, setTorrents] = useState<Torrent[]>([]);
+    const [transferInfo, setTransferInfo] = useState<TransferInfo | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [sortBy, setSortBy] = useState<string>('added_on');
+    const [sortDesc, setSortDesc] = useState<boolean>(true);
+    const [limit, setLimit] = useState<number>(20);
+    const [dlPopoverOpen, setDlPopoverOpen] = useState<boolean>(false);
+    const [ulPopoverOpen, setUlPopoverOpen] = useState<boolean>(false);
 
     useEffect(() => {
         if (!isIntegrationEnabled) {
             return;
         }
 
-        const fetchData = async () => {
+        const fetchData = async (): Promise<void> => {
             try {
                 setLoading(true);
 
@@ -78,7 +110,7 @@ const QBittorrentWidget = ({ config }) => {
 
                 setError(null);
             } catch (err) {
-                setError(err.message);
+                setError((err as Error).message);
             } finally {
                 setLoading(false);
             }
@@ -89,7 +121,7 @@ const QBittorrentWidget = ({ config }) => {
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 
-    const formatBytes = (bytes) => {
+    const formatBytes = (bytes: number): string => {
         if (bytes === 0) return '0 B';
         const k = 1000; // Use decimal (1000) to match qBittorrent/VueTorrent
         const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -97,7 +129,7 @@ const QBittorrentWidget = ({ config }) => {
         return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     };
 
-    const formatSpeed = (bytesPerSec) => formatBytes(bytesPerSec) + '/s';
+    const formatSpeed = (bytesPerSec: number): string => formatBytes(bytesPerSec) + '/s';
 
     // Show appropriate message based on user role
     if (!isIntegrationEnabled) {
@@ -117,8 +149,8 @@ const QBittorrentWidget = ({ config }) => {
 
     // Sort torrents
     const sortedTorrents = [...torrents].sort((a, b) => {
-        const aVal = a[sortBy];
-        const bVal = b[sortBy];
+        const aVal = a[sortBy] as number;
+        const bVal = b[sortBy] as number;
         return sortDesc ? (bVal - aVal) : (aVal - bVal);
     }).slice(0, limit);
 

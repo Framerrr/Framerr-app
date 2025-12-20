@@ -11,9 +11,46 @@ import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
 import LoadingSpinner from '../common/LoadingSpinner';
 
+type EventType = 'sonarr' | 'radarr';
+type FilterType = 'all' | 'tv' | 'movies';
+
+interface CalendarEvent {
+    type: EventType;
+    title?: string;
+    seriesTitle?: string;
+    series?: {
+        title?: string;
+    };
+    seasonNumber?: number;
+    episodeNumber?: number;
+    airDate?: string;
+    physicalRelease?: string;
+    digitalRelease?: string;
+    inCinemas?: string;
+    overview?: string;
+}
+
+interface EventsMap {
+    [dateKey: string]: CalendarEvent[];
+}
+
+interface IntegrationConfig {
+    enabled?: boolean;
+    url?: string;
+    apiKey?: string;
+}
+
+interface EventPopoverProps {
+    event: CalendarEvent;
+}
+
+interface CalendarWidgetProps {
+    config?: Record<string, unknown>;
+}
+
 // Event Popover Component
-const EventPopover = ({ event }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const EventPopover: React.FC<EventPopoverProps> = ({ event }) => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
 
     const displayTitle = event.type === 'sonarr'
         ? (event.series?.title || event.seriesTitle || 'Unknown Show')
@@ -87,11 +124,12 @@ const EventPopover = ({ event }) => {
                                 {/* Release date */}
                                 <div className="text-xs text-theme-secondary mb-2">
                                     {event.type === 'sonarr'
-                                        ? `Airs: ${new Date(event.airDate).toLocaleDateString()}`
+                                        ? `Airs: ${new Date(event.airDate || '').toLocaleDateString()}`
                                         : `Release: ${new Date(
                                             event.physicalRelease ||
                                             event.digitalRelease ||
-                                            event.inCinemas
+                                            event.inCinemas ||
+                                            ''
                                         ).toLocaleDateString()}`
                                     }
                                 </div>
@@ -111,7 +149,7 @@ const EventPopover = ({ event }) => {
     );
 };
 
-const CombinedCalendarWidget = ({ config }) => {
+const CombinedCalendarWidget: React.FC<CalendarWidgetProps> = ({ config }) => {
     // Get auth state to determine admin status
     const { user } = useAuth();
     const userIsAdmin = isAdmin(user);
@@ -130,19 +168,19 @@ const CombinedCalendarWidget = ({ config }) => {
     }
 
     // Get Sonarr and Radarr configs from context (not widget config)
-    const sonarrConfig = integrations?.sonarr || {};
-    const radarrConfig = integrations?.radarr || {};
+    const sonarrConfig: IntegrationConfig = (integrations as Record<string, IntegrationConfig>)?.sonarr || {};
+    const radarrConfig: IntegrationConfig = (integrations as Record<string, IntegrationConfig>)?.radarr || {};
 
     // Check if either integration is available
     const hasSonarr = sonarrConfig.enabled && sonarrConfig.url && sonarrConfig.apiKey;
     const hasRadarr = radarrConfig.enabled && radarrConfig.url && radarrConfig.apiKey;
     const hasAnyIntegration = hasSonarr || hasRadarr;
 
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [events, setEvents] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [filter, setFilter] = useState('all'); // 'all', 'tv', 'movies'
+    const [currentDate, setCurrentDate] = useState<Date>(new Date());
+    const [events, setEvents] = useState<EventsMap>({});
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [filter, setFilter] = useState<FilterType>('all');
 
     // Calculate month bounds
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -151,7 +189,7 @@ const CombinedCalendarWidget = ({ config }) => {
     const endDateStr = endOfMonth.toISOString().split('T')[0];
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchEvents = async (): Promise<void> => {
             // Skip if no integrations available (handled by early return in render)
             if (!hasAnyIntegration) {
                 setLoading(false);
@@ -160,9 +198,9 @@ const CombinedCalendarWidget = ({ config }) => {
 
             setLoading(true);
             setError(null);
-            const newEvents = {};
+            const newEvents: EventsMap = {};
 
-            const fetchService = async (config, type, endpoint) => {
+            const fetchService = async (config: IntegrationConfig, type: EventType, endpoint: string): Promise<void> => {
                 if (!config.enabled || !config.url || !config.apiKey) {
                     return;
                 }
@@ -182,7 +220,7 @@ const CombinedCalendarWidget = ({ config }) => {
                         return;
                     }
 
-                    data.forEach(item => {
+                    data.forEach((item: CalendarEvent) => {
                         const date = item.airDate || item.physicalRelease || item.digitalRelease || item.inCinemas;
                         if (date) {
                             const dateStr = date.split('T')[0];
@@ -191,7 +229,7 @@ const CombinedCalendarWidget = ({ config }) => {
                         }
                     });
                 } catch (e) {
-                    logger.error(`Error fetching ${type} calendar:`, e.message);
+                    logger.error(`Error fetching ${type} calendar:`, (e as Error).message);
                     // Don't call setError here - it triggers re-render loop
                 }
             };
@@ -217,16 +255,16 @@ const CombinedCalendarWidget = ({ config }) => {
     const daysInMonth = endOfMonth.getDate();
     const startDay = startOfMonth.getDay(); // 0 = Sunday
 
-    const changeMonth = (offset) => {
+    const changeMonth = (offset: number): void => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
     };
 
-    const goToToday = () => {
+    const goToToday = (): void => {
         setCurrentDate(new Date());
     };
 
     // Filter events based on selected filter
-    const getFilteredEvents = (dayEvents) => {
+    const getFilteredEvents = (dayEvents: CalendarEvent[]): CalendarEvent[] => {
         if (filter === 'all') return dayEvents;
         if (filter === 'tv') return dayEvents.filter(ev => ev.type === 'sonarr');
         if (filter === 'movies') return dayEvents.filter(ev => ev.type === 'radarr');

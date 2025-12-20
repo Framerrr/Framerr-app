@@ -1,15 +1,46 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { X, Wifi, WifiOff, Activity, Tv, HardDrive } from 'lucide-react';
+import { X, Wifi, WifiOff, Activity, Tv, HardDrive, LucideIcon } from 'lucide-react';
 
-const PlaybackDataModal = ({ session, onClose }) => {
+interface Player {
+    address?: string;
+    device?: string;
+    platform?: string;
+    product?: string;
+}
+
+interface SessionData {
+    location?: string;
+    bandwidth?: number;
+}
+
+interface TranscodeSession {
+    videoDecision?: string;
+    audioDecision?: string;
+    videoCodec?: string;
+    audioCodec?: string;
+}
+
+interface PlexSession {
+    Player?: Player;
+    Session?: SessionData;
+    TranscodeSession?: TranscodeSession;
+    Media?: Record<string, unknown>;
+}
+
+interface PlaybackDataModalProps {
+    session: PlexSession | null;
+    onClose: () => void;
+}
+
+const PlaybackDataModal: React.FC<PlaybackDataModalProps> = ({ session, onClose }) => {
     if (!session) return null;
 
-    const { Player, Session: SessionData, TranscodeSession, Media } = session;
+    const { Player, Session: SessionData, TranscodeSession } = session;
 
     // Determine connection type
     const isLAN = SessionData?.location === 'lan';
-    const connectionIcon = isLAN ? Wifi : WifiOff;
+    const ConnectionIcon: LucideIcon = isLAN ? Wifi : WifiOff;
     const connectionColor = isLAN ? 'var(--success)' : 'var(--warning)';
 
     // Format bandwidth
@@ -36,8 +67,6 @@ const PlaybackDataModal = ({ session, onClose }) => {
         : audioDecision === 'copy' ? 'Direct Stream'
             : audioDecision === 'transcode' ? 'Transcode'
                 : audioDecision;
-
-    const ConnectionIcon = connectionIcon;
 
     return ReactDOM.createPortal(
         <div
@@ -91,8 +120,8 @@ const PlaybackDataModal = ({ session, onClose }) => {
                             color: 'var(--text-primary)',
                             transition: 'background 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                     >
                         <X size={18} />
                     </button>

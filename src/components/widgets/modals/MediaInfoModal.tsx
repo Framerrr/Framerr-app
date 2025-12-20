@@ -2,7 +2,41 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { X, Star, Calendar, Building2, Users } from 'lucide-react';
 
-const MediaInfoModal = ({ session, url, token, onClose }) => {
+interface Role {
+    tag: string;
+    role?: string;
+}
+
+interface MediaMetadata {
+    year?: number;
+    rating?: number;
+    contentRating?: string;
+    studio?: string;
+    summary?: string;
+}
+
+interface PlexSession {
+    Media?: MediaMetadata;
+    Role?: Role[];
+    Genre?: string[];
+    Director?: string[];
+    Writer?: string[];
+    title?: string;
+    grandparentTitle?: string;
+    type?: string;
+    parentIndex?: number;
+    index?: number;
+    thumb?: string;
+}
+
+interface MediaInfoModalProps {
+    session: PlexSession | null;
+    url: string;
+    token: string;
+    onClose: () => void;
+}
+
+const MediaInfoModal: React.FC<MediaInfoModalProps> = ({ session, url, token, onClose }) => {
     if (!session) return null;
 
     const { Media, Role, Genre, Director, Writer, title, grandparentTitle, type } = session;
@@ -73,8 +107,8 @@ const MediaInfoModal = ({ session, url, token, onClose }) => {
                             color: 'var(--text-primary)',
                             transition: 'background 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                     >
                         <X size={18} />
                     </button>
@@ -99,7 +133,7 @@ const MediaInfoModal = ({ session, url, token, onClose }) => {
                             }}>
                                 <img
                                     src={posterUrl}
-                                    alt={displayTitle}
+                                    alt={displayTitle || 'Media poster'}
                                     style={{
                                         width: '100%',
                                         height: 'auto',
