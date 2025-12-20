@@ -13,7 +13,10 @@
 
 const fs = require('fs');
 const path = require('path');
-const logger = require('../utils/logger');
+
+// Handle ES module interop - compiled TypeScript logger exports to .default
+const loggerModule = require('../utils/logger');
+const logger = loggerModule.default || loggerModule;
 
 // Data directory configuration
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
