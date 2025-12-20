@@ -1,12 +1,13 @@
-const multer = require('multer');
-const path = require('path');
+import multer from 'multer';
+import path from 'path';
+import { Request } from 'express';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
+    destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
         cb(null, path.join(__dirname, '../uploads'));
     },
-    filename: (req, file, cb) => {
+    filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
         // Use timestamp + original name to avoid conflicts
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
@@ -14,13 +15,13 @@ const storage = multer.diskStorage({
 });
 
 // File filter to only accept ZIP files
-const fileFilter = (req, file, cb) => {
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     if (file.mimetype === 'application/zip' ||
         file.mimetype === 'application/x-zip-compressed' ||
         path.extname(file.originalname).toLowerCase() === '.zip') {
         cb(null, true);
     } else {
-        cb(new Error('Only ZIP files are allowed'), false);
+        cb(new Error('Only ZIP files are allowed'));
     }
 };
 
@@ -33,4 +34,4 @@ const upload = multer({
     }
 });
 
-module.exports = upload;
+export default upload;

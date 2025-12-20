@@ -1,19 +1,37 @@
-const ipaddr = require('ipaddr.js');
-const ipRangeCheck = require('ip-range-check');
-const logger = require('../utils/logger');
+import { Request, Response, NextFunction, Application } from 'express';
+import ipaddr from 'ipaddr.js';
+import ipRangeCheck from 'ip-range-check';
+import logger from '../utils/logger';
+
+interface ProxyConfig {
+    enabled?: boolean;
+    headerName?: string;
+    emailHeaderName?: string;
+    whitelist?: string | string[];
+}
+
+interface SystemConfig {
+    auth?: {
+        proxy?: ProxyConfig;
+    };
+}
 
 /**
  * Proxy Whitelist Middleware
  * 
  * Validates that proxy auth headers (from Authentik/Authelia) come from a trusted IP range.
  * Prevents header spoofing attacks.
- * 
- * Uses configurable header names from system config.
  */
-function validateProxyWhitelist() {
-    return (req, res, next) => {
+export function validateProxyWhitelist() {
+    return (req: Request, res: Response, next: NextFunction): void => {
+        const app = req.app as Application & {
+            get(key: 'systemConfig'): SystemConfig | undefined;
+            get(key: 'proxyHeadersWarningLogged'): boolean | undefined;
+            set(key: 'proxyHeadersWarningLogged', value: boolean): Application;
+        };
+
         // Get proxy config early to check which headers to look for
-        const systemConfig = req.app.get('systemConfig');
+        const systemConfig = app.get('systemConfig');
         const configuredHeader = (systemConfig?.auth?.proxy?.headerName || 'X-authentik-username').toLowerCase();
         const configuredEmailHeader = (systemConfig?.auth?.proxy?.emailHeaderName || 'X-authentik-email').toLowerCase();
 
@@ -23,15 +41,16 @@ function validateProxyWhitelist() {
             req.headers['remote-user'];
 
         if (!hasProxyHeaders) {
-            return next();
+            next();
+            return;
         }
 
         // Skip if proxy auth is disabled or no whitelist configured
         if (!systemConfig?.auth?.proxy?.enabled || !systemConfig?.auth?.proxy?.whitelist) {
             // Log once per session, not every request - use app flag
-            if (!req.app.get('proxyHeadersWarningLogged')) {
+            if (!app.get('proxyHeadersWarningLogged')) {
                 logger.debug('[ProxyAuth] Proxy headers detected but proxy auth not enabled - headers will be ignored');
-                req.app.set('proxyHeadersWarningLogged', true);
+                app.set('proxyHeadersWarningLogged', true);
             }
             // Remove ALL possible proxy headers to prevent spoofing
             delete req.headers[configuredHeader];
@@ -42,21 +61,22 @@ function validateProxyWhitelist() {
             delete req.headers['x-forwarded-email'];
             delete req.headers['remote-user'];
             delete req.headers['remote-email'];
-            return next();
+            next();
+            return;
         }
 
         // Get client IP (the direct connection IP - should be proxy auth server's IP)
-        let clientIp = req.connection.remoteAddress || req.socket.remoteAddress;
+        let clientIp = req.connection.remoteAddress || req.socket.remoteAddress || '';
 
         // Normalize IPv6-mapped IPv4 addresses
         if (ipaddr.isValid(clientIp)) {
             try {
                 const addr = ipaddr.parse(clientIp);
-                if (addr.kind() === 'ipv6' && addr.isIPv4MappedAddress()) {
-                    clientIp = addr.toIPv4Address().toString();
+                if (addr.kind() === 'ipv6' && (addr as ipaddr.IPv6).isIPv4MappedAddress()) {
+                    clientIp = (addr as ipaddr.IPv6).toIPv4Address().toString();
                 }
             } catch (e) {
-                logger.error('[ProxyAuth] IP parsing error:', e);
+                logger.error('[ProxyAuth] IP parsing error', { error: (e as Error).message });
             }
         }
 
@@ -69,7 +89,7 @@ function validateProxyWhitelist() {
             try {
                 return ipRangeCheck(clientIp, range);
             } catch (e) {
-                logger.error(`[ProxyAuth] Invalid IP range: ${range}`, e);
+                logger.error(`[ProxyAuth] Invalid IP range: ${range}`, { error: (e as Error).message });
                 return false;
             }
         });
@@ -90,5 +110,3 @@ function validateProxyWhitelist() {
         next();
     };
 }
-
-module.exports = { validateProxyWhitelist };

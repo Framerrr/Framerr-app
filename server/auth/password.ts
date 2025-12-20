@@ -1,34 +1,39 @@
-const bcrypt = require('bcryptjs');
+import bcrypt from 'bcryptjs';
 
 const SALT_ROUNDS = 12;
 
+interface PasswordRules {
+    minLength?: number;
+    requireUppercase?: boolean;
+    requireLowercase?: boolean;
+    requireNumbers?: boolean;
+    requireSpecialChars?: boolean;
+}
+
+interface ValidationResult {
+    valid: boolean;
+    errors: string[];
+}
+
 /**
  * Hash a password using bcrypt
- * @param {string} password - Plain text password
- * @returns {Promise<string>} Hashed password
  */
-async function hashPassword(password) {
+export async function hashPassword(password: string): Promise<string> {
     return await bcrypt.hash(password, SALT_ROUNDS);
 }
 
 /**
  * Verify a password against a hash
- * @param {string} password - Plain text password
- * @param {string} hash - Hashed password
- * @returns {Promise<boolean>} True if password matches
  */
-async function verifyPassword(password, hash) {
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
     return await bcrypt.compare(password, hash);
 }
 
 /**
  * Validate password against complexity rules
- * @param {string} password - Password to validate
- * @param {object} rules - Password complexity rules
- * @returns {object} { valid: boolean, errors: string[] }
  */
-function validatePasswordComplexity(password, rules) {
-    const errors = [];
+export function validatePasswordComplexity(password: string, rules: PasswordRules | null | undefined): ValidationResult {
+    const errors: string[] = [];
 
     if (!rules) return { valid: true, errors: [] };
 
@@ -57,9 +62,3 @@ function validatePasswordComplexity(password, rules) {
         errors
     };
 }
-
-module.exports = {
-    hashPassword,
-    verifyPassword,
-    validatePasswordComplexity
-};
