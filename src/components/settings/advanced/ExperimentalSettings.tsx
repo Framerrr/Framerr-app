@@ -1,7 +1,7 @@
 import React from 'react';
 import { Beaker, ToggleLeft } from 'lucide-react';
 
-const ExperimentalSettings = () => {
+const ExperimentalSettings = (): React.JSX.Element => {
     return (
         <div className="space-y-6">
             {/* Header */}

@@ -1,29 +1,51 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Download, Trash2, Search, Bug, Play, Pause, Check, X } from 'lucide-react';
 import axios from 'axios';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
 import { Input } from '../../common/Input';
 
-const DebugSettings = () => {
-    const [debugOverlay, setDebugOverlay] = useState(false);
-    const [logLevel, setLogLevel] = useState('INFO');
-    const [logs, setLogs] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterLevel, setFilterLevel] = useState('ALL');
-    const [autoRefresh, setAutoRefresh] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [confirmClear, setConfirmClear] = useState(false);
-    const logsEndRef = useRef(null);
+type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
+type FilterLevel = 'ALL' | LogLevel;
 
-    const logLevels = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
-    const filterLevels = ['ALL', 'ERROR', 'WARN', 'INFO', 'DEBUG'];
+interface LogEntry {
+    timestamp?: string;
+    level?: string;
+    message?: string;
+    [key: string]: unknown;
+}
 
-    // Auto-scroll logs to bottom when new logs arrive (scroll container, not page)
-    const logsContainerRef = useRef(null);
+interface SystemConfigResponse {
+    config?: {
+        debug?: {
+            overlayEnabled?: boolean;
+            logLevel?: string;
+        };
+    };
+}
 
+interface LogsResponse {
+    success: boolean;
+    logs?: LogEntry[];
+}
+
+const DebugSettings = (): React.JSX.Element => {
+    const [debugOverlay, setDebugOverlay] = useState<boolean>(false);
+    const [logLevel, setLogLevel] = useState<LogLevel>('INFO');
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [filterLevel, setFilterLevel] = useState<FilterLevel>('ALL');
+    const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [confirmClear, setConfirmClear] = useState<boolean>(false);
+    const logsEndRef = useRef<HTMLDivElement>(null);
+    const logsContainerRef = useRef<HTMLDivElement>(null);
+
+    const logLevels: LogLevel[] = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
+    const filterLevels: FilterLevel[] = ['ALL', 'ERROR', 'WARN', 'INFO', 'DEBUG'];
+
+    // Auto-scroll logs to bottom when new logs arrive
     useEffect(() => {
-        // Scroll the logs container to bottom (not the page)
         if (logsContainerRef.current) {
             logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
         }
@@ -34,7 +56,6 @@ const DebugSettings = () => {
         fetchLogs();
         loadDebugSettings();
 
-        // Auto-refresh logs every 2 seconds if enabled
         if (autoRefresh) {
             const interval = setInterval(() => {
                 fetchLogs();
@@ -43,29 +64,28 @@ const DebugSettings = () => {
         }
     }, [autoRefresh]);
 
-    const loadDebugSettings = async () => {
+    const loadDebugSettings = async (): Promise<void> => {
         try {
-            const response = await axios.get('/api/system/config');
+            const response = await axios.get<SystemConfigResponse>('/api/system/config');
             logger.debug('[DEBUG TOGGLE] Full config response:', response.data.config);
 
             if (response.data.config?.debug) {
                 logger.debug('[DEBUG TOGGLE] Debug section:', response.data.config.debug);
                 setDebugOverlay(response.data.config.debug.overlayEnabled || false);
 
-                // Load log level (uppercase for UI)
                 const savedLevel = response.data.config.debug.logLevel;
                 if (savedLevel) {
-                    setLogLevel(savedLevel.toUpperCase());
+                    setLogLevel(savedLevel.toUpperCase() as LogLevel);
                 }
             } else {
                 logger.debug('[DEBUG TOGGLE] No debug section in config');
             }
         } catch (error) {
-            logger.error('Failed to load debug settings:', error);
+            logger.error('Failed to load debug settings:', { error });
         }
     };
 
-    const handleOverlayToggle = async (enabled) => {
+    const handleOverlayToggle = async (enabled: boolean): Promise<void> => {
         logger.debug('[DEBUG TOGGLE] Toggling overlay to:', enabled);
         setDebugOverlay(enabled);
 
@@ -74,54 +94,49 @@ const DebugSettings = () => {
                 debug: { overlayEnabled: enabled }
             });
             logger.debug('[DEBUG TOGGLE] Save response:', response.data);
-
-            // Reload page to apply overlay changes to Dashboard
             window.location.reload();
         } catch (error) {
-            logger.error('Failed to save debug overlay setting:', error);
+            logger.error('Failed to save debug overlay setting:', { error });
         }
     };
 
-    const handleLogLevelChange = async (newLevel) => {
+    const handleLogLevelChange = async (newLevel: LogLevel): Promise<void> => {
         setLogLevel(newLevel);
         try {
             await axios.post('/api/advanced/logs/level', {
                 level: newLevel
             });
         } catch (error) {
-            logger.error('Failed to update log level:', error);
+            logger.error('Failed to update log level:', { error });
         }
     };
 
-    const fetchLogs = async () => {
+    const fetchLogs = async (): Promise<void> => {
         try {
-            // Don't show loading spinner on auto-refresh to prevent flashing
-            // setLoading(true);
-            const response = await axios.get('/api/advanced/logs');
+            const response = await axios.get<LogsResponse>('/api/advanced/logs');
             if (response.data.success) {
                 const newLogs = response.data.logs || [];
-                // Only update if logs have actually changed (prevents flashing)
                 if (JSON.stringify(newLogs) !== JSON.stringify(logs)) {
                     setLogs(newLogs);
                 }
             }
         } catch (error) {
-            logger.error('Failed to fetch logs:', error);
+            logger.error('Failed to fetch logs:', { error });
         }
     };
 
-    const handleClearLogs = async () => {
+    const handleClearLogs = async (): Promise<void> => {
         try {
             await axios.post('/api/advanced/logs/clear');
             setLogs([]);
             setConfirmClear(false);
         } catch (error) {
-            logger.error('Failed to clear logs:', error);
+            logger.error('Failed to clear logs:', { error });
             setConfirmClear(false);
         }
     };
 
-    const handleDownloadLogs = async () => {
+    const handleDownloadLogs = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/advanced/logs/download', {
                 responseType: 'blob'
@@ -135,7 +150,7 @@ const DebugSettings = () => {
             link.click();
             link.remove();
         } catch (error) {
-            logger.error('Failed to download logs:', error);
+            logger.error('Failed to download logs:', { error });
         }
     };
 
@@ -147,7 +162,7 @@ const DebugSettings = () => {
         return matchesSearch && matchesLevel;
     });
 
-    const getLogLevelColor = (level) => {
+    const getLogLevelColor = (level: string | undefined): string => {
         switch (level) {
             case 'ERROR': return 'text-error';
             case 'WARN': return 'text-warning';
@@ -267,14 +282,14 @@ const DebugSettings = () => {
                         <Input
                             placeholder="Search logs..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                             icon={Search}
                             className="mb-0"
                         />
                     </div>
                     <select
                         value={filterLevel}
-                        onChange={(e) => setFilterLevel(e.target.value)}
+                        onChange={(e) => setFilterLevel(e.target.value as FilterLevel)}
                         className="px-4 py-2 bg-theme-tertiary border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent transition-colors"
                     >
                         {filterLevels.map(level => (
@@ -304,7 +319,6 @@ const DebugSettings = () => {
                                     <span className="text-theme-secondary break-words min-w-0 flex-1">
                                         {log.message || 'Log message'}
                                         {(() => {
-                                            // Check if log has metadata (fields other than timestamp, level, message)
                                             const metadataKeys = Object.keys(log).filter(
                                                 key => !['timestamp', 'level', 'message'].includes(key)
                                             );

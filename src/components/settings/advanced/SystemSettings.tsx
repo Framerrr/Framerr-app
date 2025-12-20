@@ -3,37 +3,98 @@ import { Server, Cpu, HardDrive, Activity, RefreshCw, CheckCircle, AlertCircle, 
 import axios from 'axios';
 import logger from '../../../utils/logger';
 
-const SystemSettings = () => {
+type HealthStatus = 'healthy' | 'error' | 'warning';
+type SpeedTestStage = 'latency' | 'download' | 'upload' | null;
+
+interface SystemInfo {
+    appVersion?: string;
+    nodeVersion?: string;
+    platform?: string;
+    arch?: string;
+    uptime?: number;
+}
+
+interface MemoryInfo {
+    heapUsed: number;
+    heapTotal: number;
+    rss: number;
+}
+
+interface Resources {
+    memory?: MemoryInfo;
+}
+
+interface HealthItem {
+    status: HealthStatus;
+    message: string;
+}
+
+interface DbDetails {
+    type?: string;
+    path?: string;
+    sizeKB?: number;
+    userCount?: number;
+    tableCount?: number;
+}
+
+interface DbStatus {
+    success: boolean;
+    status: HealthStatus;
+    latency?: number;
+    details?: DbDetails;
+    error?: string;
+}
+
+interface SpeedTestState {
+    running: boolean;
+    latency: number | null;
+    download: string | null;
+    upload: string | null;
+    stage: SpeedTestStage;
+}
+
+interface ApiEndpoint {
+    name: string;
+    path: string;
+    status: HealthStatus;
+    responseTime: number;
+    error?: string;
+}
+
+interface ApiHealth {
+    success: boolean;
+    overallStatus: HealthStatus;
+    endpoints?: ApiEndpoint[];
+    error?: string;
+}
+
+const SystemSettings = (): React.JSX.Element => {
     // System Information state
-    const [systemInfo, setSystemInfo] = useState(null);
-    const [resources, setResources] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+    const [resources, setResources] = useState<Resources | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [refreshing, setRefreshing] = useState<boolean>(false);
 
     // Diagnostics state
-    const [health, setHealth] = useState(null);
-    const [dbStatus, setDbStatus] = useState(null);
-    const [dbLoading, setDbLoading] = useState(false);
-    const [speedTest, setSpeedTest] = useState({
+    const [health, setHealth] = useState<Record<string, HealthItem> | null>(null);
+    const [dbStatus, setDbStatus] = useState<DbStatus | null>(null);
+    const [dbLoading, setDbLoading] = useState<boolean>(false);
+    const [speedTest, setSpeedTest] = useState<SpeedTestState>({
         running: false,
         latency: null,
         download: null,
         upload: null,
         stage: null
     });
-    const [apiHealth, setApiHealth] = useState(null);
-    const [apiLoading, setApiLoading] = useState(false);
+    const [apiHealth, setApiHealth] = useState<ApiHealth | null>(null);
+    const [apiLoading, setApiLoading] = useState<boolean>(false);
 
     useEffect(() => {
         fetchSystemData();
         testApiHealth();
     }, []);
 
-    // ========================================================================
-    // SYSTEM INFORMATION
-    // ========================================================================
-
-    const fetchSystemData = async () => {
+    const fetchSystemData = async (): Promise<void> => {
         setLoading(true);
         await Promise.all([
             fetchSystemInfo(),
@@ -42,40 +103,40 @@ const SystemSettings = () => {
         setLoading(false);
     };
 
-    const fetchSystemInfo = async () => {
+    const fetchSystemInfo = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/advanced/system/info');
             if (response.data.success) {
                 setSystemInfo(response.data.data);
             }
         } catch (error) {
-            logger.error('Failed to fetch system info:', error);
+            logger.error('Failed to fetch system info:', { error });
         }
     };
 
-    const fetchResources = async () => {
+    const fetchResources = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/advanced/system/resources');
             if (response.data.success) {
                 setResources(response.data.data);
             }
         } catch (error) {
-            logger.error('Failed to fetch resources:', error);
+            logger.error('Failed to fetch resources:', { error });
         }
     };
 
-    const handleRefresh = async () => {
+    const handleRefresh = async (): Promise<void> => {
         setRefreshing(true);
         await fetchSystemData();
         setRefreshing(false);
     };
 
-    const formatUptime = (seconds) => {
+    const formatUptime = (seconds: number): string => {
         const days = Math.floor(seconds / 86400);
         const hours = Math.floor((seconds % 86400) / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
 
-        const parts = [];
+        const parts: string[] = [];
         if (days > 0) parts.push(`${days}d`);
         if (hours > 0) parts.push(`${hours}h`);
         if (minutes > 0) parts.push(`${minutes}m`);
@@ -83,26 +144,18 @@ const SystemSettings = () => {
         return parts.join(' ') || '< 1m';
     };
 
-    // ========================================================================
-    // DIAGNOSTICS - SYSTEM HEALTH
-    // ========================================================================
-
-    const fetchHealth = async () => {
+    const fetchHealth = async (): Promise<void> => {
         try {
             const response = await axios.get('/api/advanced/system/health');
             if (response.data.success) {
                 setHealth(response.data.data);
             }
         } catch (error) {
-            logger.error('Failed to fetch health:', error);
+            logger.error('Failed to fetch health:', { error });
         }
     };
 
-    // ========================================================================
-    // DIAGNOSTICS - DATABASE TEST
-    // ========================================================================
-
-    const testDatabase = async () => {
+    const testDatabase = async (): Promise<void> => {
         setDbLoading(true);
         try {
             const response = await axios.get('/api/diagnostics/database');
@@ -111,23 +164,19 @@ const SystemSettings = () => {
             setDbStatus({
                 success: false,
                 status: 'error',
-                error: error.message
+                error: (error as Error).message
             });
         } finally {
             setDbLoading(false);
         }
     };
 
-    // ========================================================================
-    // DIAGNOSTICS - SPEED TEST
-    // ========================================================================
-
-    const runSpeedTest = async () => {
+    const runSpeedTest = async (): Promise<void> => {
         setSpeedTest({ running: true, latency: null, download: null, upload: null, stage: 'latency' });
 
         try {
             // 1. LATENCY TEST (10 pings)
-            const pings = [];
+            const pings: number[] = [];
             for (let i = 0; i < 10; i++) {
                 const start = Date.now();
                 await axios.get('/api/diagnostics/ping');
@@ -162,16 +211,12 @@ const SystemSettings = () => {
                 stage: null
             });
         } catch (error) {
-            logger.error('Speed test failed:', error);
+            logger.error('Speed test failed:', { error });
             setSpeedTest({ running: false, latency: null, download: null, upload: null, stage: null });
         }
     };
 
-    // ========================================================================
-    // DIAGNOSTICS - API HEALTH
-    // ========================================================================
-
-    const testApiHealth = async () => {
+    const testApiHealth = async (): Promise<void> => {
         setApiLoading(true);
         try {
             const response = await axios.get('/api/diagnostics/api-health');
@@ -180,25 +225,21 @@ const SystemSettings = () => {
             setApiHealth({
                 success: false,
                 overallStatus: 'error',
-                error: error.message
+                error: (error as Error).message
             });
         } finally {
             setApiLoading(false);
         }
     };
 
-    const handleRefreshDiagnostics = async () => {
+    const handleRefreshDiagnostics = async (): Promise<void> => {
         await Promise.all([
             fetchHealth(),
             testApiHealth()
         ]);
     };
 
-    // ========================================================================
-    // RENDER HELPERS
-    // ========================================================================
-
-    const getHealthIcon = (status) => {
+    const getHealthIcon = (status: HealthStatus): React.JSX.Element => {
         return status === 'healthy' ? (
             <CheckCircle size={18} className="text-success" />
         ) : (
@@ -206,13 +247,13 @@ const SystemSettings = () => {
         );
     };
 
-    const getStatusIcon = (status) => {
+    const getStatusIcon = (status: HealthStatus): React.JSX.Element => {
         if (status === 'healthy') return <CheckCircle size={18} className="text-success" />;
         if (status === 'error') return <XCircle size={18} className="text-error" />;
         return <Loader size={18} className="text-warning animate-spin" />;
     };
 
-    const getStatusColor = (status) => {
+    const getStatusColor = (status: HealthStatus): string => {
         if (status === 'healthy') return 'bg-success/20 text-success';
         if (status === 'error') return 'bg-error/20 text-error';
         return 'bg-warning/20 text-warning';
@@ -229,9 +270,7 @@ const SystemSettings = () => {
 
     return (
         <div className="space-y-8">
-            {/* ================================================================ */}
             {/* SECTION 1: INFORMATION */}
-            {/* ================================================================ */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div className="text-center flex-1">
@@ -321,9 +360,7 @@ const SystemSettings = () => {
                 </div>
             </div>
 
-            {/* ================================================================ */}
             {/* SECTION 2: DIAGNOSTICS */}
-            {/* ================================================================ */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div className="text-center flex-1">

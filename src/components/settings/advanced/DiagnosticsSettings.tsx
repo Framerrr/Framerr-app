@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, Wifi, Database, Zap } from 'lucide-react';
 
-const DiagnosticsSettings = () => {
+const DiagnosticsSettings = (): React.JSX.Element => {
     return (
         <div className="space-y-6">
             {/* Header */}

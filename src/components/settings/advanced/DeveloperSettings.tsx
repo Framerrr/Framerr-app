@@ -1,7 +1,7 @@
 import React from 'react';
 import { Code, BookOpen, Webhook } from 'lucide-react';
 
-const DeveloperSettings = () => {
+const DeveloperSettings = (): React.JSX.Element => {
     return (
         <div className="space-y-6">
             {/* Header */}
