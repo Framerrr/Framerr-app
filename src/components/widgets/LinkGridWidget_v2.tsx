@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, DragEvent, CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
-import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, GripVertical, Check, X } from 'lucide-react';
+import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, Check, X, LucideIcon } from 'lucide-react';
 import * as Icons from 'lucide-react';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import logger from '../../utils/logger';
 import IconPicker from '../IconPicker';
 import { useNotifications } from '../../context/NotificationContext';
@@ -19,25 +19,106 @@ import { useNotifications } from '../../context/NotificationContext';
  * - Drag-to-reorder (sequence-based)
  */
 
-const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled }) => {
+type LinkSize = 'circle' | 'rectangle';
+type LinkType = 'link' | 'action';
+type LinkState = 'idle' | 'loading' | 'success' | 'error';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
+interface LinkAction {
+    method: HttpMethod;
+    url: string;
+    headers?: Record<string, string>;
+    body?: unknown;
+}
+
+interface LinkStyle {
+    showIcon?: boolean;
+    showText?: boolean;
+}
+
+interface Link {
+    id: string;
+    title: string;
+    icon: string;
+    size: LinkSize;
+    type: LinkType;
+    url?: string;
+    style?: LinkStyle;
+    action?: LinkAction;
+}
+
+interface LinkPosition {
+    linkId: string;
+    gridCol: number;
+    gridRow: number;
+    gridColSpan: number;
+    gridRowSpan: number;
+}
+
+interface GridMetrics {
+    cols: number;
+    rows: number;
+    cellSize: number;
+    maxRows: number;
+}
+
+interface FormData {
+    title: string;
+    icon: string;
+    size: LinkSize;
+    type: LinkType;
+    url: string;
+    showIcon: boolean;
+    showText: boolean;
+    action: LinkAction;
+}
+
+interface ContainerSize {
+    width: number;
+    height: number;
+}
+
+interface LinkGridWidgetConfig {
+    links?: Link[];
+    [key: string]: unknown;
+}
+
+interface LinkGridWidgetProps {
+    config?: LinkGridWidgetConfig;
+    editMode?: boolean;
+    widgetId?: string;
+    setGlobalDragEnabled?: (enabled: boolean) => void;
+}
+
+interface WidgetData {
+    id?: string;
+    config?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+interface WidgetsResponse {
+    widgets?: WidgetData[];
+}
+
+const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = false, widgetId, setGlobalDragEnabled }) => {
     const { links = [] } = config || {};
     const { error: showError, success: showSuccess } = useNotifications();
 
     // Refs for dimension measurement
-    const containerRef = useRef(null);
-    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [containerSize, setContainerSize] = useState<ContainerSize>({ width: 0, height: 0 });
 
     // Widget state
-    const [linkStates, setLinkStates] = useState({}); // HTTP action states
-    const [editModeActive, setEditModeActive] = useState(false); // Link widget edit mode
-    const [showAddForm, setShowAddForm] = useState(false); // Show add link form
-    const [editingLinkId, setEditingLinkId] = useState(null); // ID of link being edited
-    const [draggedLinkId, setDraggedLinkId] = useState(null); // ID of link being dragged
-    const [dragOverLinkId, setDragOverLinkId] = useState(null); // ID of link being dragged over
-    const [previewLinks, setPreviewLinks] = useState([]); // Temporary order during drag
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null); // ID of link pending delete confirmation
+    const [linkStates, setLinkStates] = useState<Record<string, LinkState>>({}); // HTTP action states
+    const [editModeActive, setEditModeActive] = useState<boolean>(false); // Link widget edit mode
+    const [showAddForm, setShowAddForm] = useState<boolean>(false); // Show add link form
+    const [editingLinkId, setEditingLinkId] = useState<string | null>(null); // ID of link being edited
+    const [draggedLinkId, setDraggedLinkId] = useState<string | null>(null); // ID of link being dragged
+    const [dragOverLinkId, setDragOverLinkId] = useState<string | null>(null); // ID of link being dragged over
+    const [previewLinks, setPreviewLinks] = useState<Link[]>([]); // Temporary order during drag
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null); // ID of link pending delete confirmation
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         title: '',
         icon: 'Link',
         size: 'circle',
@@ -62,7 +143,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
      * Measure container size on mount and resize
      */
     useEffect(() => {
-        const measureContainer = () => {
+        const measureContainer = (): void => {
             if (containerRef.current) {
                 const rect = containerRef.current.getBoundingClientRect();
                 setContainerSize({
@@ -170,7 +251,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
      * - Calculate max rows/cols that fit
      * - Size cells to fill space without overflow
      */
-    const calculateGridMetrics = () => {
+    const calculateGridMetrics = (): GridMetrics => {
         if (containerSize.width === 0 || containerSize.height === 0) {
             return { cols: 3, rows: 1, cellSize: 100, maxRows: 1 }; // Default fallback
         }
@@ -198,7 +279,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
 
         // Use the smaller of the two constraints
         // Remove MIN/MAX clamping - cells must shrink to fit available space
-        let cellSize = Math.min(cellWidthMax, cellHeightMax);
+        const cellSize = Math.min(cellWidthMax, cellHeightMax);
 
         // maxRows for edit mode outlines (same as rows)
         const maxRows = rows;
@@ -210,8 +291,8 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Calculate link positions for edit mode (left-aligned)
      */
-    const calculateEditModeLayout = (gridCols, gridRows, linksToLayout = links) => {
-        const positions = [];
+    const calculateEditModeLayout = (gridCols: number, gridRows: number, linksToLayout: Link[] = links): LinkPosition[] => {
+        const positions: LinkPosition[] = [];
         let row = 0;
         let col = 0;
 
@@ -247,7 +328,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Calculate link positions for view mode (left-aligned like edit mode)
      */
-    const calculateViewModeLayout = (gridCols, gridRows) => {
+    const calculateViewModeLayout = (gridCols: number, gridRows: number): LinkPosition[] => {
         // Use same left-aligned layout as edit mode
         return calculateEditModeLayout(gridCols, gridRows);
     };
@@ -255,7 +336,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Calculate remaining capacity
      */
-    const getRemainingCapacity = (gridCols, gridRows) => {
+    const getRemainingCapacity = (gridCols: number, gridRows: number): number => {
         const totalCells = gridCols * gridRows;
         const occupiedCells = links.reduce((sum, link) => {
             return sum + (link.size === 'rectangle' ? 2 : 1);
@@ -266,15 +347,15 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Get icon component
      */
-    const getIcon = (iconName) => {
-        const Icon = Icons[iconName] || ExternalLink;
+    const getIcon = (iconName: string): LucideIcon => {
+        const Icon = (Icons as Record<string, LucideIcon>)[iconName] || ExternalLink;
         return Icon;
     };
 
     /**
      * Execute HTTP action
      */
-    const executeAction = async (link, index) => {
+    const executeAction = async (link: Link, index: string): Promise<void> => {
         if (!link.action) {
             logger.error('No action configured for link', link);
             return;
@@ -287,7 +368,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         try {
             logger.debug(`Executing ${method} action:`, url);
 
-            const requestConfig = {
+            const requestConfig: AxiosRequestConfig = {
                 method: method.toLowerCase(),
                 url,
                 headers,
@@ -317,10 +398,10 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Save link (create or update)
      */
-    const handleSaveLink = async () => {
+    const handleSaveLink = async (): Promise<void> => {
         try {
             // Build link object
-            const newLink = {
+            const newLink: Link = {
                 id: editingLinkId || `link-${Date.now()}`,
                 title: formData.title,
                 icon: formData.icon,
@@ -340,7 +421,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                 : [...links, newLink];
 
             // Fetch current widgets from backend
-            const response = await axios.get('/api/widgets');
+            const response = await axios.get<WidgetsResponse>('/api/widgets');
             const allWidgets = response.data.widgets || [];
 
             // Check if widget exists in backend (to detect NEW unsaved widgets)
@@ -385,10 +466,10 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                     }
                 }));
             }
-            showSuccess('Link Saved', `Link "${linkData.title}" saved successfully`);
+            showSuccess('Link Saved', `Link "${formData.title}" saved successfully`);
         } catch (error) {
             logger.error('Failed to save link:', error);
-            logger.error('Error details:', error.response?.data);
+            logger.error('Error details:', (error as any).response?.data);
             showError('Save Failed', 'Failed to save link. Please try again.');
         }
     };
@@ -396,7 +477,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Delete link (called after inline confirmation)
      */
-    const handleDeleteLink = async (linkId) => {
+    const handleDeleteLink = async (linkId: string): Promise<void> => {
         setConfirmDeleteId(null); // Clear confirmation state
 
         try {
@@ -404,7 +485,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             const updatedLinks = links.filter(l => l.id !== linkId);
 
             // Fetch current widgets from backend
-            const response = await axios.get('/api/widgets');
+            const response = await axios.get<WidgetsResponse>('/api/widgets');
             const allWidgets = response.data.widgets || [];
 
             // Check if widget exists in backend
@@ -422,10 +503,10 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                 // Widget-only refresh with fade animation
                 const widgetElement = document.querySelector(`[data-widget-id="${widgetId}"]`);
                 if (widgetElement) {
-                    widgetElement.style.opacity = '0.5';
-                    widgetElement.style.transition = 'opacity 0.3s ease';
+                    (widgetElement as HTMLElement).style.opacity = '0.5';
+                    (widgetElement as HTMLElement).style.transition = 'opacity 0.3s ease';
                     setTimeout(() => {
-                        widgetElement.style.opacity = '1';
+                        (widgetElement as HTMLElement).style.opacity = '1';
                     }, 100);
                 }
 
@@ -460,24 +541,24 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Drag handlers for reordering links
      */
-    const handleDragStart = (e, linkId) => {
+    const handleDragStart = (e: DragEvent<HTMLAnchorElement | HTMLButtonElement>, linkId: string): void => {
         setDraggedLinkId(linkId);
         setPreviewLinks(links); // Initialize preview with current links
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', linkId);
 
         // Add semi-transparent effect
-        e.currentTarget.style.opacity = '0.5';
+        (e.currentTarget as HTMLElement).style.opacity = '0.5';
     };
 
-    const handleDragEnd = (e) => {
-        e.currentTarget.style.opacity = '1';
+    const handleDragEnd = (e: DragEvent<HTMLAnchorElement | HTMLButtonElement>): void => {
+        (e.currentTarget as HTMLElement).style.opacity = '1';
         setDraggedLinkId(null);
         setDragOverLinkId(null);
         // Don't clear previewLinks here - let handleDrop do it after save completes
     };
 
-    const handleDragOver = (e, linkId) => {
+    const handleDragOver = (e: DragEvent<HTMLAnchorElement | HTMLButtonElement>, linkId: string): void => {
         e.preventDefault(); // MUST prevent default to allow drop
         e.stopPropagation(); // Prevent bubbling
         e.dataTransfer.dropEffect = 'move';
@@ -498,11 +579,11 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         }
     };
 
-    const handleDragLeave = () => {
+    const handleDragLeave = (): void => {
         setDragOverLinkId(null);
     };
 
-    const handleDrop = async (e, targetLinkId) => {
+    const handleDrop = async (e: DragEvent<HTMLAnchorElement | HTMLButtonElement>, targetLinkId: string): Promise<void> => {
         e.preventDefault();
 
         if (!draggedLinkId || previewLinks.length === 0) {
@@ -516,7 +597,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             const reorderedLinks = [...previewLinks];
 
             // Save to backend (match existing pattern)
-            const response = await axios.get('/api/widgets');
+            const response = await axios.get<WidgetsResponse>('/api/widgets');
             const allWidgets = response.data.widgets || [];
             const updatedWidgets = allWidgets.map(w =>
                 w.id === widgetId ? { ...w, config: { ...w.config, links: reorderedLinks } } : w
@@ -526,10 +607,10 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             // Widget-only refresh
             const widgetElement = document.querySelector(`[data-widget-id="${widgetId}"]`);
             if (widgetElement) {
-                widgetElement.style.opacity = '0.5';
-                widgetElement.style.transition = 'opacity 0.3s ease';
+                (widgetElement as HTMLElement).style.opacity = '0.5';
+                (widgetElement as HTMLElement).style.transition = 'opacity 0.3s ease';
                 setTimeout(() => {
-                    widgetElement.style.opacity = '1';
+                    (widgetElement as HTMLElement).style.opacity = '1';
                 }, 100);
             }
 
@@ -550,16 +631,26 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         }
     };
 
+    // Calculate grid metrics
+    const { cols, rows, cellSize, maxRows } = calculateGridMetrics();
+
+    // Calculate positions (edit mode = left-aligned, view mode = centered)
+    // Use preview links during drag for live reordering
+    const activeLinks = (draggedLinkId && previewLinks.length > 0) ? previewLinks : links;
+    const linkPositions = editModeActive
+        ? calculateEditModeLayout(cols, rows, activeLinks)
+        : calculateViewModeLayout(cols, rows);
+
     /**
      * Render grid outlines (edit mode only)
      */
-    const renderGridOutlines = (gridCols, gridRows, cellSize) => {
+    const renderGridOutlines = (gridCols: number, gridRows: number, gridCellSize: number): React.ReactNode => {
         if (!editModeActive) return null;
 
-        const outlines = [];
+        const outlines: React.ReactNode[] = [];
 
         // Create occupancy grid to track which cells are filled
-        const occupancyGrid = Array(gridRows).fill(null).map(() => Array(gridCols).fill(false));
+        const occupancyGrid: boolean[][] = Array(gridRows).fill(null).map(() => Array(gridCols).fill(false));
 
         // Mark occupied cells
         linkPositions.forEach(pos => {
@@ -574,12 +665,12 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         for (let row = 0; row < gridRows; row++) {
             for (let col = 0; col < gridCols; col++) {
                 const isOccupied = occupancyGrid[row][col];
-                const style = {
+                const style: CSSProperties = {
                     position: 'absolute',
-                    left: `${col * (cellSize + GRID_GAP)}px`,
-                    top: `${row * (cellSize + GRID_GAP)}px`,
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
+                    left: `${col * (gridCellSize + GRID_GAP)}px`,
+                    top: `${row * (gridCellSize + GRID_GAP)}px`,
+                    width: `${gridCellSize}px`,
+                    height: `${gridCellSize}px`,
                     border: '2px dashed #888',
                     borderRadius: '50%',
                     pointerEvents: 'none',
@@ -602,7 +693,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
     /**
      * Render a single link
      */
-    const renderLink = (link, position, cellSize) => {
+    const renderLink = (link: Link, position: LinkPosition, gridCellSize: number): React.ReactNode => {
         const Icon = getIcon(link.icon);
         const state = linkStates[link.id] || 'idle';
         const isLoading = state === 'loading';
@@ -610,8 +701,8 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         const isError = state === 'error';
         const isCircle = link.size === 'circle';
 
-        const width = cellSize * position.gridColSpan;
-        const height = cellSize;
+        const width = gridCellSize * position.gridColSpan;
+        const height = gridCellSize;
 
         // Base classes
         const baseClasses = 'flex items-center justify-center border bg-theme-tertiary border-theme transition-all duration-200 relative overflow-hidden';
@@ -631,9 +722,9 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         const classes = `${baseClasses} ${shapeClasses} ${stateClasses}`;
 
         // Icon rendering - scale with cell size
-        const iconSize = Math.max(16, Math.min(32, cellSize * 0.3)); // 30% of cell size, clamped 16-32px
+        const iconSize = Math.max(16, Math.min(32, gridCellSize * 0.3)); // 30% of cell size, clamped 16-32px
 
-        const renderIcon = () => {
+        const renderIcon = (): React.ReactNode => {
             if (isLoading) return <Loader size={iconSize} className="text-accent animate-spin" />;
             if (isSuccess) return <CheckCircle2 size={iconSize} className="text-success" />;
             if (isError) return <XCircle size={iconSize} className="text-error" />;
@@ -644,9 +735,9 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         };
 
         // Text rendering - scale with cell size
-        const fontSize = cellSize < 60 ? 'text-xs' : cellSize < 80 ? 'text-sm' : 'text-sm';
+        const fontSize = gridCellSize < 60 ? 'text-xs' : gridCellSize < 80 ? 'text-sm' : 'text-sm';
 
-        const renderText = () => {
+        const renderText = (): React.ReactNode => {
             if (isSuccess && !isCircle) return <span className={`${fontSize} font-medium text-success`}>Success</span>;
             if (isError && !isCircle) return <span className={`${fontSize} font-medium text-error`}>Failed</span>;
             if (link.style?.showText !== false) {
@@ -660,16 +751,16 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         };
 
         // Absolute positioning within grid
-        const style = {
+        const style: CSSProperties = {
             position: 'absolute',
-            left: `${position.gridCol * (cellSize + GRID_GAP)}px`,
-            top: `${position.gridRow * (cellSize + GRID_GAP)}px`,
+            left: `${position.gridCol * (gridCellSize + GRID_GAP)}px`,
+            top: `${position.gridRow * (gridCellSize + GRID_GAP)}px`,
             width: `${width}px`,
             height: `${height}px`,
         };
 
         // Edit mode controls (hover overlay)
-        const renderEditControls = () => {
+        const renderEditControls = (): React.ReactNode => {
             if (!editModeActive) return null;
 
             // Hide controls during drag operations
@@ -735,7 +826,6 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
         };
 
         // Visual feedback for drag state
-        const isDragging = draggedLinkId === link.id;
         const isDragOver = dragOverLinkId === link.id;
         const dragClasses = isDragOver ? ' ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary' : '';
 
@@ -793,16 +883,6 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
             </button>
         );
     };
-
-    // Calculate grid metrics
-    const { cols, rows, cellSize, maxRows } = calculateGridMetrics();
-
-    // Calculate positions (edit mode = left-aligned, view mode = centered)
-    // Use preview links during drag for live reordering
-    const activeLinks = (draggedLinkId && previewLinks.length > 0) ? previewLinks : links;
-    const linkPositions = editModeActive
-        ? calculateEditModeLayout(cols, rows, activeLinks)
-        : calculateViewModeLayout(cols, rows);
 
     // Calculate remaining capacity
     const remainingCapacity = getRemainingCapacity(cols, rows);
@@ -1054,7 +1134,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                                         value={formData.action.method}
                                         onChange={(e) => setFormData({
                                             ...formData,
-                                            action: { ...formData.action, method: e.target.value }
+                                            action: { ...formData.action, method: e.target.value as HttpMethod }
                                         })}
                                         className="w-full px-3 py-2 bg-theme-tertiary border border-theme rounded text-sm text-theme-primary focus:border-accent focus:outline-none"
                                     >
@@ -1086,7 +1166,7 @@ const LinkGridWidget_v2 = ({ config, editMode, widgetId, setGlobalDragEnabled })
                             <label className="block text-xs text-theme-secondary mb-1">Icon</label>
                             <IconPicker
                                 value={formData.icon}
-                                onChange={(icon) => setFormData({ ...formData, icon })}
+                                onChange={(icon: string) => setFormData({ ...formData, icon })}
                             />
                         </div>
 
