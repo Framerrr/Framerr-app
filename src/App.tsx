@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, ReactNode } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import logger from './utils/logger';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -20,16 +20,27 @@ import Setup from './pages/Setup';
 import MainContent from './pages/MainContent';
 import AnimationTest from './pages/AnimationTest';
 
+interface CustomColorLoaderProps {
+    children: ReactNode;
+}
+
+interface UserConfigResponse {
+    theme?: {
+        mode?: string;
+        customColors?: Record<string, string>;
+    };
+}
+
 // Component to load and apply custom colors after user authentication
-const CustomColorLoader = ({ children }) => {
+const CustomColorLoader: React.FC<CustomColorLoaderProps> = ({ children }) => {
     const { user } = useAuth();
 
     useEffect(() => {
         if (!user) return; // Only load if user is authenticated
 
-        const loadCustomColors = async () => {
+        const loadCustomColors = async (): Promise<void> => {
             try {
-                const response = await axios.get('/api/config/user', {
+                const response = await axios.get<UserConfigResponse>('/api/config/user', {
                     withCredentials: true
                 });
 
@@ -48,12 +59,12 @@ const CustomColorLoader = ({ children }) => {
         loadCustomColors();
     }, [user]); // Re-run when user changes (login/logout)
 
-    return children;
+    return <>{children}</>;
 };
 
 // Main layout component that uses LayoutContext for responsive behavior
 // NOTE: html/body is position:fixed, so this wrapper fills the viewport
-const MainLayout = () => {
+const MainLayout: React.FC = () => {
     const { isMobile } = useLayout();
 
     return (
@@ -90,7 +101,7 @@ const MainLayout = () => {
     );
 };
 
-const App = () => {
+const App: React.FC = () => {
     return (
         <AuthProvider>
             <FaviconInjector />
