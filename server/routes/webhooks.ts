@@ -48,6 +48,7 @@ interface NotificationSent {
 }
 
 interface NotificationMetadata {
+    [key: string]: unknown;
     requestId?: number;
     service: string;
     actionable: boolean;
@@ -177,7 +178,7 @@ async function validateToken(service: WebhookService, token: string): Promise<To
 
         return { valid: true, webhookConfig: integrationConfig.webhookConfig };
     } catch (error) {
-        logger.error('[Webhook] Token validation error:', (error as Error).message);
+        logger.error('[Webhook] Token validation error:', { message: (error as Error).message });
         return { valid: false, reason: 'Validation error' };
     }
 }
@@ -260,7 +261,7 @@ router.post('/overseerr/:token', async (req: Request, res: Response): Promise<vo
 
         res.status(200).json({ status: 'ok', ...result });
     } catch (error) {
-        logger.error('[Webhook] Overseerr processing error:', (error as Error).message);
+        logger.error('[Webhook] Overseerr processing error:', { message: (error as Error).message });
         res.status(500).json({ error: 'Processing failed' });
     }
 });
@@ -316,7 +317,7 @@ router.post('/sonarr/:token', async (req: Request, res: Response): Promise<void>
 
         res.status(200).json({ status: 'ok', ...result });
     } catch (error) {
-        logger.error('[Webhook] Sonarr processing error:', (error as Error).message);
+        logger.error('[Webhook] Sonarr processing error:', { message: (error as Error).message });
         res.status(500).json({ error: 'Processing failed' });
     }
 });
@@ -372,7 +373,7 @@ router.post('/radarr/:token', async (req: Request, res: Response): Promise<void>
 
         res.status(200).json({ status: 'ok', ...result });
     } catch (error) {
-        logger.error('[Webhook] Radarr processing error:', (error as Error).message);
+        logger.error('[Webhook] Radarr processing error:', { message: (error as Error).message });
         res.status(500).json({ error: 'Processing failed' });
     }
 });
