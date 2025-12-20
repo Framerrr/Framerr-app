@@ -13,7 +13,7 @@ import { useNotifications } from '../../context/NotificationContext';
  * - Limits to max 5 toasts
  * - Positioned in top-right corner
  */
-const ToastContainer = () => {
+const ToastContainer = (): React.ReactPortal => {
     const { toasts, dismissToast } = useNotifications();
 
     // Always render container so AnimatePresence can animate last toast exit

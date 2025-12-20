@@ -1,27 +1,44 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Trash2, Check, XCircle } from 'lucide-react';
-import { useNotifications } from '../../context/NotificationContext';
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Trash2, Check, XCircle, LucideIcon } from 'lucide-react';
+import { useNotifications, Notification } from '../../context/NotificationContext';
 import logger from '../../utils/logger';
 
-const ICONS = {
+type NotificationType = 'success' | 'error' | 'warning' | 'info';
+
+const ICONS: Record<NotificationType, LucideIcon> = {
     success: CheckCircle,
     error: AlertCircle,
     warning: AlertTriangle,
     info: Info
 };
 
+type FilterType = 'all' | 'unread' | 'read';
+
+interface FilterTabConfig {
+    id: FilterType;
+    label: string;
+    count: number;
+}
+
+interface GroupedNotifications {
+    today: Notification[];
+    yesterday: Notification[];
+    thisWeek: Notification[];
+    older: Notification[];
+}
+
+export interface NotificationCenterProps {
+    isMobile?: boolean;
+    onClose?: () => void;
+}
+
 /**
  * NotificationCenter Component
  * 
  * Unified notification center for desktop and mobile
- * - Desktop: Renders inside transformed sidebar
- * - Mobile: Renders inside expanded mobile menu
- * 
- * @param {boolean} isMobile - Whether rendering in mobile mode
- * @param {function} onClose - Close callback
  */
-const NotificationCenter = ({ isMobile = false, onClose }) => {
+const NotificationCenter = ({ isMobile = false, onClose }: NotificationCenterProps): React.JSX.Element => {
     const {
         notifications,
         unreadCount,
@@ -33,13 +50,13 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         handleRequestAction
     } = useNotifications();
 
-    const [activeFilter, setActiveFilter] = useState('all');
-    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+    const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
 
-    // Track filter direction for animations (all=0, unread=1, read=2)
-    const filterOrder = { all: 0, unread: 1, read: 2 };
-    const prevFilterRef = useRef(activeFilter);
-    const [slideDirection, setSlideDirection] = useState(0); // -1 = left, 1 = right
+    // Track filter direction for animations
+    const filterOrder: Record<FilterType, number> = { all: 0, unread: 1, read: 2 };
+    const prevFilterRef = useRef<FilterType>(activeFilter);
+    const [slideDirection, setSlideDirection] = useState<number>(0);
 
     useEffect(() => {
         const prevIndex = filterOrder[prevFilterRef.current];
@@ -49,7 +66,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
     }, [activeFilter]);
 
     // Filter notifications
-    const filteredNotifications = useMemo(() => {
+    const filteredNotifications = useMemo((): Notification[] => {
         if (activeFilter === 'unread') {
             return notifications.filter(n => !n.read);
         } else if (activeFilter === 'read') {
@@ -58,7 +75,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         return notifications;
     }, [notifications, activeFilter]);
 
-    // Compute counts directly from notifications array (more reliable than separate unreadCount state)
+    // Compute counts directly from notifications array
     const computedUnreadCount = useMemo(() =>
         notifications.filter(n => !n.read).length
         , [notifications]);
@@ -67,8 +84,8 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         , [notifications]);
 
     // Group notifications by date
-    const groupedNotifications = useMemo(() => {
-        const groups = {
+    const groupedNotifications = useMemo((): GroupedNotifications => {
+        const groups: GroupedNotifications = {
             today: [],
             yesterday: [],
             thisWeek: [],
@@ -100,43 +117,43 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         return groups;
     }, [filteredNotifications]);
 
-    const handleMarkAsRead = async (notificationId) => {
+    const handleMarkAsRead = async (notificationId: string): Promise<void> => {
         try {
             await markAsRead(notificationId);
         } catch (error) {
-            logger.error('Failed to mark notification as read', { error: error.message });
+            logger.error('Failed to mark notification as read', { error: (error as Error).message });
         }
     };
 
-    const handleDelete = async (notificationId) => {
+    const handleDelete = async (notificationId: string): Promise<void> => {
         try {
             await deleteNotification(notificationId);
         } catch (error) {
-            logger.error('Failed to delete notification', { error: error.message });
+            logger.error('Failed to delete notification', { error: (error as Error).message });
         }
     };
 
-    const handleMarkAllRead = async () => {
+    const handleMarkAllRead = async (): Promise<void> => {
         try {
             await markAllAsRead();
         } catch (error) {
-            logger.error('Failed to mark all as read', { error: error.message });
+            logger.error('Failed to mark all as read', { error: (error as Error).message });
         }
     };
 
-    const handleClearAll = async () => {
+    const handleClearAll = async (): Promise<void> => {
         try {
             await clearAll();
             setShowClearConfirm(false);
         } catch (error) {
-            logger.error('Failed to clear all notifications', { error: error.message });
+            logger.error('Failed to clear all notifications', { error: (error as Error).message });
         }
     };
 
-    const formatTime = (dateString) => {
+    const formatTime = (dateString: string): string => {
         const date = new Date(dateString);
         const now = new Date();
-        const diffMs = now - date;
+        const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
 
@@ -151,8 +168,8 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         });
     };
 
-    const renderNotification = (notification, index) => {
-        const Icon = ICONS[notification.type] || Info;
+    const renderNotification = (notification: Notification, index: number): React.JSX.Element => {
+        const Icon = ICONS[notification.type as NotificationType] || Info;
 
         return (
             <motion.div
@@ -167,18 +184,18 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                     layout: { duration: 0.25, ease: 'easeOut' }
                 }}
                 className={`
-                    mx-4 mb-3 p-4 rounded-xl border border-theme
-                    ${!notification.read
+          mx-4 mb-3 p-4 rounded-xl border border-theme
+          ${!notification.read
                         ? 'bg-accent/5 glass-card'
                         : 'glass-subtle'
                     }
-                    hover:shadow-md
-                    transition-shadow duration-200 cursor-pointer
-                `}
+          hover:shadow-md
+          transition-shadow duration-200 cursor-pointer
+        `}
                 onClick={() => !notification.read && handleMarkAsRead(notification.id)}
             >
                 <div className="flex items-start gap-3">
-                    {/* Icon - custom icon or type-based icon */}
+                    {/* Icon */}
                     {notification.iconId ? (
                         <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-theme-tertiary/50 flex items-center justify-center shadow-sm">
                             <img
@@ -216,7 +233,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                             {notification.message}
                         </p>
 
-                        {/* Actionable notification buttons (Overseerr approve/decline) */}
+                        {/* Actionable notification buttons */}
                         {notification.metadata?.actionable && notification.metadata?.requestId && (
                             <div className="flex gap-2 mt-3">
                                 <button
@@ -225,9 +242,9 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                         handleRequestAction(notification.id, 'approve');
                                     }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                                        bg-success/20 text-success hover:bg-success/30 
-                                        border border-success/20 hover:border-success/40
-                                        transition-all duration-200 hover:scale-105"
+                    bg-success/20 text-success hover:bg-success/30 
+                    border border-success/20 hover:border-success/40
+                    transition-all duration-200 hover:scale-105"
                                 >
                                     <Check size={14} />
                                     Approve
@@ -238,9 +255,9 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                         handleRequestAction(notification.id, 'decline');
                                     }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                                        bg-error/20 text-error hover:bg-error/30 
-                                        border border-error/20 hover:border-error/40
-                                        transition-all duration-200 hover:scale-105"
+                    bg-error/20 text-error hover:bg-error/30 
+                    border border-error/20 hover:border-error/40
+                    transition-all duration-200 hover:scale-105"
                                 >
                                     <XCircle size={14} />
                                     Decline
@@ -258,8 +275,8 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                     handleMarkAsRead(notification.id);
                                 }}
                                 className="p-2 rounded-lg text-theme-tertiary 
-                                    hover:text-success hover:bg-success/10 
-                                    transition-all duration-200"
+                  hover:text-success hover:bg-success/10 
+                  transition-all duration-200"
                                 title="Mark as read"
                             >
                                 <Check size={16} />
@@ -271,8 +288,8 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                 handleDelete(notification.id);
                             }}
                             className="p-2 rounded-lg text-theme-tertiary 
-                                hover:text-error hover:bg-error/10 
-                                transition-all duration-200"
+                hover:text-error hover:bg-error/10 
+                transition-all duration-200"
                             title="Delete"
                         >
                             <Trash2 size={16} />
@@ -283,7 +300,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
         );
     };
 
-    const renderGroup = (title, items) => {
+    const renderGroup = (title: string, items: Notification[]): React.JSX.Element | null => {
         if (items.length === 0) return null;
 
         return (
@@ -298,6 +315,12 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
             </div>
         );
     };
+
+    const filterTabs: FilterTabConfig[] = [
+        { id: 'all', label: 'All', count: notifications.length },
+        { id: 'unread', label: 'Unread', count: computedUnreadCount },
+        { id: 'read', label: 'Read', count: computedReadCount }
+    ];
 
     return (
         <div className={`flex-1 flex flex-col ${isMobile ? '' : 'glass-card border-l border-theme'}`} style={{ minHeight: 0, overflow: 'hidden' }}>
@@ -316,7 +339,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                         <button
                             onClick={onClose}
                             className="text-theme-tertiary hover:text-theme-primary 
-                                transition-colors p-1"
+                transition-colors p-1"
                             aria-label="Close notifications"
                         >
                             <X size={20} />
@@ -326,11 +349,7 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
 
                 {/* Filter Tabs */}
                 <div className="flex gap-1 mb-3 bg-theme-tertiary/30 p-1 rounded-lg">
-                    {[
-                        { id: 'all', label: 'All', count: notifications.length },
-                        { id: 'unread', label: 'Unread', count: computedUnreadCount },
-                        { id: 'read', label: 'Read', count: computedReadCount }
-                    ].map(filter => (
+                    {filterTabs.map(filter => (
                         <button
                             key={filter.id}
                             onClick={() => setActiveFilter(filter.id)}
@@ -357,9 +376,9 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                             onClick={handleMarkAllRead}
                             disabled={unreadCount === 0}
                             className="px-3 py-1.5 text-xs font-medium rounded-lg
-                                bg-accent text-white hover:bg-accent-hover
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                                transition-colors"
+                bg-accent text-white hover:bg-accent-hover
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-colors"
                         >
                             Mark all read
                         </button>
@@ -368,8 +387,8 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                             <button
                                 onClick={() => setShowClearConfirm(true)}
                                 className="px-3 py-1.5 text-xs font-medium rounded-lg
-                                    bg-error/10 text-error hover:bg-error/20
-                                    transition-colors"
+                  bg-error/10 text-error hover:bg-error/20
+                  transition-colors"
                             >
                                 Clear all
                             </button>
@@ -378,16 +397,16 @@ const NotificationCenter = ({ isMobile = false, onClose }) => {
                                 <button
                                     onClick={handleClearAll}
                                     className="px-3 py-1.5 text-xs font-medium rounded-lg
-                                        bg-error text-white hover:bg-error/80
-                                        transition-colors"
+                    bg-error text-white hover:bg-error/80
+                    transition-colors"
                                 >
                                     Yes
                                 </button>
                                 <button
                                     onClick={() => setShowClearConfirm(false)}
                                     className="px-3 py-1.5 text-xs font-medium rounded-lg
-                                        bg-theme-tertiary text-theme-primary hover:bg-theme-hover
-                                        transition-colors"
+                    bg-theme-tertiary text-theme-primary hover:bg-theme-hover
+                    transition-colors"
                                 >
                                     Cancel
                                 </button>
