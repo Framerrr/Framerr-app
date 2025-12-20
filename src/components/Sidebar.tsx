@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronRight, ChevronUp, LogOut, UserCircle, Mail, LayoutGrid } from 'lucide-react';
+import { Home, Settings as SettingsIcon, Menu, X, LayoutDashboard, ChevronDown, ChevronRight, ChevronUp, LogOut, UserCircle, Mail, LayoutGrid, LucideIcon } from 'lucide-react';
 import * as Icons from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Transition } from 'framer-motion';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -10,17 +10,43 @@ import { useLayout } from '../context/LayoutContext';
 import NotificationCenter from './notifications/NotificationCenter';
 import logger from '../utils/logger';
 
-const Sidebar = () => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+interface Tab {
+    id: string;
+    name: string;
+    slug: string;
+    icon?: string;
+    groupId?: string;
+}
+
+interface Group {
+    id: string;
+    name: string;
+}
+
+interface UserProfile {
+    username?: string;
+    profilePicture?: string;
+}
+
+interface ExpandedGroups {
+    [key: string]: boolean;
+}
+
+interface TabsResponse {
+    tabs?: Tab[];
+}
+
+const Sidebar: React.FC = () => {
+    const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
     // isMobile now comes from LayoutContext - single source of truth
     const { isMobile } = useLayout();
-    const [expandedGroups, setExpandedGroups] = useState({});
-    const [tabs, setTabs] = useState([]);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [hoveredItem, setHoveredItem] = useState(null);
-    const [hoveredMobileTab, setHoveredMobileTab] = useState(null);
-    const hoverTimeoutRef = React.useRef(null);
+    const [expandedGroups, setExpandedGroups] = useState<ExpandedGroups>({});
+    const [tabs, setTabs] = useState<Tab[]>([]);
+    const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+    const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+    const [hoveredMobileTab, setHoveredMobileTab] = useState<string | null>(null);
+    const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
     const { unreadCount } = useNotifications();
@@ -28,17 +54,17 @@ const Sidebar = () => {
     const location = useLocation();
 
     // Notification center state
-    const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+    const [showNotificationCenter, setShowNotificationCenter] = useState<boolean>(false);
 
     // Spring configuration for sidebar animations (animate-ui inspired)
-    const sidebarSpring = {
+    const sidebarSpring: Transition = {
         type: 'spring',
         stiffness: 350,
         damping: 35,
     };
 
     // Faster spring for text to avoid icon pushing
-    const textSpring = {
+    const textSpring: Transition = {
         type: 'spring',
         stiffness: 400,
         damping: 35,
@@ -53,13 +79,13 @@ const Sidebar = () => {
 
     // Fetch tabs from API
     useEffect(() => {
-        const fetchTabs = async () => {
+        const fetchTabs = async (): Promise<void> => {
             try {
                 const response = await fetch('/api/tabs', {
                     credentials: 'include'
                 });
                 if (response.ok) {
-                    const data = await response.json();
+                    const data: TabsResponse = await response.json();
                     setTabs(data.tabs || []);
                 }
             } catch (error) {
@@ -69,7 +95,7 @@ const Sidebar = () => {
 
         fetchTabs();
 
-        const handleTabsUpdated = () => {
+        const handleTabsUpdated = (): void => {
             fetchTabs();
         };
 
@@ -82,13 +108,13 @@ const Sidebar = () => {
 
     // Fetch current user profile
     useEffect(() => {
-        const fetchUserProfile = async () => {
+        const fetchUserProfile = async (): Promise<void> => {
             try {
                 const response = await fetch('/api/profile', {
                     credentials: 'include'
                 });
                 if (response.ok) {
-                    const data = await response.json();
+                    const data: UserProfile = await response.json();
                     // Add cache-busting timestamp to profile picture
                     if (data.profilePicture) {
                         data.profilePicture = `${data.profilePicture}?t=${Date.now()}`;
@@ -102,8 +128,9 @@ const Sidebar = () => {
         fetchUserProfile();
 
         // Listen for profile picture updates from settings
-        const handleProfilePictureUpdate = (event) => {
-            const { profilePicture } = event.detail || {};
+        const handleProfilePictureUpdate = (event: Event): void => {
+            const customEvent = event as CustomEvent<{ profilePicture?: string }>;
+            const { profilePicture } = customEvent.detail || {};
             setCurrentUser(prev => prev ? { ...prev, profilePicture } : null);
         };
 
@@ -111,7 +138,7 @@ const Sidebar = () => {
         return () => window.removeEventListener('profilePictureUpdated', handleProfilePictureUpdate);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = (): void => {
         // Browser-native logout - server handles redirect
         // This eliminates race conditions with auth proxy
         window.location.href = '/api/auth/logout';
@@ -120,8 +147,8 @@ const Sidebar = () => {
     // Initialize all groups as expanded by default
     useEffect(() => {
         if (groups && groups.length > 0) {
-            const initialState = {};
-            groups.forEach(group => {
+            const initialState: ExpandedGroups = {};
+            groups.forEach((group: Group) => {
                 initialState[group.id] = true;
             });
             setExpandedGroups(initialState);
@@ -130,7 +157,7 @@ const Sidebar = () => {
 
     // Listen for openNotificationCenter event (from toast body clicks)
     useEffect(() => {
-        const handleOpenNotificationCenter = () => {
+        const handleOpenNotificationCenter = (): void => {
             setShowNotificationCenter(true);
             if (!isMobile) {
                 setIsExpanded(true);
@@ -147,7 +174,7 @@ const Sidebar = () => {
     // The resize handling is done there with debouncing
 
     // Delayed hover handlers to prevent snap-back when mouse crosses empty space
-    const handleMouseEnter = (item) => {
+    const handleMouseEnter = (item: string): void => {
         // Clear any pending timeout
         if (hoverTimeoutRef.current) {
             clearTimeout(hoverTimeoutRef.current);
@@ -156,7 +183,7 @@ const Sidebar = () => {
         setHoveredItem(item);
     };
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = (): void => {
         // Add small delay before clearing hover (350ms)
         hoverTimeoutRef.current = setTimeout(() => {
             setHoveredItem(null);
@@ -164,7 +191,7 @@ const Sidebar = () => {
         }, 350);
     };
 
-    const renderIcon = (iconValue, size = 20) => {
+    const renderIcon = (iconValue: string | undefined, size: number = 20): React.ReactNode => {
         if (!iconValue) return <Icons.Server size={size} />;
 
         if (iconValue.startsWith('custom:')) {
@@ -176,11 +203,11 @@ const Sidebar = () => {
             return <img src={iconValue} alt="icon" className="object-cover rounded" style={{ width: size, height: size }} />;
         }
 
-        const IconComponent = Icons[iconValue] || Icons.Server;
+        const IconComponent = (Icons as Record<string, LucideIcon>)[iconValue] || Icons.Server;
         return <IconComponent size={size} />;
     };
 
-    const toggleGroup = (groupId) => {
+    const toggleGroup = (groupId: string): void => {
         setExpandedGroups(prev => ({
             ...prev,
             [groupId]: !prev[groupId]
@@ -401,7 +428,7 @@ const Sidebar = () => {
                                         ))}
 
                                         {/* Grouped tabs */}
-                                        {groups && groups.map(group => {
+                                        {groups && (groups as Group[]).map((group: Group) => {
                                             const groupTabs = tabs.filter(tab => tab.groupId === group.id);
                                             if (groupTabs.length === 0) return null;
 
