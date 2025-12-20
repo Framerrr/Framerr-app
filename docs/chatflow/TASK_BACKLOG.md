@@ -41,3 +41,13 @@
 
 ### Mobile Responsive Testing
 - Thorough mobile layout testing
+
+### Theming - Login/Setup/Loading States
+- Login page theming refinements
+- Setup page theming refinements
+- Page loading states theming (spinners, skeletons)
+
+### Download Progress Websockets
+- Overseerr/Radarr/Sonarr websocket integration
+- Real-time download progress in widgets
+- Live status updates without polling

@@ -74,23 +74,28 @@ const OverseerrWidget: React.FC<OverseerrWidgetProps> = ({ config }) => {
             return;
         }
 
-        const fetchRequests = async (): Promise<void> => {
+        const fetchWithRetry = async (retriesLeft: number = 3): Promise<void> => {
             try {
-                setLoading(true);
                 const response = await fetch(`/api/overseerr/requests?url=${encodeURIComponent(integration.url || '')}&apiKey=${encodeURIComponent(integration.apiKey || '')}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
-                setError(null);
+                setError(null); // Clear any previous error on success
+                setLoading(false);
             } catch (err) {
+                if (retriesLeft > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return fetchWithRetry(retriesLeft - 1);
+                }
                 setError((err as Error).message);
-            } finally {
                 setLoading(false);
             }
         };
 
-        fetchRequests();
-        const interval = setInterval(fetchRequests, 60000); // Refresh every minute
+        setLoading(true);
+        fetchWithRetry();
+
+        const interval = setInterval(() => fetchWithRetry(), 60000);
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 

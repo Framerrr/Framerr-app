@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-20 13:32 EST  
+**Last Updated:** 2025-12-20 14:00 EST  
 **Branch:** `develop`
 
 ---
@@ -11,46 +11,40 @@
 |-------|-------|
 | **Last Released Version** | `1.3.0` |
 | **Release Status** | RELEASED |
-| **Draft Changelog** | (none - next session) |
-| **Draft Status** | - |
+| **Draft Changelog** | `docs/versions/v1.3.1.md` |
+| **Draft Status** | DRAFT - In Development |
 
 ---
 
 ## Current State
 
-**Status:** ✅ v1.3.0 RELEASED - Full TypeScript Migration Complete
+**Status:** 🔧 Connection Resilience Feature Complete
 
 **This Session:**
-- Fixed Docker build issues for TypeScript compilation
-- Fixed ES module default export interop (`notifications.ts`, `logger.ts`)
-- Fixed `distPath` for compiled TypeScript output structure
-- Fixed log buffer integration in compiled backend
-- Merged `feature/typescript-migration` → `develop`
-- Released v1.3.0 to production
-- Docker images pushed: `pickels23/framerr:1.3.0`, `:latest`
-- Created backup: `backup_12_20_2025`
+- Implemented SSE auto-reconnect with exponential backoff (1s→30s, max 5 attempts)
+- Added visibility-based data refresh when tab restored after 30+ seconds
+- Added widget polling resilience with retry logic to:
+  - PlexWidget, SonarrWidget, RadarrWidget, OverseerrWidget, QBittorrentWidget
+- Created `useResilientPolling` hook for future use
+- Added backlog items for theming and websocket download progress
+- Build verified passing
 
 ---
 
 ## Next Session
 
-**Start with:**
-```
-/start-session
-```
-
-**No pending work.** TypeScript migration is complete and released.
+**Ready for testing:**
+- Leave app idle for 20+ min with tab open
+- Verify widgets auto-recover from errors
+- Switch away from tab and return after 30+ seconds
 
 ---
 
 ## Handoff Instructions
 
-The codebase is now fully TypeScript:
-- Frontend: All `.tsx` files
-- Backend: All `.ts` files compiled to `dist/server/`
-
-The `feature/typescript-migration` branch was kept (not deleted).
+Connection resilience is implemented but not yet tested by user. Ready for manual testing before release.
 
 ---
 
-**=== SESSION END 2025-12-20 13:32 EST ===**
+**=== SESSION IN PROGRESS ===**
+
