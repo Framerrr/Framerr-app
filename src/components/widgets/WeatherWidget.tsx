@@ -7,16 +7,48 @@ import {
     CloudSnow,
     CloudLightning,
     CloudOff,
-    MapPin
+    MapPin,
+    LucideIcon
 } from 'lucide-react';
 import logger from '../../utils/logger';
 
-const WeatherWidget = () => {
-    const [weather, setWeather] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [isWide, setIsWide] = useState(false);
-    const containerRef = useRef(null);
+interface WeatherData {
+    temp: number;
+    code: number;
+    high: number;
+    low: number;
+    location: string;
+}
+
+interface WeatherInfo {
+    label: string;
+    icon: LucideIcon;
+}
+
+interface OpenMeteoResponse {
+    current: {
+        temperature_2m: number;
+        weather_code: number;
+    };
+    daily: {
+        temperature_2m_max: number[];
+        temperature_2m_min: number[];
+    };
+}
+
+interface LocationResponse {
+    locality?: string;
+    principalSubdivision?: string;
+    principalSubdivisionCode?: string;
+    city?: string;
+}
+
+const WeatherWidget = (): React.JSX.Element | null => {
+    const [weather, setWeather] = useState<WeatherData | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isWide, setIsWide] = useState<boolean>(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // Detect container width for responsive layout
     useEffect(() => {
@@ -35,7 +67,7 @@ const WeatherWidget = () => {
     }, []);
 
     // WMO Weather interpretation codes (https://open-meteo.com/en/docs)
-    const getWeatherInfo = (code) => {
+    const getWeatherInfo = (code: number): WeatherInfo => {
         if (code === 0) return { label: 'Clear', icon: Sun };
         if (code === 1 || code === 2 || code === 3) return { label: 'Partly Cloudy', icon: Cloud };
         if (code >= 45 && code <= 48) return { label: 'Fog', icon: CloudFog || Cloud };
@@ -54,7 +86,7 @@ const WeatherWidget = () => {
             return;
         }
 
-        const success = async (position) => {
+        const success = async (position: GeolocationPosition): Promise<void> => {
             try {
                 const { latitude, longitude } = position.coords;
 
@@ -66,8 +98,8 @@ const WeatherWidget = () => {
 
                 if (!weatherRes.ok) throw new Error('Weather data fetch failed');
 
-                const weatherData = await weatherRes.json();
-                const locationData = await locationRes.json();
+                const weatherData: OpenMeteoResponse = await weatherRes.json();
+                const locationData: LocationResponse = await locationRes.json();
 
                 // Construct location string
                 let locationStr = 'Unknown Location';
@@ -88,15 +120,15 @@ const WeatherWidget = () => {
                 });
                 setError(null);
             } catch (err) {
-                logger.error('Weather fetch error:', err);
+                logger.error('Weather fetch error:', { error: err });
                 setError('Failed to load weather');
             } finally {
                 setLoading(false);
             }
         };
 
-        const fail = (err) => {
-            logger.error('Geolocation error:', err);
+        const fail = (err: GeolocationPositionError): void => {
+            logger.error('Geolocation error:', { error: err.message });
             setError('Location access denied');
             setLoading(false);
         };

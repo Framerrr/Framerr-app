@@ -1,14 +1,26 @@
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, ChevronDown } from 'lucide-react';
 import { Button } from '../common/Button';
 import logger from '../../utils/logger';
+
+interface WidgetErrorBoundaryProps {
+    widgetType?: string;
+    children: ReactNode;
+}
+
+interface WidgetErrorBoundaryState {
+    hasError: boolean;
+    error: Error | null;
+    errorInfo: ErrorInfo | null;
+    showDetails: boolean;
+}
 
 /**
  * WidgetErrorBoundary - Enhanced error boundary for widgets
  * Catches React errors, displays premium error UI, and provides retry mechanism
  */
-class WidgetErrorBoundary extends React.Component {
-    constructor(props) {
+class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, WidgetErrorBoundaryState> {
+    constructor(props: WidgetErrorBoundaryProps) {
         super(props);
         this.state = {
             hasError: false,
@@ -18,11 +30,11 @@ class WidgetErrorBoundary extends React.Component {
         };
     }
 
-    static getDerivedStateFromError(error) {
+    static getDerivedStateFromError(error: Error): Partial<WidgetErrorBoundaryState> {
         return { hasError: true, error };
     }
 
-    componentDidCatch(error, errorInfo) {
+    componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
         this.setState({ errorInfo });
 
         logger.error('Widget error caught by boundary', {
@@ -33,7 +45,7 @@ class WidgetErrorBoundary extends React.Component {
         });
     }
 
-    handleRetry = () => {
+    handleRetry = (): void => {
         this.setState({
             hasError: false,
             error: null,
@@ -42,11 +54,11 @@ class WidgetErrorBoundary extends React.Component {
         });
     };
 
-    toggleDetails = () => {
+    toggleDetails = (): void => {
         this.setState(prev => ({ showDetails: !prev.showDetails }));
     };
 
-    render() {
+    render(): ReactNode {
         if (this.state.hasError) {
             const { error, errorInfo, showDetails } = this.state;
 

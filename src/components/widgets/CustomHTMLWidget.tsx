@@ -1,10 +1,20 @@
 import React from 'react';
 
+interface CustomHTMLConfig {
+    htmlContent?: string;
+    cssContent?: string;
+    [key: string]: unknown;
+}
+
+export interface CustomHTMLWidgetProps {
+    config?: CustomHTMLConfig;
+}
+
 /**
  * Custom HTML Widget
  * Renders user-defined HTML and CSS content
  */
-const CustomHTMLWidget = ({ config }) => {
+const CustomHTMLWidget = ({ config }: CustomHTMLWidgetProps): React.JSX.Element => {
     const { htmlContent = '', cssContent = '' } = config || {};
 
     if (!htmlContent) {

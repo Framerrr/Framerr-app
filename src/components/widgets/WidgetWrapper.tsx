@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, LucideIcon } from 'lucide-react';
 import { Card } from '../common/Card';
+
+export interface WidgetWrapperProps {
+    id: string;
+    type: string;
+    title?: string;
+    icon?: LucideIcon;
+    editMode?: boolean;
+    flatten?: boolean;
+    showHeader?: boolean;
+    onDelete?: (id: string) => void;
+    children: React.ReactNode;
+}
 
 /**
  * WidgetWrapper - Container component for dashboard widgets
@@ -12,12 +24,12 @@ const WidgetWrapper = ({
     title,
     icon: Icon,
     editMode = false,
-    flatten = false, // New: flatten mode removes glassmorphism/shadows
-    showHeader = true, // Show header by default (reversed from hideHeader)
+    flatten = false,
+    showHeader = true,
     onDelete,
     children
-}) => {
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+}: WidgetWrapperProps): React.JSX.Element => {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
     // Force hide header for link-grid widgets (they don't support headers)
     const shouldShowHeader = type === 'link-grid' ? false : showHeader;
@@ -25,7 +37,7 @@ const WidgetWrapper = ({
     return (
         <Card
             className={`widget-wrapper h-full overflow-hidden flex flex-col relative ${flatten ? 'flatten-mode' : ''}`}
-            padding={type === 'link-grid' ? 'none' : 'lg'}
+            padding={type === 'link-grid' ? 'sm' : 'lg'}
         >
             {/* Delete button - ALWAYS visible in edit mode, positioned absolutely */}
             {editMode && onDelete && (
@@ -40,8 +52,8 @@ const WidgetWrapper = ({
                                 setShowDeleteConfirm(true);
                             }}
                             className="w-10 h-10 rounded-lg bg-red-500/20 hover:bg-red-500/30 
-                                       flex items-center justify-center text-red-400 hover:text-red-300
-                                       transition-all duration-200"
+                         flex items-center justify-center text-red-400 hover:text-red-300
+                         transition-all duration-200"
                             style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                             aria-label="Delete widget"
                         >
@@ -58,7 +70,7 @@ const WidgetWrapper = ({
                                     setShowDeleteConfirm(false);
                                 }}
                                 className="px-3 py-2 rounded-lg bg-theme-tertiary hover:bg-theme-hover text-theme-primary text-sm font-medium
-                                           flex items-center gap-1 transition-all duration-200"
+                           flex items-center gap-1 transition-all duration-200"
                                 style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                             >
                                 <X size={14} />
@@ -72,7 +84,7 @@ const WidgetWrapper = ({
                                     onDelete(id);
                                 }}
                                 className="px-3 py-2 rounded-lg bg-error hover:bg-error/80 text-white text-sm font-medium
-                                           flex items-center gap-1 transition-all duration-200"
+                           flex items-center gap-1 transition-all duration-200"
                                 style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                             >
                                 <Check size={14} />

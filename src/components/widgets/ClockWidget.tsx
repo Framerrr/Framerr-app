@@ -2,20 +2,42 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import logger from '../../utils/logger';
 
+interface ClockPreferences {
+    format24h: boolean;
+    timezone: string;
+    showDate: boolean;
+    showSeconds: boolean;
+}
+
+interface ClockConfig extends Partial<ClockPreferences> {
+    [key: string]: unknown;
+}
+
+interface UserConfigResponse {
+    preferences?: {
+        clockWidget?: ClockPreferences;
+    };
+}
+
+export interface ClockWidgetProps {
+    config?: ClockConfig;
+    editMode?: boolean;
+}
+
 /**
  * Clock Widget
  * Displays current time with timezone support and inline settings
  */
-const ClockWidget = ({ config, editMode = false }) => {
-    const [time, setTime] = useState(new Date());
-    const [preferences, setPreferences] = useState({
+const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.Element => {
+    const [time, setTime] = useState<Date>(new Date());
+    const [preferences, setPreferences] = useState<ClockPreferences>({
         format24h: true,
         timezone: '',
         showDate: true,
         showSeconds: true
     });
-    const [isWide, setIsWide] = useState(false);
-    const containerRef = useRef(null);
+    const [isWide, setIsWide] = useState<boolean>(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // Detect container width for responsive layout
     useEffect(() => {
@@ -45,7 +67,7 @@ const ClockWidget = ({ config, editMode = false }) => {
     }, [preferences.format24h, preferences.showDate, preferences.showSeconds]);
 
     // Merge config with preferences (config takes priority)
-    const activeConfig = {
+    const activeConfig: ClockPreferences = {
         ...preferences,
         ...(config || {})
     };
@@ -57,20 +79,20 @@ const ClockWidget = ({ config, editMode = false }) => {
         return () => clearInterval(interval);
     }, [showSeconds]);
 
-    const loadPreferences = async () => {
+    const loadPreferences = async (): Promise<void> => {
         try {
-            const response = await axios.get('/api/config/user', {
+            const response = await axios.get<UserConfigResponse>('/api/config/user', {
                 withCredentials: true
             });
             if (response.data?.preferences?.clockWidget) {
                 setPreferences(response.data.preferences.clockWidget);
             }
         } catch (error) {
-            logger.error('Failed to load clock preferences:', error);
+            logger.error('Failed to load clock preferences:', { error });
         }
     };
 
-    const savePreferences = async (newPrefs) => {
+    const savePreferences = async (newPrefs: ClockPreferences): Promise<void> => {
         try {
             await axios.put('/api/config/user', {
                 preferences: {
@@ -80,12 +102,12 @@ const ClockWidget = ({ config, editMode = false }) => {
                 withCredentials: true
             });
         } catch (error) {
-            logger.error('Failed to save clock preferences:', error);
+            logger.error('Failed to save clock preferences:', { error });
         }
     };
 
-    const formatTime = (date) => {
-        const options = {
+    const formatTime = (date: Date): string => {
+        const options: Intl.DateTimeFormatOptions = {
             hour: '2-digit',
             minute: '2-digit',
             ...(showSeconds && { second: '2-digit' }),
@@ -95,8 +117,8 @@ const ClockWidget = ({ config, editMode = false }) => {
         return date.toLocaleTimeString([], options);
     };
 
-    const formatDate = (date) => {
-        const options = {
+    const formatDate = (date: Date): string => {
+        const options: Intl.DateTimeFormatOptions = {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
