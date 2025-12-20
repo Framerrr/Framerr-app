@@ -229,7 +229,9 @@ app.use('/api', proxyRoutes);
 
 // In production, serve built frontend
 if (NODE_ENV === 'production') {
-    const distPath = path.join(__dirname, '../dist');
+    // In compiled TypeScript, __dirname is server/dist/server, so go up to app root then into dist
+    // Production: /app/server/dist/server -> /app/dist
+    const distPath = path.join(__dirname, '../../../dist');
 
     // Service Worker - prevent caching to ensure updates are picked up
     app.get('/sw.js', (req: Request, res: Response) => {
