@@ -48,10 +48,8 @@ const AuthStep: React.FC<AuthStepProps> = ({
         setPlexError(null);
 
         try {
-            // Get PIN from Plex
-            const pinResponse = await axios.post('/api/plex/auth/pin', {
-                forwardUrl: window.location.origin + '/setup'
-            });
+            // Get PIN from Plex (no forwardUrl - popup will close itself after auth)
+            const pinResponse = await axios.post('/api/plex/auth/pin', {});
 
             const { pinId, authUrl } = pinResponse.data;
 
