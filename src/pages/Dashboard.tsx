@@ -1051,25 +1051,23 @@ const Dashboard = (): React.JSX.Element => {
                             </button>
                         </div>
                     ) : (
-                        // Edit button only visible when not in sm breakpoint (sm = stacked, no editing)
-                        effectiveBreakpoint !== 'sm' && (
-                            <button
-                                onClick={handleToggleEdit}
-                                className="flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
-                            >
-                                <Edit size={16} />
-                                Edit
-                            </button>
-                        )
+                        // Edit button - visible on all screen sizes
+                        <button
+                            onClick={handleToggleEdit}
+                            className="flex px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 items-center gap-2"
+                        >
+                            <Edit size={16} />
+                            Edit
+                        </button>
                     )}
                 </div>
             </header>
 
             {/* Edit Mode Desktop Disclaimer */}
-            {editMode && !editDisclaimerDismissed && (
+            {editMode && !editDisclaimerDismissed && !isMobile && (
                 <div className="mb-4 px-4 py-3 bg-info/10 border border-info/20 rounded-xl flex items-center justify-between gap-4">
                     <p className="text-sm text-theme-secondary">
-                        💡 Dashboard editing is only available on tablet and desktop (≥768px)
+                        Drag widgets to rearrange, resize from edges, or delete with the X button.
                     </p>
                     <button
                         onClick={async () => {
@@ -1113,9 +1111,9 @@ const Dashboard = (): React.JSX.Element => {
                             rowHeight={100}
                             compactType={effectiveBreakpoint === 'sm' ? null : 'vertical'}
                             preventCollision={false}
-                            isDraggable={editMode && isGlobalDragEnabled && !isMobile}
-                            isResizable={editMode && isGlobalDragEnabled && !isMobile}
-                            resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
+                            isDraggable={editMode && isGlobalDragEnabled}
+                            isResizable={editMode && isGlobalDragEnabled}
+                            resizeHandles={isMobile ? ['s'] : ['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
                             containerPadding={[0, 0]}
