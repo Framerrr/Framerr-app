@@ -11,6 +11,8 @@ type DeepPartial<T> = T extends object ? {
 interface DashboardConfig {
     layout: unknown[];
     widgets: unknown[];
+    mobileLayoutMode?: 'linked' | 'independent';
+    mobileWidgets?: unknown[];
 }
 
 interface ThemeConfig {
@@ -67,7 +69,9 @@ interface UserPreferencesRow {
 const DEFAULT_USER_CONFIG: UserConfig = {
     dashboard: {
         layout: [],
-        widgets: []
+        widgets: [],
+        mobileLayoutMode: 'linked',
+        mobileWidgets: undefined
     },
     tabs: [],
     theme: {

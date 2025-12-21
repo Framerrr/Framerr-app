@@ -14,6 +14,8 @@ type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
 
 interface WidgetsBody {
     widgets: unknown[];
+    mobileLayoutMode?: 'linked' | 'independent';
+    mobileWidgets?: unknown[];
 }
 
 // Middleware to require authentication
@@ -28,15 +30,19 @@ const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
 
 /**
  * GET /api/widgets
- * Get current user's dashboard widgets
+ * Get current user's dashboard widgets (desktop and mobile)
  */
 router.get('/', requireAuth, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userConfig = await getUserConfig(authReq.user!.id);
-        const widgets = userConfig.dashboard?.widgets || [];
+        const dashboard = userConfig.dashboard || {};
 
-        res.json({ widgets });
+        res.json({
+            widgets: dashboard.widgets || [],
+            mobileLayoutMode: dashboard.mobileLayoutMode || 'linked',
+            mobileWidgets: dashboard.mobileWidgets || undefined
+        });
     } catch (error) {
         const authReq = req as AuthenticatedRequest;
         logger.error('Failed to get widgets', {
@@ -49,12 +55,12 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 
 /**
  * PUT /api/widgets
- * Update current user's dashboard widgets
+ * Update current user's dashboard widgets (desktop and/or mobile)
  */
 router.put('/', requireAuth, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
-        const { widgets } = req.body as WidgetsBody;
+        const { widgets, mobileLayoutMode, mobileWidgets } = req.body as WidgetsBody;
 
         // Validate widgets array
         if (!Array.isArray(widgets)) {
@@ -62,13 +68,21 @@ router.put('/', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
+        // Validate mobileWidgets if provided
+        if (mobileWidgets !== undefined && !Array.isArray(mobileWidgets)) {
+            res.status(400).json({ error: 'Mobile widgets must be an array' });
+            return;
+        }
+
         // Get current config
         const userConfig = await getUserConfig(authReq.user!.id);
 
-        // Update widgets while preserving other dashboard settings
+        // Update dashboard with widgets and mobile settings
         const updatedDashboard = {
             ...userConfig.dashboard,
-            widgets: widgets
+            widgets: widgets,
+            ...(mobileLayoutMode !== undefined && { mobileLayoutMode }),
+            ...(mobileWidgets !== undefined && { mobileWidgets })
         };
 
         // Save to user config
@@ -78,12 +92,16 @@ router.put('/', requireAuth, async (req: Request, res: Response) => {
 
         logger.debug('Widgets updated', {
             userId: authReq.user!.id,
-            widgetCount: widgets.length
+            widgetCount: widgets.length,
+            mobileLayoutMode: updatedDashboard.mobileLayoutMode,
+            mobileWidgetCount: mobileWidgets?.length
         });
 
         res.json({
             success: true,
-            widgets: widgets
+            widgets: widgets,
+            mobileLayoutMode: updatedDashboard.mobileLayoutMode,
+            mobileWidgets: updatedDashboard.mobileWidgets
         });
 
     } catch (error) {
@@ -98,17 +116,18 @@ router.put('/', requireAuth, async (req: Request, res: Response) => {
 
 /**
  * POST /api/widgets/reset
- * Reset current user's widgets to empty
+ * Reset current user's widgets to empty (both desktop and mobile)
  */
 router.post('/reset', requireAuth, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
-        const userConfig = await getUserConfig(authReq.user!.id);
 
-        // Reset widgets to empty array
+        // Reset widgets and mobile state to defaults
         const updatedDashboard = {
-            ...userConfig.dashboard,
-            widgets: []
+            layout: [],
+            widgets: [],
+            mobileLayoutMode: 'linked' as const,
+            mobileWidgets: undefined
         };
 
         await updateUserConfig(authReq.user!.id, {
@@ -119,7 +138,9 @@ router.post('/reset', requireAuth, async (req: Request, res: Response) => {
 
         res.json({
             success: true,
-            widgets: []
+            widgets: [],
+            mobileLayoutMode: 'linked',
+            mobileWidgets: undefined
         });
 
     } catch (error) {
@@ -132,5 +153,86 @@ router.post('/reset', requireAuth, async (req: Request, res: Response) => {
     }
 });
 
-export default router;
+/**
+ * POST /api/widgets/unlink
+ * Transition mobile dashboard from linked to independent
+ * Copies current desktop widgets to mobile widgets
+ */
+router.post('/unlink', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const userConfig = await getUserConfig(authReq.user!.id);
+        const currentWidgets = userConfig.dashboard?.widgets || [];
 
+        // Copy desktop widgets to mobile and set mode to independent
+        const updatedDashboard = {
+            ...userConfig.dashboard,
+            mobileLayoutMode: 'independent' as const,
+            mobileWidgets: JSON.parse(JSON.stringify(currentWidgets))
+        };
+
+        await updateUserConfig(authReq.user!.id, {
+            dashboard: updatedDashboard
+        });
+
+        logger.debug('Mobile dashboard unlinked', {
+            userId: authReq.user!.id,
+            mobileWidgetCount: currentWidgets.length
+        });
+
+        res.json({
+            success: true,
+            mobileLayoutMode: 'independent',
+            mobileWidgets: updatedDashboard.mobileWidgets
+        });
+
+    } catch (error) {
+        const authReq = req as AuthenticatedRequest;
+        logger.error('Failed to unlink mobile dashboard', {
+            userId: authReq.user?.id,
+            error: (error as Error).message
+        });
+        res.status(500).json({ error: 'Failed to unlink mobile dashboard' });
+    }
+});
+
+/**
+ * POST /api/widgets/reconnect
+ * Transition mobile dashboard from independent back to linked
+ * Clears mobile widgets and resumes auto-generation from desktop
+ */
+router.post('/reconnect', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const userConfig = await getUserConfig(authReq.user!.id);
+
+        // Clear mobile widgets and set mode to linked
+        const updatedDashboard = {
+            ...userConfig.dashboard,
+            mobileLayoutMode: 'linked' as const,
+            mobileWidgets: undefined
+        };
+
+        await updateUserConfig(authReq.user!.id, {
+            dashboard: updatedDashboard
+        });
+
+        logger.debug('Mobile dashboard reconnected', { userId: authReq.user!.id });
+
+        res.json({
+            success: true,
+            mobileLayoutMode: 'linked',
+            mobileWidgets: undefined
+        });
+
+    } catch (error) {
+        const authReq = req as AuthenticatedRequest;
+        logger.error('Failed to reconnect mobile dashboard', {
+            userId: authReq.user?.id,
+            error: (error as Error).message
+        });
+        res.status(500).json({ error: 'Failed to reconnect mobile dashboard' });
+    }
+});
+
+export default router;
