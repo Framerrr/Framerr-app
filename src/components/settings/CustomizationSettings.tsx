@@ -212,9 +212,15 @@ const CustomizationSettings: React.FC = () => {
                             setLastSelectedTheme(userResponse.data.theme.lastSelectedTheme);
                         }
                     } else {
-                        // Custom colors off - using a theme
+                        // Custom colors off - using a theme preset
                         setCustomColorsEnabled(false);
-                        setLastSelectedTheme(userResponse.data.theme.mode);
+                        // Read from preset field (not mode - mode is light/dark/system)
+                        if (userResponse.data.theme.preset) {
+                            setLastSelectedTheme(userResponse.data.theme.preset);
+                        } else if (userResponse.data.theme.mode && userResponse.data.theme.mode !== 'custom') {
+                            // Fallback for legacy data that used mode for theme ID
+                            setLastSelectedTheme(userResponse.data.theme.mode);
+                        }
                         // Load theme colors into pickers for display
                         const themeColors = getCurrentThemeColors();
                         setCustomColors(themeColors);
