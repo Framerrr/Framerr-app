@@ -545,10 +545,20 @@ const Dashboard = (): React.JSX.Element => {
                 setPendingUnlink(true);
             }
 
+            // On mobile, manually recompact layouts by sorting by Y and assigning sequential positions
+            // This handles reordering when compactType is null
+            const sortedLayout = [...newLayout].sort((a, b) => a.y - b.y);
+            let currentY = 0;
+            const recompactedLayout = sortedLayout.map(item => {
+                const recompacted = { ...item, y: currentY, x: 0, w: 2 };
+                currentY += item.h;
+                return recompacted;
+            });
+
             // Update mobile widgets (will be separate when unlinked)
             const widgetsToUpdate = mobileLayoutMode === 'independent' ? mobileWidgets : widgets;
             const updatedMobileWidgets = widgetsToUpdate.map(widget => {
-                const layoutItem = newLayout.find(l => l.i === widget.id);
+                const layoutItem = recompactedLayout.find(l => l.i === widget.id);
                 if (layoutItem) {
                     return {
                         ...widget,
@@ -571,7 +581,7 @@ const Dashboard = (): React.JSX.Element => {
             } else {
                 // Still linked - temporarily update sm layouts in widgets for preview
                 const updatedWidgets = widgets.map(widget => {
-                    const layoutItem = newLayout.find(l => l.i === widget.id);
+                    const layoutItem = recompactedLayout.find(l => l.i === widget.id);
                     if (layoutItem) {
                         return {
                             ...widget,
@@ -593,7 +603,7 @@ const Dashboard = (): React.JSX.Element => {
 
             setLayouts(prev => ({
                 ...prev,
-                sm: newLayout as GridLayoutItem[]
+                sm: recompactedLayout as GridLayoutItem[]
             }));
             return;
         }
@@ -1111,7 +1121,7 @@ const Dashboard = (): React.JSX.Element => {
                             cols={gridCols}
                             breakpoints={gridBreakpoints}
                             rowHeight={100}
-                            compactType={(effectiveBreakpoint === 'sm' && !editMode) ? null : 'vertical'}
+                            compactType={effectiveBreakpoint === 'sm' ? null : 'vertical'}
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
                             isResizable={editMode && isGlobalDragEnabled}
