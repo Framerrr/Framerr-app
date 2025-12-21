@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { WizardData } from '../SetupWizard';
 
 interface WelcomeStepProps {
@@ -40,9 +40,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ goNext }) => {
                 transition={{ delay: 0.4 }}
             >
                 Welcome to{' '}
-                <span className="bg-gradient-to-r from-accent to-accent-secondary bg-clip-text text-transparent">
-                    Framerr
-                </span>
+                <span className="text-accent">Framerr</span>
             </motion.h1>
 
             {/* Subtitle */}
@@ -52,29 +50,8 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ goNext }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
             >
-                Your modern homelab dashboard
+                Let's get your dashboard set up
             </motion.p>
-
-            {/* Features preview */}
-            <motion.div
-                className="flex justify-center gap-6 mb-12 text-sm text-theme-tertiary"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-            >
-                <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-accent" />
-                    <span>Beautiful Themes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-accent" />
-                    <span>Widget Dashboard</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-accent" />
-                    <span>Plex SSO</span>
-                </div>
-            </motion.div>
 
             {/* Get Started button */}
             <motion.button
