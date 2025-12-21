@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 // Step components
 import WelcomeStep from './steps/WelcomeStep';
@@ -67,6 +68,7 @@ const stepTransition = {
 const SetupWizard: React.FC = () => {
     const navigate = useNavigate();
     const { login, checkSetupStatus } = useAuth();
+    const { changeTheme } = useTheme();
 
     // Current step index
     const [currentStep, setCurrentStep] = useState(0);
@@ -182,13 +184,8 @@ const SetupWizard: React.FC = () => {
                 appName: data.appName
             });
 
-            // Save theme
-            await axios.put('/api/theme', {
-                theme: {
-                    preset: data.theme,
-                    mode: 'dark'
-                }
-            });
+            // Save theme using ThemeContext (updates both state and API)
+            await changeTheme(data.theme);
 
             // Save flatten UI preference (must use preferences.ui.flattenUI to match CustomizationSettings)
             await axios.put('/api/config/user', {
