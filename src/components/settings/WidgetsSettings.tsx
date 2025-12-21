@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutGrid, Cpu, Activity, Link2, Share2, LucideIcon } from 'lucide-react';
+import { LayoutGrid, Cpu, Activity, Link2, Share2, Smartphone, LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
@@ -8,8 +8,9 @@ import IntegrationsSettings from './IntegrationsSettings';
 import ActiveWidgets from './ActiveWidgets';
 import LinkedAccountsSettings from './LinkedAccountsSettings';
 import SharedWidgetsSettings from './SharedWidgetsSettings';
+import DashboardManagement from './DashboardManagement';
 
-type SubTabId = 'gallery' | 'active' | 'services' | 'shared' | 'linked';
+type SubTabId = 'gallery' | 'active' | 'dashboard' | 'services' | 'shared' | 'linked';
 
 interface SubTab {
     id: SubTabId;
@@ -50,6 +51,7 @@ const WidgetsSettings: React.FC = () => {
     const subTabs: SubTab[] = [
         { id: 'gallery', label: 'Widget Gallery', icon: LayoutGrid, adminOnly: false },
         { id: 'active', label: 'Active Widgets', icon: Activity, adminOnly: false },
+        { id: 'dashboard', label: 'Dashboard', icon: Smartphone, adminOnly: false },
         ...(hasAdminAccess ? [
             { id: 'services' as const, label: 'Service Settings', icon: Cpu, adminOnly: true },
             { id: 'shared' as const, label: 'Shared Widgets', icon: Share2, adminOnly: true }
@@ -126,6 +128,10 @@ const WidgetsSettings: React.FC = () => {
 
                 <div style={getTabStyle('active')}>
                     <ActiveWidgets />
+                </div>
+
+                <div style={getTabStyle('dashboard')}>
+                    <DashboardManagement />
                 </div>
 
                 {/* Admin-only: Service Settings */}
