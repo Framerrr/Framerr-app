@@ -13,6 +13,8 @@ import EmptyDashboard from '../components/dashboard/EmptyDashboard';
 import { getWidgetComponent, getWidgetIcon, getWidgetMetadata, WidgetMetadata } from '../utils/widgetRegistry';
 import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
+import MobileEditDisclaimerModal from '../components/dashboard/MobileEditDisclaimerModal';
+import UnlinkConfirmationModal from '../components/dashboard/UnlinkConfirmationModal';
 import DebugOverlay from '../components/debug/DebugOverlay';
 import { isAdmin } from '../utils/permissions';
 import axios, { AxiosError } from 'axios';
@@ -37,8 +39,12 @@ interface SharedIntegration {
     [key: string]: unknown;
 }
 
+type MobileLayoutMode = 'linked' | 'independent';
+
 interface WidgetApiResponse {
     widgets: Widget[];
+    mobileLayoutMode?: MobileLayoutMode;
+    mobileWidgets?: Widget[];
 }
 
 interface IntegrationsApiResponse {
@@ -48,6 +54,7 @@ interface IntegrationsApiResponse {
 interface UserConfigResponse {
     preferences?: {
         editDisclaimerDismissed?: boolean;
+        mobileEditDisclaimerDismissed?: boolean;
         dashboardGreeting?: {
             enabled?: boolean;
             text?: string;
@@ -128,6 +135,15 @@ const Dashboard = (): React.JSX.Element => {
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false); // Toggle for debug overlay (can be controlled from settings)
     const [editDisclaimerDismissed, setEditDisclaimerDismissed] = useState<boolean>(false);
 
+    // Mobile dashboard independence state
+    const [mobileLayoutMode, setMobileLayoutMode] = useState<MobileLayoutMode>('linked');
+    const [mobileWidgets, setMobileWidgets] = useState<Widget[]>([]);
+    const [mobileOriginalLayout, setMobileOriginalLayout] = useState<Widget[]>([]);
+    const [showMobileDisclaimer, setShowMobileDisclaimer] = useState<boolean>(false);
+    const [showUnlinkConfirmation, setShowUnlinkConfirmation] = useState<boolean>(false);
+    const [mobileDisclaimerDismissed, setMobileDisclaimerDismissed] = useState<boolean>(false);
+    const [pendingUnlink, setPendingUnlink] = useState<boolean>(false);
+
     // Check if current user is admin
     const userIsAdmin = isAdmin(user);
 
@@ -138,6 +154,9 @@ const Dashboard = (): React.JSX.Element => {
                 const response = await axios.get<UserConfigResponse>('/api/config/user', { withCredentials: true });
                 if (response.data?.preferences?.editDisclaimerDismissed) {
                     setEditDisclaimerDismissed(true);
+                }
+                if (response.data?.preferences?.mobileEditDisclaimerDismissed) {
+                    setMobileDisclaimerDismissed(true);
                 }
             } catch (error) {
                 const err = error as Error;
@@ -176,8 +195,10 @@ const Dashboard = (): React.JSX.Element => {
         rowHeight: 100,
         compactType: effectiveBreakpoint === 'sm' ? null : 'vertical' as const,
         preventCollision: false,
-        isDraggable: editMode && isGlobalDragEnabled && !isMobile,
-        isResizable: editMode && isGlobalDragEnabled && !isMobile,
+        isDraggable: editMode && isGlobalDragEnabled,
+        isResizable: editMode && isGlobalDragEnabled,
+        // Mobile only allows vertical resize (height adjustment)
+        resizeHandles: isMobile ? ['s'] : ['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw'],
         margin: [16, 16] as [number, number],
         containerPadding: [0, 0] as [number, number],
         onBreakpointChange: (breakpoint: string) => setCurrentBreakpoint(breakpoint as Breakpoint)
@@ -429,8 +450,13 @@ const Dashboard = (): React.JSX.Element => {
             const response = await axios.get<WidgetApiResponse>('/api/widgets');
 
             let fetchedWidgets = response.data.widgets || [];
+            const fetchedMobileMode = response.data.mobileLayoutMode || 'linked';
+            let fetchedMobileWidgets = response.data.mobileWidgets || [];
 
-            // Migrate old format + generate mobile layouts
+            // Set mobile layout mode
+            setMobileLayoutMode(fetchedMobileMode);
+
+            // Migrate old format + generate mobile layouts for desktop widgets
             fetchedWidgets = fetchedWidgets.map(w => migrateWidgetToLayouts(w));
 
             // Migrate hideHeader to showHeader (reverse logic)
@@ -445,22 +471,50 @@ const Dashboard = (): React.JSX.Element => {
                 }
             }));
 
-            // Strip existing mobile layouts to force regeneration with new algorithm
-            fetchedWidgets = fetchedWidgets.map(w => ({
-                ...w,
-                layouts: {
-                    lg: w.layouts!.lg  // Keep only desktop layout
-                }
-            }));
+            // Handle mobile widgets based on mode
+            if (fetchedMobileMode === 'independent' && fetchedMobileWidgets.length > 0) {
+                // Mobile is independent - use stored mobile widgets
+                fetchedMobileWidgets = fetchedMobileWidgets.map(w => migrateWidgetToLayouts(w));
+                fetchedMobileWidgets = fetchedMobileWidgets.map(w => ({
+                    ...w,
+                    config: {
+                        ...w.config,
+                        showHeader: (w.config as any)?.hideHeader ? false : (w.config?.showHeader !== false)
+                    }
+                }));
+                setMobileWidgets(fetchedMobileWidgets);
+                setMobileOriginalLayout(JSON.parse(JSON.stringify(fetchedMobileWidgets)));
 
-            fetchedWidgets = generateAllMobileLayouts(fetchedWidgets);
+                // For desktop, strip mobile layouts and regenerate (not used on mobile)
+                fetchedWidgets = fetchedWidgets.map(w => ({
+                    ...w,
+                    layouts: {
+                        lg: w.layouts!.lg  // Keep only desktop layout
+                    }
+                }));
+                fetchedWidgets = generateAllMobileLayouts(fetchedWidgets);
+            } else {
+                // Mobile is linked - auto-generate from desktop
+                fetchedWidgets = fetchedWidgets.map(w => ({
+                    ...w,
+                    layouts: {
+                        lg: w.layouts!.lg  // Keep only desktop layout
+                    }
+                }));
+                fetchedWidgets = generateAllMobileLayouts(fetchedWidgets);
+                setMobileWidgets([]);
+                setMobileOriginalLayout([]);
+            }
 
             setWidgets(fetchedWidgets);
 
             // Convert to react-grid-layout format for all breakpoints
+            // Use mobile widgets if independent, otherwise use generated layouts
             const initialLayouts: LayoutState = {
                 lg: fetchedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts!.lg })),
-                sm: fetchedWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                sm: fetchedMobileMode === 'independent' && fetchedMobileWidgets.length > 0
+                    ? fetchedMobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                    : fetchedWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
             };
 
             setLayouts(initialLayouts);
@@ -468,6 +522,7 @@ const Dashboard = (): React.JSX.Element => {
         } catch (error) {
             logger.error('Failed to load widgets:', { error });
             setWidgets([]);
+            setMobileWidgets([]);
             setLayouts({ lg: [], sm: [] });
         } finally {
             setLoading(false);
@@ -481,8 +536,67 @@ const Dashboard = (): React.JSX.Element => {
         // Mark as having unsaved changes immediately (for all breakpoints)
         setHasUnsavedChanges(true);
 
-        // Only process layout changes for lg (desktop) breakpoint
-        // md/sm/xs/xxs layouts are auto-generated and managed by visibility useEffect
+        // Mobile editing - handle separately
+        if (isMobile || currentBreakpoint === 'sm') {
+            // Mark as pending unlink if currently linked
+            if (mobileLayoutMode === 'linked') {
+                setPendingUnlink(true);
+            }
+
+            // Update mobile widgets (will be separate when unlinked)
+            const widgetsToUpdate = mobileLayoutMode === 'independent' ? mobileWidgets : widgets;
+            const updatedMobileWidgets = widgetsToUpdate.map(widget => {
+                const layoutItem = newLayout.find(l => l.i === widget.id);
+                if (layoutItem) {
+                    return {
+                        ...widget,
+                        layouts: {
+                            ...widget.layouts,
+                            sm: {
+                                x: layoutItem.x,
+                                y: layoutItem.y,
+                                w: layoutItem.w,
+                                h: layoutItem.h
+                            }
+                        }
+                    };
+                }
+                return widget;
+            });
+
+            if (mobileLayoutMode === 'independent') {
+                setMobileWidgets(updatedMobileWidgets);
+            } else {
+                // Still linked - temporarily update sm layouts in widgets for preview
+                const updatedWidgets = widgets.map(widget => {
+                    const layoutItem = newLayout.find(l => l.i === widget.id);
+                    if (layoutItem) {
+                        return {
+                            ...widget,
+                            layouts: {
+                                ...widget.layouts,
+                                sm: {
+                                    x: layoutItem.x,
+                                    y: layoutItem.y,
+                                    w: layoutItem.w,
+                                    h: layoutItem.h
+                                }
+                            }
+                        };
+                    }
+                    return widget;
+                });
+                setWidgets(updatedWidgets);
+            }
+
+            setLayouts(prev => ({
+                ...prev,
+                sm: newLayout as GridLayoutItem[]
+            }));
+            return;
+        }
+
+        // Desktop editing - only process layout changes for lg (desktop) breakpoint
         if (currentBreakpoint !== 'lg') {
             return;
         }
@@ -513,21 +627,80 @@ const Dashboard = (): React.JSX.Element => {
             return widget;
         });
 
-        // Auto-generate mobile layouts from updated desktop layout
-        const withMobileLayouts = generateAllMobileLayouts(updatedWidgets);
+        // Auto-generate mobile layouts from updated desktop layout (only if linked)
+        const withMobileLayouts = mobileLayoutMode === 'linked'
+            ? generateAllMobileLayouts(updatedWidgets)
+            : updatedWidgets;
 
         setWidgets(withMobileLayouts);
         setLayouts({
             lg: newLayout as GridLayoutItem[],
-            sm: withMobileLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+            sm: mobileLayoutMode === 'independent' && mobileWidgets.length > 0
+                ? mobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                : withMobileLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
         });
     };
 
     // Save changes to API
     const handleSave = async (): Promise<void> => {
+        // If on mobile and pending unlink, show confirmation modal first
+        if (isMobile && pendingUnlink && mobileLayoutMode === 'linked') {
+            setShowUnlinkConfirmation(true);
+            return;
+        }
+
+        await performSave();
+    };
+
+    // Actual save implementation (called after confirmation if needed)
+    const performSave = async (): Promise<void> => {
         try {
             setSaving(true);
-            await axios.put('/api/widgets', { widgets });
+
+            // Determine what to save based on mode and device
+            if (isMobile && (pendingUnlink || mobileLayoutMode === 'independent')) {
+                // Mobile save - need to unlink or update mobile widgets
+                if (pendingUnlink && mobileLayoutMode === 'linked') {
+                    // Perform unlink - copy widgets to mobile and set mode
+                    const mobileWidgetsToSave = widgets.map(w => ({
+                        ...w,
+                        layouts: {
+                            ...w.layouts,
+                            sm: w.layouts?.sm || { x: 0, y: 0, w: 2, h: 2 }
+                        }
+                    }));
+
+                    await axios.put('/api/widgets', {
+                        widgets: widgets,
+                        mobileLayoutMode: 'independent',
+                        mobileWidgets: mobileWidgetsToSave
+                    });
+
+                    setMobileLayoutMode('independent');
+                    setMobileWidgets(mobileWidgetsToSave);
+                    setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgetsToSave)));
+                    setPendingUnlink(false);
+
+                    logger.debug('Mobile dashboard unlinked and saved');
+                } else {
+                    // Already independent - just save mobile widgets
+                    await axios.put('/api/widgets', {
+                        widgets: widgets,
+                        mobileLayoutMode: 'independent',
+                        mobileWidgets: mobileWidgets
+                    });
+
+                    setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgets)));
+                    logger.debug('Independent mobile widgets saved');
+                }
+            } else {
+                // Desktop save
+                await axios.put('/api/widgets', {
+                    widgets,
+                    mobileLayoutMode,
+                    mobileWidgets: mobileLayoutMode === 'independent' ? mobileWidgets : undefined
+                });
+            }
 
             // Create deep copy for originalLayout (used by Cancel button)
             const savedWidgets = JSON.parse(JSON.stringify(widgets)) as Widget[];
@@ -536,11 +709,14 @@ const Dashboard = (): React.JSX.Element => {
             // Update layouts from saved widgets
             setLayouts({
                 lg: savedWidgets.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts!.lg })),
-                sm: savedWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                sm: mobileLayoutMode === 'independent' && mobileWidgets.length > 0
+                    ? mobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                    : savedWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
             });
 
             setHasUnsavedChanges(false);
             setEditMode(false);
+            setShowUnlinkConfirmation(false);
             logger.debug('Widgets saved successfully');
         } catch (error) {
             logger.error('Failed to save widgets:', { error });
@@ -554,40 +730,90 @@ const Dashboard = (): React.JSX.Element => {
         // Restore the original widgets
         setWidgets(JSON.parse(JSON.stringify(originalLayout)));
 
+        // Restore mobile widgets if independent
+        if (mobileLayoutMode === 'independent') {
+            setMobileWidgets(JSON.parse(JSON.stringify(mobileOriginalLayout)));
+        }
+
         // Restore layouts from original
         setLayouts({
             lg: originalLayout.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts!.lg })),
-            sm: originalLayout.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+            sm: mobileLayoutMode === 'independent' && mobileOriginalLayout.length > 0
+                ? mobileOriginalLayout.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                : originalLayout.map(w => ({ i: w.id, ...w.layouts!.sm! }))
         });
 
+        // Reset all edit state
         setHasUnsavedChanges(false);
         setEditMode(false);
+        setPendingUnlink(false);
+        setShowUnlinkConfirmation(false);
     };
 
     // Toggle edit mode
     const handleToggleEdit = (): void => {
         if (editMode && hasUnsavedChanges) {
             handleCancel();
-        } else {
-            // Store current state before entering edit mode
-            if (!editMode) {
-                setOriginalLayout(JSON.parse(JSON.stringify(widgets)));
+        } else if (!editMode) {
+            // Entering edit mode
+            // On mobile, show disclaimer if linked and not dismissed
+            if (isMobile && mobileLayoutMode === 'linked' && !mobileDisclaimerDismissed) {
+                setShowMobileDisclaimer(true);
+                return;
             }
+
+            // Store current state before entering edit mode
+            setOriginalLayout(JSON.parse(JSON.stringify(widgets)));
+            if (mobileLayoutMode === 'independent') {
+                setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgets)));
+            }
+            setEditMode(true);
+        } else {
             setEditMode(!editMode);
         }
     };
 
     // Delete widget
     const handleDeleteWidget = (widgetId: string): void => {
+        // Handle mobile deletion
+        if (isMobile) {
+            if (mobileLayoutMode === 'independent') {
+                // Independent - delete from mobile widgets only
+                const updatedMobileWidgets = mobileWidgets.filter(w => w.id !== widgetId);
+                setMobileWidgets(updatedMobileWidgets);
+                setLayouts(prev => ({
+                    ...prev,
+                    sm: updatedMobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                }));
+            } else {
+                // Linked - mark for unlink and delete from widgets (will become mobile-only)
+                setPendingUnlink(true);
+                const updatedWidgets = widgets.filter(w => w.id !== widgetId);
+                const withLayouts = generateAllMobileLayouts(updatedWidgets);
+                setWidgets(withLayouts);
+                setLayouts({
+                    lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts!.lg })),
+                    sm: withLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                });
+            }
+            setHasUnsavedChanges(true);
+            return;
+        }
+
+        // Desktop deletion
         const updatedWidgets = widgets.filter(w => w.id !== widgetId);
         setWidgets(updatedWidgets);
 
         // Regenerate layouts after deletion
-        const withLayouts = generateAllMobileLayouts(updatedWidgets);
+        const withLayouts = mobileLayoutMode === 'linked'
+            ? generateAllMobileLayouts(updatedWidgets)
+            : updatedWidgets;
         setWidgets(withLayouts);
         setLayouts({
             lg: withLayouts.map(w => enrichLayoutWithConstraints(w, { i: w.id, ...w.layouts!.lg })),
-            sm: withLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+            sm: mobileLayoutMode === 'independent' && mobileWidgets.length > 0
+                ? mobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
+                : withLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
         });
 
         setHasUnsavedChanges(true);
@@ -960,6 +1186,40 @@ const Dashboard = (): React.JSX.Element => {
                 integrations={integrations}
                 isAdmin={userIsAdmin}
                 sharedIntegrations={sharedIntegrations}
+            />
+
+            {/* Mobile Edit Disclaimer Modal */}
+            <MobileEditDisclaimerModal
+                isOpen={showMobileDisclaimer}
+                onContinue={() => {
+                    setShowMobileDisclaimer(false);
+                    setOriginalLayout(JSON.parse(JSON.stringify(widgets)));
+                    if (mobileLayoutMode === 'independent') {
+                        setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgets)));
+                    }
+                    setEditMode(true);
+                }}
+                onCancel={() => setShowMobileDisclaimer(false)}
+                onDismissForever={async () => {
+                    setMobileDisclaimerDismissed(true);
+                    // Persist to user preferences
+                    try {
+                        await axios.put('/api/config/user', {
+                            preferences: {
+                                mobileEditDisclaimerDismissed: true
+                            }
+                        });
+                    } catch (error) {
+                        logger.error('Failed to save mobile disclaimer preference:', { error });
+                    }
+                }}
+            />
+
+            {/* Unlink Confirmation Modal */}
+            <UnlinkConfirmationModal
+                isOpen={showUnlinkConfirmation}
+                onConfirm={performSave}
+                onCancel={() => setShowUnlinkConfirmation(false)}
             />
 
             {/* Bottom Spacer - On mobile: accounts for tab bar + gap. On desktop: just page margin */}
