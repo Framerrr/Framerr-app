@@ -146,7 +146,7 @@ const SetupWizard: React.FC = () => {
                 displayName: data.displayName || data.username
             });
 
-            // Auto-login
+            // Auto-login (but don't check setup status - that would trigger redirect)
             const loginResult = await login(data.username, data.password, true);
 
             if (!loginResult.success) {
@@ -155,8 +155,9 @@ const SetupWizard: React.FC = () => {
                 return false;
             }
 
-            // Update setup status
-            await checkSetupStatus();
+            // Don't call checkSetupStatus() here - it would set needsSetup=false
+            // and trigger AuthContext redirect to /login. 
+            // Let the wizard control its own flow.
 
             setLoading(false);
             return true;
@@ -166,7 +167,7 @@ const SetupWizard: React.FC = () => {
             setLoading(false);
             return false;
         }
-    }, [data.username, data.password, data.displayName, login, checkSetupStatus]);
+    }, [data.username, data.password, data.displayName, login]);
 
     // Save customization settings (Step 4)
     const saveCustomization = useCallback(async (): Promise<boolean> => {
@@ -277,10 +278,10 @@ const SetupWizard: React.FC = () => {
                     <motion.div
                         key={index}
                         className={`h-2 rounded-full transition-all duration-300 ${index === currentStep
-                                ? 'w-8 bg-accent'
-                                : index < currentStep
-                                    ? 'w-2 bg-accent/50'
-                                    : 'w-2 bg-theme-tertiary'
+                            ? 'w-8 bg-accent'
+                            : index < currentStep
+                                ? 'w-2 bg-accent/50'
+                                : 'w-2 bg-theme-tertiary'
                             }`}
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
