@@ -342,9 +342,23 @@ const Dashboard = (): React.JSX.Element => {
 
     // Dynamically recompact mobile layouts when widget visibility changes
     // Skip when in edit mode - user is manually arranging widgets
+    // Use a ref to track if this is actually a visibility change vs other deps changing
+    const prevVisibilityRef = React.useRef<Record<string, boolean>>({});
     useEffect(() => {
         if (!widgets.length) return;
         if (editMode) return; // Don't auto-recompact during manual editing
+
+        // Only recompact if visibility actually changed (not just editMode or widgets)
+        const visibilityChanged = Object.keys(widgetVisibility).some(
+            key => widgetVisibility[key] !== prevVisibilityRef.current[key]
+        ) || Object.keys(prevVisibilityRef.current).some(
+            key => prevVisibilityRef.current[key] !== widgetVisibility[key]
+        );
+
+        // Update ref for next comparison (always update, even if we don't recompact)
+        prevVisibilityRef.current = { ...widgetVisibility };
+
+        if (!visibilityChanged) return; // Don't recompact if only editMode changed
 
         // Only run for breakpoints that use sorted stacked layouts (not lg)
         const isSorted = currentBreakpoint !== 'lg';
