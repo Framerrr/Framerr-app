@@ -190,9 +190,9 @@ const SetupWizard: React.FC = () => {
                 }
             });
 
-            // Save flatten UI preference
+            // Save flatten UI preference (must use ui.flattenUI to match CustomizationSettings)
             await axios.put('/api/config/user', {
-                preferences: {
+                ui: {
                     flattenUI: data.flattenUI
                 }
             });

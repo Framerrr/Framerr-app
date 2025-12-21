@@ -28,9 +28,9 @@ const CustomizeStep: React.FC<CustomizeStepProps> = ({
     // Apply flattenUI immediately to document for instant visual feedback
     useEffect(() => {
         if (data.flattenUI) {
-            document.documentElement.setAttribute('data-flatten', 'true');
+            document.documentElement.classList.add('flatten-ui');
         } else {
-            document.documentElement.removeAttribute('data-flatten');
+            document.documentElement.classList.remove('flatten-ui');
         }
     }, [data.flattenUI]);
 

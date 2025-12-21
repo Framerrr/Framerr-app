@@ -21,11 +21,11 @@ const IntegrationDisabledMessage = ({ serviceName }: IntegrationDisabledMessageP
             </p>
             <p className="text-sm text-theme-secondary">
                 <a
-                    href="#settings?tab=widgets"
+                    href="#settings?tab=integrations"
                     className="text-accent hover:underline"
                     onClick={() => {
-                        // Navigate to settings and open integrations tab
-                        window.location.hash = '#settings?tab=widgets&subtab=integrations';
+                        // Navigate to settings integrations tab
+                        window.location.hash = '#settings?tab=integrations';
                     }}
                 >
                     Integration Settings
