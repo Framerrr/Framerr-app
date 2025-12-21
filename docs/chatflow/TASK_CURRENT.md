@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-21 13:45 EST  
+**Last Updated:** 2025-12-21 14:35 EST  
 **Branch:** `feature/mobile-dashboard-editing`
 
 ---
@@ -18,57 +18,56 @@
 
 ## Current State
 
-**Status:** ✅ Mobile Dashboard Editing - Implementation Complete
+**Status:** ⚠️ Mobile Dashboard Editing - Needs Refactoring
 
 **Feature Branch:** `feature/mobile-dashboard-editing`
 
-**This Session Completed:**
-1. **Backend Data Model**
-   - Updated `DashboardConfig` with `mobileLayoutMode` and `mobileWidgets`
-   - Added `/api/widgets/unlink` endpoint
-   - Added `/api/widgets/reconnect` endpoint
-   - Updated `GET/PUT /api/widgets` to handle mobile layout data
+**Problem:** Multiple competing layout systems are conflicting:
+1. `layoutUtils.ts` band-sort algorithm
+2. Visibility recompaction useEffect  
+3. Manual recompaction in handleLayoutChange
+4. compactType toggling (null↔vertical)
+5. DOM order sorting in render
+6. Layout array sorting in render
 
-2. **Frontend Dashboard.tsx**
-   - Added state for mobile layout mode tracking
-   - Enabled mobile editing (drag + vertical resize)
-   - Mobile edits trigger "pending unlink" on save
-   - Separate widget arrays for desktop and mobile when independent
-
-3. **Modal Components**
-   - `MobileEditDisclaimerModal` - Shows on entering edit mode on mobile
-   - `UnlinkConfirmationModal` - Confirms before saving unlinking changes
-
-4. **Settings UI**
-   - `DashboardManagement` component with status display
-   - "Reconnect to Desktop" button
-   - "Reset All Widgets" button
-   - Added as "Dashboard" sub-tab in Integrations settings
+**Symptoms:**
+- Widgets don't drop in new positions
+- Order changes when entering/exiting edit mode
+- Positions snap back unexpectedly
 
 ---
 
-## Ready for Testing
+## What Was Built (Backend Complete, Frontend Broken)
 
-Please test the following scenarios:
+### Backend ✅
+- `server/db/userConfig.ts` - Added `mobileLayoutMode`, `mobileWidgets`
+- `server/routes/widgets.ts` - Added `/unlink`, `/reconnect` endpoints
+- APIs return and accept mobile layout data
 
-### On Mobile Device
-- [ ] Enter edit mode on mobile (disclaimer modal should appear if linked)
-- [ ] Drag widgets to reorder
-- [ ] Resize widget height (only vertical resize allowed)
-- [ ] Save changes (confirmation modal should appear for unlinking)
-- [ ] Cancel changes (should restore original without unlinking)
-- [ ] After unlinking, mobile edits should not affect desktop
+### Frontend Components ✅
+- `MobileEditDisclaimerModal.tsx` - Shows on mobile edit entry
+- `UnlinkConfirmationModal.tsx` - Confirms before unlink
+- `DashboardManagement.tsx` - Settings UI for layout management
 
-### In Settings > Integrations > Dashboard
-- [ ] Status shows "Synced" when linked
-- [ ] Status shows "Custom" when independent
-- [ ] Reconnect button appears when independent
-- [ ] Reconnect functionality works
-- [ ] Reset All Widgets works
+### Frontend Layout Logic ❌
+- Dashboard.tsx has multiple conflicting systems
+- compactType changes between view/edit mode causes issues
+- Manual recompaction fights with grid library
+- Needs unified approach
 
-### Desktop Behavior
-- [ ] Desktop editing still works normally
-- [ ] Desktop edits do NOT affect mobile when independent
+---
+
+## Next Step (Critical)
+
+**Refactor Dashboard.tsx layout handling:**
+
+1. **Use compactType:'vertical' always** - No toggling between modes
+2. **Remove manual recompaction in handleLayoutChange** - Let grid handle positions
+3. **Remove DOM sorting in render** - Trust stored Y positions
+4. **Remove layout array sorting** - Pass layouts as-is
+5. **Keep visibility effect but simplify** - Only runs on true visibility changes
+
+The key insight: **View mode and edit mode must look identical**. No order changes, no position jumps. The only difference is widgets become draggable/resizable.
 
 ---
 
@@ -78,11 +77,29 @@ Please test the following scenarios:
 2. `feat(dashboard): add backend support for mobile dashboard independence`
 3. `feat(dashboard): implement mobile dashboard editing with linked/unlinked modes`
 4. `feat(settings): add Dashboard Management section for mobile layout control`
+5. `fix(dashboard): enable mobile editing - show edit button, allow drag/resize on mobile`
+6. `fix(dashboard): enable proper mobile widget drag/drop - skip recompaction in edit mode`
+7. `fix(dashboard): mobile editing - keep compactType null, manually recompact by Y position`
+8. `fix(dashboard): mobile editing - use vertical compaction in edit mode with Y-sorted layouts`
+9. `fix(dashboard): prevent visibility recompaction from overwriting edited positions`
 
 ---
 
-## Handoff Instructions
+## Files Changed
 
-Feature is complete and ready for testing. The feature is on branch `feature/mobile-dashboard-editing`. After testing approval, merge to develop.
+| File | Status |
+|------|--------|
+| `server/db/userConfig.ts` | ✅ Complete |
+| `server/routes/widgets.ts` | ✅ Complete |
+| `src/components/dashboard/MobileEditDisclaimerModal.tsx` | ✅ New |
+| `src/components/dashboard/UnlinkConfirmationModal.tsx` | ✅ New |
+| `src/components/settings/DashboardManagement.tsx` | ✅ New |
+| `src/components/settings/WidgetsSettings.tsx` | ✅ Modified |
+| `src/pages/Dashboard.tsx` | ❌ Needs refactoring |
+| `src/utils/layoutUtils.ts` | ✅ No changes needed |
 
 ---
+
+## SESSION END
+
+Session ended: 2025-12-21 14:35 EST
