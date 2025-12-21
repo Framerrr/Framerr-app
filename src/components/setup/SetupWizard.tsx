@@ -84,12 +84,13 @@ const SetupWizard: React.FC = () => {
         autoCreateUsers: false
     });
 
-    // Theme ripple animation state
-    const [ripple, setRipple] = useState<RippleState>({
+    // Theme ripple animation state with key for rapid selections
+    const [ripple, setRipple] = useState<RippleState & { key: number }>({
         active: false,
         x: 0,
         y: 0,
-        color: ''
+        color: '',
+        key: 0
     });
 
     // Loading and error states
@@ -103,7 +104,8 @@ const SetupWizard: React.FC = () => {
 
     // Trigger theme ripple effect
     const triggerRipple = useCallback((x: number, y: number, color: string) => {
-        setRipple({ active: true, x, y, color });
+        // Increment key to force re-render even on rapid selections
+        setRipple(prev => ({ active: true, x, y, color, key: prev.key + 1 }));
 
         // Clear ripple after animation
         setTimeout(() => {
@@ -272,8 +274,8 @@ const SetupWizard: React.FC = () => {
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-theme-primary p-4 overflow-hidden">
-            {/* Theme ripple effect */}
-            <ThemeRipple {...ripple} />
+            {/* Theme ripple effect - key forces re-mount on rapid selections */}
+            <ThemeRipple key={ripple.key} active={ripple.active} x={ripple.x} y={ripple.y} color={ripple.color} />
 
             {/* Progress indicator */}
             <div className="fixed top-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">

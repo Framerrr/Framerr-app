@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Settings, Loader } from 'lucide-react';
 import type { WizardData } from '../SetupWizard';
@@ -24,6 +24,15 @@ const CustomizeStep: React.FC<CustomizeStepProps> = ({
     saveCustomization
 }) => {
     const [saving, setSaving] = useState(false);
+
+    // Apply flattenUI immediately to document for instant visual feedback
+    useEffect(() => {
+        if (data.flattenUI) {
+            document.documentElement.setAttribute('data-flatten', 'true');
+        } else {
+            document.documentElement.removeAttribute('data-flatten');
+        }
+    }, [data.flattenUI]);
 
     const handleNext = async () => {
         setSaving(true);
