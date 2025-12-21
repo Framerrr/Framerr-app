@@ -184,7 +184,15 @@ const SetupWizard: React.FC = () => {
                 appName: data.appName
             });
 
-            // Save theme using ThemeContext (updates both state and API)
+            // Save theme - call API directly (guaranteed persistence) AND update ThemeContext (UI sync)
+            // We call API directly because changeTheme's isAuthenticated check may be stale during setup
+            await axios.put('/api/theme', {
+                theme: {
+                    preset: data.theme,
+                    mode: 'dark'
+                }
+            });
+            // Also update ThemeContext state so UI reflects immediately without reload
             await changeTheme(data.theme);
 
             // Save flatten UI preference (must use preferences.ui.flattenUI to match CustomizationSettings)
