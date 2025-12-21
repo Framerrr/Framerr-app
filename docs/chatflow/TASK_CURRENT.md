@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-20 14:00 EST  
+**Last Updated:** 2025-12-21 11:45 EST  
 **Branch:** `develop`
 
 ---
@@ -18,33 +18,38 @@
 
 ## Current State
 
-**Status:** 🔧 Connection Resilience Feature Complete
+**Status:** ✅ Setup Wizard Bug Fixes Complete
 
 **This Session:**
-- Implemented SSE auto-reconnect with exponential backoff (1s→30s, max 5 attempts)
-- Added visibility-based data refresh when tab restored after 30+ seconds
-- Added widget polling resilience with retry logic to:
-  - PlexWidget, SonarrWidget, RadarrWidget, OverseerrWidget, QBittorrentWidget
-- Created `useResilientPolling` hook for future use
-- Added backlog items for theming and websocket download progress
-- Build verified passing
+- Fixed theme not persisting after setup (direct API call + ThemeContext sync)
+- Fixed theme not showing in Settings after setup (read from `preset` not `mode`)
+- Fixed flattenUI not persisting (changed path to `preferences.ui.flattenUI`)
+- Fixed flattenUI toggle in Settings not reflecting setup value
+- Fixed widget "Integration Settings" link (wrong tab name)
+- Fixed ripple animation on rapid theme changes (added key for re-mount)
+- Fixed database migration v4 duplicate column error (idempotent check)
+- Fixed ES module interop in migrator.js and json-utils.js
 
 ---
 
 ## Next Session
 
-**Ready for testing:**
-- Leave app idle for 20+ min with tab open
-- Verify widgets auto-recover from errors
-- Switch away from tab and return after 30+ seconds
+**Testing Complete:**
+Setup wizard has been tested. All settings now persist correctly:
+- Theme selection
+- Flatten UI toggle  
+- Settings page reflects correct values
+
+**Ready for:**
+- Additional testing if needed
+- Production release when ready
 
 ---
 
 ## Handoff Instructions
 
-Connection resilience is implemented but not yet tested by user. Ready for manual testing before release.
+Setup wizard fixes are complete and tested. Docker image `pickels23/framerr:develop` contains all fixes.
 
 ---
 
-**=== SESSION IN PROGRESS ===**
-
+**=== SESSION END ===**
