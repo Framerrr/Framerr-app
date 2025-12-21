@@ -59,7 +59,7 @@ const stepVariants = {
 };
 
 const stepTransition = {
-    type: 'spring',
+    type: 'spring' as const,
     stiffness: 300,
     damping: 30
 };
@@ -231,9 +231,12 @@ const SetupWizard: React.FC = () => {
     }, [data.plexSSOEnabled, data.autoCreateUsers]);
 
     // Complete setup and go to dashboard
-    const complete = useCallback(() => {
+    const complete = useCallback(async () => {
+        // Update setup status in AuthContext so it knows setup is complete
+        // This prevents the redirect back to /setup when we navigate to /
+        await checkSetupStatus();
         navigate('/', { replace: true });
-    }, [navigate]);
+    }, [navigate, checkSetupStatus]);
 
     // Render current step
     const renderStep = () => {
