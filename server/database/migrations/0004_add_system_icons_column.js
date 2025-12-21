@@ -10,8 +10,14 @@ module.exports = {
     version: 4,
     name: 'add_system_icons_column',
     up(db) {
-        db.exec(`
-            ALTER TABLE custom_icons ADD COLUMN is_system INTEGER DEFAULT 0;
-        `);
+        // Check if column already exists (idempotent migration)
+        const columns = db.prepare(`PRAGMA table_info(custom_icons)`).all();
+        const hasColumn = columns.some(col => col.name === 'is_system');
+
+        if (!hasColumn) {
+            db.exec(`
+                ALTER TABLE custom_icons ADD COLUMN is_system INTEGER DEFAULT 0;
+            `);
+        }
     }
 };
