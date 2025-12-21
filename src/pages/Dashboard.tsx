@@ -1121,7 +1121,7 @@ const Dashboard = (): React.JSX.Element => {
                             cols={gridCols}
                             breakpoints={gridBreakpoints}
                             rowHeight={100}
-                            compactType={effectiveBreakpoint === 'sm' ? null : 'vertical'}
+                            compactType={effectiveBreakpoint === 'sm' ? (editMode ? 'vertical' : null) : 'vertical'}
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
                             isResizable={editMode && isGlobalDragEnabled}
@@ -1129,51 +1129,53 @@ const Dashboard = (): React.JSX.Element => {
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
                             containerPadding={[0, 0]}
-                            layouts={isMobile ? { sm: layouts.sm } : layouts}
+                            layouts={isMobile ? { sm: [...layouts.sm].sort((a, b) => a.y - b.y) } : layouts}
                             onLayoutChange={handleLayoutChange}
                             onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint as Breakpoint)}
                         >
-                            {widgets
-                                .map(widget => {
-                                    const metadata = getWidgetMetadata(widget.type);
-                                    const layoutItem = layouts.lg.find(l => l.i === widget.id) || {
-                                        i: widget.id,
-                                        x: widget.layouts?.lg?.x || 0,
-                                        y: widget.layouts?.lg?.y || 0,
-                                        w: widget.layouts?.lg?.w || 4,
-                                        h: widget.layouts?.lg?.h || 2
-                                    };
+                            {(isMobile && editMode
+                                ? [...widgets].sort((a, b) => (a.layouts?.sm?.y ?? 0) - (b.layouts?.sm?.y ?? 0))
+                                : widgets
+                            ).map(widget => {
+                                const metadata = getWidgetMetadata(widget.type);
+                                const layoutItem = layouts.lg.find(l => l.i === widget.id) || {
+                                    i: widget.id,
+                                    x: widget.layouts?.lg?.x || 0,
+                                    y: widget.layouts?.lg?.y || 0,
+                                    w: widget.layouts?.lg?.w || 4,
+                                    h: widget.layouts?.lg?.h || 2
+                                };
 
-                                    const renderedWidget = renderWidget(widget);
+                                const renderedWidget = renderWidget(widget);
 
-                                    // Don't render grid cell if widget returns null
-                                    if (!renderedWidget) {
-                                        return null;
-                                    }
+                                // Don't render grid cell if widget returns null
+                                if (!renderedWidget) {
+                                    return null;
+                                }
 
-                                    // Shrink grid cell when widget should be hidden (but keep it mounted)
-                                    const shouldShrink = widgetVisibility[widget.id] === false && !editMode;
+                                // Shrink grid cell when widget should be hidden (but keep it mounted)
+                                const shouldShrink = widgetVisibility[widget.id] === false && !editMode;
 
-                                    return (
-                                        <div
-                                            key={widget.id}
-                                            className={editMode ? 'edit-mode' : 'locked'}
-                                            style={{
-                                                opacity: shouldShrink ? 0 : 1,
-                                                overflow: 'hidden'
-                                            }}
-                                            data-grid={{
-                                                ...layoutItem,
-                                                h: shouldShrink ? 0.001 : layoutItem.h,        // Try 0.01 for thinnest line
-                                                minH: shouldShrink ? 0.001 : (metadata?.minSize?.h || 1),
-                                                maxW: metadata?.maxSize?.w || 24,
-                                                maxH: metadata?.maxSize?.h || 10
-                                            }}
-                                        >
-                                            {renderedWidget}
-                                        </div>
-                                    );
-                                })}
+                                return (
+                                    <div
+                                        key={widget.id}
+                                        className={editMode ? 'edit-mode' : 'locked'}
+                                        style={{
+                                            opacity: shouldShrink ? 0 : 1,
+                                            overflow: 'hidden'
+                                        }}
+                                        data-grid={{
+                                            ...layoutItem,
+                                            h: shouldShrink ? 0.001 : layoutItem.h,        // Try 0.01 for thinnest line
+                                            minH: shouldShrink ? 0.001 : (metadata?.minSize?.h || 1),
+                                            maxW: metadata?.maxSize?.w || 24,
+                                            maxH: metadata?.maxSize?.h || 10
+                                        }}
+                                    >
+                                        {renderedWidget}
+                                    </div>
+                                );
+                            })}
                         </ResponsiveGridLayout>
                     </>
                 )}
