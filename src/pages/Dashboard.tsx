@@ -341,8 +341,10 @@ const Dashboard = (): React.JSX.Element => {
     }, []);
 
     // Dynamically recompact mobile layouts when widget visibility changes
+    // Skip when in edit mode - user is manually arranging widgets
     useEffect(() => {
         if (!widgets.length) return;
+        if (editMode) return; // Don't auto-recompact during manual editing
 
         // Only run for breakpoints that use sorted stacked layouts (not lg)
         const isSorted = currentBreakpoint !== 'lg';
@@ -386,7 +388,7 @@ const Dashboard = (): React.JSX.Element => {
             ...prev,
             [breakpoint]: compactedLayouts
         }));
-    }, [widgetVisibility, currentBreakpoint, widgets]);
+    }, [widgetVisibility, currentBreakpoint, widgets, editMode]);
 
     const loadUserPreferencesInit = async (): Promise<void> => {
         try {
@@ -1109,7 +1111,7 @@ const Dashboard = (): React.JSX.Element => {
                             cols={gridCols}
                             breakpoints={gridBreakpoints}
                             rowHeight={100}
-                            compactType={effectiveBreakpoint === 'sm' ? null : 'vertical'}
+                            compactType={(effectiveBreakpoint === 'sm' && !editMode) ? null : 'vertical'}
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
                             isResizable={editMode && isGlobalDragEnabled}
