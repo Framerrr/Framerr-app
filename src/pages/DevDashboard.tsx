@@ -432,9 +432,10 @@ const DevDashboard = (): React.JSX.Element => {
         }
     };
 
-    // Save handler
+    // Save handler - check pendingUnlink regardless of current viewport
+    // User may have made mobile edits, then resized back to desktop before saving
     const handleSave = async (): Promise<void> => {
-        if (isMobile && pendingUnlink && mobileLayoutMode === 'linked') {
+        if (pendingUnlink && mobileLayoutMode === 'linked') {
             setShowUnlinkConfirmation(true);
             return;
         }
@@ -445,9 +446,11 @@ const DevDashboard = (): React.JSX.Element => {
         try {
             setSaving(true);
 
-            if (isMobile && (pendingUnlink || mobileLayoutMode === 'independent')) {
+            // Check pendingUnlink OR if on mobile with independent mode
+            // pendingUnlink means mobile edits were made during this session
+            if (pendingUnlink || (isMobile && mobileLayoutMode === 'independent')) {
                 if (pendingUnlink && mobileLayoutMode === 'linked') {
-                    // Perform unlink
+                    // Perform unlink - this happens after user confirms in modal
                     const mobileWidgetsToSave = widgets.map(w => ({
                         ...w,
                         layouts: {
@@ -468,7 +471,7 @@ const DevDashboard = (): React.JSX.Element => {
                     setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgetsToSave)));
                     setPendingUnlink(false);
                     logger.debug('Mobile dashboard unlinked and saved to localStorage');
-                } else {
+                } else if (mobileLayoutMode === 'independent') {
                     // Already independent - just save mobile widgets
                     saveToLocalStorage({
                         widgets: widgets,
@@ -479,7 +482,7 @@ const DevDashboard = (): React.JSX.Element => {
                     logger.debug('Independent mobile widgets saved to localStorage');
                 }
             } else {
-                // Desktop save - to localStorage only
+                // Desktop save (no mobile changes) - to localStorage only
                 saveToLocalStorage({
                     widgets,
                     mobileLayoutMode,
