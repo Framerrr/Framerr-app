@@ -49,6 +49,32 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     // Auto-reset timer ref - started on touchend, cleared on resetDragReady
     const autoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Global touchend listener - catches finger lift anywhere on screen
+    // This is more reliable than element-level onTouchEnd which may not fire
+    // if the touch ends outside the widget's bounds
+    useEffect(() => {
+        if (!dragReadyWidgetId) return;
+
+        const handleGlobalTouchEnd = () => {
+            // Clear any existing auto-reset timer
+            if (autoResetTimerRef.current) {
+                clearTimeout(autoResetTimerRef.current);
+            }
+
+            // Start auto-reset timer
+            autoResetTimerRef.current = setTimeout(() => {
+                setDragReadyWidgetId(null);
+                autoResetTimerRef.current = null;
+            }, AUTO_RESET_MS);
+        };
+
+        window.addEventListener('touchend', handleGlobalTouchEnd);
+
+        return () => {
+            window.removeEventListener('touchend', handleGlobalTouchEnd);
+        };
+    }, [dragReadyWidgetId]);
+
     /**
      * Handle touch start - begin tracking for hold gesture
      * Starts a timer that will enable dragging if hold threshold is reached
