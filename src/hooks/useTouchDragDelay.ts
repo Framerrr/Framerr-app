@@ -125,6 +125,8 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
 
     /**
      * Handle touch start - begin tracking for hold gesture
+     * IMPORTANT: stopPropagation blocks RGL from receiving this touch.
+     * Only the synthetic touchstart (after hold) should reach RGL.
      */
     const onWidgetTouchStart = useCallback((e: React.TouchEvent, widgetId: string) => {
         // Only track single-finger touches
@@ -132,6 +134,10 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
 
         // If this widget is already drag-ready, let the touch through to RGL
         if (dragReadyWidgetId === widgetId) return;
+
+        // CRITICAL: Stop this touch from reaching RGL
+        // We'll dispatch our own synthetic touch after hold threshold
+        e.stopPropagation();
 
         const touch = e.touches[0];
         const targetElement = e.currentTarget as HTMLElement;
@@ -182,6 +188,7 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
 
     /**
      * Handle touch move - update current position and cancel hold if moved too much
+     * Also blocks RGL from seeing touches during hold period
      */
     const onWidgetTouchMove = useCallback((e: React.TouchEvent) => {
         if (!touchStateRef.current) return;
@@ -196,8 +203,11 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         touchStateRef.current.pageX = touch.pageX;
         touchStateRef.current.pageY = touch.pageY;
 
-        // If already drag-ready, don't cancel (RGL is handling the drag)
+        // If already drag-ready, let RGL handle the movement
         if (dragReadyWidgetId) return;
+
+        // Block RGL from seeing this touch during hold period
+        e.stopPropagation();
 
         const { startX, startY, timerId } = touchStateRef.current;
 
