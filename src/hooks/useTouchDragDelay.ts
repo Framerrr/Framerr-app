@@ -91,19 +91,23 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         return () => window.removeEventListener('touchend', handleGlobalTouchEnd);
     }, [dragReadyWidgetId]);
 
-    // Scroll lock - prevent page from scrolling when widget is being dragged
-    // This stops the "page scrolls with widget" issue during one-motion hold-to-drag
+    // SCROLL LOCK: Block browser scroll when widget is drag-ready
+    // Uses native event listener with { passive: false } to allow preventDefault()
+    // React's synthetic events are passive by default and cannot call preventDefault()
     useEffect(() => {
-        if (dragReadyWidgetId) {
-            // Lock page scroll
-            const originalOverflow = document.body.style.overflow;
-            document.body.style.overflow = 'hidden';
+        if (!dragReadyWidgetId) return;
 
-            return () => {
-                // Restore scroll when drag ends
-                document.body.style.overflow = originalOverflow;
-            };
-        }
+        const handleTouchMove = (e: TouchEvent) => {
+            // Prevent browser scroll while dragging widget
+            e.preventDefault();
+        };
+
+        // CRITICAL: { passive: false } allows preventDefault() to work
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+        return () => {
+            document.removeEventListener('touchmove', handleTouchMove);
+        };
     }, [dragReadyWidgetId]);
 
     // Dispatch synthetic touch AFTER React renders with isDraggable=true
