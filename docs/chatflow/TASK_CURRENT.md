@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-21 14:35 EST  
+**Last Updated:** 2025-12-21 23:57 EST  
 **Branch:** `feature/mobile-dashboard-editing`
 
 ---
@@ -18,88 +18,85 @@
 
 ## Current State
 
-**Status:** ⚠️ Mobile Dashboard Editing - Needs Refactoring
+**Status:** 📋 Architecture Complete - Ready for Implementation
 
 **Feature Branch:** `feature/mobile-dashboard-editing`
 
-**Problem:** Multiple competing layout systems are conflicting:
-1. `layoutUtils.ts` band-sort algorithm
-2. Visibility recompaction useEffect  
-3. Manual recompaction in handleLayoutChange
-4. compactType toggling (null↔vertical)
-5. DOM order sorting in render
-6. Layout array sorting in render
+**Key Document:** `docs/dashboard/MOBILE_LAYOUT_FIX.md` - **READ THIS FIRST**
 
-**Symptoms:**
-- Widgets don't drop in new positions
-- Order changes when entering/exiting edit mode
-- Positions snap back unexpectedly
+This 12-part document contains:
+1. Big Picture User Flow
+2. React-Grid-Layout Deep Dive
+3. Single Source of Truth Solution
+4. Linked vs Unlinked State Machine
+5. Save Logic
+6. Code Changes Needed
+7. Testing Requirements
+8. Breakpoint Transitions
+9. Package Evaluation
+10. Order Injection Strategy
+11. Clarified Behaviors (Q&A Summary)
+12. Architecture Summary + Implementation Checklist
 
 ---
 
-## What Was Built (Backend Complete, Frontend Broken)
+## What Was Built (Previous Sessions)
 
 ### Backend ✅
 - `server/db/userConfig.ts` - Added `mobileLayoutMode`, `mobileWidgets`
 - `server/routes/widgets.ts` - Added `/unlink`, `/reconnect` endpoints
-- APIs return and accept mobile layout data
 
 ### Frontend Components ✅
 - `MobileEditDisclaimerModal.tsx` - Shows on mobile edit entry
 - `UnlinkConfirmationModal.tsx` - Confirms before unlink
 - `DashboardManagement.tsx` - Settings UI for layout management
 
-### Frontend Layout Logic ❌
-- Dashboard.tsx has multiple conflicting systems
-- compactType changes between view/edit mode causes issues
-- Manual recompaction fights with grid library
-- Needs unified approach
+### Frontend Layout Logic ❌ Needs Refactoring
+- Dashboard.tsx has conflicting systems that need cleanup
 
 ---
 
-## Next Step (Critical)
+## Next Step (Critical Read Before Starting)
 
-**Refactor Dashboard.tsx layout handling:**
+**READ `docs/dashboard/MOBILE_LAYOUT_FIX.md` COMPLETELY**
 
-1. **Use compactType:'vertical' always** - No toggling between modes
-2. **Remove manual recompaction in handleLayoutChange** - Let grid handle positions
-3. **Remove DOM sorting in render** - Trust stored Y positions
-4. **Remove layout array sorting** - Pass layouts as-is
-5. **Keep visibility effect but simplify** - Only runs on true visibility changes
+Then implement Phase 1 from the implementation checklist:
 
-The key insight: **View mode and edit mode must look identical**. No order changes, no position jumps. The only difference is widgets become draggable/resizable.
+### Phase 1: Core Fixes
+- [ ] `compactType` always `'vertical'` (line 1138)
+- [ ] Remove layout sorting in render (line 1146)
+- [ ] Remove widget sorting conditional (lines 1150-1152)
+- [ ] Remove manual recompaction in `handleLayoutChange`
+- [ ] Separate order calculation from position application in `layoutUtils.ts`
 
----
-
-## Commits on Feature Branch
-
-1. `docs: update TASK_CURRENT for mobile dashboard editing feature`
-2. `feat(dashboard): add backend support for mobile dashboard independence`
-3. `feat(dashboard): implement mobile dashboard editing with linked/unlinked modes`
-4. `feat(settings): add Dashboard Management section for mobile layout control`
-5. `fix(dashboard): enable mobile editing - show edit button, allow drag/resize on mobile`
-6. `fix(dashboard): enable proper mobile widget drag/drop - skip recompaction in edit mode`
-7. `fix(dashboard): mobile editing - keep compactType null, manually recompact by Y position`
-8. `fix(dashboard): mobile editing - use vertical compaction in edit mode with Y-sorted layouts`
-9. `fix(dashboard): prevent visibility recompaction from overwriting edited positions`
+### Key Principles (From Architecture Doc)
+- **Cascade down, never up** - Desktop→Mobile only
+- **Tentative until save** - Link only breaks on save+confirm
+- **Widgets never hide** - Show "integration disabled" message
+- **compactType: 'vertical' always** - Never toggle
 
 ---
 
-## Files Changed
+## Related Documentation
 
-| File | Status |
-|------|--------|
-| `server/db/userConfig.ts` | ✅ Complete |
-| `server/routes/widgets.ts` | ✅ Complete |
-| `src/components/dashboard/MobileEditDisclaimerModal.tsx` | ✅ New |
-| `src/components/dashboard/UnlinkConfirmationModal.tsx` | ✅ New |
-| `src/components/settings/DashboardManagement.tsx` | ✅ New |
-| `src/components/settings/WidgetsSettings.tsx` | ✅ Modified |
-| `src/pages/Dashboard.tsx` | ❌ Needs refactoring |
-| `src/utils/layoutUtils.ts` | ✅ No changes needed |
+| Document | Purpose |
+|----------|---------|
+| `docs/dashboard/MOBILE_LAYOUT_FIX.md` | **PRIMARY** - Complete architecture |
+| `docs/dashboard/IMPLEMENTATION_PLAN.md` | Original 6-phase rollout plan |
+| `docs/dashboard/ALGORITHM_DEEP_DIVE.md` | Band detection algorithm |
+| `docs/dashboard/README.md` | Dashboard docs index |
+
+---
+
+## Files to Modify
+
+| File | What to Change |
+|------|----------------|
+| `src/pages/Dashboard.tsx` | Core layout handling refactor |
+| `src/utils/layoutUtils.ts` | Separate order calc from position apply |
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-21 14:35 EST
+Session ended: 2025-12-21 23:57 EST
