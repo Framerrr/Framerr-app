@@ -64,6 +64,10 @@
 /* Edit Mode Styles */
 .react-grid-item.edit-mode {
     border: 2px dashed rgba(147, 51, 234, 0.4);
+    /* CRITICAL: Disable browser touch handling on widgets in edit mode
+     * This prevents the page from scrolling when touching widgets,
+     * allowing our custom hold-to-drag gesture to work properly */
+    touch-action: none;
 }
 
 .react-grid-item.edit-mode:hover {
