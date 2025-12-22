@@ -1038,11 +1038,12 @@ const Dashboard = (): React.JSX.Element => {
                                 <div
                                     key={widget.id}
                                     className={`${editMode ? 'edit-mode' : 'locked'} ${dragReadyWidgetId === widget.id ? 'widget-drag-ready' : ''}`}
-                                    // Touch handlers for hold detection - only active during detection phase
-                                    // When widget is drag-ready, let RGL handle all touches
+                                    // Touch handlers for hold detection
+                                    // onTouchStart/Move only active during detection phase
+                                    // onTouchEnd always attached so auto-reset can trigger
                                     onTouchStart={(e) => editMode && isMobile && dragReadyWidgetId !== widget.id && onWidgetTouchStart(e, widget.id)}
                                     onTouchMove={dragReadyWidgetId !== widget.id ? onWidgetTouchMove : undefined}
-                                    onTouchEnd={dragReadyWidgetId !== widget.id ? onWidgetTouchEnd : undefined}
+                                    onTouchEnd={editMode && isMobile ? onWidgetTouchEnd : undefined}
                                     style={{
                                         // Debug: dotted border showing grid cell (only when overlay enabled)
                                         border: (editMode && debugOverlayEnabled) ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,
