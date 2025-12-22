@@ -149,57 +149,60 @@ const Dashboard = (): React.JSX.Element => {
         loadDebugOverlaySetting();
     }, []);
 
-    // Dynamically recompact mobile layouts when widget visibility changes
+    // Dynamically adjust widget heights when visibility changes
     // Skip when in edit mode - user is manually arranging widgets
     const prevVisibilityRef = React.useRef<Record<string, boolean>>({});
     useEffect(() => {
         if (!widgets.length) return;
-        if (editMode) return; // Don't auto-recompact during manual editing
+        if (editMode) return; // Don't auto-adjust during manual editing
 
-        // Only recompact if visibility actually changed (not just editMode or widgets)
+        // Only adjust if visibility actually changed
         const visibilityChanged = Object.keys(widgetVisibility).some(
             key => widgetVisibility[key] !== prevVisibilityRef.current[key]
         ) || Object.keys(prevVisibilityRef.current).some(
             key => prevVisibilityRef.current[key] !== widgetVisibility[key]
         );
 
-        // Update ref for next comparison (always update, even if we don't recompact)
         prevVisibilityRef.current = { ...widgetVisibility };
 
-        if (!visibilityChanged) return; // Don't recompact if only editMode changed
+        if (!visibilityChanged) return;
 
-        // Only run for breakpoints that use sorted stacked layouts (not lg)
-        const isSorted = currentBreakpoint !== 'lg';
-        if (!isSorted) return;
+        logger.debug('Visibility change detected', { breakpoint: currentBreakpoint, visibility: widgetVisibility });
 
-        logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
-
-        // Determine column count for current breakpoint
-        const cols = currentBreakpoint === 'sm' ? 2 : 24;
-        const breakpoint = currentBreakpoint;
-
-        // Get widgets in sorted order with current layouts
-        let currentY = 0;
-        const compactedLayouts: GridLayoutItem[] = widgets
-            .map(w => ({
-                widget: w,
-                layout: w.layouts?.[breakpoint] || layouts[breakpoint]?.find(l => l.i === w.id),
-                isHidden: widgetVisibility[w.id] === false
-            }))
-            .filter(item => item.layout)
-            .sort((a, b) => (a.layout?.y ?? 0) - (b.layout?.y ?? 0))
-            .map(({ widget, layout, isHidden }) => {
-                const height = isHidden ? 0.001 : (layout?.h ?? 2);
-                const compacted: GridLayoutItem = { i: widget.id, x: 0, y: currentY, w: cols, h: height };
-                currentY += height;
-                return compacted;
+        // Handle both breakpoints
+        if (currentBreakpoint === 'lg') {
+            // Desktop: preserve x/y/w, only adjust height
+            const updatedLgLayouts = (layouts.lg || []).map(layout => {
+                const isHidden = widgetVisibility[layout.i] === false;
+                const widget = widgets.find(w => w.id === layout.i);
+                const originalHeight = widget?.layouts?.lg?.h ?? 2;
+                return {
+                    ...layout,
+                    h: isHidden ? 0.001 : originalHeight
+                };
             });
-
-        setLayouts(prev => ({
-            ...prev,
-            [breakpoint]: compactedLayouts
-        }));
-    }, [widgetVisibility, currentBreakpoint, widgets, editMode]);
+            setLayouts(prev => ({ ...prev, lg: updatedLgLayouts }));
+        } else {
+            // Mobile: recompact vertically (stacked layout)
+            const cols = 2;
+            let currentY = 0;
+            const compactedLayouts: GridLayoutItem[] = widgets
+                .map(w => ({
+                    widget: w,
+                    layout: w.layouts?.sm || layouts.sm?.find(l => l.i === w.id),
+                    isHidden: widgetVisibility[w.id] === false
+                }))
+                .filter(item => item.layout)
+                .sort((a, b) => (a.layout?.y ?? 0) - (b.layout?.y ?? 0))
+                .map(({ widget, layout, isHidden }) => {
+                    const height = isHidden ? 0.001 : (layout?.h ?? 2);
+                    const compacted: GridLayoutItem = { i: widget.id, x: 0, y: currentY, w: cols, h: height };
+                    currentY += height;
+                    return compacted;
+                });
+            setLayouts(prev => ({ ...prev, sm: compactedLayouts }));
+        }
+    }, [widgetVisibility, currentBreakpoint, widgets, editMode, layouts.lg]);
 
     // Handle widget visibility change - called by widgets like Plex when they have no content
     const handleWidgetVisibilityChange = (widgetId: string, isVisible: boolean): void => {
