@@ -194,23 +194,28 @@ const Dashboard = (): React.JSX.Element => {
 
         if (!visibilityChanged) return;
 
-        // Handle both breakpoints - same logic: preserve x/y/w, adjust height only
-        const breakpointKey = currentBreakpoint === 'lg' ? 'lg' : 'sm';
-        const currentLayouts = layouts[breakpointKey] || [];
-
-        const updatedLayouts = currentLayouts.map(layout => {
+        // Update BOTH breakpoints when visibility changes
+        // This ensures visibility is correct regardless of which breakpoint is active
+        const updatedLgLayouts = (layouts.lg || []).map(layout => {
             const isHidden = widgetVisibility[layout.i] === false;
             const widget = widgets.find(w => w.id === layout.i);
-            const originalHeight = widget?.layouts?.[breakpointKey]?.h ?? 2;
-            const newHeight = isHidden ? 0.001 : originalHeight;
-            return {
-                ...layout,
-                h: newHeight
-            };
+            const originalHeight = widget?.layouts?.lg?.h ?? 2;
+            return { ...layout, h: isHidden ? 0.001 : originalHeight };
         });
 
-        setLayouts(prev => ({ ...prev, [breakpointKey]: updatedLayouts }));
-    }, [widgetVisibility, currentBreakpoint, widgets, editMode]);
+        const updatedSmLayouts = (layouts.sm || []).map(layout => {
+            const isHidden = widgetVisibility[layout.i] === false;
+            const widget = widgets.find(w => w.id === layout.i);
+            const originalHeight = widget?.layouts?.sm?.h ?? 2;
+            return { ...layout, h: isHidden ? 0.001 : originalHeight };
+        });
+
+        setLayouts(prev => ({
+            ...prev,
+            lg: updatedLgLayouts,
+            sm: updatedSmLayouts
+        }));
+    }, [widgetVisibility, widgets, editMode]);
 
     // Handle widget visibility change - called by widgets like Plex when they have no content
     const handleWidgetVisibilityChange = (widgetId: string, isVisible: boolean): void => {
