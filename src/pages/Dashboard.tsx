@@ -576,38 +576,49 @@ const Dashboard = (): React.JSX.Element => {
         setIsUserDragging(true);
     };
 
-    // Handle layout changes (drag/resize)
-    const handleLayoutChange = (newLayout: Layout[]): void => {
+    // Handle layout change - only mark as unsaved if user is actually dragging
+    // This prevents false pendingUnlink triggers on breakpoint changes
+    const handleLayoutChange = (currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }): void => {
         if (!editMode) return;
 
-        // Only process if user is actively dragging/resizing
-        // This prevents breakpoint changes from triggering false unsaved state
+        // Only mark as unsaved if user is actively dragging/resizing
+        // This prevents breakpoint changes from triggering unlink logic
         if (!isUserDragging) return;
 
-        // Mark as having unsaved changes
         setHasUnsavedChanges(true);
 
-        // Mobile editing - handle separately
-        if (isMobile || currentBreakpoint === 'sm') {
-            // Mark as pending unlink if currently linked
-            if (mobileLayoutMode === 'linked') {
-                setPendingUnlink(true);
-            }
+        // Mark as pending unlink if on mobile and currently linked
+        if ((isMobile || currentBreakpoint === 'sm') && mobileLayoutMode === 'linked') {
+            setPendingUnlink(true);
+        }
+    };
 
-            // On mobile, manually recompact layouts by sorting by Y and assigning sequential positions
-            // This handles reordering when compactType is null
-            const sortedLayout = [...newLayout].sort((a, b) => a.y - b.y);
-            let currentY = 0;
-            const recompactedLayout = sortedLayout.map(item => {
-                const recompacted = { ...item, y: currentY, x: 0, w: 2 };
-                currentY += item.h;
-                return recompacted;
-            });
+    // Handle drag/resize stop - this is where we actually update state
+    // Using onDragStop/onResizeStop prevents snap-back because the grid's internal state
+    // is finalized before we trigger a re-render with our updated layouts prop
+    const handleDragResizeStop = (layout: Layout[], oldItem: Layout, newItem: Layout, placeholder: Layout, e: MouseEvent, element: HTMLElement): void => {
+        if (!editMode) return;
 
-            // Update mobile widgets (will be separate when unlinked)
+        const activeBreakpoint = isMobile ? 'sm' : currentBreakpoint;
+
+        // Mobile editing path
+        if (activeBreakpoint === 'sm') {
+            // Update the layouts state with final positions
+            setLayouts(prev => ({
+                ...prev,
+                sm: layout.map(item => ({
+                    i: item.i,
+                    x: item.x,
+                    y: item.y,
+                    w: item.w,
+                    h: item.h
+                }))
+            }));
+
+            // Update the widget objects to match
             const widgetsToUpdate = mobileLayoutMode === 'independent' ? mobileWidgets : widgets;
-            const updatedMobileWidgets = widgetsToUpdate.map(widget => {
-                const layoutItem = recompactedLayout.find(l => l.i === widget.id);
+            const updatedWidgets = widgetsToUpdate.map(widget => {
+                const layoutItem = layout.find(l => l.i === widget.id);
                 if (layoutItem) {
                     return {
                         ...widget,
@@ -626,87 +637,61 @@ const Dashboard = (): React.JSX.Element => {
             });
 
             if (mobileLayoutMode === 'independent') {
-                setMobileWidgets(updatedMobileWidgets);
+                setMobileWidgets(updatedWidgets);
             } else {
-                // Still linked - temporarily update sm layouts in widgets for preview
-                const updatedWidgets = widgets.map(widget => {
-                    const layoutItem = recompactedLayout.find(l => l.i === widget.id);
-                    if (layoutItem) {
-                        return {
-                            ...widget,
-                            layouts: {
-                                ...widget.layouts,
-                                sm: {
-                                    x: layoutItem.x,
-                                    y: layoutItem.y,
-                                    w: layoutItem.w,
-                                    h: layoutItem.h
-                                }
-                            }
-                        };
-                    }
-                    return widget;
-                });
                 setWidgets(updatedWidgets);
             }
-
-            setLayouts(prev => ({
-                ...prev,
-                sm: recompactedLayout as GridLayoutItem[]
-            }));
 
             // Reset user dragging flag
             setIsUserDragging(false);
             return;
         }
 
-        // Desktop editing - only process layout changes for lg (desktop) breakpoint
-        if (currentBreakpoint !== 'lg') {
-            return;
-        }
-
-        // Update widgets with new desktop (lg) positions
-        const updatedWidgets = widgets.map(widget => {
-            const layoutItem = newLayout.find(l => l.i === widget.id);
-            if (layoutItem) {
-                return {
-                    ...widget,
-                    // Old format (for backward compatibility)
-                    x: layoutItem.x,
-                    y: layoutItem.y,
-                    w: layoutItem.w,
-                    h: layoutItem.h,
-                    // New format (for multi-breakpoint)
-                    layouts: {
-                        ...widget.layouts,
-                        lg: {
-                            x: layoutItem.x,
-                            y: layoutItem.y,
-                            w: layoutItem.w,
-                            h: layoutItem.h
+        // Desktop editing path (lg breakpoint)
+        if (activeBreakpoint === 'lg') {
+            const updatedWidgets = widgets.map(widget => {
+                const layoutItem = layout.find(l => l.i === widget.id);
+                if (layoutItem) {
+                    return {
+                        ...widget,
+                        layouts: {
+                            ...widget.layouts,
+                            lg: {
+                                x: layoutItem.x,
+                                y: layoutItem.y,
+                                w: layoutItem.w,
+                                h: layoutItem.h
+                            }
                         }
-                    }
-                };
-            }
-            return widget;
-        });
+                    };
+                }
+                return widget;
+            });
 
-        // Auto-generate mobile layouts from updated desktop layout (only if linked)
-        const withMobileLayouts = mobileLayoutMode === 'linked'
-            ? generateAllMobileLayouts(updatedWidgets)
-            : updatedWidgets;
+            // Regenerate mobile layouts from updated desktop (if linked)
+            const withMobileLayouts = mobileLayoutMode === 'linked'
+                ? generateAllMobileLayouts(updatedWidgets)
+                : updatedWidgets;
 
-        setWidgets(withMobileLayouts);
-        setLayouts({
-            lg: newLayout as GridLayoutItem[],
-            sm: mobileLayoutMode === 'independent' && mobileWidgets.length > 0
-                ? mobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
-                : withMobileLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
-        });
+            setWidgets(withMobileLayouts);
+
+            // Update layouts state
+            setLayouts({
+                lg: layout.map(item => ({
+                    i: item.i,
+                    x: item.x,
+                    y: item.y,
+                    w: item.w,
+                    h: item.h
+                })),
+                sm: withMobileLayouts.map(w => createSmLayoutItem(w))
+            });
+        }
 
         // Reset user dragging flag
         setIsUserDragging(false);
     };
+
 
     // Handle breakpoint change - restore independent layouts when switching to mobile
     const handleBreakpointChange = (newBreakpoint: string): void => {
@@ -1202,6 +1187,8 @@ const Dashboard = (): React.JSX.Element => {
                             onLayoutChange={handleLayoutChange}
                             onDragStart={handleDragStart}
                             onResizeStart={handleResizeStart}
+                            onDragStop={handleDragResizeStop}
+                            onResizeStop={handleDragResizeStop}
                             onBreakpointChange={handleBreakpointChange}
                         >
                             {(isMobile && editMode
