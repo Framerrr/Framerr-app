@@ -196,43 +196,33 @@ const Dashboard = (): React.JSX.Element => {
 
         logger.debug('Visibility change detected', { breakpoint: currentBreakpoint, visibility: widgetVisibility });
 
-        // Handle both breakpoints
-        if (currentBreakpoint === 'lg') {
-            // Desktop: preserve x/y/w, only adjust height
-            const updatedLgLayouts = (layouts.lg || []).map(layout => {
-                const isHidden = widgetVisibility[layout.i] === false;
-                const widget = widgets.find(w => w.id === layout.i);
-                const originalHeight = widget?.layouts?.lg?.h ?? 2;
-                return {
-                    ...layout,
-                    h: isHidden ? 0.001 : originalHeight
-                };
-            });
-            setLayouts(prev => ({ ...prev, lg: updatedLgLayouts }));
-        } else {
-            // Mobile: recompact vertically (stacked layout)
-            const cols = 2;
-            let currentY = 0;
-            const compactedLayouts: GridLayoutItem[] = widgets
-                .map(w => ({
-                    widget: w,
-                    layout: w.layouts?.sm || layouts.sm?.find(l => l.i === w.id),
-                    isHidden: widgetVisibility[w.id] === false
-                }))
-                .filter(item => item.layout)
-                .sort((a, b) => (a.layout?.y ?? 0) - (b.layout?.y ?? 0))
-                .map(({ widget, layout, isHidden }) => {
-                    const height = isHidden ? 0.001 : (layout?.h ?? 2);
-                    const compacted: GridLayoutItem = { i: widget.id, x: 0, y: currentY, w: cols, h: height };
-                    currentY += height;
-                    return compacted;
-                });
-            setLayouts(prev => ({ ...prev, sm: compactedLayouts }));
-        }
-    }, [widgetVisibility, currentBreakpoint, widgets, editMode, layouts.lg, layouts.sm]);
+        // Handle both breakpoints - same logic: preserve x/y/w, adjust height only
+        const breakpointKey = currentBreakpoint === 'lg' ? 'lg' : 'sm';
+        const currentLayouts = layouts[breakpointKey] || [];
+
+        logger.debug('Current layouts before visibility update', { breakpointKey, layoutCount: currentLayouts.length });
+
+        const updatedLayouts = currentLayouts.map(layout => {
+            const isHidden = widgetVisibility[layout.i] === false;
+            const widget = widgets.find(w => w.id === layout.i);
+            const originalHeight = widget?.layouts?.[breakpointKey]?.h ?? 2;
+            const newHeight = isHidden ? 0.001 : originalHeight;
+
+            logger.debug('Layout update', { widgetId: layout.i, isHidden, originalHeight, newHeight });
+
+            return {
+                ...layout,
+                h: newHeight
+            };
+        });
+
+        logger.debug('Setting updated layouts', { breakpointKey, layoutCount: updatedLayouts.length });
+        setLayouts(prev => ({ ...prev, [breakpointKey]: updatedLayouts }));
+    }, [widgetVisibility, currentBreakpoint, widgets, editMode]);
 
     // Handle widget visibility change - called by widgets like Plex when they have no content
     const handleWidgetVisibilityChange = (widgetId: string, isVisible: boolean): void => {
+        logger.debug('Widget visibility change callback', { widgetId, isVisible, currentBreakpoint });
         setWidgetVisibility(prev => ({
             ...prev,
             [widgetId]: isVisible
