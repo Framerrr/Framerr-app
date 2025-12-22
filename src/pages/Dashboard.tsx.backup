@@ -15,7 +15,7 @@ import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layou
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import MobileEditDisclaimerModal from '../components/dashboard/MobileEditDisclaimerModal';
 import UnlinkConfirmationModal from '../components/dashboard/UnlinkConfirmationModal';
-import DevDebugOverlay from '../components/dev/DevDebugOverlay';
+import DebugOverlay from '../components/debug/DebugOverlay';
 import { isAdmin } from '../utils/permissions';
 import axios, { AxiosError } from 'axios';
 import 'react-grid-layout/css/styles.css';
@@ -242,26 +242,6 @@ const Dashboard = (): React.JSX.Element => {
 
         return enriched;
     };
-
-    // Helper: Create a layout item with explicit defaults to satisfy TypeScript
-    const createLgLayoutItem = (widget: Widget): GridLayoutItem => {
-        const base: GridLayoutItem = {
-            i: widget.id,
-            x: widget.layouts?.lg?.x ?? 0,
-            y: widget.layouts?.lg?.y ?? 0,
-            w: widget.layouts?.lg?.w ?? 4,
-            h: widget.layouts?.lg?.h ?? 2
-        };
-        return enrichLayoutWithConstraints(widget, base);
-    };
-
-    const createSmLayoutItem = (widget: Widget): GridLayoutItem => ({
-        i: widget.id,
-        x: widget.layouts?.sm?.x ?? 0,
-        y: widget.layouts?.sm?.y ?? 0,
-        w: widget.layouts?.sm?.w ?? 2,
-        h: widget.layouts?.sm?.h ?? 2
-    });
 
     useEffect(() => {
         fetchWidgets();
@@ -706,20 +686,6 @@ const Dashboard = (): React.JSX.Element => {
 
         // Reset user dragging flag
         setIsUserDragging(false);
-    };
-
-    // Handle breakpoint change - restore independent layouts when switching to mobile
-    const handleBreakpointChange = (newBreakpoint: string): void => {
-        setCurrentBreakpoint(newBreakpoint as Breakpoint);
-
-        // When switching to mobile (sm) and in independent mode, use mobileWidgets layouts
-        if (newBreakpoint === 'sm' && mobileLayoutMode === 'independent' && mobileWidgets.length > 0) {
-            setLayouts(prev => ({
-                ...prev,
-                sm: mobileWidgets.map(w => createSmLayoutItem(w))
-            }));
-            logger.debug('Restored independent mobile layouts on breakpoint change');
-        }
     };
 
     // Save changes to API - check pendingUnlink regardless of current viewport
@@ -1190,7 +1156,7 @@ const Dashboard = (): React.JSX.Element => {
                             cols={gridCols}
                             breakpoints={gridBreakpoints}
                             rowHeight={100}
-                            compactType="vertical"
+                            compactType={effectiveBreakpoint === 'sm' ? (editMode ? 'vertical' : null) : 'vertical'}
                             preventCollision={false}
                             isDraggable={editMode && isGlobalDragEnabled}
                             isResizable={editMode && isGlobalDragEnabled}
@@ -1198,25 +1164,23 @@ const Dashboard = (): React.JSX.Element => {
                             draggableCancel=".no-drag"
                             margin={[16, 16]}
                             containerPadding={[0, 0]}
-                            layouts={layouts}
+                            layouts={isMobile ? { sm: [...layouts.sm].sort((a, b) => a.y - b.y) } : layouts}
                             onLayoutChange={handleLayoutChange}
                             onDragStart={handleDragStart}
                             onResizeStart={handleResizeStart}
-                            onBreakpointChange={handleBreakpointChange}
+                            onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint as Breakpoint)}
                         >
                             {(isMobile && editMode
                                 ? [...widgets].sort((a, b) => (a.layouts?.sm?.y ?? 0) - (b.layouts?.sm?.y ?? 0))
                                 : widgets
                             ).map(widget => {
-                                // FIX: Use correct breakpoint layout based on current state
                                 const metadata = getWidgetMetadata(widget.type);
-                                const currentBpLayouts = (isMobile || currentBreakpoint === 'sm') ? layouts.sm : layouts.lg;
-                                const layoutItem = currentBpLayouts.find(l => l.i === widget.id) || {
+                                const layoutItem = layouts.lg.find(l => l.i === widget.id) || {
                                     i: widget.id,
-                                    x: 0,
-                                    y: 0,
-                                    w: (isMobile || currentBreakpoint === 'sm') ? 2 : 4,
-                                    h: 2
+                                    x: widget.layouts?.lg?.x || 0,
+                                    y: widget.layouts?.lg?.y || 0,
+                                    w: widget.layouts?.lg?.w || 4,
+                                    h: widget.layouts?.lg?.h || 2
                                 };
 
                                 const renderedWidget = renderWidget(widget);
@@ -1254,21 +1218,14 @@ const Dashboard = (): React.JSX.Element => {
                 )}
             </div>
 
-            {/* Dev Debug Overlay */}
-            {debugOverlayEnabled && (
-                <DevDebugOverlay
-                    mobileLayoutMode={mobileLayoutMode}
-                    pendingUnlink={pendingUnlink}
-                    currentBreakpoint={currentBreakpoint}
-                    editMode={editMode}
-                    hasUnsavedChanges={hasUnsavedChanges}
-                    isMobile={isMobile}
-                    isUserDragging={isUserDragging}
-                    widgets={widgets}
-                    mobileWidgets={mobileWidgets}
-                    layouts={layouts}
-                />
-            )}
+            {/* Debug Overlay */}
+            <DebugOverlay
+                enabled={debugOverlayEnabled}
+                currentBreakpoint={currentBreakpoint}
+                layouts={layouts}
+                widgets={widgets}
+                gridConfig={gridConfig}
+            />
 
             {/* Add Widget Modal */}
             <AddWidgetModal
