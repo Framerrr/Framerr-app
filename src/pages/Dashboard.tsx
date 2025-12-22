@@ -150,10 +150,37 @@ const Dashboard = (): React.JSX.Element => {
     }, []);
 
     // Dynamically adjust widget heights when visibility changes
-    // Skip when in edit mode - user is manually arranging widgets
+    // Also restore full heights when entering edit mode
     const prevVisibilityRef = React.useRef<Record<string, boolean>>({});
+    const prevEditModeRef = React.useRef<boolean>(false);
     useEffect(() => {
         if (!widgets.length) return;
+
+        // Check if editMode just turned ON - restore all heights
+        const editModeJustEnabled = editMode && !prevEditModeRef.current;
+        prevEditModeRef.current = editMode;
+
+        if (editModeJustEnabled) {
+            logger.debug('Edit mode enabled - restoring all widget heights');
+            // Restore all widgets to full height
+            if (currentBreakpoint === 'lg') {
+                const restoredLgLayouts = (layouts.lg || []).map(layout => {
+                    const widget = widgets.find(w => w.id === layout.i);
+                    const originalHeight = widget?.layouts?.lg?.h ?? 2;
+                    return { ...layout, h: originalHeight };
+                });
+                setLayouts(prev => ({ ...prev, lg: restoredLgLayouts }));
+            } else {
+                const restoredSmLayouts = (layouts.sm || []).map(layout => {
+                    const widget = widgets.find(w => w.id === layout.i);
+                    const originalHeight = widget?.layouts?.sm?.h ?? 2;
+                    return { ...layout, h: originalHeight };
+                });
+                setLayouts(prev => ({ ...prev, sm: restoredSmLayouts }));
+            }
+            return; // Don't process visibility changes on same tick
+        }
+
         if (editMode) return; // Don't auto-adjust during manual editing
 
         // Only adjust if visibility actually changed
@@ -202,7 +229,7 @@ const Dashboard = (): React.JSX.Element => {
                 });
             setLayouts(prev => ({ ...prev, sm: compactedLayouts }));
         }
-    }, [widgetVisibility, currentBreakpoint, widgets, editMode, layouts.lg]);
+    }, [widgetVisibility, currentBreakpoint, widgets, editMode, layouts.lg, layouts.sm]);
 
     // Handle widget visibility change - called by widgets like Plex when they have no content
     const handleWidgetVisibilityChange = (widgetId: string, isVisible: boolean): void => {
