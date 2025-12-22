@@ -91,6 +91,21 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         return () => window.removeEventListener('touchend', handleGlobalTouchEnd);
     }, [dragReadyWidgetId]);
 
+    // Scroll lock - prevent page from scrolling when widget is being dragged
+    // This stops the "page scrolls with widget" issue during one-motion hold-to-drag
+    useEffect(() => {
+        if (dragReadyWidgetId) {
+            // Lock page scroll
+            const originalOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+
+            return () => {
+                // Restore scroll when drag ends
+                document.body.style.overflow = originalOverflow;
+            };
+        }
+    }, [dragReadyWidgetId]);
+
     // Dispatch synthetic touch AFTER React renders with isDraggable=true
     // This is the key to making one-motion hold-to-drag work:
     // 1. Hold threshold reached → setDragReadyWidgetId + store pending touch
