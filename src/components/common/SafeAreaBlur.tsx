@@ -18,9 +18,11 @@ const SafeAreaBlur: React.FC = () => {
 
         const setupScrollListener = (container: HTMLElement) => {
             containerRef.current = container;
+            console.log('[SafeAreaBlur] Attached to:', container.id, 'scrollTop:', container.scrollTop);
 
             const handleScroll = () => {
                 const scrolled = container.scrollTop > 10;
+                console.log('[SafeAreaBlur] scroll:', container.scrollTop, 'isScrolled:', scrolled);
                 setIsScrolled(scrolled);
             };
 
@@ -33,6 +35,8 @@ const SafeAreaBlur: React.FC = () => {
 
         // Try to find the container immediately
         const container = document.getElementById('main-scroll');
+        console.log('[SafeAreaBlur] Looking for main-scroll:', !!container);
+
         if (container) {
             setupScrollListener(container);
         } else {
