@@ -1,45 +1,41 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLayout } from '../../context/LayoutContext';
 
 /**
  * SafeAreaBlur - Overlay for the top safe area (notch/camera region)
  * 
  * Shows a glassmorphism blur effect only when content scrolls behind it.
- * Inspired by Seerr/Jellyseerr implementation.
+ * Targets the #main-scroll container directly.
  * Only visible on mobile PWA/Safari where safe area insets exist.
  */
 const SafeAreaBlur: React.FC = () => {
     const { isMobile } = useLayout();
     const [isScrolled, setIsScrolled] = useState(false);
-    const lastScrolledRef = useRef(false);
-
-    const handleScroll = useCallback((e: Event) => {
-        const target = e.target as HTMLElement;
-
-        // Get scroll position from the target element
-        const scrollTop = target?.scrollTop ?? 0;
-        const shouldBeScrolled = scrollTop > 10;
-
-        // Only update if state actually changed
-        if (shouldBeScrolled !== lastScrolledRef.current) {
-            lastScrolledRef.current = shouldBeScrolled;
-            setIsScrolled(shouldBeScrolled);
-        }
-    }, []);
 
     useEffect(() => {
         // Only listen on mobile
         if (!isMobile) return;
 
-        // Listen to scroll events at document level with capture phase
-        // This catches all scroll events from any scrollable container
-        document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+        // Find the main scroll container
+        const scrollContainer = document.getElementById('main-scroll');
+        if (!scrollContainer) return;
+
+        const handleScroll = () => {
+            const scrolled = scrollContainer.scrollTop > 10;
+            setIsScrolled(scrolled);
+        };
+
+        // Listen to scroll events on the specific container
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+        // Initial check
+        handleScroll();
 
         // Cleanup
         return () => {
-            document.removeEventListener('scroll', handleScroll, { capture: true });
+            scrollContainer.removeEventListener('scroll', handleScroll);
         };
-    }, [isMobile, handleScroll]);
+    }, [isMobile]); // Only re-run when isMobile changes
 
     // Only render on mobile
     if (!isMobile) return null;

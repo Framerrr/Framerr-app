@@ -27,15 +27,17 @@ const MainContent = (): React.JSX.Element => {
     // Each page is its own isolated scroll container (iOS Safari pattern)
     return (
         <>
-            <div style={{
-                display: isSettings ? 'none' : 'flex',
-                height: '100%',
-                width: '100%',
-                minWidth: 0,
-                overflowY: 'auto',
-                WebkitOverflowScrolling: 'touch', // iOS momentum scroll
-                // NOTE: overscrollBehavior removed - NOT SUPPORTED in Safari
-            }}>
+            <div
+                id="main-scroll"
+                style={{
+                    display: isSettings ? 'none' : 'flex',
+                    height: '100%',
+                    width: '100%',
+                    minWidth: 0,
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch', // iOS momentum scroll
+                    // NOTE: overscrollBehavior removed - NOT SUPPORTED in Safari
+                }}>
                 <DashboardOrTabs />
             </div>
             <div style={{
