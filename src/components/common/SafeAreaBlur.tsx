@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLayout } from '../../context/LayoutContext';
 
 /**
@@ -6,38 +6,58 @@ import { useLayout } from '../../context/LayoutContext';
  * 
  * Shows a glassmorphism blur effect only when content scrolls behind it.
  * Targets the #main-scroll container directly.
- * Only visible on mobile PWA/Safari where safe area insets exist.
  */
 const SafeAreaBlur: React.FC = () => {
     const { isMobile } = useLayout();
     const [isScrolled, setIsScrolled] = useState(false);
+    const scrollHandlerRef = useRef<(() => void) | null>(null);
+    const containerRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
-        // Only listen on mobile
         if (!isMobile) return;
 
-        // Find the main scroll container
-        const scrollContainer = document.getElementById('main-scroll');
-        if (!scrollContainer) return;
+        const setupScrollListener = (container: HTMLElement) => {
+            containerRef.current = container;
 
-        const handleScroll = () => {
-            const scrolled = scrollContainer.scrollTop > 10;
-            setIsScrolled(scrolled);
+            const handleScroll = () => {
+                const scrolled = container.scrollTop > 10;
+                setIsScrolled(scrolled);
+            };
+
+            scrollHandlerRef.current = handleScroll;
+            container.addEventListener('scroll', handleScroll, { passive: true });
+
+            // Initial check
+            handleScroll();
         };
 
-        // Listen to scroll events on the specific container
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        // Try to find the container immediately
+        const container = document.getElementById('main-scroll');
+        if (container) {
+            setupScrollListener(container);
+        } else {
+            // Use MutationObserver to wait for the element
+            const observer = new MutationObserver((mutations, obs) => {
+                const foundContainer = document.getElementById('main-scroll');
+                if (foundContainer) {
+                    setupScrollListener(foundContainer);
+                    obs.disconnect();
+                }
+            });
 
-        // Initial check
-        handleScroll();
+            observer.observe(document.body, { childList: true, subtree: true });
+
+            return () => observer.disconnect();
+        }
 
         // Cleanup
         return () => {
-            scrollContainer.removeEventListener('scroll', handleScroll);
+            if (containerRef.current && scrollHandlerRef.current) {
+                containerRef.current.removeEventListener('scroll', scrollHandlerRef.current);
+            }
         };
-    }, [isMobile]); // Only re-run when isMobile changes
+    }, [isMobile]);
 
-    // Only render on mobile
     if (!isMobile) return null;
 
     return (
