@@ -209,6 +209,17 @@ const Dashboard = (): React.JSX.Element => {
         }));
     };
 
+    // Listen for dashboard reset/update events from Settings
+    useEffect(() => {
+        const handleWidgetsAdded = (): void => {
+            logger.debug('widgets-added event received, reloading dashboard');
+            fetchWidgets();
+        };
+
+        window.addEventListener('widgets-added', handleWidgetsAdded);
+        return () => window.removeEventListener('widgets-added', handleWidgetsAdded);
+    }, []);
+
     const loadUserPreferences = async (): Promise<void> => {
         try {
             const response = await axios.get<UserConfigResponse>('/api/config/user', { withCredentials: true });
@@ -698,10 +709,32 @@ const Dashboard = (): React.JSX.Element => {
             const allWidgets = [...widgets, migratedWidget];
             const withLayouts = generateAllMobileLayouts(allWidgets);
 
+            // Get the new widget height for shifting calculation
+            const newWidgetId = migratedWidget.id;
+            const newLgHeight = migratedWidget.layouts?.lg?.h ?? metadata.defaultSize.h;
+            const newSmHeight = withLayouts.find(w => w.id === newWidgetId)?.layouts?.sm?.h ?? 2;
+
+            // Create layouts with new widget at y:0 and all existing widgets shifted down
+            const lgLayouts = withLayouts.map(w => {
+                const item = createLgLayoutItem(w);
+                if (w.id === newWidgetId) {
+                    return { ...item, y: 0 }; // New widget at top
+                }
+                return { ...item, y: item.y + newLgHeight }; // Shift existing down
+            });
+
+            const smLayouts = withLayouts.map(w => {
+                const item = createSmLayoutItem(w);
+                if (w.id === newWidgetId) {
+                    return { ...item, y: 0 }; // New widget at top
+                }
+                return { ...item, y: item.y + newSmHeight }; // Shift existing down
+            });
+
             setWidgets(withLayouts);
             setLayouts({
-                lg: withLayouts.map(w => createLgLayoutItem(w)),
-                sm: withLayouts.map(w => createSmLayoutItem(w))
+                lg: lgLayouts,
+                sm: smLayouts
             });
 
             setHasUnsavedChanges(true);
@@ -784,7 +817,7 @@ const Dashboard = (): React.JSX.Element => {
                             config={widget.config}
                             editMode={editMode}
                             widgetId={widget.id}
-                            onVisibilityChange={(isVisible: boolean) => handleWidgetVisibilityChange(widget.id, isVisible)}
+                            onVisibilityChange={handleWidgetVisibilityChange}
                             setGlobalDragEnabled={setGlobalDragEnabled}
                         />
                     </Suspense>
@@ -1060,6 +1093,7 @@ const Dashboard = (): React.JSX.Element => {
                 isOpen={showRelinkConfirmation}
                 onConfirm={async () => {
                     setShowRelinkConfirmation(false);
+                    setEditMode(false); // Close edit mode after re-linking
                     await handleResetMobileLayout();
                 }}
                 onCancel={() => setShowRelinkConfirmation(false)}
