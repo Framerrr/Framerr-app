@@ -292,24 +292,39 @@ const DevDashboard = (): React.JSX.Element => {
         h: widget.layouts?.sm?.h ?? 2
     });
 
-    // FIXED: handleLayoutChange - no manual recompaction
-    const handleLayoutChange = (newLayout: Layout[]): void => {
+    // FIXED: handleLayoutChange - properly sync grid layout with widget state
+    const handleLayoutChange = (currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }): void => {
         if (!editMode) return;
 
         setHasUnsavedChanges(true);
 
-        // Mobile editing
-        if (isMobile || currentBreakpoint === 'sm') {
+        // Determine which breakpoint we're actually on
+        const activeBreakpoint = isMobile ? 'sm' : currentBreakpoint;
+
+        // Mobile editing path
+        if (activeBreakpoint === 'sm') {
             // Mark as pending unlink if currently linked
             if (mobileLayoutMode === 'linked') {
                 setPendingUnlink(true);
             }
 
-            // FIX: Just store what the grid gives us - no manual recompaction!
-            // React-grid-layout handles compaction with compactType='vertical'
+            // Update the layouts state directly with what the grid gives us
+            // This prevents the snap-back issue
+            setLayouts(prev => ({
+                ...prev,
+                sm: currentLayout.map(item => ({
+                    i: item.i,
+                    x: item.x,
+                    y: item.y,
+                    w: item.w,
+                    h: item.h
+                }))
+            }));
+
+            // Also update the widget objects to match
             const widgetsToUpdate = mobileLayoutMode === 'independent' ? mobileWidgets : widgets;
             const updatedWidgets = widgetsToUpdate.map(widget => {
-                const layoutItem = newLayout.find(l => l.i === widget.id);
+                const layoutItem = currentLayout.find(l => l.i === widget.id);
                 if (layoutItem) {
                     return {
                         ...widget,
@@ -332,49 +347,50 @@ const DevDashboard = (): React.JSX.Element => {
             } else {
                 setWidgets(updatedWidgets);
             }
-
-            // FIX: Pass layout as-is
-            setLayouts(prev => ({
-                ...prev,
-                sm: newLayout as GridLayoutItem[]
-            }));
             return;
         }
 
-        // Desktop editing
-        if (currentBreakpoint !== 'lg') return;
-
-        const updatedWidgets = widgets.map(widget => {
-            const layoutItem = newLayout.find(l => l.i === widget.id);
-            if (layoutItem) {
-                return {
-                    ...widget,
-                    layouts: {
-                        ...widget.layouts,
-                        lg: {
-                            x: layoutItem.x,
-                            y: layoutItem.y,
-                            w: layoutItem.w,
-                            h: layoutItem.h
+        // Desktop editing path (lg breakpoint)
+        if (activeBreakpoint === 'lg') {
+            // Update widgets with new desktop layout
+            const updatedWidgets = widgets.map(widget => {
+                const layoutItem = currentLayout.find(l => l.i === widget.id);
+                if (layoutItem) {
+                    return {
+                        ...widget,
+                        layouts: {
+                            ...widget.layouts,
+                            lg: {
+                                x: layoutItem.x,
+                                y: layoutItem.y,
+                                w: layoutItem.w,
+                                h: layoutItem.h
+                            }
                         }
-                    }
-                };
-            }
-            return widget;
-        });
+                    };
+                }
+                return widget;
+            });
 
-        // Regenerate mobile layouts from updated desktop (if linked)
-        const withMobileLayouts = mobileLayoutMode === 'linked'
-            ? generateAllMobileLayouts(updatedWidgets)
-            : updatedWidgets;
+            // Regenerate mobile layouts from updated desktop (if linked)
+            const withMobileLayouts = mobileLayoutMode === 'linked'
+                ? generateAllMobileLayouts(updatedWidgets)
+                : updatedWidgets;
 
-        setWidgets(withMobileLayouts);
-        setLayouts({
-            lg: newLayout as GridLayoutItem[],
-            sm: mobileLayoutMode === 'independent' && mobileWidgets.length > 0
-                ? mobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
-                : withMobileLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
-        });
+            setWidgets(withMobileLayouts);
+
+            // Update layouts state
+            setLayouts({
+                lg: currentLayout.map(item => ({
+                    i: item.i,
+                    x: item.x,
+                    y: item.y,
+                    w: item.w,
+                    h: item.h
+                })),
+                sm: withMobileLayouts.map(w => createSmLayoutItem(w))
+            });
+        }
     };
 
     // Save handler
