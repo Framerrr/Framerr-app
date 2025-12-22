@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { Edit, Save, X as XIcon, Plus, LucideIcon } from 'lucide-react';
+import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -93,6 +93,19 @@ interface LayoutState {
     [key: string]: GridLayoutItem[];
 }
 
+// LocalStorage keys for isolated dev testing
+const DEV_STORAGE_KEYS = {
+    widgets: 'dev-dashboard-widgets',
+    mobileLayoutMode: 'dev-dashboard-mobile-mode',
+    mobileWidgets: 'dev-dashboard-mobile-widgets'
+};
+
+interface DevStorageData {
+    widgets: Widget[];
+    mobileLayoutMode: MobileLayoutMode;
+    mobileWidgets: Widget[];
+}
+
 const DevDashboard = (): React.JSX.Element => {
     const { user } = useAuth();
     const { isMobile } = useLayout();
@@ -169,15 +182,40 @@ const DevDashboard = (): React.JSX.Element => {
         }
     };
 
-    // FIXED: fetchWidgets - properly handles independent mode
+    // ISOLATED: fetchWidgets - loads from localStorage if available, otherwise from API
     const fetchWidgets = async (): Promise<void> => {
         try {
             setLoading(true);
-            const response = await axios.get<WidgetApiResponse>('/api/widgets');
 
-            let fetchedWidgets = response.data.widgets || [];
-            const fetchedMobileMode = response.data.mobileLayoutMode || 'linked';
-            let fetchedMobileWidgets = response.data.mobileWidgets || [];
+            // First check if we have dev data in localStorage
+            const storedData = localStorage.getItem(DEV_STORAGE_KEYS.widgets);
+
+            let fetchedWidgets: Widget[] = [];
+            let fetchedMobileMode: MobileLayoutMode = 'linked';
+            let fetchedMobileWidgets: Widget[] = [];
+
+            if (storedData) {
+                // Use localStorage data
+                try {
+                    const parsed: DevStorageData = JSON.parse(storedData);
+                    fetchedWidgets = parsed.widgets || [];
+                    fetchedMobileMode = parsed.mobileLayoutMode || 'linked';
+                    fetchedMobileWidgets = parsed.mobileWidgets || [];
+                    logger.debug('Loaded dev dashboard from localStorage');
+                } catch {
+                    logger.warn('Failed to parse localStorage, falling back to API');
+                    storedData && localStorage.removeItem(DEV_STORAGE_KEYS.widgets);
+                }
+            }
+
+            // If no localStorage data, fetch from API as initial seed
+            if (fetchedWidgets.length === 0) {
+                const response = await axios.get<WidgetApiResponse>('/api/widgets');
+                fetchedWidgets = response.data.widgets || [];
+                fetchedMobileMode = response.data.mobileLayoutMode || 'linked';
+                fetchedMobileWidgets = response.data.mobileWidgets || [];
+                logger.debug('Seeded dev dashboard from API');
+            }
 
             setMobileLayoutMode(fetchedMobileMode);
 
@@ -185,17 +223,12 @@ const DevDashboard = (): React.JSX.Element => {
             fetchedWidgets = fetchedWidgets.map(w => migrateWidgetToLayouts(w));
 
             // Handle mobile widgets based on mode
-            // FIX: For independent mode, use stored mobile layouts AS-IS
             if (fetchedMobileMode === 'independent' && fetchedMobileWidgets.length > 0) {
-                // Independent mode - use stored mobile widgets
                 fetchedMobileWidgets = fetchedMobileWidgets.map(w => migrateWidgetToLayouts(w));
                 setMobileWidgets(fetchedMobileWidgets);
                 setMobileOriginalLayout(JSON.parse(JSON.stringify(fetchedMobileWidgets)));
-
-                // Desktop still uses generated mobile for its own layouts
                 fetchedWidgets = generateAllMobileLayouts(fetchedWidgets);
             } else {
-                // Linked mode - generate mobile from desktop
                 fetchedWidgets = generateAllMobileLayouts(fetchedWidgets);
                 setMobileWidgets([]);
                 setMobileOriginalLayout([]);
@@ -203,7 +236,6 @@ const DevDashboard = (): React.JSX.Element => {
 
             setWidgets(fetchedWidgets);
 
-            // Create layout arrays
             const initialLayouts: LayoutState = {
                 lg: fetchedWidgets.map(w => createLgLayoutItem(w)),
                 sm: fetchedMobileMode === 'independent' && fetchedMobileWidgets.length > 0
@@ -221,6 +253,12 @@ const DevDashboard = (): React.JSX.Element => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Helper: Save to localStorage (isolated from main dashboard)
+    const saveToLocalStorage = (data: DevStorageData): void => {
+        localStorage.setItem(DEV_STORAGE_KEYS.widgets, JSON.stringify(data));
+        logger.debug('Saved dev dashboard to localStorage');
     };
 
     // Helper: Get layout constraints from widget metadata
@@ -363,7 +401,8 @@ const DevDashboard = (): React.JSX.Element => {
                         }
                     }));
 
-                    await axios.put('/api/widgets', {
+                    // ISOLATED: Save to localStorage only, not to backend
+                    saveToLocalStorage({
                         widgets: widgets,
                         mobileLayoutMode: 'independent',
                         mobileWidgets: mobileWidgetsToSave
@@ -373,23 +412,23 @@ const DevDashboard = (): React.JSX.Element => {
                     setMobileWidgets(mobileWidgetsToSave);
                     setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgetsToSave)));
                     setPendingUnlink(false);
-                    logger.debug('Mobile dashboard unlinked and saved');
+                    logger.debug('Mobile dashboard unlinked and saved to localStorage');
                 } else {
                     // Already independent - just save mobile widgets
-                    await axios.put('/api/widgets', {
+                    saveToLocalStorage({
                         widgets: widgets,
                         mobileLayoutMode: 'independent',
                         mobileWidgets: mobileWidgets
                     });
                     setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgets)));
-                    logger.debug('Independent mobile widgets saved');
+                    logger.debug('Independent mobile widgets saved to localStorage');
                 }
             } else {
-                // Desktop save
-                await axios.put('/api/widgets', {
+                // Desktop save - to localStorage only
+                saveToLocalStorage({
                     widgets,
                     mobileLayoutMode,
-                    mobileWidgets: mobileLayoutMode === 'independent' ? mobileWidgets : undefined
+                    mobileWidgets: mobileLayoutMode === 'independent' ? mobileWidgets : []
                 });
             }
 
@@ -397,7 +436,7 @@ const DevDashboard = (): React.JSX.Element => {
             setHasUnsavedChanges(false);
             setEditMode(false);
             setShowUnlinkConfirmation(false);
-            logger.debug('Widgets saved successfully');
+            logger.debug('Widgets saved to localStorage (isolated from main dashboard)');
         } catch (error) {
             logger.error('Failed to save widgets:', { error });
         } finally {
@@ -481,6 +520,20 @@ const DevDashboard = (): React.JSX.Element => {
                 : withLayouts.map(w => createSmLayoutItem(w))
         });
         setHasUnsavedChanges(true);
+    };
+
+    // Reset mobile layout back to linked mode (also clears localStorage to reseed from API)
+    const handleResetMobileLayout = async (): Promise<void> => {
+        if (!confirm('Reset dev dashboard? This will reload fresh data from your main dashboard.')) {
+            return;
+        }
+
+        // Clear localStorage to force reseed from API
+        localStorage.removeItem(DEV_STORAGE_KEYS.widgets);
+        logger.debug('Cleared dev dashboard localStorage');
+
+        // Reload from API
+        await fetchWidgets();
     };
 
     // Add widget
@@ -672,6 +725,17 @@ const DevDashboard = (): React.JSX.Element => {
                             <span className="text-xs px-2 py-1 rounded bg-orange-500/50 text-white">
                                 PENDING UNLINK
                             </span>
+                        )}
+                        {/* Reset button for testing */}
+                        {mobileLayoutMode === 'independent' && !editMode && (
+                            <button
+                                onClick={handleResetMobileLayout}
+                                className="text-xs px-2 py-1 rounded bg-red-500/50 hover:bg-red-500/70 text-white flex items-center gap-1"
+                                title="Reset to linked mode"
+                            >
+                                <RotateCcw size={12} />
+                                Reset
+                            </button>
                         )}
                     </div>
                 </div>
