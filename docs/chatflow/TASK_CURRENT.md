@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-22 10:26 EST  
+**Last Updated:** 2025-12-22 12:44 EST  
 **Branch:** `feature/mobile-dashboard-editing`
 
 ---
@@ -18,83 +18,71 @@
 
 ## Current State
 
-**Status:** ✅ Dashboard Fixes Complete - Ready for Testing
+**Status:** ✅ iOS-Style Mobile Hold-to-Drag Gesture Complete
 
 **Feature Branch:** `feature/mobile-dashboard-editing`
 
-All dashboard fixes have been implemented and tested. The visibility system now works correctly on both desktop and mobile breakpoints.
+Successfully implemented one-motion hold-to-drag gesture for mobile widget editing. Users can now hold a widget briefly (170ms), then drag in a single smooth motion without releasing and re-touching.
 
 ---
 
 ## Completed This Session (2025-12-22)
 
-### Dashboard Fixes Applied ✅
+### Mobile Hold-to-Drag Gesture ✅
 
-1. **Widget Full Width Placement**
-   - New widgets now placed at y:0 (top) with full width
-   - Desktop (lg): w:24, Mobile (sm): w:2
-   - Existing widgets shift down automatically
+Implemented iOS-style touch gesture system for mobile dashboard editing:
 
-2. **Pending Unlink Fix**
-   - First widget added to empty dashboard no longer triggers pending unlink
-   - Added `widgets.length > 0` check before setting pendingUnlink
+1. **Hold Detection**
+   - 170ms hold threshold (user tunable)
+   - 5px movement threshold to distinguish hold from scroll
+   - Visual feedback (purple glow border) when drag-ready
 
-3. **Settings State Synchronization**
-   - `DashboardManagement.tsx` now listens for `widgets-added` and `mobile-layout-mode-changed` events
-   - Dashboard/Settings subtab updates automatically without page refresh
-   - Synced/Custom status updates in real-time
+2. **Scroll Blocking**
+   - Native touchmove listener with `{ passive: false }`
+   - Calls `e.preventDefault()` when widget is drag-ready
+   - Enables clean drag without competing page scroll
 
-4. **Reset Dashboard Button State**
-   - Reset button disabled when `widgetCount === 0`
-   - Added `widgetCount` state tracking in `DashboardManagement.tsx`
+3. **Synthetic Touch Dispatch**
+   - Dispatches synthetic `touchstart` to RGL after hold threshold
+   - Allows seamless one-motion hold-to-drag
+   - RGL receives proper touch event to begin tracking
 
-5. **Plex Widget Visibility (CRITICAL FIX)**
-   - **Root cause:** Visibility effect only updated current breakpoint
-   - **Fix:** Now updates BOTH `layouts.lg` AND `layouts.sm` simultaneously
-   - Both breakpoints show h:0.001 when widget is hidden
-   - Works correctly on desktop AND mobile
-
-6. **Edit Mode Height Restoration**
-   - Added `prevEditModeRef` to detect when editMode turns ON
-   - Restores all widget heights to original values when entering edit mode
-
-7. **Debug Overlay Enhancements**
-   - Added `widgetVisibility` prop to `DevDebugOverlay`
-   - Shows per-widget visibility status with emojis (👁️/👁️‍🗨️)
-   - Shows current h and y values per breakpoint
-   - Helps diagnose visibility issues
-
-8. **Re-link Mobile Button**
-   - Added Re-link button to edit mode header (only visible in independent mode)
-   - Created `RelinkConfirmationModal.tsx` with professional warning
-   - Auto-closes edit menu after re-link confirmation
-
-9. **Mode Change Event Dispatch**
-   - Added `mobile-layout-mode-changed` event dispatch in `performSave` and `handleResetMobileLayout`
-   - Ensures Settings tab stays in sync with Dashboard state
+4. **Auto-Reset**
+   - 250ms auto-lock timer after finger lifts
+   - Global touchend listener for reliable detection
+   - Widget re-locks quickly for next interaction
 
 ---
 
-## Files Modified This Session
+## Key Files Created/Modified
 
 | File | Changes |
 |------|---------|
-| `src/pages/Dashboard.tsx` | Visibility effect, edit mode restoration, events, full-width widgets, debug conditional |
-| `src/components/settings/DashboardManagement.tsx` | Widget count tracking, event listeners, reset button state |
-| `src/components/dev/DevDebugOverlay.tsx` | widgetVisibility prop, per-widget h/visibility display |
-| `src/components/dashboard/RelinkConfirmationModal.tsx` | NEW - Re-link confirmation modal |
-| `docs/versions/v1.3.1.md` | Updated changelog with all fixes |
+| `src/hooks/useTouchDragDelay.ts` | NEW - Complete hold-to-drag gesture hook |
+| `src/pages/Dashboard.tsx` | Integration of touch handlers, `isDraggable` toggle |
+| `src/styles/GridLayout.css` | Visual feedback for drag-ready state |
+
+---
+
+## Timing Constants
+
+Located in `src/hooks/useTouchDragDelay.ts`:
+
+```typescript
+const HOLD_THRESHOLD_MS = 170;  // Time to hold before drag enabled
+const MOVE_THRESHOLD_PX = 5;    // Movement that cancels hold
+const AUTO_RESET_MS = 250;      // Auto-lock after finger lifted
+```
 
 ---
 
 ## Next Step
 
-**Port DevDashboard fixes to production Dashboard and merge feature branch**
+**Merge feature branch and prepare for release**
 
-1. Verify all fixes are working on production build
-2. Test on real mobile device (not just browser dev tools)
-3. Consider merging `feature/mobile-dashboard-editing` to `develop` when ready
-4. Production release after thorough testing
+1. Merge `feature/mobile-dashboard-editing` to `develop`
+2. Test on production Docker
+3. Consider production release v1.3.1
 
 ---
 
@@ -102,20 +90,19 @@ All dashboard fixes have been implemented and tested. The visibility system now 
 
 | Document | Purpose |
 |----------|---------|
-| `docs/dashboard/MOBILE_LAYOUT_FIX.md` | **PRIMARY** - Architecture + fix documentation |
-| `docs/dashboard/README.md` | Dashboard docs index |
+| `docs/dashboard/MOBILE_LAYOUT_FIX.md` | Mobile layout architecture |
 | `docs/versions/v1.3.1.md` | Draft changelog |
 
 ---
 
 ## Known Issues (Non-blocking)
 
-1. **TypeScript Lint Error** - `LucideIcon | FC<{}>` type mismatch on line ~810 in `Dashboard.tsx`
+1. **TypeScript Lint Errors** - Pre-existing icon type mismatches
    - Does not affect build
-   - Cosmetic, can be fixed later during TypeScript migration
+   - Can be fixed during TypeScript migration
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-22 10:26 EST
+Session ended: 2025-12-22 12:44 EST

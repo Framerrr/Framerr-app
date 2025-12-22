@@ -98,8 +98,10 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         if (!dragReadyWidgetId) return;
 
         const handleTouchMove = (e: TouchEvent) => {
-            // Prevent browser scroll while dragging widget
-            e.preventDefault();
+            // Only prevent if event is cancelable (avoids console warnings)
+            if (e.cancelable) {
+                e.preventDefault();
+            }
         };
 
         // CRITICAL: { passive: false } allows preventDefault() to work
