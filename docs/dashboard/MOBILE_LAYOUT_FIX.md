@@ -928,7 +928,7 @@ const [layouts, setLayouts] = useState<{ lg: Layout[], sm: Layout[] }>({ lg: [],
 
 ---
 
-## Session Notes (2025-12-22)
+## Session Notes (2025-12-22 - Earlier Session)
 
 ### Key Fixes Applied to DevDashboard.tsx
 
@@ -948,17 +948,66 @@ const [layouts, setLayouts] = useState<{ lg: Layout[], sm: Layout[] }>({ lg: [],
 5. **Height Preservation** (`layoutUtils.ts`)
    - Changed `calculateMobileHeight` to use desktop height directly
 
+---
+
+## Session Notes (2025-12-22 - Later Session)
+
+### Dashboard.tsx Fixes Applied ✅
+
+1. **Plex Widget Visibility (CRITICAL)**
+   - **Root Cause:** Visibility effect only updated current breakpoint
+   - **Fix:** Now updates BOTH `layouts.lg` AND `layouts.sm` simultaneously
+   - Widget correctly hides (h:0.001) on both desktop and mobile
+
+2. **Edit Mode Height Restoration**
+   - Added `prevEditModeRef` to detect editMode activation
+   - Restores all widget heights when entering edit mode
+
+3. **Widget Full Width Placement**
+   - New widgets placed at y:0 with full width (w:24 on lg, w:2 on sm)
+   - Existing widgets shift down automatically
+
+4. **Settings State Synchronization**
+   - `DashboardManagement.tsx` listens for `widgets-added` and `mobile-layout-mode-changed`
+   - Dashboard subtab updates automatically without page refresh
+
+5. **Reset Button State**
+   - Disabled when `widgetCount === 0`
+
+6. **Pending Unlink Fix**
+   - First widget on empty dashboard doesn't trigger pending unlink
+
+7. **Re-link Mobile Button**
+   - New button in edit mode header (visible in independent mode)
+   - `RelinkConfirmationModal.tsx` with professional warning
+
+8. **DevDebugOverlay Enhancements**
+   - Added `widgetVisibility` prop
+   - Shows per-widget h/visibility status with emojis (👁️/👁️‍🗨️)
+
 ### Files Modified
 
 | File | Status |
 |------|--------|
-| `src/pages/DevDashboard.tsx` | Primary beta dashboard with all fixes |
-| `src/utils/layoutUtils.ts` | Deterministic sort, height preservation |
-| `src/components/dev/DevDebugOverlay.tsx` | Header-only drag, text selection |
+| `src/pages/Dashboard.tsx` | Visibility effect, edit mode restoration, events |
+| `src/components/settings/DashboardManagement.tsx` | Widget count, event listeners |
+| `src/components/dev/DevDebugOverlay.tsx` | widgetVisibility display |
+| `src/components/dashboard/RelinkConfirmationModal.tsx` | NEW |
 
-### Next Steps for Production
+### Key Technical Detail: Visibility Effect
 
-1. Thoroughly test DevDashboard in linked and independent modes
-2. Port working fixes to production `Dashboard.tsx`
-3. Remove `/dev/dashboard` route when complete
-4. Consider adding breakpoint switch modal for polish
+```typescript
+// WRONG (previous): Only updated current breakpoint
+const breakpointKey = currentBreakpoint === 'lg' ? 'lg' : 'sm';
+setLayouts(prev => ({ ...prev, [breakpointKey]: updatedLayouts }));
+
+// CORRECT (now): Updates BOTH breakpoints simultaneously
+setLayouts(prev => ({
+    ...prev,
+    lg: updatedLgLayouts,
+    sm: updatedSmLayouts
+}));
+```
+
+This ensures visibility is correct regardless of which breakpoint was active when the visibility callback fired.
+
