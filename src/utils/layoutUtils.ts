@@ -44,10 +44,11 @@ export const generateMobileLayout = (widgets: Widget[], breakpoint: MobileBreakp
     }));
 
     // 2. Apply band detection directly to all widgets (no row grouping needed)
-    // Sort by Y to prepare for sweep line algorithm
-    const ySorted = desktopWidgets.sort((a, b) => {
+    // Sort by Y, then X, then ID for deterministic ordering (JS sort is not stable)
+    const ySorted = [...desktopWidgets].sort((a, b) => {
         if (a.y !== b.y) return a.y - b.y;
-        return a.x - b.x;
+        if (a.x !== b.x) return a.x - b.x;
+        return (a.i || '').localeCompare(b.i || ''); // ID tiebreaker
     });
 
     const bands: DesktopWidgetInfo[][] = [];
@@ -88,11 +89,12 @@ export const generateMobileLayout = (widgets: Widget[], breakpoint: MobileBreakp
         }))
     });
 
-    // 3. Sort each band by X (column), then Y (row within column)
+    // 3. Sort each band by X (column), then Y (row within column), then ID (tiebreaker)
     const sorted = bands.flatMap(band => {
-        return band.sort((a, b) => {
+        return [...band].sort((a, b) => {
             if (a.x !== b.x) return a.x - b.x;
-            return a.y - b.y;
+            if (a.y !== b.y) return a.y - b.y;
+            return (a.i || '').localeCompare(b.i || ''); // ID tiebreaker
         });
     });
 
