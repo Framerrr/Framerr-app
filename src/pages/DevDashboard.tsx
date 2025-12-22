@@ -710,12 +710,23 @@ const DevDashboard = (): React.JSX.Element => {
         );
     };
 
-    // Get widgets to render - FIXED: always sorted by sm.y for consistent DOM order
+    // Get widgets to render - use layouts.sm for ordering during edit to prevent snap-back
     const getDisplayWidgets = (): Widget[] => {
         const widgetsToUse = mobileLayoutMode === 'independent' && isMobile
             ? mobileWidgets
             : widgets;
-        // Always sort by sm.y for consistent DOM order
+
+        // During edit mode on mobile, use layouts.sm state for ordering
+        // This prevents snap-back by keeping DOM order in sync with grid's internal state
+        if (editMode && (isMobile || currentBreakpoint === 'sm')) {
+            return [...widgetsToUse].sort((a, b) => {
+                const aLayout = layouts.sm.find(l => l.i === a.id);
+                const bLayout = layouts.sm.find(l => l.i === b.id);
+                return (aLayout?.y ?? 0) - (bLayout?.y ?? 0);
+            });
+        }
+
+        // Outside edit mode, sort by widget's stored sm.y
         return [...widgetsToUse].sort((a, b) =>
             (a.layouts?.sm?.y ?? 0) - (b.layouts?.sm?.y ?? 0)
         );
