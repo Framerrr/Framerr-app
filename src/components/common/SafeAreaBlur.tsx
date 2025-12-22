@@ -1,64 +1,48 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLayout } from '../../context/LayoutContext';
 
 /**
  * SafeAreaBlur - Overlay for the top safe area (notch/camera region)
  * 
  * Shows a glassmorphism blur effect only when content scrolls behind it.
- * Targets the #main-scroll container directly.
+ * Uses window scroll + document capture to catch all scroll events.
  */
 const SafeAreaBlur: React.FC = () => {
     const { isMobile } = useLayout();
     const [isScrolled, setIsScrolled] = useState(false);
-    const scrollHandlerRef = useRef<(() => void) | null>(null);
-    const containerRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
         if (!isMobile) return;
 
-        const setupScrollListener = (container: HTMLElement) => {
-            containerRef.current = container;
-            console.log('[SafeAreaBlur] Attached to:', container.id, 'scrollTop:', container.scrollTop);
-
-            const handleScroll = () => {
-                const scrolled = container.scrollTop > 10;
-                console.log('[SafeAreaBlur] scroll:', container.scrollTop, 'isScrolled:', scrolled);
-                setIsScrolled(scrolled);
-            };
-
-            scrollHandlerRef.current = handleScroll;
-            container.addEventListener('scroll', handleScroll, { passive: true });
-
-            // Initial check
-            handleScroll();
+        // Handle window scroll
+        const handleWindowScroll = () => {
+            const scrolled = window.scrollY > 10;
+            console.log('[SafeAreaBlur] window scroll:', window.scrollY);
+            setIsScrolled(scrolled);
         };
 
-        // Try to find the container immediately
-        const container = document.getElementById('main-scroll');
-        console.log('[SafeAreaBlur] Looking for main-scroll:', !!container);
-
-        if (container) {
-            setupScrollListener(container);
-        } else {
-            // Use MutationObserver to wait for the element
-            const observer = new MutationObserver((mutations, obs) => {
-                const foundContainer = document.getElementById('main-scroll');
-                if (foundContainer) {
-                    setupScrollListener(foundContainer);
-                    obs.disconnect();
-                }
-            });
-
-            observer.observe(document.body, { childList: true, subtree: true });
-
-            return () => observer.disconnect();
-        }
-
-        // Cleanup
-        return () => {
-            if (containerRef.current && scrollHandlerRef.current) {
-                containerRef.current.removeEventListener('scroll', scrollHandlerRef.current);
+        // Handle any container scroll (capture phase)
+        const handleContainerScroll = (e: Event) => {
+            const target = e.target as HTMLElement;
+            if (target && target.scrollTop !== undefined) {
+                const scrolled = target.scrollTop > 10;
+                console.log('[SafeAreaBlur] container scroll:', target.id || target.className, 'scrollTop:', target.scrollTop);
+                setIsScrolled(scrolled);
             }
+        };
+
+        // Listen to window scroll
+        window.addEventListener('scroll', handleWindowScroll, { passive: true });
+
+        // Also listen to document scroll with capture to catch all scroll events
+        document.addEventListener('scroll', handleContainerScroll, { capture: true, passive: true });
+
+        // Initial check
+        handleWindowScroll();
+
+        return () => {
+            window.removeEventListener('scroll', handleWindowScroll);
+            document.removeEventListener('scroll', handleContainerScroll, { capture: true });
         };
     }, [isMobile]);
 
