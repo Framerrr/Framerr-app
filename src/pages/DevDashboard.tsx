@@ -292,27 +292,31 @@ const DevDashboard = (): React.JSX.Element => {
         h: widget.layouts?.sm?.h ?? 2
     });
 
-    // FIXED: handleLayoutChange - properly sync grid layout with widget state
+    // Handle layout change - only mark as unsaved, don't update state (prevents snap-back)
     const handleLayoutChange = (currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }): void => {
         if (!editMode) return;
-
         setHasUnsavedChanges(true);
 
-        // Determine which breakpoint we're actually on
+        // Mark as pending unlink if on mobile and currently linked
+        if ((isMobile || currentBreakpoint === 'sm') && mobileLayoutMode === 'linked') {
+            setPendingUnlink(true);
+        }
+    };
+
+    // Handle drag/resize stop - this is where we actually update state
+    // Using onDragStop/onResizeStop prevents snap-back because the grid's internal state
+    // is finalized before we trigger a re-render with our updated layouts prop
+    const handleDragResizeStop = (layout: Layout[], oldItem: Layout, newItem: Layout, placeholder: Layout, e: MouseEvent, element: HTMLElement): void => {
+        if (!editMode) return;
+
         const activeBreakpoint = isMobile ? 'sm' : currentBreakpoint;
 
         // Mobile editing path
         if (activeBreakpoint === 'sm') {
-            // Mark as pending unlink if currently linked
-            if (mobileLayoutMode === 'linked') {
-                setPendingUnlink(true);
-            }
-
-            // Update the layouts state directly with what the grid gives us
-            // This prevents the snap-back issue
+            // Update the layouts state with final positions
             setLayouts(prev => ({
                 ...prev,
-                sm: currentLayout.map(item => ({
+                sm: layout.map(item => ({
                     i: item.i,
                     x: item.x,
                     y: item.y,
@@ -321,10 +325,10 @@ const DevDashboard = (): React.JSX.Element => {
                 }))
             }));
 
-            // Also update the widget objects to match
+            // Update the widget objects to match
             const widgetsToUpdate = mobileLayoutMode === 'independent' ? mobileWidgets : widgets;
             const updatedWidgets = widgetsToUpdate.map(widget => {
-                const layoutItem = currentLayout.find(l => l.i === widget.id);
+                const layoutItem = layout.find(l => l.i === widget.id);
                 if (layoutItem) {
                     return {
                         ...widget,
@@ -352,9 +356,8 @@ const DevDashboard = (): React.JSX.Element => {
 
         // Desktop editing path (lg breakpoint)
         if (activeBreakpoint === 'lg') {
-            // Update widgets with new desktop layout
             const updatedWidgets = widgets.map(widget => {
-                const layoutItem = currentLayout.find(l => l.i === widget.id);
+                const layoutItem = layout.find(l => l.i === widget.id);
                 if (layoutItem) {
                     return {
                         ...widget,
@@ -381,7 +384,7 @@ const DevDashboard = (): React.JSX.Element => {
 
             // Update layouts state
             setLayouts({
-                lg: currentLayout.map(item => ({
+                lg: layout.map(item => ({
                     i: item.i,
                     x: item.x,
                     y: item.y,
@@ -859,6 +862,8 @@ const DevDashboard = (): React.JSX.Element => {
                         // FIX: Pass layouts as-is, no sorting
                         layouts={layouts}
                         onLayoutChange={handleLayoutChange}
+                        onDragStop={handleDragResizeStop}
+                        onResizeStop={handleDragResizeStop}
                         onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint as Breakpoint)}
                     >
                         {/* FIX: Always render in consistent order */}
