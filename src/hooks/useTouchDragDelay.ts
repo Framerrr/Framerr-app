@@ -15,9 +15,9 @@ import { useState, useRef, useCallback, useEffect } from 'react';
  */
 
 // Configurable thresholds - can be adjusted based on user feedback
-const HOLD_THRESHOLD_MS = 150;  // Time to hold before drag is enabled (reduced from 250)
-const MOVE_THRESHOLD_PX = 10;   // Movement that cancels the hold (user is scrolling)
-const AUTO_RESET_MS = 500;      // Auto-lock shortly after finger lifted (reduced from 3000)
+const HOLD_THRESHOLD_MS = 200;  // Time to hold before drag is enabled
+const MOVE_THRESHOLD_PX = 5;    // Movement that cancels the hold (smaller = more forgiving)
+const AUTO_RESET_MS = 1000;     // Auto-lock after finger lifted (1 second to re-grab)
 
 interface TouchState {
     startX: number;
