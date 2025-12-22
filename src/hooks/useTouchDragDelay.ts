@@ -46,31 +46,8 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     // Track touch state for threshold detection
     const touchStateRef = useRef<TouchState | null>(null);
 
-    // Auto-reset timer ref
+    // Auto-reset timer ref - started on touchend, cleared on resetDragReady
     const autoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Auto-reset widget after timeout if not dragged
-    useEffect(() => {
-        if (dragReadyWidgetId) {
-            // Clear any existing auto-reset timer
-            if (autoResetTimerRef.current) {
-                clearTimeout(autoResetTimerRef.current);
-            }
-
-            // Start new auto-reset timer
-            autoResetTimerRef.current = setTimeout(() => {
-                setDragReadyWidgetId(null);
-                autoResetTimerRef.current = null;
-            }, AUTO_RESET_MS);
-
-            // Cleanup on unmount or when dragReadyWidgetId changes
-            return () => {
-                if (autoResetTimerRef.current) {
-                    clearTimeout(autoResetTimerRef.current);
-                }
-            };
-        }
-    }, [dragReadyWidgetId]);
 
     /**
      * Handle touch start - begin tracking for hold gesture
@@ -133,23 +110,41 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     }, [dragReadyWidgetId]);
 
     /**
-     * Handle touch end - cleanup state
+     * Handle touch end - cleanup state and start auto-reset timer if widget is unlocked
      */
     const onWidgetTouchEnd = useCallback(() => {
-        // Clear timer if still running
+        // Clear hold detection timer if still running
         if (touchStateRef.current?.timerId) {
             clearTimeout(touchStateRef.current.timerId);
         }
 
-        // Reset touch tracking (but keep dragReadyWidgetId until explicit reset)
+        // Reset touch tracking
         touchStateRef.current = null;
-    }, []);
+
+        // If widget is drag-ready, start auto-reset timer
+        // This gives user time to re-touch the widget to drag it
+        if (dragReadyWidgetId) {
+            // Clear any existing auto-reset timer
+            if (autoResetTimerRef.current) {
+                clearTimeout(autoResetTimerRef.current);
+            }
+
+            // Start new auto-reset timer
+            autoResetTimerRef.current = setTimeout(() => {
+                setDragReadyWidgetId(null);
+                autoResetTimerRef.current = null;
+            }, AUTO_RESET_MS);
+        }
+    }, [dragReadyWidgetId]);
 
     /**
      * Reset drag ready state - call after drag completes or is cancelled
      */
     const resetDragReady = useCallback(() => {
         setDragReadyWidgetId(null);
+        if (autoResetTimerRef.current) {
+            clearTimeout(autoResetTimerRef.current);
+        }
         if (touchStateRef.current?.timerId) {
             clearTimeout(touchStateRef.current.timerId);
         }
