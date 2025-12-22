@@ -20,6 +20,7 @@ interface DevDebugOverlayProps {
     editMode: boolean;
     hasUnsavedChanges: boolean;
     isMobile: boolean;
+    isUserDragging: boolean;
 
     // Layouts and widgets
     widgets: Widget[];
@@ -45,6 +46,7 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
     editMode,
     hasUnsavedChanges,
     isMobile,
+    isUserDragging,
     widgets,
     mobileWidgets,
     layouts
@@ -232,6 +234,15 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                             <span style={{ color: '#888' }}>isMobile: </span>
                             <span style={{ color: '#fff' }}>
                                 {isMobile ? 'true' : 'false'}
+                            </span>
+                        </div>
+                        <div style={{ marginBottom: '4px' }}>
+                            <span style={{ color: '#888' }}>isUserDragging: </span>
+                            <span style={{
+                                color: isUserDragging ? '#22d3ee' : '#6b7280',
+                                fontWeight: 'bold'
+                            }}>
+                                {isUserDragging ? 'true' : 'false'}
                             </span>
                         </div>
                     </div>

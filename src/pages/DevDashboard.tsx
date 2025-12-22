@@ -130,6 +130,7 @@ const DevDashboard = (): React.JSX.Element => {
     const [showUnlinkConfirmation, setShowUnlinkConfirmation] = useState<boolean>(false);
     const [mobileDisclaimerDismissed, setMobileDisclaimerDismissed] = useState<boolean>(false);
     const [pendingUnlink, setPendingUnlink] = useState<boolean>(false);
+    const [isUserDragging, setIsUserDragging] = useState<boolean>(false);
 
     // Widget management
     const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -292,15 +293,30 @@ const DevDashboard = (): React.JSX.Element => {
         h: widget.layouts?.sm?.h ?? 2
     });
 
-    // Handle layout change - only mark as unsaved, don't update state (prevents snap-back)
+    // Handle layout change - only mark as unsaved if user is actually dragging
+    // This prevents false pendingUnlink triggers on breakpoint changes
     const handleLayoutChange = (currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }): void => {
         if (!editMode) return;
+
+        // Only mark as unsaved if user is actively dragging/resizing
+        // This prevents breakpoint changes from triggering unlink logic
+        if (!isUserDragging) return;
+
         setHasUnsavedChanges(true);
 
         // Mark as pending unlink if on mobile and currently linked
         if ((isMobile || currentBreakpoint === 'sm') && mobileLayoutMode === 'linked') {
             setPendingUnlink(true);
         }
+    };
+
+    // Handle drag/resize start - marks that user is actively interacting
+    const handleDragStart = (): void => {
+        setIsUserDragging(true);
+    };
+
+    const handleResizeStart = (): void => {
+        setIsUserDragging(true);
     };
 
     // Handle drag/resize stop - this is where we actually update state
@@ -351,6 +367,9 @@ const DevDashboard = (): React.JSX.Element => {
             } else {
                 setWidgets(updatedWidgets);
             }
+
+            // Reset user dragging flag
+            setIsUserDragging(false);
             return;
         }
 
@@ -394,6 +413,9 @@ const DevDashboard = (): React.JSX.Element => {
                 sm: withMobileLayouts.map(w => createSmLayoutItem(w))
             });
         }
+
+        // Reset user dragging flag
+        setIsUserDragging(false);
     };
 
     // Handle breakpoint change - restore independent layouts when switching to mobile
@@ -876,6 +898,8 @@ const DevDashboard = (): React.JSX.Element => {
                         // FIX: Pass layouts as-is, no sorting
                         layouts={layouts}
                         onLayoutChange={handleLayoutChange}
+                        onDragStart={handleDragStart}
+                        onResizeStart={handleResizeStart}
                         onDragStop={handleDragResizeStop}
                         onResizeStop={handleDragResizeStop}
                         onBreakpointChange={handleBreakpointChange}
@@ -934,6 +958,7 @@ const DevDashboard = (): React.JSX.Element => {
                 editMode={editMode}
                 hasUnsavedChanges={hasUnsavedChanges}
                 isMobile={isMobile}
+                isUserDragging={isUserDragging}
                 widgets={widgets}
                 mobileWidgets={mobileWidgets}
                 layouts={layouts}
