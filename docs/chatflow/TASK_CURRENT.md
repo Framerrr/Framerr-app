@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-22 12:44 EST  
+**Last Updated:** 2025-12-22 17:10 EST  
 **Branch:** `feature/mobile-dashboard-editing`
 
 ---
@@ -18,39 +18,41 @@
 
 ## Current State
 
-**Status:** ✅ iOS-Style Mobile Hold-to-Drag Gesture Complete
+**Status:** ✅ iOS PWA Safe Area Fixes Complete
 
 **Feature Branch:** `feature/mobile-dashboard-editing`
 
-Successfully implemented one-motion hold-to-drag gesture for mobile widget editing. Users can now hold a widget briefly (170ms), then drag in a single smooth motion without releasing and re-touching.
+This session fixed iOS 26.2 PWA layout issues and added the safe area blur header feature.
 
 ---
 
-## Completed This Session (2025-12-22)
+## Completed This Session (2025-12-22 Evening)
 
-### Mobile Hold-to-Drag Gesture ✅
+### iOS 26.2 Safe Area Fix ✅
 
-Implemented iOS-style touch gesture system for mobile dashboard editing:
+Fixed black bar appearing in home indicator region on iOS 26.2 PWA:
 
-1. **Hold Detection**
-   - 170ms hold threshold (user tunable)
-   - 5px movement threshold to distinguish hold from scroll
-   - Visual feedback (purple glow border) when drag-ready
+1. **Root Cause**: `position: fixed` on html/body was fighting with `viewport-fit=cover`
+2. **Solution**: Adopted Seerr-style CSS pattern
+   - Removed `position: fixed` from body
+   - Added safe area padding to html element
+   - Uses `min-height: calc(100% + env(safe-area-inset-top))`
+3. **Files Changed**: `src/index.css`
 
-2. **Scroll Blocking**
-   - Native touchmove listener with `{ passive: false }`
-   - Calls `e.preventDefault()` when widget is drag-ready
-   - Enables clean drag without competing page scroll
+### Safe Area Blur Header ✅
 
-3. **Synthetic Touch Dispatch**
-   - Dispatches synthetic `touchstart` to RGL after hold threshold
-   - Allows seamless one-motion hold-to-drag
-   - RGL receives proper touch event to begin tracking
+Added glassmorphism blur effect in top notch area when content scrolls:
 
-4. **Auto-Reset**
-   - 250ms auto-lock timer after finger lifts
-   - Global touchend listener for reliable detection
-   - Widget re-locks quickly for next interaction
+1. **New Component**: `src/components/common/SafeAreaBlur.tsx`
+2. **Behavior**: 
+   - Transparent when at top of page
+   - Shows blur when content scrolls behind safe area
+   - Uses theme variables for consistent styling
+3. **Integration**: Added to `App.tsx` MainLayout
+
+### Loading Spinner Fix ✅
+
+- Changed ProtectedRoute loading spinner from `h-full` to `h-screen` for proper centering
 
 ---
 
@@ -58,21 +60,11 @@ Implemented iOS-style touch gesture system for mobile dashboard editing:
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useTouchDragDelay.ts` | NEW - Complete hold-to-drag gesture hook |
-| `src/pages/Dashboard.tsx` | Integration of touch handlers, `isDraggable` toggle |
-| `src/styles/GridLayout.css` | Visual feedback for drag-ready state |
-
----
-
-## Timing Constants
-
-Located in `src/hooks/useTouchDragDelay.ts`:
-
-```typescript
-const HOLD_THRESHOLD_MS = 170;  // Time to hold before drag enabled
-const MOVE_THRESHOLD_PX = 5;    // Movement that cancels hold
-const AUTO_RESET_MS = 250;      // Auto-lock after finger lifted
-```
+| `src/index.css` | Seerr-style safe area CSS pattern |
+| `src/components/common/SafeAreaBlur.tsx` | NEW - Safe area blur overlay |
+| `src/App.tsx` | Added SafeAreaBlur to MainLayout |
+| `src/pages/MainContent.tsx` | Added id="main-scroll" |
+| `src/components/common/ProtectedRoute.tsx` | h-screen for centered loading |
 
 ---
 
@@ -81,7 +73,7 @@ const AUTO_RESET_MS = 250;      // Auto-lock after finger lifted
 **Merge feature branch and prepare for release**
 
 1. Merge `feature/mobile-dashboard-editing` to `develop`
-2. Test on production Docker
+2. Test all features on Docker develop
 3. Consider production release v1.3.1
 
 ---
@@ -97,7 +89,10 @@ const AUTO_RESET_MS = 250;      // Auto-lock after finger lifted
 
 ## Known Issues (Non-blocking)
 
-1. **TypeScript Lint Errors** - Pre-existing icon type mismatches
+1. **SafeAreaBlur Debug Logs** - Console.log statements left in for debugging
+   - Remove before production release
+   
+2. **TypeScript Lint Errors** - Pre-existing icon type mismatches
    - Does not affect build
    - Can be fixed during TypeScript migration
 
@@ -105,4 +100,4 @@ const AUTO_RESET_MS = 250;      // Auto-lock after finger lifted
 
 ## SESSION END
 
-Session ended: 2025-12-22 12:44 EST
+Session ended: 2025-12-22 17:10 EST
