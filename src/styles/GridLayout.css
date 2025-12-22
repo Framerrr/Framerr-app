@@ -11,6 +11,29 @@
     transition: height 200ms ease;
 }
 
+/* ========================================
+ * EDIT MODE - Text Selection Prevention
+ * Prevents accidental text selection while touching/dragging on mobile
+ * ======================================== */
+.dashboard-edit-mode {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;  /* Prevents iOS long-press popup */
+    touch-action: manipulation;    /* Helps prevent double-tap zoom */
+}
+
+/* ========================================
+ * WIDGET DRAG-READY STATE
+ * iOS-style "lift" animation when hold threshold is reached
+ * Applied after user holds for 250ms without moving
+ * ======================================== */
+.react-grid-item.widget-drag-ready {
+    transform: scale(1.05) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(147, 51, 234, 0.5);
+    transition: transform 150ms ease-out, box-shadow 150ms ease-out !important;
+    z-index: 100 !important;
+}
+
 /* Grid Items */
 .react-grid-item {
     transition: all 200ms ease;

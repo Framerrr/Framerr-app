@@ -16,6 +16,7 @@ import MobileEditDisclaimerModal from '../components/dashboard/MobileEditDisclai
 import UnlinkConfirmationModal from '../components/dashboard/UnlinkConfirmationModal';
 import RelinkConfirmationModal from '../components/dashboard/RelinkConfirmationModal';
 import DevDebugOverlay from '../components/dev/DevDebugOverlay';
+import { useTouchDragDelay } from '../hooks/useTouchDragDelay';
 import { isAdmin } from '../utils/permissions';
 import axios from 'axios';
 import 'react-grid-layout/css/styles.css';
@@ -133,6 +134,16 @@ const Dashboard = (): React.JSX.Element => {
 
     // Debug overlay toggle (controlled from Settings > Advanced > Debug)
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false);
+
+    // Touch gesture detection for iOS-style hold-to-drag on mobile
+    // Allows quick swipes to scroll, while holding 250ms enables widget dragging
+    const {
+        dragReadyWidgetId,
+        onWidgetTouchStart,
+        onWidgetTouchMove,
+        onWidgetTouchEnd,
+        resetDragReady
+    } = useTouchDragDelay();
 
     const userIsAdmin = isAdmin(user);
 
@@ -483,8 +494,9 @@ const Dashboard = (): React.JSX.Element => {
             });
         }
 
-        // Reset user dragging flag
+        // Reset user dragging flag and touch gesture state
         setIsUserDragging(false);
+        resetDragReady();
     };
 
     // Handle breakpoint change - restore independent layouts when switching to mobile
@@ -899,7 +911,7 @@ const Dashboard = (): React.JSX.Element => {
     }
 
     return (
-        <div className="w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8">
+        <div className={`w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8 ${editMode ? 'dashboard-edit-mode' : ''}`}>
             {/* Header */}
             <header className="mb-8 flex items-center justify-between">
                 <div>
@@ -989,7 +1001,9 @@ const Dashboard = (): React.JSX.Element => {
                         // FIX: compactType always 'vertical' - never toggles
                         compactType="vertical"
                         preventCollision={false}
-                        isDraggable={editMode && isGlobalDragEnabled}
+                        // On mobile: only allow drag when touch hold threshold is reached
+                        // On desktop: allow drag immediately (no touch delay needed)
+                        isDraggable={editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId !== null)}
                         isResizable={editMode && isGlobalDragEnabled}
                         resizeHandles={isMobile ? ['s'] : ['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                         draggableCancel=".no-drag"
@@ -1023,7 +1037,10 @@ const Dashboard = (): React.JSX.Element => {
                             return (
                                 <div
                                     key={widget.id}
-                                    className={editMode ? 'edit-mode' : 'locked'}
+                                    className={`${editMode ? 'edit-mode' : 'locked'} ${dragReadyWidgetId === widget.id ? 'widget-drag-ready' : ''}`}
+                                    onTouchStart={(e) => editMode && isMobile && onWidgetTouchStart(e, widget.id)}
+                                    onTouchMove={onWidgetTouchMove}
+                                    onTouchEnd={onWidgetTouchEnd}
                                     style={{
                                         // Debug: dotted border showing grid cell (only when overlay enabled)
                                         border: (editMode && debugOverlayEnabled) ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,

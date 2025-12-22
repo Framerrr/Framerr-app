@@ -123,6 +123,50 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
         }
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
+    // Touch drag handlers (for mobile)
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        if ((e.target as HTMLElement).closest('.no-drag')) return;
+
+        const touch = e.touches[0];
+        setIsDragging(true);
+        dragStartRef.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+            posX: position.x,
+            posY: position.y
+        };
+    }, [position]);
+
+    const handleTouchMove = useCallback((e: TouchEvent) => {
+        if (!isDragging || !dragStartRef.current) return;
+
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - dragStartRef.current.x;
+        const deltaY = touch.clientY - dragStartRef.current.y;
+
+        setPosition({
+            x: Math.min(Math.max(0, dragStartRef.current.posX + deltaX), window.innerWidth - 100),
+            y: Math.min(Math.max(0, dragStartRef.current.posY + deltaY), window.innerHeight - 50)
+        });
+    }, [isDragging]);
+
+    const handleTouchEnd = useCallback(() => {
+        setIsDragging(false);
+        dragStartRef.current = null;
+    }, []);
+
+    // Global touch event listeners for dragging
+    useEffect(() => {
+        if (isDragging) {
+            window.addEventListener('touchmove', handleTouchMove);
+            window.addEventListener('touchend', handleTouchEnd);
+            return () => {
+                window.removeEventListener('touchmove', handleTouchMove);
+                window.removeEventListener('touchend', handleTouchEnd);
+            };
+        }
+    }, [isDragging, handleTouchMove, handleTouchEnd]);
+
     // Get widgets to display based on mode
     const displayWidgets = mobileLayoutMode === 'independent' && isMobile ? mobileWidgets : widgets;
     const currentLayout = currentBreakpoint === 'sm' ? layouts.sm : layouts.lg;
@@ -154,9 +198,10 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)'
             }}
         >
-            {/* Header - DRAGGABLE */}
+            {/* Header - DRAGGABLE (mouse + touch) */}
             <div
                 onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
                 style={{
                     padding: '8px 12px',
                     borderBottom: isCollapsed ? 'none' : '1px solid #333',

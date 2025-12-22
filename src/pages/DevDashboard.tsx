@@ -1,3 +1,15 @@
+/**
+ * @deprecated AS OF 2025-12-22 10:43 EST
+ * 
+ * DevDashboard has been FULLY MIGRATED to Dashboard.tsx.
+ * All mobile layout fixes, visibility systems, and edit mode improvements
+ * are now in the production Dashboard.tsx file.
+ * 
+ * This file is kept for reference only and should NOT be used for new development.
+ * 
+ * See: src/pages/Dashboard.tsx for the current production implementation.
+ */
+
 import React, { useState, useEffect, Suspense } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw } from 'lucide-react';

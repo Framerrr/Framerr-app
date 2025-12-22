@@ -1,3 +1,16 @@
+/**
+ * @deprecated AS OF 2025-12-22 10:43 EST
+ * 
+ * This DebugOverlay is DEPRECATED in favor of DevDebugOverlay.tsx.
+ * DevDebugOverlay provides the same functionality plus:
+ * - Draggable positioning (persists to localStorage)
+ * - Collapsible UI
+ * - Mobile layout mode tracking
+ * - Per-widget visibility status
+ * 
+ * See: src/components/dev/DevDebugOverlay.tsx for the active implementation.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useLayout } from '../../context/LayoutContext';
 import { LAYOUT } from '../../constants/layout';
