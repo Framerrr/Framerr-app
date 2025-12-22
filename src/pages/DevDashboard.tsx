@@ -522,18 +522,53 @@ const DevDashboard = (): React.JSX.Element => {
         setHasUnsavedChanges(true);
     };
 
-    // Reset mobile layout back to linked mode (also clears localStorage to reseed from API)
+    // Reset to linked mode - clears localStorage and forces linked state
     const handleResetMobileLayout = async (): Promise<void> => {
-        if (!confirm('Reset dev dashboard? This will reload fresh data from your main dashboard.')) {
+        if (!confirm('Reset to LINKED mode? This will regenerate mobile layouts from desktop.')) {
             return;
         }
 
-        // Clear localStorage to force reseed from API
-        localStorage.removeItem(DEV_STORAGE_KEYS.widgets);
-        logger.debug('Cleared dev dashboard localStorage');
+        try {
+            setLoading(true);
 
-        // Reload from API
-        await fetchWidgets();
+            // Clear localStorage
+            localStorage.removeItem(DEV_STORAGE_KEYS.widgets);
+
+            // Fetch widgets from API (ignoring their mobile mode)
+            const response = await axios.get<WidgetApiResponse>('/api/widgets');
+            let fetchedWidgets = response.data.widgets || [];
+
+            // Migrate and generate mobile layouts fresh from desktop
+            fetchedWidgets = fetchedWidgets.map(w => migrateWidgetToLayouts(w));
+            fetchedWidgets = generateAllMobileLayouts(fetchedWidgets);
+
+            // Force linked mode
+            setMobileLayoutMode('linked');
+            setMobileWidgets([]);
+            setMobileOriginalLayout([]);
+            setPendingUnlink(false);
+
+            setWidgets(fetchedWidgets);
+            setOriginalLayout(JSON.parse(JSON.stringify(fetchedWidgets)));
+
+            setLayouts({
+                lg: fetchedWidgets.map(w => createLgLayoutItem(w)),
+                sm: fetchedWidgets.map(w => createSmLayoutItem(w))
+            });
+
+            // Save this linked state to localStorage
+            saveToLocalStorage({
+                widgets: fetchedWidgets,
+                mobileLayoutMode: 'linked',
+                mobileWidgets: []
+            });
+
+            logger.debug('Reset to linked mode - regenerated from desktop');
+        } catch (error) {
+            logger.error('Failed to reset:', { error });
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Add widget
