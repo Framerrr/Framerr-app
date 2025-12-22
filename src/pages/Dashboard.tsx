@@ -126,7 +126,10 @@ const Dashboard = (): React.JSX.Element => {
     const [integrations, setIntegrations] = useState<Record<string, IntegrationConfig>>({});
     const [sharedIntegrations, setSharedIntegrations] = useState<SharedIntegration[]>([]);
     const [greetingEnabled] = useState<boolean>(true);
-    const [greetingText] = useState<string>('Dev Dashboard - Beta Testing');
+    const [greetingText] = useState<string>('Your personal dashboard');
+
+    // Debug overlay toggle (controlled from Settings > Advanced > Debug)
+    const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false);
 
     const userIsAdmin = isAdmin(user);
 
@@ -140,6 +143,7 @@ const Dashboard = (): React.JSX.Element => {
         fetchWidgets();
         fetchIntegrations();
         loadUserPreferences();
+        loadDebugOverlaySetting();
     }, []);
 
     const loadUserPreferences = async (): Promise<void> => {
@@ -150,6 +154,20 @@ const Dashboard = (): React.JSX.Element => {
             }
         } catch (error) {
             logger.debug('Could not load user preferences');
+        }
+    };
+
+    // Load debug overlay setting from system config (admin only)
+    const loadDebugOverlaySetting = async (): Promise<void> => {
+        if (!userIsAdmin) return;
+        try {
+            const response = await axios.get<{ config: { debug?: { overlayEnabled?: boolean } } }>('/api/system/config');
+            if (response.data.config?.debug) {
+                setDebugOverlayEnabled(response.data.config.debug.overlayEnabled || false);
+            }
+        } catch (error) {
+            // Silently fail - debug overlay is optional
+            logger.debug('Failed to load debug overlay setting:', { error });
         }
     };
 
@@ -677,23 +695,25 @@ const Dashboard = (): React.JSX.Element => {
                 flatten={widget.config?.flatten as boolean || false}
                 showHeader={widget.config?.showHeader !== false}
             >
-                {/* Debug Y-position badge */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        color: '#fff',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontFamily: 'monospace',
-                        zIndex: 100
-                    }}
-                >
-                    sm.y: {yPos}
-                </div>
+                {/* Debug Y-position badge - only visible when debug overlay enabled */}
+                {debugOverlayEnabled && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            color: '#fff',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontFamily: 'monospace',
+                            zIndex: 100
+                        }}
+                    >
+                        sm.y: {yPos}
+                    </div>
+                )}
                 <WidgetErrorBoundary>
                     <Suspense fallback={<LoadingSpinner />}>
                         <WidgetComponent
@@ -885,14 +905,16 @@ const Dashboard = (): React.JSX.Element => {
                                     key={widget.id}
                                     className={editMode ? 'edit-mode' : 'locked'}
                                     style={{
-                                        // Debug: dotted border showing grid cell
-                                        border: editMode ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,
-                                        // Debug: color-coded background
-                                        backgroundColor: pendingUnlink
-                                            ? 'rgba(249, 115, 22, 0.1)'
-                                            : mobileLayoutMode === 'independent'
-                                                ? 'rgba(34, 197, 94, 0.1)'
-                                                : 'rgba(59, 130, 246, 0.1)',
+                                        // Debug: dotted border showing grid cell (only when overlay enabled)
+                                        border: (editMode && debugOverlayEnabled) ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,
+                                        // Debug: color-coded background (only when overlay enabled)
+                                        backgroundColor: debugOverlayEnabled
+                                            ? (pendingUnlink
+                                                ? 'rgba(249, 115, 22, 0.1)'
+                                                : mobileLayoutMode === 'independent'
+                                                    ? 'rgba(34, 197, 94, 0.1)'
+                                                    : 'rgba(59, 130, 246, 0.1)')
+                                            : undefined,
                                         overflow: 'hidden'
                                     }}
                                     data-grid={{
@@ -910,19 +932,21 @@ const Dashboard = (): React.JSX.Element => {
                 )}
             </div>
 
-            {/* Dev Debug Overlay - always visible */}
-            <DevDebugOverlay
-                mobileLayoutMode={mobileLayoutMode}
-                pendingUnlink={pendingUnlink}
-                currentBreakpoint={currentBreakpoint}
-                editMode={editMode}
-                hasUnsavedChanges={hasUnsavedChanges}
-                isMobile={isMobile}
-                isUserDragging={isUserDragging}
-                widgets={widgets}
-                mobileWidgets={mobileWidgets}
-                layouts={layouts}
-            />
+            {/* Debug Overlay - controlled from Settings > Advanced > Debug */}
+            {debugOverlayEnabled && (
+                <DevDebugOverlay
+                    mobileLayoutMode={mobileLayoutMode}
+                    pendingUnlink={pendingUnlink}
+                    currentBreakpoint={currentBreakpoint}
+                    editMode={editMode}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    isMobile={isMobile}
+                    isUserDragging={isUserDragging}
+                    widgets={widgets}
+                    mobileWidgets={mobileWidgets}
+                    layouts={layouts}
+                />
+            )}
 
             {/* Add Widget Modal */}
             <AddWidgetModal
