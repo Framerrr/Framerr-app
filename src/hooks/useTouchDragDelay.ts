@@ -3,26 +3,35 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 /**
  * useTouchDragDelay - iOS-style hold-to-drag gesture detection
  * 
- * Tracks touch events to determine if user is scrolling vs. trying to drag.
- * After HOLD_THRESHOLD_MS without significant movement, enables dragging.
+ * NEW APPROACH: Synthetic touchstart dispatch
+ * When hold threshold is reached, we dispatch a synthetic touchstart event
+ * to the widget element so RGL can capture it and begin tracking the drag.
  * 
- * Two-phase approach:
- * 1. User holds widget → widget "unlocks" with visual feedback
- * 2. User releases, then touches again → RGL captures full drag
- * 3. After AUTO_RESET_MS of inactivity, widget auto-locks
+ * This allows seamless one-motion hold-to-drag:
+ * 1. User touches and holds widget
+ * 2. After HOLD_THRESHOLD_MS, synthetic touchstart fires → RGL ready to drag
+ * 3. User continues moving → RGL tracks the drag properly
  * 
  * @returns Touch gesture state and handlers
  */
 
-// Configurable thresholds - can be adjusted based on user feedback
+// Configurable thresholds
 const HOLD_THRESHOLD_MS = 200;  // Time to hold before drag is enabled
 const MOVE_THRESHOLD_PX = 5;    // Movement that cancels the hold (smaller = more forgiving)
-const AUTO_RESET_MS = 1000;     // Auto-lock after finger lifted (1 second to re-grab)
+const AUTO_RESET_MS = 1000;     // Auto-lock after finger lifted
 
 interface TouchState {
     startX: number;
     startY: number;
+    currentX: number;
+    currentY: number;
+    screenX: number;
+    screenY: number;
+    pageX: number;
+    pageY: number;
+    touchIdentifier: number;
     widgetId: string;
+    targetElement: HTMLElement;
     timerId: ReturnType<typeof setTimeout> | null;
 }
 
@@ -31,7 +40,7 @@ interface UseTouchDragDelayReturn {
     dragReadyWidgetId: string | null;
     /** Handler for touchstart on widget - call with widget ID */
     onWidgetTouchStart: (e: React.TouchEvent, widgetId: string) => void;
-    /** Handler for touchmove - cancels hold if moved too much */
+    /** Handler for touchmove - tracks position and cancels hold if moved too much */
     onWidgetTouchMove: (e: React.TouchEvent) => void;
     /** Handler for touchend - cleanup */
     onWidgetTouchEnd: () => void;
@@ -46,22 +55,17 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     // Track touch state for threshold detection
     const touchStateRef = useRef<TouchState | null>(null);
 
-    // Auto-reset timer ref - started on touchend, cleared on resetDragReady
+    // Auto-reset timer ref
     const autoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Global touchend listener - catches finger lift anywhere on screen
-    // This is more reliable than element-level onTouchEnd which may not fire
-    // if the touch ends outside the widget's bounds
+    // Global touchend listener for auto-reset
     useEffect(() => {
         if (!dragReadyWidgetId) return;
 
         const handleGlobalTouchEnd = () => {
-            // Clear any existing auto-reset timer
             if (autoResetTimerRef.current) {
                 clearTimeout(autoResetTimerRef.current);
             }
-
-            // Start auto-reset timer
             autoResetTimerRef.current = setTimeout(() => {
                 setDragReadyWidgetId(null);
                 autoResetTimerRef.current = null;
@@ -69,15 +73,58 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         };
 
         window.addEventListener('touchend', handleGlobalTouchEnd);
-
-        return () => {
-            window.removeEventListener('touchend', handleGlobalTouchEnd);
-        };
+        return () => window.removeEventListener('touchend', handleGlobalTouchEnd);
     }, [dragReadyWidgetId]);
 
     /**
+     * Dispatch a synthetic touchstart event to trigger RGL's drag handling
+     */
+    const dispatchSyntheticTouchStart = useCallback((element: HTMLElement, touchData: {
+        identifier: number;
+        clientX: number;
+        clientY: number;
+        screenX: number;
+        screenY: number;
+        pageX: number;
+        pageY: number;
+    }) => {
+        try {
+            // Create a new Touch object with the current position
+            const syntheticTouch = new Touch({
+                identifier: touchData.identifier,
+                target: element,
+                clientX: touchData.clientX,
+                clientY: touchData.clientY,
+                screenX: touchData.screenX,
+                screenY: touchData.screenY,
+                pageX: touchData.pageX,
+                pageY: touchData.pageY,
+                radiusX: 1,
+                radiusY: 1,
+                rotationAngle: 0,
+                force: 1,
+            });
+
+            // Create the synthetic TouchEvent
+            const syntheticEvent = new TouchEvent('touchstart', {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                touches: [syntheticTouch],
+                targetTouches: [syntheticTouch],
+                changedTouches: [syntheticTouch],
+            });
+
+            // Dispatch it on the element - RGL should pick this up
+            element.dispatchEvent(syntheticEvent);
+        } catch (error) {
+            // Fallback for browsers that don't support Touch constructor
+            console.warn('Synthetic touch dispatch failed:', error);
+        }
+    }, []);
+
+    /**
      * Handle touch start - begin tracking for hold gesture
-     * Starts a timer that will enable dragging if hold threshold is reached
      */
     const onWidgetTouchStart = useCallback((e: React.TouchEvent, widgetId: string) => {
         // Only track single-finger touches
@@ -87,40 +134,71 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         if (dragReadyWidgetId === widgetId) return;
 
         const touch = e.touches[0];
+        const targetElement = e.currentTarget as HTMLElement;
 
         // Clear any existing timer
         if (touchStateRef.current?.timerId) {
             clearTimeout(touchStateRef.current.timerId);
         }
 
-        // Start hold timer - if it fires, user wants to drag
-        const timerId = setTimeout(() => {
-            setDragReadyWidgetId(widgetId);
-            // Timer fired, clear the ref but keep widgetId in state
-            if (touchStateRef.current) {
-                touchStateRef.current.timerId = null;
-            }
-        }, HOLD_THRESHOLD_MS);
-
-        // Store touch start state
+        // Store touch state with all needed properties for synthetic event
         touchStateRef.current = {
             startX: touch.clientX,
             startY: touch.clientY,
+            currentX: touch.clientX,
+            currentY: touch.clientY,
+            screenX: touch.screenX,
+            screenY: touch.screenY,
+            pageX: touch.pageX,
+            pageY: touch.pageY,
+            touchIdentifier: touch.identifier,
             widgetId,
-            timerId
+            targetElement,
+            timerId: null
         };
-    }, [dragReadyWidgetId]);
+
+        const timerId = setTimeout(() => {
+            if (touchStateRef.current && touchStateRef.current.widgetId === widgetId) {
+                setDragReadyWidgetId(widgetId);
+
+                // Dispatch synthetic touchstart so RGL can capture the drag
+                const state = touchStateRef.current;
+                dispatchSyntheticTouchStart(state.targetElement, {
+                    identifier: state.touchIdentifier,
+                    clientX: state.currentX,
+                    clientY: state.currentY,
+                    screenX: state.screenX,
+                    screenY: state.screenY,
+                    pageX: state.pageX,
+                    pageY: state.pageY,
+                });
+
+                state.timerId = null;
+            }
+        }, HOLD_THRESHOLD_MS);
+
+        touchStateRef.current.timerId = timerId;
+    }, [dragReadyWidgetId, dispatchSyntheticTouchStart]);
 
     /**
-     * Handle touch move - cancel hold if user moved too much (they're scrolling)
+     * Handle touch move - update current position and cancel hold if moved too much
      */
     const onWidgetTouchMove = useCallback((e: React.TouchEvent) => {
         if (!touchStateRef.current) return;
 
-        // If already drag-ready, don't cancel (let react-grid-layout handle the drag)
+        const touch = e.touches[0];
+
+        // Update current position (for synthetic event if threshold is reached)
+        touchStateRef.current.currentX = touch.clientX;
+        touchStateRef.current.currentY = touch.clientY;
+        touchStateRef.current.screenX = touch.screenX;
+        touchStateRef.current.screenY = touch.screenY;
+        touchStateRef.current.pageX = touch.pageX;
+        touchStateRef.current.pageY = touch.pageY;
+
+        // If already drag-ready, don't cancel (RGL is handling the drag)
         if (dragReadyWidgetId) return;
 
-        const touch = e.touches[0];
         const { startX, startY, timerId } = touchStateRef.current;
 
         // Calculate how far the finger has moved
@@ -136,35 +214,19 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     }, [dragReadyWidgetId]);
 
     /**
-     * Handle touch end - cleanup state and start auto-reset timer if widget is unlocked
+     * Handle touch end - cleanup state
      */
     const onWidgetTouchEnd = useCallback(() => {
-        // Clear hold detection timer if still running
         if (touchStateRef.current?.timerId) {
             clearTimeout(touchStateRef.current.timerId);
         }
-
-        // Reset touch tracking
         touchStateRef.current = null;
 
-        // If widget is drag-ready, start auto-reset timer
-        // This gives user time to re-touch the widget to drag it
-        if (dragReadyWidgetId) {
-            // Clear any existing auto-reset timer
-            if (autoResetTimerRef.current) {
-                clearTimeout(autoResetTimerRef.current);
-            }
-
-            // Start new auto-reset timer
-            autoResetTimerRef.current = setTimeout(() => {
-                setDragReadyWidgetId(null);
-                autoResetTimerRef.current = null;
-            }, AUTO_RESET_MS);
-        }
-    }, [dragReadyWidgetId]);
+        // Auto-reset is handled by global listener
+    }, []);
 
     /**
-     * Reset drag ready state - call after drag completes or is cancelled
+     * Reset drag ready state - call after drag completes
      */
     const resetDragReady = useCallback(() => {
         setDragReadyWidgetId(null);
