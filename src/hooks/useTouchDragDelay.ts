@@ -217,10 +217,9 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         // If this widget is already drag-ready, let the touch through to RGL
         if (dragReadyWidgetId === widgetId) return;
 
-        // CRITICAL: Stop this touch from reaching RGL and browser scroll
-        // We'll dispatch our own synthetic touch after hold threshold
+        // Stop this touch from reaching RGL during hold detection
+        // Note: scroll blocking is handled by native event listener (see useEffect above)
         e.stopPropagation();
-        e.preventDefault(); // Prevent browser scroll
 
         const touch = e.touches[0];
         const targetElement = e.currentTarget as HTMLElement;
@@ -295,9 +294,8 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         if (dragReadyWidgetId) return;
 
         // Block RGL from seeing this touch during hold period
-        // Also prevent browser scroll
+        // Note: scroll blocking is handled by native event listener (see useEffect above)
         e.stopPropagation();
-        e.preventDefault();
 
         const { startX, startY, timerId } = touchStateRef.current;
 
