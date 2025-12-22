@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
  * useTouchDragDelay - iOS-style hold-to-drag gesture detection
@@ -6,8 +6,10 @@ import { useState, useRef, useCallback } from 'react';
  * Tracks touch events to determine if user is scrolling vs. trying to drag.
  * After HOLD_THRESHOLD_MS without significant movement, enables dragging.
  * 
- * This allows quick swipes to scroll naturally, while holding a widget
- * for ~250ms triggers a visual "lift" animation and enables dragging.
+ * Two-phase approach:
+ * 1. User holds widget → widget "unlocks" with visual feedback
+ * 2. User releases, then touches again → RGL captures full drag
+ * 3. After AUTO_RESET_MS of inactivity, widget auto-locks
  * 
  * @returns Touch gesture state and handlers
  */
@@ -15,6 +17,7 @@ import { useState, useRef, useCallback } from 'react';
 // Configurable thresholds - can be adjusted based on user feedback
 const HOLD_THRESHOLD_MS = 250;  // Time to hold before drag is enabled
 const MOVE_THRESHOLD_PX = 10;   // Movement that cancels the hold (user is scrolling)
+const AUTO_RESET_MS = 3000;     // Auto-lock widget after this duration if not dragged
 
 interface TouchState {
     startX: number;
@@ -43,6 +46,32 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     // Track touch state for threshold detection
     const touchStateRef = useRef<TouchState | null>(null);
 
+    // Auto-reset timer ref
+    const autoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Auto-reset widget after timeout if not dragged
+    useEffect(() => {
+        if (dragReadyWidgetId) {
+            // Clear any existing auto-reset timer
+            if (autoResetTimerRef.current) {
+                clearTimeout(autoResetTimerRef.current);
+            }
+
+            // Start new auto-reset timer
+            autoResetTimerRef.current = setTimeout(() => {
+                setDragReadyWidgetId(null);
+                autoResetTimerRef.current = null;
+            }, AUTO_RESET_MS);
+
+            // Cleanup on unmount or when dragReadyWidgetId changes
+            return () => {
+                if (autoResetTimerRef.current) {
+                    clearTimeout(autoResetTimerRef.current);
+                }
+            };
+        }
+    }, [dragReadyWidgetId]);
+
     /**
      * Handle touch start - begin tracking for hold gesture
      * Starts a timer that will enable dragging if hold threshold is reached
@@ -50,6 +79,9 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     const onWidgetTouchStart = useCallback((e: React.TouchEvent, widgetId: string) => {
         // Only track single-finger touches
         if (e.touches.length !== 1) return;
+
+        // If this widget is already drag-ready, let the touch through to RGL
+        if (dragReadyWidgetId === widgetId) return;
 
         const touch = e.touches[0];
 
@@ -74,7 +106,7 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
             widgetId,
             timerId
         };
-    }, []);
+    }, [dragReadyWidgetId]);
 
     /**
      * Handle touch move - cancel hold if user moved too much (they're scrolling)
