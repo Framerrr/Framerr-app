@@ -194,35 +194,26 @@ const Dashboard = (): React.JSX.Element => {
 
         if (!visibilityChanged) return;
 
-        logger.debug('Visibility change detected', { breakpoint: currentBreakpoint, visibility: widgetVisibility });
-
         // Handle both breakpoints - same logic: preserve x/y/w, adjust height only
         const breakpointKey = currentBreakpoint === 'lg' ? 'lg' : 'sm';
         const currentLayouts = layouts[breakpointKey] || [];
-
-        logger.debug('Current layouts before visibility update', { breakpointKey, layoutCount: currentLayouts.length });
 
         const updatedLayouts = currentLayouts.map(layout => {
             const isHidden = widgetVisibility[layout.i] === false;
             const widget = widgets.find(w => w.id === layout.i);
             const originalHeight = widget?.layouts?.[breakpointKey]?.h ?? 2;
             const newHeight = isHidden ? 0.001 : originalHeight;
-
-            logger.debug('Layout update', { widgetId: layout.i, isHidden, originalHeight, newHeight });
-
             return {
                 ...layout,
                 h: newHeight
             };
         });
 
-        logger.debug('Setting updated layouts', { breakpointKey, layoutCount: updatedLayouts.length });
         setLayouts(prev => ({ ...prev, [breakpointKey]: updatedLayouts }));
     }, [widgetVisibility, currentBreakpoint, widgets, editMode]);
 
     // Handle widget visibility change - called by widgets like Plex when they have no content
     const handleWidgetVisibilityChange = (widgetId: string, isVisible: boolean): void => {
-        logger.debug('Widget visibility change callback', { widgetId, isVisible, currentBreakpoint });
         setWidgetVisibility(prev => ({
             ...prev,
             [widgetId]: isVisible
@@ -1069,6 +1060,7 @@ const Dashboard = (): React.JSX.Element => {
                     widgets={widgets}
                     mobileWidgets={mobileWidgets}
                     layouts={layouts}
+                    widgetVisibility={widgetVisibility}
                 />
             )}
 

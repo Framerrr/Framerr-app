@@ -29,6 +29,7 @@ interface DevDebugOverlayProps {
         lg: Array<{ i: string; x: number; y: number; w: number; h: number }>;
         sm: Array<{ i: string; x: number; y: number; w: number; h: number }>;
     };
+    widgetVisibility?: Record<string, boolean>;
 }
 
 interface Position {
@@ -49,7 +50,8 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
     isUserDragging,
     widgets,
     mobileWidgets,
-    layouts
+    layouts,
+    widgetVisibility = {}
 }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [position, setPosition] = useState<Position>(() => {
@@ -270,9 +272,18 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                                     >
                                         <span style={{ color: '#e0e0e0' }}>
                                             {idx + 1}. {widget.type}
+                                            <span style={{
+                                                marginLeft: '4px',
+                                                color: widgetVisibility[widget.id] === false ? '#f87171' : '#4ade80',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                {widgetVisibility[widget.id] === false ? '👁️‍🗨️' : '👁️'}
+                                            </span>
                                         </span>
-                                        <span style={{ color: '#888' }}>
-                                            sm.y:{smLayout?.y ?? '?'} lg.y:{lgLayout?.y ?? '?'}
+                                        <span style={{ color: '#888', fontSize: '9px' }}>
+                                            {currentBreakpoint === 'sm'
+                                                ? `h:${smLayout?.h?.toFixed(2) ?? '?'} y:${smLayout?.y ?? '?'}`
+                                                : `h:${lgLayout?.h?.toFixed(2) ?? '?'} y:${lgLayout?.y ?? '?'}`}
                                         </span>
                                     </div>
                                 );
