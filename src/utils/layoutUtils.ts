@@ -123,17 +123,14 @@ export const generateMobileLayout = (widgets: Widget[], breakpoint: MobileBreakp
 
 /**
  * Calculate appropriate widget height for mobile breakpoints
+ * For linked mode: preserves desktop (lg) height for consistency
  */
 const calculateMobileHeight = (widget: Widget, breakpoint: MobileBreakpoint): number => {
-    const metadata = getWidgetMetadata(widget.type);
-    if (metadata?.minSize?.h) {
-        return metadata.minSize.h;
-    }
+    // Use the desktop height directly for linked mode consistency
     const desktopHeight = widget.layouts?.lg?.h ?? (widget as any).h ?? 2;
-    const scaled = Math.ceil(desktopHeight * 0.75);
-    const min = 2;
-    const max = 6;
-    return Math.max(min, Math.min(max, scaled));
+
+    // Ensure height is at least 1 (minimum valid height)
+    return Math.max(1, desktopHeight);
 };
 
 /**
