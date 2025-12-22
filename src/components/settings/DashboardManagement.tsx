@@ -22,24 +22,41 @@ interface DashboardManagementProps {
 const DashboardManagement: React.FC<DashboardManagementProps> = ({ className = '' }) => {
     const { isMobile } = useLayout();
     const [mobileLayoutMode, setMobileLayoutMode] = useState<MobileLayoutMode>('linked');
+    const [widgetCount, setWidgetCount] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [showReconnectModal, setShowReconnectModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
 
     // Load current state
+    const loadDashboardState = async (): Promise<void> => {
+        try {
+            const response = await axios.get<{ mobileLayoutMode?: MobileLayoutMode; widgets?: unknown[] }>('/api/widgets');
+            setMobileLayoutMode(response.data.mobileLayoutMode || 'linked');
+            setWidgetCount(response.data.widgets?.length || 0);
+        } catch (error) {
+            logger.error('Failed to load dashboard state:', { error });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const loadDashboardState = async (): Promise<void> => {
-            try {
-                const response = await axios.get<{ mobileLayoutMode?: MobileLayoutMode }>('/api/widgets');
-                setMobileLayoutMode(response.data.mobileLayoutMode || 'linked');
-            } catch (error) {
-                logger.error('Failed to load dashboard state:', { error });
-            } finally {
-                setLoading(false);
-            }
-        };
         loadDashboardState();
+    }, []);
+
+    // Listen for dashboard updates to refresh state automatically
+    useEffect(() => {
+        const handleWidgetsUpdate = (): void => {
+            loadDashboardState();
+        };
+
+        window.addEventListener('widgets-added', handleWidgetsUpdate);
+        window.addEventListener('mobile-layout-mode-changed', handleWidgetsUpdate);
+        return () => {
+            window.removeEventListener('widgets-added', handleWidgetsUpdate);
+            window.removeEventListener('mobile-layout-mode-changed', handleWidgetsUpdate);
+        };
     }, []);
 
     const handleReconnect = async (): Promise<void> => {
@@ -98,8 +115,8 @@ const DashboardManagement: React.FC<DashboardManagementProps> = ({ className = '
                         </div>
                     </div>
                     <div className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${mobileLayoutMode === 'linked'
-                            ? 'bg-success/20 text-success'
-                            : 'bg-info/20 text-info'
+                        ? 'bg-success/20 text-success'
+                        : 'bg-info/20 text-info'
                         }`}>
                         {mobileLayoutMode === 'linked' ? 'Synced' : 'Custom'}
                     </div>
@@ -139,7 +156,7 @@ const DashboardManagement: React.FC<DashboardManagementProps> = ({ className = '
                             <Button
                                 variant="danger"
                                 onClick={() => setShowResetModal(true)}
-                                disabled={actionLoading}
+                                disabled={actionLoading || widgetCount === 0}
                             >
                                 Reset All Widgets
                             </Button>

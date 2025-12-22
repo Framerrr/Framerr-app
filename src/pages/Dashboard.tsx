@@ -522,6 +522,8 @@ const Dashboard = (): React.JSX.Element => {
                     setMobileWidgets(mobileWidgetsToSave);
                     setMobileOriginalLayout(JSON.parse(JSON.stringify(mobileWidgetsToSave)));
                     setPendingUnlink(false);
+                    // Notify Settings tab of mode change
+                    window.dispatchEvent(new CustomEvent('mobile-layout-mode-changed'));
                     logger.debug('Mobile dashboard unlinked and saved');
                 } else if (mobileLayoutMode === 'independent') {
                     // Already independent - just save mobile widgets
@@ -667,6 +669,8 @@ const Dashboard = (): React.JSX.Element => {
             });
 
             logger.debug('Reset to linked mode - regenerated from desktop');
+            // Notify Settings tab of mode change
+            window.dispatchEvent(new CustomEvent('mobile-layout-mode-changed'));
         } catch (error) {
             logger.error('Failed to reset:', { error });
         } finally {
@@ -714,11 +718,11 @@ const Dashboard = (): React.JSX.Element => {
             const newLgHeight = migratedWidget.layouts?.lg?.h ?? metadata.defaultSize.h;
             const newSmHeight = withLayouts.find(w => w.id === newWidgetId)?.layouts?.sm?.h ?? 2;
 
-            // Create layouts with new widget at y:0 and all existing widgets shifted down
+            // Create layouts with new widget at y:0, FULL WIDTH, and all existing widgets shifted down
             const lgLayouts = withLayouts.map(w => {
                 const item = createLgLayoutItem(w);
                 if (w.id === newWidgetId) {
-                    return { ...item, y: 0 }; // New widget at top
+                    return { ...item, x: 0, y: 0, w: 24 }; // New widget at top, full width
                 }
                 return { ...item, y: item.y + newLgHeight }; // Shift existing down
             });
@@ -726,7 +730,7 @@ const Dashboard = (): React.JSX.Element => {
             const smLayouts = withLayouts.map(w => {
                 const item = createSmLayoutItem(w);
                 if (w.id === newWidgetId) {
-                    return { ...item, y: 0 }; // New widget at top
+                    return { ...item, x: 0, y: 0, w: 2 }; // New widget at top, full width
                 }
                 return { ...item, y: item.y + newSmHeight }; // Shift existing down
             });
@@ -741,7 +745,8 @@ const Dashboard = (): React.JSX.Element => {
             setShowAddModal(false);
 
             // Trigger pending unlink if adding widget on mobile while linked
-            if ((isMobile || currentBreakpoint === 'sm') && mobileLayoutMode === 'linked') {
+            // BUT only if there are existing widgets (first widget on empty dashboard shouldn't trigger)
+            if ((isMobile || currentBreakpoint === 'sm') && mobileLayoutMode === 'linked' && widgets.length > 0) {
                 setPendingUnlink(true);
             }
 
