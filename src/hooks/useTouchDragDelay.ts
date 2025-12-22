@@ -58,6 +58,21 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     // Auto-reset timer ref
     const autoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Pending synthetic touch data - stored when hold threshold reached,
+    // dispatched by useEffect after React re-renders with isDraggable=true
+    const pendingSyntheticTouchRef = useRef<{
+        element: HTMLElement;
+        touchData: {
+            identifier: number;
+            clientX: number;
+            clientY: number;
+            screenX: number;
+            screenY: number;
+            pageX: number;
+            pageY: number;
+        };
+    } | null>(null);
+
     // Global touchend listener for auto-reset
     useEffect(() => {
         if (!dragReadyWidgetId) return;
@@ -74,6 +89,54 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
 
         window.addEventListener('touchend', handleGlobalTouchEnd);
         return () => window.removeEventListener('touchend', handleGlobalTouchEnd);
+    }, [dragReadyWidgetId]);
+
+    // Dispatch synthetic touch AFTER React renders with isDraggable=true
+    // This is the key to making one-motion hold-to-drag work:
+    // 1. Hold threshold reached → setDragReadyWidgetId + store pending touch
+    // 2. React re-renders with isDraggable=true
+    // 3. This useEffect runs and dispatches synthetic touch to RGL
+    // 4. RGL (now enabled) receives the touch and starts drag tracking
+    useEffect(() => {
+        if (dragReadyWidgetId && pendingSyntheticTouchRef.current) {
+            const { element, touchData } = pendingSyntheticTouchRef.current;
+
+            // Small delay to ensure DOM is fully updated
+            requestAnimationFrame(() => {
+                try {
+                    const syntheticTouch = new Touch({
+                        identifier: touchData.identifier,
+                        target: element,
+                        clientX: touchData.clientX,
+                        clientY: touchData.clientY,
+                        screenX: touchData.screenX,
+                        screenY: touchData.screenY,
+                        pageX: touchData.pageX,
+                        pageY: touchData.pageY,
+                        radiusX: 1,
+                        radiusY: 1,
+                        rotationAngle: 0,
+                        force: 1,
+                    });
+
+                    const syntheticEvent = new TouchEvent('touchstart', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        touches: [syntheticTouch],
+                        targetTouches: [syntheticTouch],
+                        changedTouches: [syntheticTouch],
+                    });
+
+                    element.dispatchEvent(syntheticEvent);
+                } catch (error) {
+                    console.warn('Synthetic touch dispatch failed:', error);
+                }
+            });
+
+            // Clear the pending touch
+            pendingSyntheticTouchRef.current = null;
+        }
     }, [dragReadyWidgetId]);
 
     /**
@@ -165,19 +228,24 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
 
         const timerId = setTimeout(() => {
             if (touchStateRef.current && touchStateRef.current.widgetId === widgetId) {
-                setDragReadyWidgetId(widgetId);
-
-                // Dispatch synthetic touchstart so RGL can capture the drag
+                // Store pending touch data for useEffect to dispatch after React re-renders
                 const state = touchStateRef.current;
-                dispatchSyntheticTouchStart(state.targetElement, {
-                    identifier: state.touchIdentifier,
-                    clientX: state.currentX,
-                    clientY: state.currentY,
-                    screenX: state.screenX,
-                    screenY: state.screenY,
-                    pageX: state.pageX,
-                    pageY: state.pageY,
-                });
+                pendingSyntheticTouchRef.current = {
+                    element: state.targetElement,
+                    touchData: {
+                        identifier: state.touchIdentifier,
+                        clientX: state.currentX,
+                        clientY: state.currentY,
+                        screenX: state.screenX,
+                        screenY: state.screenY,
+                        pageX: state.pageX,
+                        pageY: state.pageY,
+                    }
+                };
+
+                // Set drag-ready state - this triggers React re-render with isDraggable=true
+                // Then the useEffect will fire and dispatch the synthetic touch
+                setDragReadyWidgetId(widgetId);
 
                 state.timerId = null;
             }

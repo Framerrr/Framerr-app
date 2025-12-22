@@ -1001,10 +1001,10 @@ const Dashboard = (): React.JSX.Element => {
                         // FIX: compactType always 'vertical' - never toggles
                         compactType="vertical"
                         preventCollision={false}
-                        // On mobile: keep isDraggable=true so RGL can receive synthetic touchstart
-                        // Our hold detection + synthetic event handles the scroll vs drag decision
+                        // On mobile: only allow drag when touch hold threshold is reached
+                        // This requires tap-unlock-drag pattern (two-phase)
                         // On desktop: allow drag immediately (no touch delay needed)
-                        isDraggable={editMode && isGlobalDragEnabled}
+                        isDraggable={editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId !== null)}
                         isResizable={editMode && isGlobalDragEnabled}
                         resizeHandles={isMobile ? ['s'] : ['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
                         draggableCancel=".no-drag"
