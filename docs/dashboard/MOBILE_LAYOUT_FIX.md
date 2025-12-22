@@ -889,33 +889,73 @@ const [layouts, setLayouts] = useState<{ lg: Layout[], sm: Layout[] }>({ lg: [],
 
 ## Implementation Checklist
 
-- [ ] **Phase 1: Core Fixes**
-  - [ ] compactType always 'vertical'
-  - [ ] Remove layout sorting in render
-  - [ ] Remove widget sorting conditional
-  - [ ] Remove manual recompaction
-  - [ ] Separate order calculation from position application
+**Last Updated:** 2025-12-22
 
-- [ ] **Phase 2: Breakpoint Handling**
-  - [ ] Add breakpoint switch modal
-  - [ ] Implement blur effect during modal
-  - [ ] Track edited breakpoints
+- [x] **Phase 1: Core Fixes** ✅ COMPLETE
+  - [x] compactType always 'vertical'
+  - [x] Remove layout sorting in render (pass layouts as-is)
+  - [x] Widget sorting uses layouts.sm state during edit mode
+  - [x] Remove manual recompaction (use onDragStop/onResizeStop)
+  - [x] Deterministic sort with ID tiebreaker in layoutUtils.ts
+  - [x] data-grid uses correct breakpoint layout (not hardcoded lg)
+  - [x] Height preservation - mobile uses desktop height in linked mode
 
-- [ ] **Phase 3: Order Injection**
-  - [ ] Fix fetchWidgets for independent mode
-  - [ ] Real-time band detection during edit
-  - [ ] Tentative state management
+- [x] **Phase 2: Breakpoint Handling** ✅ MOSTLY COMPLETE
+  - [x] handleBreakpointChange restores independent layouts on resize
+  - [x] Track current breakpoint state
+  - [ ] Add breakpoint switch modal (optional polish)
+  - [ ] Implement blur effect during modal (optional polish)
 
-- [ ] **Phase 4: Save Flow**
-  - [ ] Unlink confirmation modal
-  - [ ] Proper save to correct endpoint
-  - [ ] Rollback on failure
+- [x] **Phase 3: Order Injection** ✅ COMPLETE
+  - [x] fetchWidgets uses stored layouts for independent mode
+  - [x] Band detection only runs for linked mode
+  - [x] Order correctly applied visually via data-grid fix
 
-- [ ] **Phase 5: Polish**
+- [/] **Phase 4: Save Flow** - PARTIAL
+  - [x] Save to localStorage (dev dashboard isolation)
+  - [x] pendingUnlink state management
+  - [ ] Unlink confirmation modal (exists but may need polish)
+  - [ ] Rollback on failure (basic exists)
+
+- [ ] **Phase 5: Polish** - NOT STARTED
   - [ ] Drag animation smoothness
   - [ ] Touch delay for mobile
   - [ ] Backup system (1 version)
+  - [ ] Port fixes to production Dashboard.tsx
 
+---
 
+## Session Notes (2025-12-22)
 
+### Key Fixes Applied to DevDashboard.tsx
 
+1. **Deterministic Sort** (`layoutUtils.ts`)
+   - Added widget ID as tiebreaker for consistent order across browsers
+
+2. **Snap-Back Prevention** (`DevDashboard.tsx`)
+   - Moved state updates from `onLayoutChange` to `onDragStop`/`onResizeStop`
+   - `onLayoutChange` now only sets `hasUnsavedChanges` flag
+
+3. **Independent Mode Persistence** (`DevDashboard.tsx`)
+   - Added `handleBreakpointChange` to restore `mobileWidgets` layouts on resize
+
+4. **Visual Order Application** (`DevDashboard.tsx`)
+   - Fixed `data-grid` to use current breakpoint layout instead of always `lg`
+
+5. **Height Preservation** (`layoutUtils.ts`)
+   - Changed `calculateMobileHeight` to use desktop height directly
+
+### Files Modified
+
+| File | Status |
+|------|--------|
+| `src/pages/DevDashboard.tsx` | Primary beta dashboard with all fixes |
+| `src/utils/layoutUtils.ts` | Deterministic sort, height preservation |
+| `src/components/dev/DevDebugOverlay.tsx` | Header-only drag, text selection |
+
+### Next Steps for Production
+
+1. Thoroughly test DevDashboard in linked and independent modes
+2. Port working fixes to production `Dashboard.tsx`
+3. Remove `/dev/dashboard` route when complete
+4. Consider adding breakpoint switch modal for polish

@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-21 23:57 EST  
+**Last Updated:** 2025-12-22 01:35 EST  
 **Branch:** `feature/mobile-dashboard-editing`
 
 ---
@@ -18,62 +18,65 @@
 
 ## Current State
 
-**Status:** 📋 Architecture Complete - Ready for Implementation
+**Status:** ✅ Phase 1 Complete - DevDashboard Working
 
 **Feature Branch:** `feature/mobile-dashboard-editing`
 
-**Key Document:** `docs/dashboard/MOBILE_LAYOUT_FIX.md` - **READ THIS FIRST**
+**Key Document:** `docs/dashboard/MOBILE_LAYOUT_FIX.md` - Updated with session notes
 
-This 12-part document contains:
-1. Big Picture User Flow
-2. React-Grid-Layout Deep Dive
-3. Single Source of Truth Solution
-4. Linked vs Unlinked State Machine
-5. Save Logic
-6. Code Changes Needed
-7. Testing Requirements
-8. Breakpoint Transitions
-9. Package Evaluation
-10. Order Injection Strategy
-11. Clarified Behaviors (Q&A Summary)
-12. Architecture Summary + Implementation Checklist
+All Phase 1 Core Fixes have been implemented in `DevDashboard.tsx` (beta version).
+The fixes are working and ready for testing before port to production.
 
 ---
 
-## What Was Built (Previous Sessions)
+## Completed This Session
 
-### Backend ✅
-- `server/db/userConfig.ts` - Added `mobileLayoutMode`, `mobileWidgets`
-- `server/routes/widgets.ts` - Added `/unlink`, `/reconnect` endpoints
+### 5 Key Fixes Applied ✅
 
-### Frontend Components ✅
-- `MobileEditDisclaimerModal.tsx` - Shows on mobile edit entry
-- `UnlinkConfirmationModal.tsx` - Confirms before unlink
-- `DashboardManagement.tsx` - Settings UI for layout management
+1. **Deterministic Sort** (`layoutUtils.ts`)
+   - Added widget ID as tiebreaker to prevent inconsistent order across browsers
 
-### Frontend Layout Logic ❌ Needs Refactoring
-- Dashboard.tsx has conflicting systems that need cleanup
+2. **Snap-Back Prevention** (`DevDashboard.tsx`)
+   - Moved layout updates to `onDragStop`/`onResizeStop` instead of `onLayoutChange`
+
+3. **Independent Mode Persistence** (`DevDashboard.tsx`)
+   - Added `handleBreakpointChange` to restore `mobileWidgets` on viewport resize
+
+4. **Visual Order Application** (`DevDashboard.tsx`)
+   - Fixed `data-grid` to use current breakpoint layout (was hardcoded to `lg`)
+
+5. **Height Preservation** (`layoutUtils.ts`)
+   - Changed `calculateMobileHeight` to use desktop height for linked mode consistency
 
 ---
 
-## Next Step (Critical Read Before Starting)
+## Next Step
 
-**READ `docs/dashboard/MOBILE_LAYOUT_FIX.md` COMPLETELY**
+**Test DevDashboard thoroughly, then port fixes to production Dashboard.tsx**
 
-Then implement Phase 1 from the implementation checklist:
+1. Test `/dev/dashboard` on mobile and desktop:
+   - Linked mode: drag/drop, order preservation, breakpoint switching
+   - Independent mode: save, cancel, persistence across resize
 
-### Phase 1: Core Fixes
-- [ ] `compactType` always `'vertical'` (line 1138)
-- [ ] Remove layout sorting in render (line 1146)
-- [ ] Remove widget sorting conditional (lines 1150-1152)
-- [ ] Remove manual recompaction in `handleLayoutChange`
-- [ ] Separate order calculation from position application in `layoutUtils.ts`
+2. When confirmed working, port to `Dashboard.tsx`:
+   - Copy `handleDragResizeStop`, `handleBreakpointChange` handlers
+   - Update `data-grid` to use current breakpoint layout
+   - Update `getDisplayWidgets` to use `layouts.sm` during edit
 
-### Key Principles (From Architecture Doc)
-- **Cascade down, never up** - Desktop→Mobile only
-- **Tentative until save** - Link only breaks on save+confirm
-- **Widgets never hide** - Show "integration disabled" message
-- **compactType: 'vertical' always** - Never toggle
+3. Optional polish:
+   - Add breakpoint switch modal
+   - Touch delay for mobile drag
+
+---
+
+## Files Modified This Session
+
+| File | Changes |
+|------|---------|
+| `src/pages/DevDashboard.tsx` | All 5 fixes |
+| `src/utils/layoutUtils.ts` | Deterministic sort, height preservation |
+| `src/components/dev/DevDebugOverlay.tsx` | Header-only drag, text selection |
+| `docs/dashboard/MOBILE_LAYOUT_FIX.md` | Updated checklist, session notes |
 
 ---
 
@@ -81,22 +84,11 @@ Then implement Phase 1 from the implementation checklist:
 
 | Document | Purpose |
 |----------|---------|
-| `docs/dashboard/MOBILE_LAYOUT_FIX.md` | **PRIMARY** - Complete architecture |
-| `docs/dashboard/IMPLEMENTATION_PLAN.md` | Original 6-phase rollout plan |
-| `docs/dashboard/ALGORITHM_DEEP_DIVE.md` | Band detection algorithm |
+| `docs/dashboard/MOBILE_LAYOUT_FIX.md` | **PRIMARY** - Architecture + completed checklist |
 | `docs/dashboard/README.md` | Dashboard docs index |
-
----
-
-## Files to Modify
-
-| File | What to Change |
-|------|----------------|
-| `src/pages/Dashboard.tsx` | Core layout handling refactor |
-| `src/utils/layoutUtils.ts` | Separate order calc from position apply |
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-21 23:57 EST
+Session ended: 2025-12-22 01:35 EST
