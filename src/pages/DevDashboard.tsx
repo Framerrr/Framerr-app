@@ -396,6 +396,20 @@ const DevDashboard = (): React.JSX.Element => {
         }
     };
 
+    // Handle breakpoint change - restore independent layouts when switching to mobile
+    const handleBreakpointChange = (newBreakpoint: string): void => {
+        setCurrentBreakpoint(newBreakpoint as Breakpoint);
+
+        // When switching to mobile (sm) and in independent mode, use mobileWidgets layouts
+        if (newBreakpoint === 'sm' && mobileLayoutMode === 'independent' && mobileWidgets.length > 0) {
+            setLayouts(prev => ({
+                ...prev,
+                sm: mobileWidgets.map(w => createSmLayoutItem(w))
+            }));
+            logger.debug('Restored independent mobile layouts on breakpoint change');
+        }
+    };
+
     // Save handler
     const handleSave = async (): Promise<void> => {
         if (isMobile && pendingUnlink && mobileLayoutMode === 'linked') {
@@ -864,7 +878,7 @@ const DevDashboard = (): React.JSX.Element => {
                         onLayoutChange={handleLayoutChange}
                         onDragStop={handleDragResizeStop}
                         onResizeStop={handleDragResizeStop}
-                        onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint as Breakpoint)}
+                        onBreakpointChange={handleBreakpointChange}
                     >
                         {/* FIX: Always render in consistent order */}
                         {getDisplayWidgets().map(widget => {
