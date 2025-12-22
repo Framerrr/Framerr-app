@@ -147,14 +147,12 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                 fontSize: '11px',
                 color: '#fff',
                 overflow: 'hidden',
-                cursor: isDragging ? 'grabbing' : 'default',
-                userSelect: 'none',
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)'
             }}
-            onMouseDown={handleMouseDown}
         >
-            {/* Header - always visible */}
+            {/* Header - DRAGGABLE */}
             <div
+                onMouseDown={handleMouseDown}
                 style={{
                     padding: '8px 12px',
                     borderBottom: isCollapsed ? 'none' : '1px solid #333',
@@ -162,7 +160,8 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    cursor: 'grab'
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                    userSelect: 'none'
                 }}
             >
                 <span style={{ fontWeight: 'bold', color: '#60a5fa' }}>🔧 Dev Dashboard</span>
@@ -182,9 +181,9 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                 </button>
             </div>
 
-            {/* Content - collapsible */}
+            {/* Content - collapsible, selectable for copying */}
             {!isCollapsed && (
-                <div style={{ padding: '8px 12px', overflowY: 'auto', maxHeight: '350px' }}>
+                <div style={{ padding: '8px 12px', overflowY: 'auto', maxHeight: '350px', userSelect: 'text', cursor: 'text' }}>
                     {/* State section */}
                     <div style={{ marginBottom: '12px' }}>
                         <div style={{ marginBottom: '4px' }}>
