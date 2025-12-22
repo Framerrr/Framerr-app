@@ -920,11 +920,11 @@ const [layouts, setLayouts] = useState<{ lg: Layout[], sm: Layout[] }>({ lg: [],
   - [x] Save logic handles pendingUnlink from any breakpoint
   - [x] Rollback on failure (basic exists)
 
-- [ ] **Phase 5: Polish** - NOT STARTED
+- [/] **Phase 5: Polish** - IN PROGRESS
   - [ ] Drag animation smoothness
   - [ ] Touch delay for mobile
   - [ ] Backup system (1 version)
-  - [ ] **Port fixes to production Dashboard.tsx** ← NEXT MAJOR TASK
+  - [x] **Port fixes to production Dashboard.tsx** ✅ COMPLETE
 
 ---
 
