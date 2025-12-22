@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Dashboard from './Dashboard';
+import DevDashboard from './DevDashboard';
 import TabContainer from './TabContainer';
 import { useLayout } from '../context/LayoutContext';
 import { LAYOUT } from '../constants/layout';
@@ -9,10 +10,19 @@ const DashboardOrTabs = (): React.JSX.Element => {
     const location = useLocation();
     const { isMobile } = useLayout();
     const [showTabs, setShowTabs] = useState<boolean>(false);
+    const [showDevDashboard, setShowDevDashboard] = useState<boolean>(false);
 
     useEffect(() => {
         const checkHash = (): void => {
             const hash = window.location.hash.slice(1); // Remove '#'
+
+            // Check for dev dashboard
+            if (hash === 'dev/dashboard' || hash.startsWith('dev/dashboard?')) {
+                setShowDevDashboard(true);
+                setShowTabs(false);
+                return;
+            }
+            setShowDevDashboard(false);
 
             // Auto-redirect root with no hash to /#dashboard
             if (!hash && location.pathname === '/') {
@@ -42,8 +52,18 @@ const DashboardOrTabs = (): React.JSX.Element => {
     // Dashboard has its own scroll, TabContainer iframes have internal scroll
     return (
         <>
+            {/* Dev Dashboard - Beta testing */}
+            {showDevDashboard && (
+                <div style={{
+                    display: 'flex',
+                    height: '100%',
+                    width: '100%',
+                }}>
+                    <DevDashboard />
+                </div>
+            )}
             <div style={{
-                display: showTabs ? 'none' : 'flex',
+                display: showTabs || showDevDashboard ? 'none' : 'flex',
                 height: '100%',
                 width: '100%',
                 // NOTE: No overflow here - MainContent handles scrolling
