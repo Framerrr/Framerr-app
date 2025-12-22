@@ -883,7 +883,9 @@ const DevDashboard = (): React.JSX.Element => {
                         {/* FIX: Always render in consistent order */}
                         {getDisplayWidgets().map(widget => {
                             const metadata = getWidgetMetadata(widget.type);
-                            const layoutItem = layouts.lg.find(l => l.i === widget.id) || {
+                            // Use correct breakpoint layout based on current state
+                            const currentBpLayouts = (isMobile || currentBreakpoint === 'sm') ? layouts.sm : layouts.lg;
+                            const layoutItem = currentBpLayouts.find(l => l.i === widget.id) || {
                                 i: widget.id,
                                 x: widget.layouts?.lg?.x || 0,
                                 y: widget.layouts?.lg?.y || 0,
