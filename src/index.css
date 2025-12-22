@@ -10,38 +10,35 @@
 @import './styles/animations.css';
 
 /* 
- * iOS Safari Scroll Lock Pattern (December 2024)
+ * iOS Safari Safe Area Pattern (iOS 26.2 Fix)
+ * Based on Seerr/Jellyseerr's proven implementation.
  * 
- * REMOVED (iOS Safari ignores these):
- * - overscroll-behavior: none/contain - NOT SUPPORTED in Safari (WebKit Bug #176454)
- * - safe-area padding on body - conflicts with dvh, scroll containers
- * - overflow-x: hidden alone - doesn't prevent viewport shift
- *
- * THE FIX: Lock html/body with position:fixed, let App.jsx handle scroll
+ * Key insight: Apply safe area padding to html element, not body.
+ * This allows the background to naturally fill the entire viewport
+ * including safe areas (home indicator region).
  */
-html,
+html {
+    /* Safe area handling - pushes content inward, background fills viewport */
+    min-height: calc(100% + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background-color: var(--bg-primary);
+
+    /* Scroll containment at html level */
+    overflow: hidden;
+
+    /* Prevent pinch zoom */
+    touch-action: manipulation;
+}
+
 body {
-    /* Core styles */
     font-family: var(--font-primary);
     background-color: var(--bg-primary);
     color: var(--text-primary);
 
-    /* Explicit sizing for height inheritance */
-    width: 100%;
     height: 100%;
+    margin: 0;
 
-    /* iOS Safari Scroll Lock - THIS IS THE FIX */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-
-    /* Prevent pinch zoom (belt-and-suspenders with viewport meta) */
-    touch-action: manipulation;
-
-    /* Momentum scrolling for child scroll containers */
+    /* Momentum scrolling for child containers */
     -webkit-overflow-scrolling: touch;
 }
 
