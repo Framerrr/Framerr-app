@@ -143,6 +143,7 @@ const Dashboard = (): React.JSX.Element => {
     const [showUnlinkConfirmation, setShowUnlinkConfirmation] = useState<boolean>(false);
     const [mobileDisclaimerDismissed, setMobileDisclaimerDismissed] = useState<boolean>(false);
     const [pendingUnlink, setPendingUnlink] = useState<boolean>(false);
+    const [isUserDragging, setIsUserDragging] = useState<boolean>(false);
 
     // Check if current user is admin
     const userIsAdmin = isAdmin(user);
@@ -545,11 +546,25 @@ const Dashboard = (): React.JSX.Element => {
         }
     };
 
+    // Handle drag/resize start - marks that user is actively interacting
+    // This prevents breakpoint changes from triggering pendingUnlink
+    const handleDragStart = (): void => {
+        setIsUserDragging(true);
+    };
+
+    const handleResizeStart = (): void => {
+        setIsUserDragging(true);
+    };
+
     // Handle layout changes (drag/resize)
     const handleLayoutChange = (newLayout: Layout[]): void => {
         if (!editMode) return;
 
-        // Mark as having unsaved changes immediately (for all breakpoints)
+        // Only process if user is actively dragging/resizing
+        // This prevents breakpoint changes from triggering false unsaved state
+        if (!isUserDragging) return;
+
+        // Mark as having unsaved changes
         setHasUnsavedChanges(true);
 
         // Mobile editing - handle separately
@@ -619,6 +634,9 @@ const Dashboard = (): React.JSX.Element => {
                 ...prev,
                 sm: recompactedLayout as GridLayoutItem[]
             }));
+
+            // Reset user dragging flag
+            setIsUserDragging(false);
             return;
         }
 
@@ -665,12 +683,15 @@ const Dashboard = (): React.JSX.Element => {
                 ? mobileWidgets.map(w => ({ i: w.id, ...w.layouts!.sm! }))
                 : withMobileLayouts.map(w => ({ i: w.id, ...w.layouts!.sm! }))
         });
+
+        // Reset user dragging flag
+        setIsUserDragging(false);
     };
 
-    // Save changes to API
+    // Save changes to API - check pendingUnlink regardless of current viewport
+    // User may have made mobile edits, then resized back to desktop before saving
     const handleSave = async (): Promise<void> => {
-        // If on mobile and pending unlink, show confirmation modal first
-        if (isMobile && pendingUnlink && mobileLayoutMode === 'linked') {
+        if (pendingUnlink && mobileLayoutMode === 'linked') {
             setShowUnlinkConfirmation(true);
             return;
         }
@@ -683,9 +704,9 @@ const Dashboard = (): React.JSX.Element => {
         try {
             setSaving(true);
 
-            // Determine what to save based on mode and device
-            if (isMobile && (pendingUnlink || mobileLayoutMode === 'independent')) {
-                // Mobile save - need to unlink or update mobile widgets
+            // Check pendingUnlink OR if on mobile with independent mode
+            // pendingUnlink means mobile edits were made during this session
+            if (pendingUnlink || (isMobile && mobileLayoutMode === 'independent')) {
                 if (pendingUnlink && mobileLayoutMode === 'linked') {
                     // Perform unlink - copy widgets to mobile and set mode
                     const mobileWidgetsToSave = widgets.map(w => ({
@@ -708,7 +729,7 @@ const Dashboard = (): React.JSX.Element => {
                     setPendingUnlink(false);
 
                     logger.debug('Mobile dashboard unlinked and saved');
-                } else {
+                } else if (mobileLayoutMode === 'independent') {
                     // Already independent - just save mobile widgets
                     await axios.put('/api/widgets', {
                         widgets: widgets,
@@ -720,7 +741,7 @@ const Dashboard = (): React.JSX.Element => {
                     logger.debug('Independent mobile widgets saved');
                 }
             } else {
-                // Desktop save
+                // Desktop save (no mobile changes)
                 await axios.put('/api/widgets', {
                     widgets,
                     mobileLayoutMode,
@@ -1145,6 +1166,8 @@ const Dashboard = (): React.JSX.Element => {
                             containerPadding={[0, 0]}
                             layouts={isMobile ? { sm: [...layouts.sm].sort((a, b) => a.y - b.y) } : layouts}
                             onLayoutChange={handleLayoutChange}
+                            onDragStart={handleDragStart}
+                            onResizeStart={handleResizeStart}
                             onBreakpointChange={(breakpoint) => setCurrentBreakpoint(breakpoint as Breakpoint)}
                         >
                             {(isMobile && editMode
