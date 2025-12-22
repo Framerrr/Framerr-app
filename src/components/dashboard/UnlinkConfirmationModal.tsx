@@ -20,12 +20,12 @@ const UnlinkConfirmationModal: React.FC<UnlinkConfirmationModalProps> = ({
         <Modal isOpen={isOpen} onClose={onCancel} title="Save Custom Mobile Layout?" size="sm">
             <div className="space-y-4">
                 <p className="text-theme-secondary">
-                    Your mobile dashboard will become independent from desktop.
-                    Changes on one device will not affect the other.
+                    Your mobile layout will become independent from desktop.
+                    Changes made at one breakpoint will not affect the other.
                 </p>
 
                 <p className="text-sm text-theme-tertiary">
-                    You can reconnect to desktop anytime in Settings.
+                    You can re-link to desktop anytime from Edit mode.
                 </p>
 
                 <div className="flex gap-3 justify-end pt-4 border-t border-theme">

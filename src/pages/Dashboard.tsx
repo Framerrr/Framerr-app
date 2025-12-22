@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw } from 'lucide-react';
+import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -14,6 +14,7 @@ import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layou
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import MobileEditDisclaimerModal from '../components/dashboard/MobileEditDisclaimerModal';
 import UnlinkConfirmationModal from '../components/dashboard/UnlinkConfirmationModal';
+import RelinkConfirmationModal from '../components/dashboard/RelinkConfirmationModal';
 import DevDebugOverlay from '../components/dev/DevDebugOverlay';
 import { isAdmin } from '../utils/permissions';
 import axios from 'axios';
@@ -117,6 +118,7 @@ const Dashboard = (): React.JSX.Element => {
     const [mobileOriginalLayout, setMobileOriginalLayout] = useState<Widget[]>([]);
     const [showMobileDisclaimer, setShowMobileDisclaimer] = useState<boolean>(false);
     const [showUnlinkConfirmation, setShowUnlinkConfirmation] = useState<boolean>(false);
+    const [showRelinkConfirmation, setShowRelinkConfirmation] = useState<boolean>(false);
     const [mobileDisclaimerDismissed, setMobileDisclaimerDismissed] = useState<boolean>(false);
     const [pendingUnlink, setPendingUnlink] = useState<boolean>(false);
     const [isUserDragging, setIsUserDragging] = useState<boolean>(false);
@@ -125,6 +127,7 @@ const Dashboard = (): React.JSX.Element => {
     const [showAddModal, setShowAddModal] = useState<boolean>(false);
     const [integrations, setIntegrations] = useState<Record<string, IntegrationConfig>>({});
     const [sharedIntegrations, setSharedIntegrations] = useState<SharedIntegration[]>([]);
+    const [widgetVisibility, setWidgetVisibility] = useState<Record<string, boolean>>({}); // Track widget visibility: {widgetId: boolean}
     const [greetingEnabled] = useState<boolean>(true);
     const [greetingText] = useState<string>('Your personal dashboard');
 
@@ -145,6 +148,66 @@ const Dashboard = (): React.JSX.Element => {
         loadUserPreferences();
         loadDebugOverlaySetting();
     }, []);
+
+    // Dynamically recompact mobile layouts when widget visibility changes
+    // Skip when in edit mode - user is manually arranging widgets
+    const prevVisibilityRef = React.useRef<Record<string, boolean>>({});
+    useEffect(() => {
+        if (!widgets.length) return;
+        if (editMode) return; // Don't auto-recompact during manual editing
+
+        // Only recompact if visibility actually changed (not just editMode or widgets)
+        const visibilityChanged = Object.keys(widgetVisibility).some(
+            key => widgetVisibility[key] !== prevVisibilityRef.current[key]
+        ) || Object.keys(prevVisibilityRef.current).some(
+            key => prevVisibilityRef.current[key] !== widgetVisibility[key]
+        );
+
+        // Update ref for next comparison (always update, even if we don't recompact)
+        prevVisibilityRef.current = { ...widgetVisibility };
+
+        if (!visibilityChanged) return; // Don't recompact if only editMode changed
+
+        // Only run for breakpoints that use sorted stacked layouts (not lg)
+        const isSorted = currentBreakpoint !== 'lg';
+        if (!isSorted) return;
+
+        logger.debug('Visibility recompaction triggered', { breakpoint: currentBreakpoint });
+
+        // Determine column count for current breakpoint
+        const cols = currentBreakpoint === 'sm' ? 2 : 24;
+        const breakpoint = currentBreakpoint;
+
+        // Get widgets in sorted order with current layouts
+        let currentY = 0;
+        const compactedLayouts: GridLayoutItem[] = widgets
+            .map(w => ({
+                widget: w,
+                layout: w.layouts?.[breakpoint] || layouts[breakpoint]?.find(l => l.i === w.id),
+                isHidden: widgetVisibility[w.id] === false
+            }))
+            .filter(item => item.layout)
+            .sort((a, b) => (a.layout?.y ?? 0) - (b.layout?.y ?? 0))
+            .map(({ widget, layout, isHidden }) => {
+                const height = isHidden ? 0.001 : (layout?.h ?? 2);
+                const compacted: GridLayoutItem = { i: widget.id, x: 0, y: currentY, w: cols, h: height };
+                currentY += height;
+                return compacted;
+            });
+
+        setLayouts(prev => ({
+            ...prev,
+            [breakpoint]: compactedLayouts
+        }));
+    }, [widgetVisibility, currentBreakpoint, widgets, editMode]);
+
+    // Handle widget visibility change - called by widgets like Plex when they have no content
+    const handleWidgetVisibilityChange = (widgetId: string, isVisible: boolean): void => {
+        setWidgetVisibility(prev => ({
+            ...prev,
+            [widgetId]: isVisible
+        }));
+    };
 
     const loadUserPreferences = async (): Promise<void> => {
         try {
@@ -558,12 +621,8 @@ const Dashboard = (): React.JSX.Element => {
         setHasUnsavedChanges(true);
     };
 
-    // Reset to linked mode - DEBUG: forces linked state and saves to API
+    // Reset to linked mode - restores synchronization from desktop
     const handleResetMobileLayout = async (): Promise<void> => {
-        if (!confirm('Reset to LINKED mode? This will regenerate mobile layouts from desktop.')) {
-            return;
-        }
-
         try {
             setLoading(true);
 
@@ -623,7 +682,7 @@ const Dashboard = (): React.JSX.Element => {
                 i: `widget-${Date.now()}`,
                 type: widgetType,
                 x: 0,
-                y: Infinity,
+                y: 0, // Add to TOP of page, not bottom
                 w: metadata.defaultSize.w,
                 h: metadata.defaultSize.h,
                 config: {
@@ -647,6 +706,11 @@ const Dashboard = (): React.JSX.Element => {
 
             setHasUnsavedChanges(true);
             setShowAddModal(false);
+
+            // Trigger pending unlink if adding widget on mobile while linked
+            if ((isMobile || currentBreakpoint === 'sm') && mobileLayoutMode === 'linked') {
+                setPendingUnlink(true);
+            }
 
             if (!editMode) {
                 setEditMode(true);
@@ -720,7 +784,7 @@ const Dashboard = (): React.JSX.Element => {
                             config={widget.config}
                             editMode={editMode}
                             widgetId={widget.id}
-                            onVisibilityChange={() => { }}
+                            onVisibilityChange={(isVisible: boolean) => handleWidgetVisibilityChange(widget.id, isVisible)}
                             setGlobalDragEnabled={setGlobalDragEnabled}
                         />
                     </Suspense>
@@ -786,39 +850,30 @@ const Dashboard = (): React.JSX.Element => {
             <header className="mb-8 flex items-center justify-between">
                 <div>
                     <h1 className="text-4xl font-bold mb-2 gradient-text">
-                        Dev Dashboard (Beta)
+                        Welcome back, {user?.displayName || user?.username || 'User'}
                     </h1>
                     <p className="text-lg text-slate-400">
                         {editMode ? 'Editing mode - Drag to rearrange widgets' : greetingText}
                     </p>
-                    {/* Mode indicator */}
-                    <div className="flex items-center gap-2 mt-2">
-                        <span
-                            className="text-xs px-2 py-1 rounded"
-                            style={{
-                                backgroundColor: mobileLayoutMode === 'linked' ? '#3b82f680' : '#22c55e80',
-                                color: '#fff'
-                            }}
-                        >
-                            {mobileLayoutMode.toUpperCase()}
-                        </span>
-                        {pendingUnlink && (
-                            <span className="text-xs px-2 py-1 rounded bg-orange-500/50 text-white">
-                                PENDING UNLINK
-                            </span>
-                        )}
-                        {/* Reset button for testing */}
-                        {mobileLayoutMode === 'independent' && !editMode && (
-                            <button
-                                onClick={handleResetMobileLayout}
-                                className="text-xs px-2 py-1 rounded bg-red-500/50 hover:bg-red-500/70 text-white flex items-center gap-1"
-                                title="Reset to linked mode"
+                    {/* Debug mode indicator - only visible when debug overlay enabled */}
+                    {debugOverlayEnabled && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span
+                                className="text-xs px-2 py-1 rounded"
+                                style={{
+                                    backgroundColor: mobileLayoutMode === 'linked' ? '#3b82f680' : '#22c55e80',
+                                    color: '#fff'
+                                }}
                             >
-                                <RotateCcw size={12} />
-                                Reset
-                            </button>
-                        )}
-                    </div>
+                                {mobileLayoutMode.toUpperCase()}
+                            </span>
+                            {pendingUnlink && (
+                                <span className="text-xs px-2 py-1 rounded bg-orange-500/50 text-white">
+                                    PENDING UNLINK
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -831,6 +886,17 @@ const Dashboard = (): React.JSX.Element => {
                                 <Plus size={16} />
                                 <span className="hidden sm:inline">Add</span>
                             </button>
+                            {/* Re-link button - only when mobile is independent */}
+                            {mobileLayoutMode === 'independent' && (
+                                <button
+                                    onClick={() => setShowRelinkConfirmation(true)}
+                                    className="px-3 py-2 text-sm font-medium bg-theme-tertiary hover:bg-theme-hover border border-theme text-theme-secondary hover:text-theme-primary rounded-lg transition-colors flex items-center gap-2"
+                                    title="Re-link mobile layout to desktop"
+                                >
+                                    <Link size={16} />
+                                    <span className="hidden sm:inline">Re-link</span>
+                                </button>
+                            )}
                             <button
                                 onClick={handleSave}
                                 disabled={saving || !hasUnsavedChanges}
@@ -987,6 +1053,16 @@ const Dashboard = (): React.JSX.Element => {
                 isOpen={showUnlinkConfirmation}
                 onConfirm={performSave}
                 onCancel={() => setShowUnlinkConfirmation(false)}
+            />
+
+            {/* Relink Confirmation Modal */}
+            <RelinkConfirmationModal
+                isOpen={showRelinkConfirmation}
+                onConfirm={async () => {
+                    setShowRelinkConfirmation(false);
+                    await handleResetMobileLayout();
+                }}
+                onCancel={() => setShowRelinkConfirmation(false)}
             />
 
             {/* Bottom Spacer */}
