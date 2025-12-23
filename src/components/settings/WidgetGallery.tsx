@@ -300,7 +300,7 @@ const WidgetGallery: React.FC = () => {
                                 const Icon = widget.icon;
                                 const isIntegrationRequired = widget.requiresIntegration;
                                 const integration = hasAdminAccess && isIntegrationRequired
-                                    ? integrations[widget.requiresIntegration!]
+                                    ? integrations[widget.requiresIntegration as string]
                                     : null;
 
                                 // Check if integration is ready - handle special cases
@@ -370,7 +370,7 @@ const WidgetGallery: React.FC = () => {
 
                                         {/* Add Button */}
                                         <button
-                                            onClick={() => handleAddWidget(widget.type)}
+                                            onClick={() => handleAddWidget(widget.type!)}
                                             disabled={addingWidget === widget.type}
                                             className="button-elevated w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-theme-tertiary text-white rounded-lg transition-all font-medium"
                                         >
