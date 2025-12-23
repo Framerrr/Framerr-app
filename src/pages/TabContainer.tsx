@@ -132,12 +132,12 @@ const TabContainer = (): React.JSX.Element | null => {
 
     // Auto-detect authentication requirements by monitoring iframe URLs
     useEffect(() => {
-        if (!systemConfig || !isAuthDetectionEnabled(systemConfig)) {
+        if (!systemConfig || !isAuthDetectionEnabled(systemConfig as Parameters<typeof isAuthDetectionEnabled>[0])) {
             return;
         }
 
-        const sensitivity = getSensitivity(systemConfig);
-        const userPatterns = getUserAuthPatterns(systemConfig);
+        const sensitivity = getSensitivity(systemConfig as Parameters<typeof getSensitivity>[0]);
+        const userPatterns = getUserAuthPatterns(systemConfig as Parameters<typeof getUserAuthPatterns>[0]);
 
         // Monitor all loaded tabs
         Array.from(loadedTabs).forEach(slug => {
@@ -284,8 +284,8 @@ const TabContainer = (): React.JSX.Element | null => {
                         const currentSrc = iframe.src;
                         const tab = tabs.find(t => t.slug === slug);
                         if (tab) {
-                            const sensitivity = getSensitivity(systemConfig);
-                            const userPatterns = getUserAuthPatterns(systemConfig);
+                            const sensitivity = getSensitivity(systemConfig as Parameters<typeof getSensitivity>[0]);
+                            const userPatterns = getUserAuthPatterns(systemConfig as Parameters<typeof getUserAuthPatterns>[0]);
                             const detection = detectAuthNeed(currentSrc, tab.url, userPatterns, sensitivity);
                             if (detection.needsAuth) {
                                 setNeedsAuth(prev => ({ ...prev, [slug]: true }));

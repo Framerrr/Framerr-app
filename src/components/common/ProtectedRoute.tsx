@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, requiredPermission = null }: ProtectedRouteP
 
     // Check specific permission if required
     if (requiredPermission && systemConfig) {
-        const allowed = hasPermission(user, requiredPermission, systemConfig);
+        const allowed = hasPermission(user, requiredPermission, systemConfig as unknown as Parameters<typeof hasPermission>[2]);
         if (!allowed) {
             // Redirect to dashboard with access denied message
             return <Navigate to="dashboard" replace />;

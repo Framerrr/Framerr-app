@@ -637,7 +637,7 @@ const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widge
             {/* Playback Data Modal */}
             {showPlaybackData && (
                 <PlaybackDataModal
-                    session={showPlaybackData}
+                    session={showPlaybackData as unknown as Parameters<typeof PlaybackDataModal>[0]['session']}
                     onClose={() => setShowPlaybackData(null)}
                 />
             )}
@@ -645,7 +645,7 @@ const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widge
             {/* Media Info Modal */}
             {showMediaInfo && (
                 <MediaInfoModal
-                    session={showMediaInfo}
+                    session={showMediaInfo as unknown as Parameters<typeof MediaInfoModal>[0]['session']}
                     url={integration.url || ''}
                     token={integration.token || ''}
                     onClose={() => setShowMediaInfo(null)}

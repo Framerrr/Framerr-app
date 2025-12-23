@@ -318,10 +318,10 @@ const IntegrationsSettings: React.FC = () => {
                 {/* System Health Integration - Special Multi-Backend Component */}
                 <SystemHealthIntegration
                     integration={integrations.systemstatus}
-                    onUpdate={(updated: IntegrationConfig) => {
+                    onUpdate={(updated) => {
                         setIntegrations(prev => ({
                             ...prev,
-                            systemstatus: updated
+                            systemstatus: updated as unknown as IntegrationConfig
                         }));
                     }}
                     sharing={integrations.systemstatus?.sharing}
@@ -331,10 +331,10 @@ const IntegrationsSettings: React.FC = () => {
                 {/* Plex Integration - Special OAuth Component */}
                 <PlexIntegration
                     integration={integrations.plex}
-                    onUpdate={(updated: IntegrationConfig) => {
+                    onUpdate={(updated) => {
                         setIntegrations(prev => ({
                             ...prev,
-                            plex: updated
+                            plex: updated as unknown as IntegrationConfig
                         }));
                     }}
                     sharing={integrations.plex?.sharing}
