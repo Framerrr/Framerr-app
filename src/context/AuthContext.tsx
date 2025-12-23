@@ -88,6 +88,18 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.JSX.Element
         checkSetupAndAuth();
     }, []);
 
+    // Hide splash screen when auth check completes
+    useEffect(() => {
+        if (!loading) {
+            const splash = document.getElementById('framerr-splash');
+            if (splash) {
+                splash.classList.add('fade-out');
+                // Remove from DOM after fade animation completes
+                setTimeout(() => splash.remove(), 300);
+            }
+        }
+    }, [loading]);
+
     // Register session expiry handler with axios interceptor for auto-logout on 401
     // Use handleSessionExpiry (just clears state) - don't call full logout() which makes API calls
     // For proxy auth, the simple state clear + navigate is enough - Authentik will handle the rest

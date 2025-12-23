@@ -88,12 +88,45 @@ Before committing UI changes:
 ## Available Themes
 
 1. Dark Pro (default)
-2. Nord
-3. Catppuccin
-4. Dracula
-5. Light
+2. Light
+3. Nord
+4. Catppuccin
+5. Dracula
+6. Noir
+7. Nebula
 
 Theme files: `src/styles/themes/*.css`
+
+---
+
+## Adding New Themes
+
+When creating a new theme, you must update **two places**:
+
+### 1. Create Theme CSS File
+
+Create `src/styles/themes/mytheme.css` with all CSS variables.
+Import it in `ThemeContext.tsx` and add to the themes array.
+
+### 2. Add Splash Screen Colors (REQUIRED!)
+
+The splash screen uses inline CSS in `index.html` to show theme colors **before** React loads. Without this, users will see a flash of wrong colors.
+
+Edit `index.html` and add your theme to the `themeColors` object:
+
+```javascript
+var themeColors = {
+    // ... existing themes ...
+    'mytheme': { 
+        bg: '#xxxxxx',      // Same as --bg-primary in your theme
+        text: '#xxxxxx',    // Same as --text-secondary in your theme
+        accent: '#xxxxxx'   // Same as --accent in your theme
+    }
+};
+```
+
+> **Why?** The splash screen appears before JavaScript/CSS bundles load. 
+> These 3 colors are all that's needed for a properly themed loading screen.
 
 ---
 
@@ -131,3 +164,4 @@ Theme files: `src/styles/themes/*.css`
 - **Theming Engine:** `docs/theming/THEMING_ENGINE.md`
 - **CSS Variables:** `docs/theming/CSS_VARIABLES.md`
 - **Component Patterns:** `docs/theming/COMPONENT_PATTERNS.md`
+

@@ -324,15 +324,9 @@ const TabContainer = (): React.JSX.Element | null => {
         setNeedsAuth(prev => ({ ...prev, [slug]: false }));
     };
 
+    // Return null during loading - splash screen covers everything
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="text-center text-slate-400">
-                    <div className="w-12 h-12 border-4 border-slate-700 border-t-accent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p>Loading tabs...</p>
-                </div>
-            </div>
-        );
+        return null;
     }
 
     if (error) {
