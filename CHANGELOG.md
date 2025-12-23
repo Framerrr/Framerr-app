@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2025-12-22
+
+### Added
+- **iOS-Style Hold-to-Drag**: Natural touch gesture for mobile widget editing (hold 170ms to unlock, drag in one smooth motion)
+- **iOS Safe Area Blur**: Glassmorphism header effect when content scrolls behind notch area
+- **Re-link Mobile Layout**: New button to re-link mobile layout to desktop with confirmation modal
+- **Navigation Guards**: Blocks navigation away from Dashboard with unsaved changes (shows modal)
+- **SSE Auto-Reconnect**: Exponential backoff (1s → 30s max) when SSE connection drops
+- **Widget Polling Resilience**: Automatic retry logic (3 attempts) for failed API calls
+
+### Fixed
+- **TypeScript Compilation**: Resolved 295 lines of TypeScript errors across 8 components
+- **iOS PWA Black Bar**: Fixed home indicator region on iOS 26.2+ using Seerr-style CSS pattern
+- **Theme Flash**: Theme now loads instantly on page refresh (no blue flash)
+- **Setup Wizard**: Theme and flatten UI settings now persist correctly
+- **Plex Widget Visibility**: Correctly hides on both desktop and mobile when no streams
+- **Mobile Dashboard Editing**: Various fixes for widget placement, pending unlink, and height restoration
+
+### Changed
+- Widgets automatically recover from errors when subsequent polls succeed
+- OS preference detection for first-time visitors
+
+---
+
 ## [1.3.0] - 2025-12-20
 
 ### Changed
