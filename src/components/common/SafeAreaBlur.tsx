@@ -5,7 +5,7 @@ import { useLayout } from '../../context/LayoutContext';
  * SafeAreaBlur - Overlay for the top safe area (notch/camera region)
  * 
  * Shows a glassmorphism blur effect only when content scrolls behind it.
- * Uses window scroll + document capture to catch all scroll events.
+ * Tracks both main-scroll (dashboard/tabs) and settings-scroll containers.
  */
 const SafeAreaBlur: React.FC = () => {
     const { isMobile } = useLayout();
@@ -20,13 +20,12 @@ const SafeAreaBlur: React.FC = () => {
             setIsScrolled(scrolled);
         };
 
-        // Handle only the main scroll container, ignore widget scrolls
+        // Handle scroll containers (main-scroll and settings-scroll)
         const handleContainerScroll = (e: Event) => {
             const target = e.target as HTMLElement;
 
-            // ONLY respond to the main-scroll container
-            // Ignore scrollable widgets, lists, and other nested scroll areas
-            if (target && target.id === 'main-scroll') {
+            // Track both main-scroll and settings-scroll containers
+            if (target && (target.id === 'main-scroll' || target.id === 'settings-scroll')) {
                 const scrolled = target.scrollTop > 10;
                 setIsScrolled(scrolled);
             }
@@ -36,7 +35,7 @@ const SafeAreaBlur: React.FC = () => {
         // Listen to window scroll
         window.addEventListener('scroll', handleWindowScroll, { passive: true });
 
-        // Also listen to document scroll with capture to catch main-scroll events
+        // Also listen to document scroll with capture to catch container events
         document.addEventListener('scroll', handleContainerScroll, { capture: true, passive: true });
 
         // Initial check
@@ -50,9 +49,24 @@ const SafeAreaBlur: React.FC = () => {
 
     if (!isMobile) return null;
 
-    // Scroll to top when safe area is tapped
+    // Scroll to top when safe area is tapped - scroll the visible container
     const handleTap = () => {
-        document.getElementById('main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
+        // Try main-scroll first (dashboard/tabs)
+        const mainScroll = document.getElementById('main-scroll');
+        if (mainScroll && mainScroll.style.display !== 'none') {
+            mainScroll.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        // Try settings-scroll
+        const settingsScroll = document.getElementById('settings-scroll');
+        if (settingsScroll && settingsScroll.style.display !== 'none') {
+            settingsScroll.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        // Fallback to window scroll
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     return (

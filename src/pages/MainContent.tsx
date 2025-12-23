@@ -51,14 +51,16 @@ const MainContent = (): React.JSX.Element => {
                 }}>
                 <DashboardOrTabs />
             </div>
-            <div style={{
-                display: isSettings ? 'flex' : 'none',
-                height: '100%',
-                width: '100%',
-                minWidth: 0,
-                overflowY: 'auto',
-                WebkitOverflowScrolling: 'touch', // iOS momentum scroll
-            }}>
+            <div
+                id="settings-scroll"
+                style={{
+                    display: isSettings ? 'flex' : 'none',
+                    height: '100%',
+                    width: '100%',
+                    minWidth: 0,
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch', // iOS momentum scroll
+                }}>
                 <UserSettings />
             </div>
         </>
