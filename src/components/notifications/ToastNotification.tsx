@@ -33,7 +33,7 @@ export interface ToastNotificationProps {
     actions?: ToastActionItem[];
     onBodyClick?: () => void;
     onDismiss: (id: string) => void;
-    createdAt?: number;
+    createdAt?: Date | number;  // Date from Toast interface, number also accepted
 }
 
 /**
