@@ -108,7 +108,7 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
             if (selectedBackend === 'glances') {
                 endpoint = '/api/systemstatus/glances/status';
                 params.append('url', backendConfig.url);
-                if (backendConfig.password) params.append('password', backendConfig.password);
+                if ((backendConfig as GlancesConfigData).password) params.append('password', (backendConfig as GlancesConfigData).password);
             } else {
                 endpoint = '/api/systemstatus/status';
                 params.append('url', backendConfig.url);
