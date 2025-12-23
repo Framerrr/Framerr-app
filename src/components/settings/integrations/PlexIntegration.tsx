@@ -5,7 +5,7 @@ import axios from 'axios';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
 import { Input } from '../../common/Input';
-import SharingDropdown from '../SharingDropdown';
+import SharingDropdown, { SharingState } from '../SharingDropdown';
 import { useNotifications } from '../../../context/NotificationContext';
 
 interface PlexConnection {
@@ -35,14 +35,7 @@ interface IntegrationConfig {
     sharing?: SharingState;
 }
 
-interface SharingState {
-    enabled: boolean;
-    mode?: string;
-    groups?: string[];
-    users?: string[];
-    sharedBy?: string;
-    sharedAt?: string;
-}
+
 
 interface TestState {
     loading: boolean;

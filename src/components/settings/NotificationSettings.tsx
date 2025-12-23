@@ -61,8 +61,8 @@ interface PushSubscription {
     id: string;
     endpoint: string;
     deviceName?: string;
-    lastUsed?: number;
-    createdAt: number;
+    lastUsed?: number | string;
+    createdAt: number | string;
 }
 
 interface GeneralSettingsUpdates {
@@ -718,8 +718,8 @@ const NotificationSettings: React.FC = () => {
                                                             </div>
                                                             <div className="text-xs text-theme-tertiary">
                                                                 {sub.lastUsed
-                                                                    ? `Last used: ${new Date(sub.lastUsed * 1000).toLocaleDateString()}`
-                                                                    : `Added: ${new Date(sub.createdAt * 1000).toLocaleDateString()}`
+                                                                    ? `Last used: ${new Date(typeof sub.lastUsed === 'number' ? sub.lastUsed * 1000 : sub.lastUsed).toLocaleDateString()}`
+                                                                    : `Added: ${new Date(typeof sub.createdAt === 'number' ? sub.createdAt * 1000 : sub.createdAt).toLocaleDateString()}`
                                                                 }
                                                             </div>
                                                         </div>

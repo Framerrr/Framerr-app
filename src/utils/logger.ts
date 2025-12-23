@@ -78,15 +78,29 @@ class Logger {
     }
 
     /**
+     * Normalize meta parameter - accepts unknown for flexibility
+     */
+    private normalizeMeta(meta: unknown): LogMeta {
+        if (meta === undefined || meta === null) {
+            return {};
+        }
+        if (typeof meta === 'object' && !Array.isArray(meta)) {
+            return meta as LogMeta;
+        }
+        // Wrap non-object values
+        return { value: meta };
+    }
+
+    /**
      * Core logging method
      */
-    private log(level: LogLevel, message: string, meta: LogMeta = {}): void {
+    private log(level: LogLevel, message: string, meta: unknown = {}): void {
         // Check if this level should be logged
         if (LOG_LEVELS[level] > LOG_LEVELS[this.level]) {
             return;
         }
-
-        const formatted = this.format(level, message, meta);
+        const normalizedMeta = this.normalizeMeta(meta);
+        const formatted = this.format(level, message, normalizedMeta);
 
         // Use appropriate console method
         if (level === 'error') {
@@ -103,7 +117,7 @@ class Logger {
      * @param message - Error message
      * @param meta - Additional metadata (e.g., { error: err.message, stack: err.stack })
      */
-    error(message: string, meta: LogMeta = {}): void {
+    error(message: string, meta?: unknown): void {
         this.log('error', message, meta);
     }
 
@@ -112,7 +126,7 @@ class Logger {
      * @param message - Warning message
      * @param meta - Additional metadata
      */
-    warn(message: string, meta: LogMeta = {}): void {
+    warn(message: string, meta?: unknown): void {
         this.log('warn', message, meta);
     }
 
@@ -121,7 +135,7 @@ class Logger {
      * @param message - Info message
      * @param meta - Additional metadata
      */
-    info(message: string, meta: LogMeta = {}): void {
+    info(message: string, meta?: unknown): void {
         this.log('info', message, meta);
     }
 
@@ -130,7 +144,7 @@ class Logger {
      * @param message - Debug message
      * @param meta - Additional metadata
      */
-    debug(message: string, meta: LogMeta = {}): void {
+    debug(message: string, meta?: unknown): void {
         this.log('debug', message, meta);
     }
 

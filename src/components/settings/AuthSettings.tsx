@@ -37,7 +37,7 @@ const AuthSettings: React.FC = () => {
         type: 'spring',
         stiffness: 350,
         damping: 35,
-    };
+    } as const;
 
     // Auth proxy state
     const [proxyEnabled, setProxyEnabled] = useState<boolean>(false);
@@ -469,7 +469,7 @@ const AuthSettings: React.FC = () => {
             {activeTab === 'plex' && (
                 <PlexAuthSettings
                     onSaveNeeded={setPlexHasChanges}
-                    onSave={plexSaveRef as MutableRefObject<(() => Promise<void>) | null>}
+                    onSave={plexSaveRef as MutableRefObject<(() => Promise<void>) | undefined>}
                 />
             )}
 

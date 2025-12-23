@@ -117,23 +117,31 @@ const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widge
             return;
         }
 
-        const fetchSessions = async (): Promise<void> => {
+        const fetchWithRetry = async (retriesLeft: number = 3): Promise<void> => {
             try {
-                setLoading(true);
                 const response = await fetch(`/api/plex/sessions?url=${encodeURIComponent(integration.url || '')}&token=${encodeURIComponent(integration.token || '')}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
-                setError(null);
+                setError(null); // Clear any previous error on success
+                setLoading(false);
             } catch (err) {
+                if (retriesLeft > 0) {
+                    // Retry after 1 second
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return fetchWithRetry(retriesLeft - 1);
+                }
                 setError((err as Error).message);
-            } finally {
                 setLoading(false);
             }
         };
 
-        fetchSessions();
-        const interval = setInterval(fetchSessions, 10000);
+        // Initial fetch with loading state
+        setLoading(true);
+        fetchWithRetry();
+
+        // Continue polling - errors don't stop polling
+        const interval = setInterval(() => fetchWithRetry(), 10000);
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 
@@ -629,7 +637,7 @@ const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widge
             {/* Playback Data Modal */}
             {showPlaybackData && (
                 <PlaybackDataModal
-                    session={showPlaybackData}
+                    session={showPlaybackData as unknown as Parameters<typeof PlaybackDataModal>[0]['session']}
                     onClose={() => setShowPlaybackData(null)}
                 />
             )}
@@ -637,7 +645,7 @@ const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widge
             {/* Media Info Modal */}
             {showMediaInfo && (
                 <MediaInfoModal
-                    session={showMediaInfo}
+                    session={showMediaInfo as unknown as Parameters<typeof MediaInfoModal>[0]['session']}
                     url={integration.url || ''}
                     token={integration.token || ''}
                     onClose={() => setShowMediaInfo(null)}

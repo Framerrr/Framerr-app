@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children, requiredPermission = null }: ProtectedRouteP
     // Wait for both auth and config to load
     if (authLoading || configLoading) {
         return (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
                     <p className="text-theme-secondary">Loading...</p>
@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, requiredPermission = null }: ProtectedRouteP
 
     // Check specific permission if required
     if (requiredPermission && systemConfig) {
-        const allowed = hasPermission(user, requiredPermission, systemConfig);
+        const allowed = hasPermission(user, requiredPermission, systemConfig as unknown as Parameters<typeof hasPermission>[2]);
         if (!allowed) {
             // Redirect to dashboard with access denied message
             return <Navigate to="dashboard" replace />;

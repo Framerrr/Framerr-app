@@ -364,7 +364,7 @@ const UserTabsSettings: React.FC = () => {
     };
 
     const getIconComponent = (iconName: string): ReactElement => {
-        const IconComponent = (Icons as Record<string, React.ComponentType<{ size: number; className: string }>>)[iconName] || Icons.Server;
+        const IconComponent = (Icons as unknown as Record<string, React.ComponentType<{ size: number; className: string }>>)[iconName] || Icons.Server;
         return <IconComponent size={20} className="text-accent" />;
     };
 

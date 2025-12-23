@@ -131,6 +131,7 @@ export interface ColorPickerProps {
     value: string;
     onChange: (color: string) => void;
     label?: string;
+    description?: string;
     disabled?: boolean;
     presets?: ColorPreset[];
 }

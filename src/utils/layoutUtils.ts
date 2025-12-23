@@ -44,10 +44,11 @@ export const generateMobileLayout = (widgets: Widget[], breakpoint: MobileBreakp
     }));
 
     // 2. Apply band detection directly to all widgets (no row grouping needed)
-    // Sort by Y to prepare for sweep line algorithm
-    const ySorted = desktopWidgets.sort((a, b) => {
+    // Sort by Y, then X, then ID for deterministic ordering (JS sort is not stable)
+    const ySorted = [...desktopWidgets].sort((a, b) => {
         if (a.y !== b.y) return a.y - b.y;
-        return a.x - b.x;
+        if (a.x !== b.x) return a.x - b.x;
+        return (a.i || '').localeCompare(b.i || ''); // ID tiebreaker
     });
 
     const bands: DesktopWidgetInfo[][] = [];
@@ -88,11 +89,12 @@ export const generateMobileLayout = (widgets: Widget[], breakpoint: MobileBreakp
         }))
     });
 
-    // 3. Sort each band by X (column), then Y (row within column)
+    // 3. Sort each band by X (column), then Y (row within column), then ID (tiebreaker)
     const sorted = bands.flatMap(band => {
-        return band.sort((a, b) => {
+        return [...band].sort((a, b) => {
             if (a.x !== b.x) return a.x - b.x;
-            return a.y - b.y;
+            if (a.y !== b.y) return a.y - b.y;
+            return (a.i || '').localeCompare(b.i || ''); // ID tiebreaker
         });
     });
 
@@ -121,17 +123,14 @@ export const generateMobileLayout = (widgets: Widget[], breakpoint: MobileBreakp
 
 /**
  * Calculate appropriate widget height for mobile breakpoints
+ * For linked mode: preserves desktop (lg) height for consistency
  */
 const calculateMobileHeight = (widget: Widget, breakpoint: MobileBreakpoint): number => {
-    const metadata = getWidgetMetadata(widget.type);
-    if (metadata?.minSize?.h) {
-        return metadata.minSize.h;
-    }
+    // Use the desktop height directly for linked mode consistency
     const desktopHeight = widget.layouts?.lg?.h ?? (widget as any).h ?? 2;
-    const scaled = Math.ceil(desktopHeight * 0.75);
-    const min = 2;
-    const max = 6;
-    return Math.max(min, Math.min(max, scaled));
+
+    // Ensure height is at least 1 (minimum valid height)
+    return Math.max(1, desktopHeight);
 };
 
 /**

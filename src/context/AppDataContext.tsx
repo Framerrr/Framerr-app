@@ -175,6 +175,30 @@ export const AppDataProvider = ({ children }: AppDataProviderProps): React.JSX.E
         };
     }, [isAuthenticated]);
 
+    // Refresh data when tab becomes visible after being hidden for 30+ seconds
+    useEffect(() => {
+        let lastHiddenTime: number | null = null;
+        const REFRESH_THRESHOLD = 30000; // 30 seconds
+
+        const handleVisibilityChange = (): void => {
+            if (document.hidden) {
+                lastHiddenTime = Date.now();
+            } else if (lastHiddenTime && isAuthenticated) {
+                const hiddenDuration = Date.now() - lastHiddenTime;
+                if (hiddenDuration > REFRESH_THRESHOLD) {
+                    logger.info('[Visibility] Tab restored after idle, refreshing data', {
+                        hiddenFor: Math.round(hiddenDuration / 1000) + 's'
+                    });
+                    fetchData();
+                }
+                lastHiddenTime = null;
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isAuthenticated]);
+
     const updateWidgetLayout = async (newLayout: Widget[]): Promise<void> => {
         try {
             // Optimistically update UI

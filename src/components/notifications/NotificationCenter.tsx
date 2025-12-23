@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Trash2, Check, XCircle, LucideIcon } from 'lucide-react';
-import { useNotifications, Notification } from '../../context/NotificationContext';
+import { useNotifications } from '../../context/NotificationContext';
+import type { Notification } from '../../../shared/types/notification';
 import logger from '../../utils/logger';
 
 type NotificationType = 'success' | 'error' | 'warning' | 'info';

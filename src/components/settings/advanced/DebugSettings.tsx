@@ -62,6 +62,7 @@ const DebugSettings = (): React.JSX.Element => {
             }, 2000);
             return () => clearInterval(interval);
         }
+        return undefined;
     }, [autoRefresh]);
 
     const loadDebugSettings = async (): Promise<void> => {

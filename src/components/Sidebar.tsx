@@ -7,6 +7,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useLayout } from '../context/LayoutContext';
+import { useDashboardEdit } from '../context/DashboardEditContext';
 import NotificationCenter from './notifications/NotificationCenter';
 import logger from '../utils/logger';
 
@@ -19,7 +20,7 @@ interface Tab {
 }
 
 interface Group {
-    id: string;
+    id: string | number;
     name: string;
 }
 
@@ -50,11 +51,29 @@ const Sidebar: React.FC = () => {
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
     const { unreadCount } = useNotifications();
+    const dashboardEdit = useDashboardEdit();
     const navigate = useNavigate();
     const location = useLocation();
 
     // Notification center state
     const [showNotificationCenter, setShowNotificationCenter] = useState<boolean>(false);
+
+    // Navigation guard - intercepts navigation when in edit mode with unsaved changes
+    const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, destination: string): void => {
+        // If not in edit mode or no unsaved changes, allow normal navigation
+        if (!dashboardEdit?.editMode || !dashboardEdit?.hasUnsavedChanges) {
+            return; // Let the <a> href do its job
+        }
+
+        // Block navigation and set pending destination to trigger modal
+        e.preventDefault();
+        dashboardEdit.setPendingDestination(destination);
+
+        // Close mobile menu if open
+        if (isMobileMenuOpen) {
+            setIsMobileMenuOpen(false);
+        }
+    };
 
     // Spring configuration for sidebar animations (animate-ui inspired)
     const sidebarSpring: Transition = {
@@ -148,8 +167,8 @@ const Sidebar: React.FC = () => {
     useEffect(() => {
         if (groups && groups.length > 0) {
             const initialState: ExpandedGroups = {};
-            groups.forEach((group: Group) => {
-                initialState[group.id] = true;
+            groups.forEach((group) => {
+                initialState[String(group.id)] = true;
             });
             setExpandedGroups(initialState);
         }
@@ -203,7 +222,7 @@ const Sidebar: React.FC = () => {
             return <img src={iconValue} alt="icon" className="object-cover rounded" style={{ width: size, height: size }} />;
         }
 
-        const IconComponent = (Icons as Record<string, LucideIcon>)[iconValue] || Icons.Server;
+        const IconComponent = (Icons as unknown as Record<string, LucideIcon>)[iconValue] || Icons.Server;
         return <IconComponent size={size} />;
     };
 
@@ -317,6 +336,7 @@ const Sidebar: React.FC = () => {
                                 {/* Dashboard Link */}
                                 <a
                                     href="/#dashboard"
+                                    onClick={(e) => handleNavigation(e, '#dashboard')}
                                     onMouseEnter={() => handleMouseEnter('dashboard')}
                                     onMouseLeave={handleMouseLeave}
                                     className={(() => {
@@ -384,6 +404,7 @@ const Sidebar: React.FC = () => {
                                             <a
                                                 key={tab.id}
                                                 href={`/#${tab.slug}`}
+                                                onClick={(e) => handleNavigation(e, `#${tab.slug}`)}
                                                 onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
                                                 onMouseLeave={handleMouseLeave}
                                                 className={`flex items-center py-3.5 text-sm font-medium text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative ${isExpanded ? 'px-4 justify-start' : 'justify-center px-0'} group`}
@@ -409,10 +430,7 @@ const Sidebar: React.FC = () => {
                                                             initial={{ opacity: 0, x: -10 }}
                                                             animate={{ opacity: 1, x: 0 }}
                                                             exit={{ opacity: 0 }}
-                                                            transition={{
-                                                                ...textSpring,
-                                                                exit: { duration: 0.1 },
-                                                            }}
+                                                            transition={textSpring}
                                                             className={`whitespace-nowrap relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
                                                         >
                                                             {tab.name}
@@ -428,8 +446,8 @@ const Sidebar: React.FC = () => {
                                         ))}
 
                                         {/* Grouped tabs */}
-                                        {groups && (groups as Group[]).map((group: Group) => {
-                                            const groupTabs = tabs.filter(tab => tab.groupId === group.id);
+                                        {groups && (groups as unknown as Group[]).map((group: Group) => {
+                                            const groupTabs = tabs.filter(tab => String(tab.groupId) === String(group.id));
                                             if (groupTabs.length === 0) return null;
 
                                             return (
@@ -437,7 +455,7 @@ const Sidebar: React.FC = () => {
                                                     {isExpanded ? (
                                                         <>
                                                             <button
-                                                                onClick={() => toggleGroup(group.id)}
+                                                                onClick={() => toggleGroup(String(group.id))}
                                                                 onMouseEnter={() => handleMouseEnter(`group-${group.id}`)}
                                                                 onMouseLeave={handleMouseLeave}
                                                                 className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-theme-tertiary uppercase tracking-wider hover:text-theme-secondary transition-colors rounded-lg relative"
@@ -472,6 +490,7 @@ const Sidebar: React.FC = () => {
                                                                             <a
                                                                                 key={tab.id}
                                                                                 href={`/#${tab.slug}`}
+                                                                                onClick={(e) => handleNavigation(e, `#${tab.slug}`)}
                                                                                 onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
                                                                                 onMouseLeave={handleMouseLeave}
                                                                                 className="flex items-center py-3 px-4 pl-8 text-sm font-medium text-theme-tertiary hover:text-theme-primary transition-colors rounded-xl relative"
@@ -505,6 +524,7 @@ const Sidebar: React.FC = () => {
                                                             <a
                                                                 key={tab.id}
                                                                 href={`/#${tab.slug}`}
+                                                                onClick={(e) => handleNavigation(e, `#${tab.slug}`)}
                                                                 onMouseEnter={() => handleMouseEnter(`tab-${tab.id}`)}
                                                                 onMouseLeave={handleMouseLeave}
                                                                 className="flex items-center justify-center py-3.5 text-theme-secondary hover:text-theme-primary transition-colors rounded-xl relative group"
@@ -594,6 +614,7 @@ const Sidebar: React.FC = () => {
                         {/* Profile Link */}
                         <a
                             href="/#settings?tab=profile&source=profile"
+                            onClick={(e) => handleNavigation(e, '#settings?tab=profile&source=profile')}
                             onMouseEnter={() => handleMouseEnter('profile')}
                             onMouseLeave={handleMouseLeave}
                             className={(() => {
@@ -652,6 +673,7 @@ const Sidebar: React.FC = () => {
                         {/* Settings Link */}
                         <a
                             href="/#settings"
+                            onClick={(e) => handleNavigation(e, '#settings')}
                             onMouseEnter={() => handleMouseEnter('settings')}
                             onMouseLeave={handleMouseLeave}
                             className={(() => {
@@ -878,7 +900,7 @@ const Sidebar: React.FC = () => {
                                                         <motion.a
                                                             key={tab.id}
                                                             href={`/#${tab.slug}`}
-                                                            onClick={() => setIsMobileMenuOpen(false)}
+                                                            onClick={(e) => { handleNavigation(e, `#${tab.slug}`); if (!dashboardEdit?.editMode || !dashboardEdit?.hasUnsavedChanges) setIsMobileMenuOpen(false); }}
                                                             className="w-full flex items-center gap-3 py-3 px-4 rounded-lg bg-theme-tertiary/50 text-theme-secondary hover:bg-theme-tertiary hover:text-theme-primary transition-colors"
                                                             initial={{ opacity: 0 }}
                                                             animate={{
@@ -975,7 +997,7 @@ const Sidebar: React.FC = () => {
                     </button>
                     <a
                         href="/#dashboard"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={(e) => { handleNavigation(e, '#dashboard'); if (!dashboardEdit?.editMode || !dashboardEdit?.hasUnsavedChanges) setIsMobileMenuOpen(false); }}
                         className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
                         {/* Animated sliding indicator - active state only */}
@@ -1007,7 +1029,7 @@ const Sidebar: React.FC = () => {
                     </a>
                     <a
                         href="/#settings?tab=profile&source=profile"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={(e) => { handleNavigation(e, '#settings?tab=profile&source=profile'); if (!dashboardEdit?.editMode || !dashboardEdit?.hasUnsavedChanges) setIsMobileMenuOpen(false); }}
                         className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
                         {/* Animated sliding indicator - active state only */}
@@ -1059,7 +1081,7 @@ const Sidebar: React.FC = () => {
                     </a>
                     <a
                         href="/#settings"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={(e) => { handleNavigation(e, '#settings'); if (!dashboardEdit?.editMode || !dashboardEdit?.hasUnsavedChanges) setIsMobileMenuOpen(false); }}
                         className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
                         {/* Animated sliding indicator - active state only */}

@@ -229,8 +229,8 @@ const Login = (): React.JSX.Element => {
                         <motion.div
                             className="p-4 rounded-lg mb-6 flex items-center gap-3 text-sm border"
                             style={{
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                borderColor: 'rgba(239, 68, 68, 0.2)',
+                                backgroundColor: 'var(--error-bg, rgba(239, 68, 68, 0.1))',
+                                borderColor: 'var(--error-border, rgba(239, 68, 68, 0.2))',
                                 color: 'var(--error)'
                             }}
                             initial={{ opacity: 0, y: -10 }}

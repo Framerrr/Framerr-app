@@ -10,47 +10,47 @@
 @import './styles/animations.css';
 
 /* 
- * iOS Safari Scroll Lock Pattern (December 2024)
+ * iOS Safari Safe Area Pattern (iOS 26.2 Fix)
+ * Based on Seerr/Jellyseerr's proven implementation.
  * 
- * REMOVED (iOS Safari ignores these):
- * - overscroll-behavior: none/contain - NOT SUPPORTED in Safari (WebKit Bug #176454)
- * - safe-area padding on body - conflicts with dvh, scroll containers
- * - overflow-x: hidden alone - doesn't prevent viewport shift
- *
- * THE FIX: Lock html/body with position:fixed, let App.jsx handle scroll
+ * Key insight: Do NOT use position:fixed on html/body - it fights with viewport-fit=cover
+ * and causes black bars in the home indicator region.
+ * 
+ * NOTE: This approach fixes the black bar but allows container scrolling.
+ * Container scroll prevention needs to be handled separately (JS touch events).
  */
-html,
+html {
+    /* Height required for h-full chain to work in children */
+    height: 100%;
+    /* Seerr-style: min-height allows background to fill home indicator region */
+    min-height: calc(100% + env(safe-area-inset-top));
+    /* Safe area handling - TOP/LEFT/RIGHT only, tab bar handles bottom */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    background-color: var(--bg-primary);
+
+    /* Prevent pinch zoom */
+    touch-action: manipulation;
+}
+
 body {
-    /* Core styles */
     font-family: var(--font-primary);
     background-color: var(--bg-primary);
     color: var(--text-primary);
 
-    /* Explicit sizing for height inheritance */
-    width: 100%;
     height: 100%;
+    margin: 0;
 
-    /* iOS Safari Scroll Lock - THIS IS THE FIX */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-
-    /* Prevent pinch zoom (belt-and-suspenders with viewport meta) */
-    touch-action: manipulation;
-
-    /* Momentum scrolling for child scroll containers */
+    /* Momentum scrolling for child containers */
     -webkit-overflow-scrolling: touch;
 }
 
-/* React root container - needs explicit height for h-full to work */
+/* React root container */
 #root {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* Universal scrollbar hiding - Clean premium UI */

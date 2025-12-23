@@ -152,7 +152,7 @@ const IconPicker = ({ value, onChange, compact = false }: IconPickerProps): Reac
             );
         }
         // Handle Lucide icons
-        return (Icons as Record<string, LucideIcon>)[value || ''] || Icons.Server;
+        return (Icons as unknown as Record<string, LucideIcon>)[value || ''] || Icons.Server;
     };
 
     // Get friendly display name for current icon
@@ -393,7 +393,7 @@ const IconPicker = ({ value, onChange, compact = false }: IconPickerProps): Reac
                                                 {/* Icon Grid */}
                                                 <div className="grid grid-cols-6 gap-2">
                                                     {filteredIcons.map(iconName => {
-                                                        const IconComponent = (Icons as Record<string, LucideIcon>)[iconName] || Icons.Server;
+                                                        const IconComponent = (Icons as unknown as Record<string, LucideIcon>)[iconName] || Icons.Server;
                                                         const isSelected = value === iconName;
 
                                                         return (

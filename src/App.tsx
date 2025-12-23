@@ -8,6 +8,7 @@ import { SystemConfigProvider } from './context/SystemConfigContext';
 import { AppDataProvider } from './context/AppDataContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
+import { DashboardEditProvider } from './context/DashboardEditContext';
 import { LAYOUT } from './constants/layout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/Sidebar';
@@ -19,6 +20,7 @@ import Login from './pages/Login';
 import Setup from './pages/Setup';
 import MainContent from './pages/MainContent';
 import AnimationTest from './pages/AnimationTest';
+import SafeAreaBlur from './components/common/SafeAreaBlur';
 
 interface CustomColorLoaderProps {
     children: ReactNode;
@@ -68,36 +70,40 @@ const MainLayout: React.FC = () => {
     const { isMobile } = useLayout();
 
     return (
-        // Outer wrapper: fills fixed viewport, applies safe-area padding
-        <div
-            className="flex flex-col w-full h-full"
-            style={{
-                backgroundColor: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                // Safe-area padding at wrapper level (not body)
-                paddingTop: 'env(safe-area-inset-top)',
-                paddingLeft: 'env(safe-area-inset-left)',
-                paddingRight: 'env(safe-area-inset-right)',
-            }}
-        >
-            <ProtectedRoute>
-                {/* Main flex container - sidebar + content */}
-                <div className="flex w-full flex-1 min-h-0">
-                    <Sidebar />
-                    <main
-                        className="flex-1 min-w-0 min-h-0 h-full"
-                        style={{
-                            paddingLeft: isMobile ? 0 : `${LAYOUT.SIDEBAR_WIDTH}px`,
-                            backgroundColor: 'var(--bg-primary)'
-                        }}
-                    >
-                        <Routes>
-                            <Route path="/*" element={<MainContent />} />
-                        </Routes>
-                    </main>
-                </div>
-            </ProtectedRoute>
-        </div>
+        <DashboardEditProvider>
+            {/* Safe area blur overlay for top notch/camera region */}
+            <SafeAreaBlur />
+
+            {/* Outer wrapper: fills viewport (safe-area handled by html in index.css) */}
+            <div
+                className="flex flex-col w-full h-full"
+                style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    // Safe-area padding is applied on html element in index.css
+                    // Do NOT add it here or you get double padding
+                }}
+            >
+                <ProtectedRoute>
+                    {/* Main flex container - sidebar + content */}
+                    <div className="flex w-full flex-1 min-h-0">
+                        <Sidebar />
+                        <main
+                            className="flex-1 min-w-0 min-h-0 h-full"
+                            style={{
+                                paddingLeft: isMobile ? 0 : `${LAYOUT.SIDEBAR_WIDTH}px`,
+                                backgroundColor: 'var(--bg-primary)',
+                                overflow: 'hidden', // Scroll control handled by MainContent
+                            }}
+                        >
+                            <Routes>
+                                <Route path="/*" element={<MainContent />} />
+                            </Routes>
+                        </main>
+                    </div>
+                </ProtectedRoute>
+            </div>
+        </DashboardEditProvider>
     );
 };
 

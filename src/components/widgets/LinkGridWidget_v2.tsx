@@ -348,7 +348,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
      * Get icon component
      */
     const getIcon = (iconName: string): LucideIcon => {
-        const Icon = (Icons as Record<string, LucideIcon>)[iconName] || ExternalLink;
+        const Icon = (Icons as unknown as Record<string, LucideIcon>)[iconName] || ExternalLink;
         return Icon;
     };
 

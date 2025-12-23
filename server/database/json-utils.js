@@ -6,7 +6,9 @@
  * user preferences, widget configs, dashboard layouts, etc.
  */
 
-const logger = require('../utils/logger');
+// Handle ES module interop - compiled TypeScript logger exports to .default
+const loggerModule = require('../utils/logger');
+const logger = loggerModule.default || loggerModule;
 
 /**
  * Deep merge two objects (source into target)

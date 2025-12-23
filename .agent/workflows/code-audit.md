@@ -11,9 +11,12 @@ description: Audit code for production readiness
 
 ## Steps
 
+### Phase 1: Setup
+
 1. **Find baseline (last production tag)**
+   - Check TASK_CURRENT.md for last released version (more reliable than git describe on feature branches)
    ```bash
-   git describe --tags --abbrev=0
+   git describe --tags --abbrev=0  # fallback
    ```
 
 2. **Get changed files**
@@ -21,75 +24,105 @@ description: Audit code for production readiness
    git diff --name-only <tag>..HEAD --diff-filter=ACMR
    ```
 
-3. **For each .js/.jsx file:**
+---
+
+### Phase 2: Logging Cleanup
+
+3. **For each .js/.jsx/.ts/.tsx file:**
    - Scan for console.* calls
    - Convert to logger.* with proper levels
    - Format with structured data
    - Remove sensitive info from logs
    - Remove commented code blocks
-   - Remove unused imports
-   - Remove unreachable code
+   - Remove backup files (*.backup, *.bak, *.old)
 
 4. **Logging conversion rules:**
-   - `console.log(...)`  Analyze context:
-     - Debug/diagnostic  `logger.debug(...)`
-     - User actions  `logger.info(...)`
-     - Unexpected behavior  `logger.warn(...)`
-   - `console.warn(...)`  `logger.warn(...)`
-   - `console.error(...)`  `logger.error(...)`
-   - `console.debug(...)`  `logger.debug(...)`
+   - `console.log(...)` → Analyze context:
+     - Debug/diagnostic → `logger.debug(...)`
+     - User actions → `logger.info(...)`
+     - Unexpected behavior → `logger.warn(...)`
+   - `console.warn(...)` → `logger.warn(...)`
+   - `console.error(...)` → `logger.error(...)`
+   - `console.debug(...)` → `logger.debug(...)`
 
-5. **Format guidelines:**
-   ```javascript
-   //  BEFORE
-   console.log('User logged in:', user);
-   console.log('API call failed', error);
-   
-   //  AFTER
-   logger.info('User authentication successful', {
-     userId: user.id,
-     username: user.username,
-     loginMethod: 'password'
-   });
-   
-   logger.error('API request failed', {
-     endpoint: '/api/users',
-     error: error.message,
-     statusCode: error.response?.status
-   });
-   ```
-
-6. **Sensitive data check:**
+5. **Sensitive data check:**
    - Never log: passwords, tokens, API keys, secrets
    - Redact if necessary: `token: '<redacted>'`
 
-7. **Build verification:**
+---
+
+### Phase 3: TypeScript Error Audit
+
+6. **Run TypeScript compiler check**
    ```bash
-   npm run build
+   npx tsc --noEmit 2>&1
    ```
 
-8. **Review & commit:**
-   - Show summary to user
-   - Get approval
-   - Commit: `chore: code audit - logging cleanup and dead code removal`
+7. **Analyze and categorize errors:**
+   - Group by file
+   - Identify error patterns (missing types, type mismatches, etc.)
+   - Note which are blocking vs. warnings
+
+8. **STOP - Report to user before fixing:**
+   
+   Present a summary:
+   ```
+   TypeScript Audit Report
+   =======================
+   Total errors: X
+   Files affected: Y
+   
+   By Category:
+   - Missing type definitions: X
+   - Type mismatches: X
+   - Property not found: X
+   - Other: X
+   
+   Files to fix:
+   1. file.tsx (X errors) - [brief description]
+   2. another.tsx (X errors) - [brief description]
+   
+   Proceed with fixes?
+   ```
+
+9. **After user approval, fix TypeScript errors:**
+   - Prioritize files with most errors
+   - Fix one file at a time
+   - Run `npm run build` after each file to verify
+
+---
+
+### Phase 4: Final Verification
+
+10. **Build verification:**
+    ```bash
+    npm run build
+    ```
+
+11. **Review & commit:**
+    - Show full summary to user
+    - Get approval
+    - Commit: `chore: code audit - logging cleanup, type fixes, and dead code removal`
 
 ## Output Example
 ```
 Code Audit Report
 =================
-Baseline: v1.1.6-recovered
-Files scanned: 23
+Baseline: v1.3.0
+Files scanned: 52
 
-Changes:
-- Converted 12 console.log  logger.info
-- Converted 3 console.log → logger.debug
-- Converted 5 console.error  logger.error
-- Removed 4 unused imports
-- Removed 87 lines of commented code
-- Removed 1 unreachable function
+Logging Changes:
+- Converted 3 console.* → logger.*
+- Removed 2 backup files
 
-Files modified: 8
-Build status:  Passed
+TypeScript Fixes:
+- Fixed 15 type errors across 4 files
+- Added 3 missing interface properties
+
+Cleanup:
+- Removed 2,595 lines of dead code
+
+Build status: ✅ Passed
 
 Ready to commit?
 ```
@@ -98,4 +131,5 @@ Ready to commit?
 
 - `docs/development/LOGGING_REFERENCE.md` - Logging standards
 - `docs/theming/THEMING_ENGINE.md` - Theming system architecture
-- `/.agent/rules/theming-rules.md` - Theming rules (check for hardcoded colors)
+- `.agent/rules/theming-rules.md` - Theming rules (check for hardcoded colors)
+

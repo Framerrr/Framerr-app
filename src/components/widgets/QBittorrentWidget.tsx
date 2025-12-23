@@ -81,7 +81,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
             return;
         }
 
-        const fetchData = async (): Promise<void> => {
+        const fetchWithRetry = async (retriesLeft: number = 3): Promise<void> => {
             try {
                 setLoading(true);
 
@@ -108,16 +108,20 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                     setTransferInfo(transferData);
                 }
 
-                setError(null);
+                setError(null); // Clear any previous error on success
+                setLoading(false);
             } catch (err) {
+                if (retriesLeft > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return fetchWithRetry(retriesLeft - 1);
+                }
                 setError((err as Error).message);
-            } finally {
                 setLoading(false);
             }
         };
 
-        fetchData();
-        const interval = setInterval(fetchData, 5000); // Refresh every 5s
+        fetchWithRetry();
+        const interval = setInterval(() => fetchWithRetry(), 5000);
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 

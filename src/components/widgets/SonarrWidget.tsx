@@ -185,9 +185,8 @@ const SonarrWidget = ({ config }: SonarrWidgetProps): React.JSX.Element => {
             return;
         }
 
-        const fetchCalendar = async (): Promise<void> => {
+        const fetchWithRetry = async (retriesLeft: number = 3): Promise<void> => {
             try {
-                setLoading(true);
                 const startDate = new Date().toISOString().split('T')[0];
                 const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
@@ -195,16 +194,22 @@ const SonarrWidget = ({ config }: SonarrWidgetProps): React.JSX.Element => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 setData(result);
-                setError(null);
+                setError(null); // Clear any previous error on success
+                setLoading(false);
             } catch (err) {
+                if (retriesLeft > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return fetchWithRetry(retriesLeft - 1);
+                }
                 setError((err as Error).message);
-            } finally {
                 setLoading(false);
             }
         };
 
-        fetchCalendar();
-        const interval = setInterval(fetchCalendar, 60000);
+        setLoading(true);
+        fetchWithRetry();
+
+        const interval = setInterval(() => fetchWithRetry(), 60000);
         return () => clearInterval(interval);
     }, [isIntegrationEnabled, integration]);
 

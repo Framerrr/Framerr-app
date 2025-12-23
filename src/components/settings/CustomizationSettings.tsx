@@ -181,6 +181,7 @@ const CustomizationSettings: React.FC = () => {
 
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [theme, customColorsEnabled, loading]);
 
     // Load custom colors and application name from backend on mount
@@ -212,9 +213,15 @@ const CustomizationSettings: React.FC = () => {
                             setLastSelectedTheme(userResponse.data.theme.lastSelectedTheme);
                         }
                     } else {
-                        // Custom colors off - using a theme
+                        // Custom colors off - using a theme preset
                         setCustomColorsEnabled(false);
-                        setLastSelectedTheme(userResponse.data.theme.mode);
+                        // Read from preset field (not mode - mode is light/dark/system)
+                        if (userResponse.data.theme.preset) {
+                            setLastSelectedTheme(userResponse.data.theme.preset);
+                        } else if (userResponse.data.theme.mode && userResponse.data.theme.mode !== 'custom') {
+                            // Fallback for legacy data that used mode for theme ID
+                            setLastSelectedTheme(userResponse.data.theme.mode);
+                        }
                         // Load theme colors into pickers for display
                         const themeColors = getCurrentThemeColors();
                         setCustomColors(themeColors);
@@ -255,9 +262,9 @@ const CustomizationSettings: React.FC = () => {
                     }
                 }
 
-                // Load flatten UI preference
-                if (userResponse.data?.ui?.flattenUI !== undefined) {
-                    const shouldFlatten = userResponse.data.ui.flattenUI;
+                // Load flatten UI preference (stored in preferences.ui)
+                if (userResponse.data?.preferences?.ui?.flattenUI !== undefined) {
+                    const shouldFlatten = userResponse.data.preferences.ui.flattenUI;
                     setFlattenUI(shouldFlatten);
 
                     // Apply to document
@@ -498,7 +505,7 @@ const CustomizationSettings: React.FC = () => {
         setSavingFlattenUI(true);
         try {
             await axios.put('/api/config/user', {
-                ui: { flattenUI: value }
+                preferences: { ui: { flattenUI: value } }
             }, { withCredentials: true });
 
             setFlattenUI(value);

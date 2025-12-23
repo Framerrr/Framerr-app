@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import axios, { AxiosError } from 'axios';
 import { useAuth } from './AuthContext';
 import { setNotificationFunctions } from '../utils/axiosSetup';
@@ -58,6 +58,14 @@ export const NotificationProvider = ({ children }: NotificationProviderProps): R
     // SSE connection state
     const [connected, setConnected] = useState<boolean>(false);
     const [eventSource, setEventSource] = useState<EventSource | null>(null);
+    const [sseReconnectTrigger, setSseReconnectTrigger] = useState<number>(0);
+    const reconnectAttemptsRef = useRef<number>(0);
+    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // SSE reconnect constants
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const BASE_RECONNECT_DELAY = 1000; // 1 second
+    const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 
     // Web Push state
     const [pushSupported, setPushSupported] = useState<boolean>(false);
@@ -615,7 +623,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps): R
         }
     }, [isAuthenticated, user, fetchNotifications]);
 
-    // SSE connection for real-time notifications
+    // SSE connection for real-time notifications with auto-reconnect
     useEffect(() => {
         if (!isAuthenticated || !user) {
             if (eventSource) {
@@ -623,6 +631,12 @@ export const NotificationProvider = ({ children }: NotificationProviderProps): R
                 setEventSource(null);
                 setConnected(false);
             }
+            // Clear any pending reconnect timeout
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = null;
+            }
+            reconnectAttemptsRef.current = 0;
             return;
         }
 
@@ -631,6 +645,8 @@ export const NotificationProvider = ({ children }: NotificationProviderProps): R
         source.onopen = (): void => {
             logger.info('[SSE] Connection established');
             setConnected(true);
+            // Reset reconnect attempts on successful connection
+            reconnectAttemptsRef.current = 0;
         };
 
         source.onmessage = (event: MessageEvent): void => {
@@ -712,8 +728,21 @@ export const NotificationProvider = ({ children }: NotificationProviderProps): R
             logger.error('[SSE] Connection error');
             setConnected(false);
 
-            if (source.readyState === EventSource.CLOSED) {
-                logger.info('[SSE] Connection closed, will not reconnect');
+            // Auto-reconnect with exponential backoff
+            if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+                const delay = Math.min(
+                    BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttemptsRef.current),
+                    MAX_RECONNECT_DELAY
+                );
+                logger.info(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    reconnectAttemptsRef.current += 1;
+                    source.close();
+                    setSseReconnectTrigger(prev => prev + 1);
+                }, delay);
+            } else {
+                logger.warn('[SSE] Max reconnect attempts reached, giving up');
             }
         };
 
@@ -724,8 +753,27 @@ export const NotificationProvider = ({ children }: NotificationProviderProps): R
             source.close();
             setEventSource(null);
             setConnected(false);
+            // Clear reconnect timeout on cleanup
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = null;
+            }
         };
-    }, [isAuthenticated, user, addNotification, showToast, handleRequestAction, openNotificationCenter]);
+    }, [isAuthenticated, user, sseReconnectTrigger, addNotification, showToast, handleRequestAction, openNotificationCenter]);
+
+    // Reconnect SSE when tab becomes visible if disconnected
+    useEffect(() => {
+        const handleVisibilityChange = (): void => {
+            if (!document.hidden && !connected && isAuthenticated && user) {
+                logger.info('[SSE] Tab visible and disconnected, triggering reconnect');
+                reconnectAttemptsRef.current = 0; // Reset attempts
+                setSseReconnectTrigger(prev => prev + 1);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [connected, isAuthenticated, user]);
 
     const value: NotificationContextValue = {
         // Toast state
