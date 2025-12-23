@@ -245,7 +245,7 @@ const AddWidgetModal = ({
                                             <div
                                                 key={widget.type}
                                                 draggable={true}
-                                                onDragStart={(e) => handleDragStart(e, widget.type)}
+                                                onDragStart={(e) => handleDragStart(e, widget.type!)}
                                                 onDragEnd={handleDragEnd}
                                                 className="glass-subtle shadow-medium rounded-xl p-5 border border-slate-700/50 hover:border-slate-600 transition-all cursor-grab active:cursor-grabbing"
                                             >
@@ -292,7 +292,7 @@ const AddWidgetModal = ({
 
                                                 {/* Add Button */}
                                                 <button
-                                                    onClick={() => handleAddWidget(widget.type)}
+                                                    onClick={() => handleAddWidget(widget.type!)}
                                                     disabled={adding === widget.type}
                                                     className="button-elevated w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover disabled:bg-slate-600 text-white rounded-lg transition-all font-medium"
                                                 >
