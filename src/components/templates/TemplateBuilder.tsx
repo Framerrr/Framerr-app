@@ -201,17 +201,17 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                         </Button>
 
                         {/* Step indicators */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             {STEPS.map((step) => (
                                 <button
                                     key={step.id}
                                     onClick={() => handleStepClick(step.id)}
-                                    className={`w-3 h-3 rounded-full transition-colors ${currentStep === step.id
-                                        ? 'bg-accent'
-                                        : step.id < currentStep
-                                            ? 'bg-accent/50'
-                                            : 'bg-theme-tertiary'
-                                        } cursor-pointer hover:opacity-80`}
+                                    className={`w-3 h-3 rounded-full transition-all border-2 ${currentStep === step.id
+                                            ? 'bg-accent border-accent scale-125'
+                                            : step.id < currentStep
+                                                ? 'bg-accent/60 border-accent/60'
+                                                : 'bg-theme-tertiary border-theme'
+                                        } cursor-pointer hover:scale-110`}
                                     title={step.label}
                                 />
                             ))}

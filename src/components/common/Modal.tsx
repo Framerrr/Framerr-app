@@ -48,7 +48,7 @@ const Modal = ({
         md: 'max-w-md',
         lg: 'max-w-2xl',
         xl: 'max-w-4xl',
-        full: 'max-w-[95vw]'
+        full: 'max-w-[95vw] h-[95vh]'
     };
 
     const modalContent = (
@@ -65,7 +65,7 @@ const Modal = ({
                 className={`
           relative w-full ${sizeClasses[size]} 
           glass-subtle rounded-xl shadow-deep 
-          border border-theme flex flex-col max-h-[90vh]
+          border border-theme flex flex-col ${size === 'full' ? '' : 'max-h-[90vh]'}
           animate-in fade-in zoom-in-95 duration-200
           ${className}
         `}
@@ -88,7 +88,7 @@ const Modal = ({
                 </div>
 
                 {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className={`flex-1 overflow-y-auto custom-scrollbar min-h-0 ${size === 'full' ? 'p-4' : 'p-6'}`}>
                     {children}
                 </div>
             </div>
