@@ -50,7 +50,7 @@ const Sidebar: React.FC = () => {
     const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { userSettings, groups } = useAppData();
     const { logout } = useAuth();
-    const { unreadCount } = useNotifications();
+    const { unreadCount, info: showInfo } = useNotifications();
     const dashboardEdit = useDashboardEdit();
     const navigate = useNavigate();
     const location = useLocation();
@@ -158,9 +158,13 @@ const Sidebar: React.FC = () => {
     }, []);
 
     const handleLogout = (): void => {
-        // Browser-native logout - server handles redirect
-        // This eliminates race conditions with auth proxy
-        window.location.href = '/api/auth/logout';
+        // Show goodbye toast
+        showInfo('Goodbye!', 'See you soon.');
+        // Small delay so user can see the toast before redirect
+        setTimeout(() => {
+            // Browser-native logout - server handles redirect
+            window.location.href = '/api/auth/logout';
+        }, 500);
     };
 
     // Initialize all groups as expanded by default

@@ -50,14 +50,10 @@ const Login = (): React.JSX.Element => {
         const fetchDefaultTheme = async (): Promise<void> => {
             try {
                 const response = await axios.get<{ theme: string }>('/api/theme/default');
-                console.log('[Login] Fetched default theme:', response.data);
                 if (response.data.theme) {
-                    // Apply the admin's theme to the login page
-                    console.log('[Login] Applying theme:', response.data.theme);
                     document.documentElement.setAttribute('data-theme', response.data.theme);
                 }
-            } catch (error) {
-                console.error('[Login] Failed to fetch default theme:', error);
+            } catch {
                 // Silently fail - keep whatever theme is currently applied
             }
         };
