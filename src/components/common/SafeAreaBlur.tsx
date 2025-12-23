@@ -17,24 +17,26 @@ const SafeAreaBlur: React.FC = () => {
         // Handle window scroll
         const handleWindowScroll = () => {
             const scrolled = window.scrollY > 10;
-            console.log('[SafeAreaBlur] window scroll:', window.scrollY);
             setIsScrolled(scrolled);
         };
 
-        // Handle any container scroll (capture phase)
+        // Handle only the main scroll container, ignore widget scrolls
         const handleContainerScroll = (e: Event) => {
             const target = e.target as HTMLElement;
-            if (target && target.scrollTop !== undefined) {
+
+            // ONLY respond to the main-scroll container
+            // Ignore scrollable widgets, lists, and other nested scroll areas
+            if (target && target.id === 'main-scroll') {
                 const scrolled = target.scrollTop > 10;
-                console.log('[SafeAreaBlur] container scroll:', target.id || target.className, 'scrollTop:', target.scrollTop);
                 setIsScrolled(scrolled);
             }
+            // Ignore all other scroll events (widgets, lists, etc.)
         };
 
         // Listen to window scroll
         window.addEventListener('scroll', handleWindowScroll, { passive: true });
 
-        // Also listen to document scroll with capture to catch all scroll events
+        // Also listen to document scroll with capture to catch main-scroll events
         document.addEventListener('scroll', handleContainerScroll, { capture: true, passive: true });
 
         // Initial check

@@ -73,16 +73,14 @@ const MainLayout: React.FC = () => {
             {/* Safe area blur overlay for top notch/camera region */}
             <SafeAreaBlur />
 
-            {/* Outer wrapper: fills fixed viewport, applies safe-area padding */}
+            {/* Outer wrapper: fills viewport (safe-area handled by html in index.css) */}
             <div
                 className="flex flex-col w-full h-full"
                 style={{
                     backgroundColor: 'var(--bg-primary)',
                     color: 'var(--text-primary)',
-                    // Safe-area padding at wrapper level (not body)
-                    paddingTop: 'env(safe-area-inset-top)',
-                    paddingLeft: 'env(safe-area-inset-left)',
-                    paddingRight: 'env(safe-area-inset-right)',
+                    // Safe-area padding is applied on html element in index.css
+                    // Do NOT add it here or you get double padding
                 }}
             >
                 <ProtectedRoute>
@@ -93,7 +91,8 @@ const MainLayout: React.FC = () => {
                             className="flex-1 min-w-0 min-h-0 h-full"
                             style={{
                                 paddingLeft: isMobile ? 0 : `${LAYOUT.SIDEBAR_WIDTH}px`,
-                                backgroundColor: 'var(--bg-primary)'
+                                backgroundColor: 'var(--bg-primary)',
+                                overflow: 'hidden', // Scroll control handled by MainContent
                             }}
                         >
                             <Routes>

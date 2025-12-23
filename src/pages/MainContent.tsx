@@ -22,6 +22,16 @@ const MainContent = (): React.JSX.Element => {
     // Check if we're on settings (including query params like ?tab=profile)
     const isSettings = currentHash === 'settings' || currentHash.startsWith('settings?');
 
+    // Check if we're viewing a tab (anything that's not dashboard, settings, or dev/dashboard)
+    // Tab views need overflow:hidden because the iframe handles its own scroll
+    const isTabView = !!(currentHash &&
+        currentHash !== 'dashboard' &&
+        !currentHash.startsWith('dashboard?') &&
+        currentHash !== 'settings' &&
+        !currentHash.startsWith('settings?') &&
+        currentHash !== 'dev/dashboard' &&
+        !currentHash.startsWith('dev/dashboard?'));
+
     // Always render both components, toggle visibility with display
     // This prevents TabContainer from unmounting when navigating to settings
     // Each page is its own isolated scroll container (iOS Safari pattern)
@@ -34,9 +44,10 @@ const MainContent = (): React.JSX.Element => {
                     height: '100%',
                     width: '100%',
                     minWidth: 0,
-                    overflowY: 'auto',
-                    WebkitOverflowScrolling: 'touch', // iOS momentum scroll
-                    // NOTE: overscrollBehavior removed - NOT SUPPORTED in Safari
+                    // Tab views: overflow hidden (iframe handles scroll)
+                    // Dashboard/DevDashboard: overflow auto (content scrolls)
+                    overflowY: isTabView ? 'hidden' : 'auto',
+                    WebkitOverflowScrolling: isTabView ? undefined : 'touch',
                 }}>
                 <DashboardOrTabs />
             </div>
@@ -55,3 +66,4 @@ const MainContent = (): React.JSX.Element => {
 };
 
 export default MainContent;
+

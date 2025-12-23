@@ -35,10 +35,44 @@ const TabContainer = (): React.JSX.Element | null => {
     const iframeRefs = useRef<Record<string, HTMLIFrameElement | null>>({}); // { slug: iframe ref }
     const authWindowRefs = useRef<Record<string, Window | null>>({}); // { slug: window ref }
     const detectionIntervalRefs = useRef<Record<string, NodeJS.Timeout>>({}); // { slug: interval id }
+    const containerRef = useRef<HTMLDivElement | null>(null); // Container ref for touch prevention
 
     // Fetch all tabs on mount
     useEffect(() => {
         fetchTabs();
+    }, []);
+
+    // Prevent touch scrolling on the container (iOS scroll lock)
+    // The iframe handles its own scroll internally
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const preventTouchScroll = (e: TouchEvent): void => {
+            // Only prevent if the touch is on the container itself, not the iframe
+            // iframe touch events are handled by the iframe's internal document
+            const target = e.target as HTMLElement;
+            if (target.tagName !== 'IFRAME') {
+                e.preventDefault();
+            }
+        };
+
+        const preventWheelScroll = (e: WheelEvent): void => {
+            // Prevent mouse wheel scrolling on container (not iframe)
+            const target = e.target as HTMLElement;
+            if (target.tagName !== 'IFRAME') {
+                e.preventDefault();
+            }
+        };
+
+        // Use passive: false to allow preventDefault
+        container.addEventListener('touchmove', preventTouchScroll, { passive: false });
+        container.addEventListener('wheel', preventWheelScroll, { passive: false });
+
+        return () => {
+            container.removeEventListener('touchmove', preventTouchScroll);
+            container.removeEventListener('wheel', preventWheelScroll);
+        };
     }, []);
 
     // Listen for auth-complete messages from login-complete page
@@ -338,7 +372,11 @@ const TabContainer = (): React.JSX.Element | null => {
     }
 
     return (
-        <>
+        <div
+            ref={containerRef}
+            className="w-full h-full flex flex-col"
+            style={{ overscrollBehavior: 'none' }}
+        >
             {/* Render iframes for all LOADED tabs */}
             {Array.from(loadedTabs).map(slug => {
                 const tab = tabs.find(t => t.slug === slug);
@@ -465,7 +503,7 @@ const TabContainer = (): React.JSX.Element | null => {
                     </div>
                 );
             })}
-        </>
+        </div>
     );
 };
 

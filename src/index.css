@@ -13,14 +13,19 @@
  * iOS Safari Safe Area Pattern (iOS 26.2 Fix)
  * Based on Seerr/Jellyseerr's proven implementation.
  * 
- * Key insight: Apply safe area padding to html element, not body.
- * This allows the background to naturally fill the entire viewport
- * including safe areas (home indicator region).
+ * Key insight: Do NOT use position:fixed on html/body - it fights with viewport-fit=cover
+ * and causes black bars in the home indicator region.
+ * 
+ * NOTE: This approach fixes the black bar but allows container scrolling.
+ * Container scroll prevention needs to be handled separately (JS touch events).
  */
 html {
-    /* Safe area handling - pushes content inward, background fills viewport */
+    /* Height required for h-full chain to work in children */
+    height: 100%;
+    /* Seerr-style: min-height allows background to fill home indicator region */
     min-height: calc(100% + env(safe-area-inset-top));
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* Safe area handling - TOP/LEFT/RIGHT only, tab bar handles bottom */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
     background-color: var(--bg-primary);
 
     /* Prevent pinch zoom */
@@ -39,12 +44,13 @@ body {
     -webkit-overflow-scrolling: touch;
 }
 
-/* React root container - needs explicit height for h-full to work */
+/* React root container */
 #root {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* Universal scrollbar hiding - Clean premium UI */

@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-22 17:10 EST  
+**Last Updated:** 2025-12-22 19:12 EST  
 **Branch:** `feature/mobile-dashboard-editing`
 
 ---
@@ -18,11 +18,11 @@
 
 ## Current State
 
-**Status:** ✅ iOS PWA Safe Area Fixes Complete
+**Status:** ✅ iOS PWA Layout & Scroll Fixes Complete
 
 **Feature Branch:** `feature/mobile-dashboard-editing`
 
-This session fixed iOS 26.2 PWA layout issues and added the safe area blur header feature.
+This session completed iOS 26.2 safe area fixes, safe area blur header, and iframe container layout improvements.
 
 ---
 
@@ -35,7 +35,7 @@ Fixed black bar appearing in home indicator region on iOS 26.2 PWA:
 1. **Root Cause**: `position: fixed` on html/body was fighting with `viewport-fit=cover`
 2. **Solution**: Adopted Seerr-style CSS pattern
    - Removed `position: fixed` from body
-   - Added safe area padding to html element
+   - Added safe area padding to html element (top/left/right only)
    - Uses `min-height: calc(100% + env(safe-area-inset-top))`
 3. **Files Changed**: `src/index.css`
 
@@ -46,13 +46,15 @@ Added glassmorphism blur effect in top notch area when content scrolls:
 1. **New Component**: `src/components/common/SafeAreaBlur.tsx`
 2. **Behavior**: 
    - Transparent when at top of page
-   - Shows blur when content scrolls behind safe area
+   - Shows blur when main page scrolls (ignores widget scrolls)
    - Uses theme variables for consistent styling
-3. **Integration**: Added to `App.tsx` MainLayout
+3. **Scroll Detection Fix**: Only responds to `#main-scroll` container, not widget scrolls
 
-### Loading Spinner Fix ✅
+### Iframe Tab Container Improvements ✅
 
-- Changed ProtectedRoute loading spinner from `h-full` to `h-screen` for proper centering
+1. **Height Calculation**: Fixed tab container height for proper display
+2. **Scroll Prevention**: Added touch/wheel event prevention + `overscroll-behavior: none`
+3. **Conditional Overflow**: MainContent applies `overflow: hidden` for tab views
 
 ---
 
@@ -61,10 +63,10 @@ Added glassmorphism blur effect in top notch area when content scrolls:
 | File | Changes |
 |------|---------|
 | `src/index.css` | Seerr-style safe area CSS pattern |
-| `src/components/common/SafeAreaBlur.tsx` | NEW - Safe area blur overlay |
-| `src/App.tsx` | Added SafeAreaBlur to MainLayout |
-| `src/pages/MainContent.tsx` | Added id="main-scroll" |
-| `src/components/common/ProtectedRoute.tsx` | h-screen for centered loading |
+| `src/components/common/SafeAreaBlur.tsx` | Safe area blur overlay (fixed scroll detection) |
+| `src/App.tsx` | Added SafeAreaBlur to MainLayout, overflow:hidden on main |
+| `src/pages/MainContent.tsx` | id="main-scroll", conditional overflow for tabs |
+| `src/pages/TabContainer.tsx` | Touch/wheel event prevention, overscroll-behavior |
 
 ---
 
@@ -78,26 +80,20 @@ Added glassmorphism blur effect in top notch area when content scrolls:
 
 ---
 
-## Related Documentation
-
-| Document | Purpose |
-|----------|---------|
-| `docs/dashboard/MOBILE_LAYOUT_FIX.md` | Mobile layout architecture |
-| `docs/versions/v1.3.1.md` | Draft changelog |
-
----
-
 ## Known Issues (Non-blocking)
 
-1. **SafeAreaBlur Debug Logs** - Console.log statements left in for debugging
-   - Remove before production release
-   
-2. **TypeScript Lint Errors** - Pre-existing icon type mismatches
+1. **TypeScript Lint Errors** - Pre-existing type mismatches
    - Does not affect build
    - Can be fixed during TypeScript migration
+
+2. **Iframe Tab Container Scroll** - Minor scroll behavior on iOS
+   - Container may still rubber-band slightly due to iOS Safari limitations
+   - `overscroll-behavior: none` and JS touch prevention added but not 100% effective
+   - All functionality works correctly, just visual polish issue
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-22 17:10 EST
+Session ended: 2025-12-22 19:12 EST
+
