@@ -726,7 +726,7 @@ const DevDashboard = (): React.JSX.Element => {
                 id={widget.id}
                 type={widget.type}
                 title={widget.config?.title as string || 'Widget'}
-                icon={Icon}
+                icon={Icon as LucideIcon}
                 editMode={editMode}
                 onDelete={handleDeleteWidget}
                 flatten={widget.config?.flatten as boolean || false}
