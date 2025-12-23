@@ -135,7 +135,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 isOpen={isOpen}
                 onClose={handleClose}
                 title={getTitle()}
-                size="lg"
+                size={currentStep === 2 ? 'full' : 'lg'}
             >
                 <div className="flex flex-col min-h-[400px]">
 
@@ -207,10 +207,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                     key={step.id}
                                     onClick={() => handleStepClick(step.id)}
                                     className={`w-3 h-3 rounded-full transition-colors ${currentStep === step.id
-                                            ? 'bg-accent'
-                                            : step.id < currentStep
-                                                ? 'bg-accent/50'
-                                                : 'bg-theme-tertiary'
+                                        ? 'bg-accent'
+                                        : step.id < currentStep
+                                            ? 'bg-accent/50'
+                                            : 'bg-theme-tertiary'
                                         } cursor-pointer hover:opacity-80`}
                                     title={step.label}
                                 />
