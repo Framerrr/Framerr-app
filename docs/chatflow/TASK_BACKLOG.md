@@ -11,9 +11,9 @@
 - [x] Widget popovers should not activate when dashboard is in edit mode
 - ~~Affects: Sonarr, Radarr, qBittorrent, Calendar widgets~~ + System Status
 
-### Navigation Improvements (Mobile)
-- [ ] Dashboard button press → scroll to top if already on dashboard
-- [ ] Tapping safe area top → scroll to top of page
+### ~~Navigation Improvements (Mobile)~~ ✅
+- [x] Dashboard button press → scroll to top if already on dashboard
+- [x] Tapping safe area top → scroll to top of page
 
 ---
 
