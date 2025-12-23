@@ -940,8 +940,6 @@ const DevDashboard = (): React.JSX.Element => {
                                     key={widget.id}
                                     className={editMode ? 'edit-mode' : 'locked'}
                                     style={{
-                                        // Debug: dotted border showing grid cell
-                                        border: editMode ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,
                                         // Debug: color-coded background
                                         backgroundColor: pendingUnlink
                                             ? 'rgba(249, 115, 22, 0.1)'

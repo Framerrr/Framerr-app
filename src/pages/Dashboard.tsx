@@ -1122,8 +1122,6 @@ const Dashboard = (): React.JSX.Element => {
                                     onTouchMove={dragReadyWidgetId !== widget.id ? onWidgetTouchMove : undefined}
                                     onTouchEnd={editMode && isMobile ? onWidgetTouchEnd : undefined}
                                     style={{
-                                        // Debug: dotted border showing grid cell (only when overlay enabled)
-                                        border: (editMode && debugOverlayEnabled) ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,
                                         // Debug: color-coded background (only when overlay enabled)
                                         backgroundColor: debugOverlayEnabled
                                             ? (pendingUnlink
