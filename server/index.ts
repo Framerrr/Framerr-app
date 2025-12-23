@@ -41,6 +41,7 @@ import plexRoutes from './routes/plex';
 import linkedAccountsRoutes from './routes/linkedAccounts';
 import webhooksRoutes from './routes/webhooks';
 import requestActionsRoutes from './routes/requestActions';
+import templatesRoutes from './routes/templates';
 import proxyRoutes from './routes/proxy';
 
 // Type for package.json version
@@ -223,6 +224,7 @@ app.use('/api/plex', plexRoutes);
 app.use('/api/linked-accounts', linkedAccountsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/request-actions', requestActionsRoutes);
+app.use('/api/templates', templatesRoutes);
 
 // Proxy routes for widgets (require authentication)
 app.use('/api', proxyRoutes);

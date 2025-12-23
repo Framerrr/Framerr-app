@@ -1,0 +1,585 @@
+/**
+ * Template Database Layer
+ * 
+ * Handles all CRUD operations for dashboard templates, categories, shares, and backups.
+ */
+
+import { db } from '../database/db';
+import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+export interface TemplateWidget {
+    type: string;
+    layout: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+    };
+}
+
+export interface DashboardTemplate {
+    id: string;
+    ownerId: string;
+    name: string;
+    description: string | null;
+    categoryId: string | null;
+    widgets: TemplateWidget[];
+    thumbnail: string | null;
+    isDraft: boolean;
+    isDefault: boolean;
+    sharedFromId: string | null;
+    userModified: boolean;
+    version: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TemplateCategory {
+    id: string;
+    name: string;
+    createdBy: string;
+    createdAt: string;
+}
+
+export interface TemplateShare {
+    id: string;
+    templateId: string;
+    sharedWith: string; // User ID or 'everyone'
+    createdAt: string;
+}
+
+export interface DashboardBackup {
+    id: string;
+    userId: string;
+    widgets: unknown[];
+    mobileLayoutMode: 'linked' | 'independent';
+    mobileWidgets: unknown[] | null;
+    backedUpAt: string;
+}
+
+// Database row types
+interface TemplateRow {
+    id: string;
+    owner_id: string;
+    name: string;
+    description: string | null;
+    category_id: string | null;
+    widgets: string;
+    thumbnail: string | null;
+    is_draft: number;
+    is_default: number;
+    shared_from_id: string | null;
+    user_modified: number;
+    version: number;
+    created_at: number;
+    updated_at: number;
+}
+
+interface CategoryRow {
+    id: string;
+    name: string;
+    created_by: string;
+    created_at: number;
+}
+
+interface ShareRow {
+    id: string;
+    template_id: string;
+    shared_with: string;
+    created_at: number;
+}
+
+interface BackupRow {
+    id: string;
+    user_id: string;
+    widgets: string;
+    mobile_layout_mode: string;
+    mobile_widgets: string | null;
+    backed_up_at: number;
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function rowToTemplate(row: TemplateRow): DashboardTemplate {
+    let widgets: TemplateWidget[] = [];
+    try {
+        widgets = JSON.parse(row.widgets);
+    } catch {
+        logger.warn('Failed to parse template widgets', { templateId: row.id });
+    }
+
+    return {
+        id: row.id,
+        ownerId: row.owner_id,
+        name: row.name,
+        description: row.description,
+        categoryId: row.category_id,
+        widgets,
+        thumbnail: row.thumbnail,
+        isDraft: row.is_draft === 1,
+        isDefault: row.is_default === 1,
+        sharedFromId: row.shared_from_id,
+        userModified: row.user_modified === 1,
+        version: row.version,
+        createdAt: new Date(row.created_at * 1000).toISOString(),
+        updatedAt: new Date(row.updated_at * 1000).toISOString(),
+    };
+}
+
+function rowToCategory(row: CategoryRow): TemplateCategory {
+    return {
+        id: row.id,
+        name: row.name,
+        createdBy: row.created_by,
+        createdAt: new Date(row.created_at * 1000).toISOString(),
+    };
+}
+
+// ============================================================================
+// Template CRUD Operations
+// ============================================================================
+
+export interface CreateTemplateData {
+    ownerId: string;
+    name: string;
+    description?: string;
+    categoryId?: string;
+    widgets?: TemplateWidget[];
+    thumbnail?: string;
+    isDraft?: boolean;
+    isDefault?: boolean;
+    sharedFromId?: string;
+}
+
+/**
+ * Create a new template
+ */
+export async function createTemplate(data: CreateTemplateData): Promise<DashboardTemplate> {
+    const id = uuidv4();
+    const now = Math.floor(Date.now() / 1000);
+
+    try {
+        const insert = db.prepare(`
+            INSERT INTO dashboard_templates 
+            (id, owner_id, name, description, category_id, widgets, thumbnail, is_draft, is_default, shared_from_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        insert.run(
+            id,
+            data.ownerId,
+            data.name,
+            data.description || null,
+            data.categoryId || null,
+            JSON.stringify(data.widgets || []),
+            data.thumbnail || null,
+            data.isDraft ? 1 : 0,
+            data.isDefault ? 1 : 0,
+            data.sharedFromId || null,
+            now,
+            now
+        );
+
+        logger.debug('Template created', { id, name: data.name, ownerId: data.ownerId });
+
+        return getTemplateById(id) as Promise<DashboardTemplate>;
+    } catch (error) {
+        logger.error('Failed to create template', { error: (error as Error).message, data });
+        throw error;
+    }
+}
+
+/**
+ * Get template by ID
+ */
+export async function getTemplateById(id: string): Promise<DashboardTemplate | null> {
+    try {
+        const row = db.prepare('SELECT * FROM dashboard_templates WHERE id = ?').get(id) as TemplateRow | undefined;
+        return row ? rowToTemplate(row) : null;
+    } catch (error) {
+        logger.error('Failed to get template', { error: (error as Error).message, id });
+        throw error;
+    }
+}
+
+/**
+ * Get all templates for a user (owned + shared with them)
+ */
+export async function getTemplatesForUser(userId: string): Promise<DashboardTemplate[]> {
+    try {
+        // Get templates owned by user OR shared with user OR shared with everyone
+        const query = `
+            SELECT DISTINCT t.* FROM dashboard_templates t
+            LEFT JOIN template_shares s ON t.id = s.template_id
+            WHERE t.owner_id = ? 
+               OR s.shared_with = ? 
+               OR s.shared_with = 'everyone'
+            ORDER BY t.is_draft DESC, t.category_id ASC, t.name ASC
+        `;
+
+        const rows = db.prepare(query).all(userId, userId) as TemplateRow[];
+        return rows.map(rowToTemplate);
+    } catch (error) {
+        logger.error('Failed to get templates for user', { error: (error as Error).message, userId });
+        throw error;
+    }
+}
+
+/**
+ * Update a template
+ */
+export interface UpdateTemplateData {
+    name?: string;
+    description?: string;
+    categoryId?: string | null;
+    widgets?: TemplateWidget[];
+    thumbnail?: string | null;
+    isDraft?: boolean;
+    isDefault?: boolean;
+    userModified?: boolean;
+}
+
+export async function updateTemplate(id: string, ownerId: string, data: UpdateTemplateData): Promise<DashboardTemplate | null> {
+    try {
+        // Verify ownership
+        const existing = await getTemplateById(id);
+        if (!existing || existing.ownerId !== ownerId) {
+            return null;
+        }
+
+        const updates: string[] = [];
+        const params: (string | number | null)[] = [];
+
+        if (data.name !== undefined) {
+            updates.push('name = ?');
+            params.push(data.name);
+        }
+        if (data.description !== undefined) {
+            updates.push('description = ?');
+            params.push(data.description);
+        }
+        if (data.categoryId !== undefined) {
+            updates.push('category_id = ?');
+            params.push(data.categoryId);
+        }
+        if (data.widgets !== undefined) {
+            updates.push('widgets = ?');
+            params.push(JSON.stringify(data.widgets));
+        }
+        if (data.thumbnail !== undefined) {
+            updates.push('thumbnail = ?');
+            params.push(data.thumbnail);
+        }
+        if (data.isDraft !== undefined) {
+            updates.push('is_draft = ?');
+            params.push(data.isDraft ? 1 : 0);
+        }
+        if (data.isDefault !== undefined) {
+            updates.push('is_default = ?');
+            params.push(data.isDefault ? 1 : 0);
+        }
+        if (data.userModified !== undefined) {
+            updates.push('user_modified = ?');
+            params.push(data.userModified ? 1 : 0);
+        }
+
+        // Increment version
+        updates.push('version = version + 1');
+
+        if (updates.length === 0) {
+            return existing;
+        }
+
+        params.push(id);
+        const updateQuery = `UPDATE dashboard_templates SET ${updates.join(', ')} WHERE id = ?`;
+        db.prepare(updateQuery).run(...params);
+
+        logger.debug('Template updated', { id, updates: Object.keys(data) });
+
+        return getTemplateById(id);
+    } catch (error) {
+        logger.error('Failed to update template', { error: (error as Error).message, id });
+        throw error;
+    }
+}
+
+/**
+ * Delete a template
+ */
+export async function deleteTemplate(id: string, ownerId: string): Promise<boolean> {
+    try {
+        const result = db.prepare('DELETE FROM dashboard_templates WHERE id = ? AND owner_id = ?').run(id, ownerId);
+
+        if (result.changes > 0) {
+            logger.debug('Template deleted', { id, ownerId });
+            return true;
+        }
+        return false;
+    } catch (error) {
+        logger.error('Failed to delete template', { error: (error as Error).message, id });
+        throw error;
+    }
+}
+
+/**
+ * Get the default template (for new users)
+ */
+export async function getDefaultTemplate(): Promise<DashboardTemplate | null> {
+    try {
+        const row = db.prepare('SELECT * FROM dashboard_templates WHERE is_default = 1 LIMIT 1').get() as TemplateRow | undefined;
+        return row ? rowToTemplate(row) : null;
+    } catch (error) {
+        logger.error('Failed to get default template', { error: (error as Error).message });
+        throw error;
+    }
+}
+
+/**
+ * Set a template as default (clears other defaults)
+ */
+export async function setDefaultTemplate(id: string, ownerId: string): Promise<boolean> {
+    try {
+        // Verify ownership and admin status would be checked at route level
+        const existing = await getTemplateById(id);
+        if (!existing || existing.ownerId !== ownerId) {
+            return false;
+        }
+
+        // Clear all defaults
+        db.prepare('UPDATE dashboard_templates SET is_default = 0 WHERE is_default = 1').run();
+
+        // Set new default
+        db.prepare('UPDATE dashboard_templates SET is_default = 1 WHERE id = ?').run(id);
+
+        logger.info('Default template set', { id });
+        return true;
+    } catch (error) {
+        logger.error('Failed to set default template', { error: (error as Error).message, id });
+        throw error;
+    }
+}
+
+// ============================================================================
+// Category Operations
+// ============================================================================
+
+/**
+ * Get all categories
+ */
+export async function getCategories(): Promise<TemplateCategory[]> {
+    try {
+        const rows = db.prepare('SELECT * FROM template_categories ORDER BY name ASC').all() as CategoryRow[];
+        return rows.map(rowToCategory);
+    } catch (error) {
+        logger.error('Failed to get categories', { error: (error as Error).message });
+        throw error;
+    }
+}
+
+/**
+ * Create a category (admin only - checked at route level)
+ */
+export async function createCategory(name: string, createdBy: string): Promise<TemplateCategory> {
+    const id = uuidv4();
+
+    try {
+        const insert = db.prepare(`
+            INSERT INTO template_categories (id, name, created_by)
+            VALUES (?, ?, ?)
+        `);
+
+        insert.run(id, name, createdBy);
+        logger.debug('Category created', { id, name, createdBy });
+
+        const row = db.prepare('SELECT * FROM template_categories WHERE id = ?').get(id) as CategoryRow;
+        return rowToCategory(row);
+    } catch (error) {
+        logger.error('Failed to create category', { error: (error as Error).message, name });
+        throw error;
+    }
+}
+
+/**
+ * Delete a category (moves templates to uncategorized)
+ */
+export async function deleteCategory(id: string): Promise<boolean> {
+    try {
+        // Templates will have category_id set to NULL due to ON DELETE SET NULL
+        const result = db.prepare('DELETE FROM template_categories WHERE id = ?').run(id);
+
+        if (result.changes > 0) {
+            logger.debug('Category deleted', { id });
+            return true;
+        }
+        return false;
+    } catch (error) {
+        logger.error('Failed to delete category', { error: (error as Error).message, id });
+        throw error;
+    }
+}
+
+// ============================================================================
+// Sharing Operations
+// ============================================================================
+
+/**
+ * Share a template with a user or everyone
+ */
+export async function shareTemplate(templateId: string, sharedWith: string): Promise<TemplateShare> {
+    const id = uuidv4();
+
+    try {
+        const insert = db.prepare(`
+            INSERT OR IGNORE INTO template_shares (id, template_id, shared_with)
+            VALUES (?, ?, ?)
+        `);
+
+        insert.run(id, templateId, sharedWith);
+        logger.debug('Template shared', { templateId, sharedWith });
+
+        return {
+            id,
+            templateId,
+            sharedWith,
+            createdAt: new Date().toISOString(),
+        };
+    } catch (error) {
+        logger.error('Failed to share template', { error: (error as Error).message, templateId, sharedWith });
+        throw error;
+    }
+}
+
+/**
+ * Unshare a template
+ */
+export async function unshareTemplate(templateId: string, sharedWith: string): Promise<boolean> {
+    try {
+        const result = db.prepare('DELETE FROM template_shares WHERE template_id = ? AND shared_with = ?').run(templateId, sharedWith);
+        return result.changes > 0;
+    } catch (error) {
+        logger.error('Failed to unshare template', { error: (error as Error).message, templateId, sharedWith });
+        throw error;
+    }
+}
+
+/**
+ * Get shares for a template
+ */
+export async function getTemplateShares(templateId: string): Promise<TemplateShare[]> {
+    try {
+        const rows = db.prepare('SELECT * FROM template_shares WHERE template_id = ?').all(templateId) as ShareRow[];
+        return rows.map(row => ({
+            id: row.id,
+            templateId: row.template_id,
+            sharedWith: row.shared_with,
+            createdAt: new Date(row.created_at * 1000).toISOString(),
+        }));
+    } catch (error) {
+        logger.error('Failed to get template shares', { error: (error as Error).message, templateId });
+        throw error;
+    }
+}
+
+// ============================================================================
+// Backup Operations
+// ============================================================================
+
+/**
+ * Create or update dashboard backup before template apply
+ */
+export async function createBackup(
+    userId: string,
+    widgets: unknown[],
+    mobileLayoutMode: 'linked' | 'independent',
+    mobileWidgets?: unknown[]
+): Promise<DashboardBackup> {
+    const id = uuidv4();
+
+    try {
+        // Upsert - replace existing backup for user
+        const upsert = db.prepare(`
+            INSERT INTO dashboard_backups (id, user_id, widgets, mobile_layout_mode, mobile_widgets)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                widgets = excluded.widgets,
+                mobile_layout_mode = excluded.mobile_layout_mode,
+                mobile_widgets = excluded.mobile_widgets,
+                backed_up_at = strftime('%s', 'now')
+        `);
+
+        upsert.run(
+            id,
+            userId,
+            JSON.stringify(widgets),
+            mobileLayoutMode,
+            mobileWidgets ? JSON.stringify(mobileWidgets) : null
+        );
+
+        logger.debug('Dashboard backup created', { userId, widgetCount: widgets.length });
+
+        return getBackup(userId) as Promise<DashboardBackup>;
+    } catch (error) {
+        logger.error('Failed to create backup', { error: (error as Error).message, userId });
+        throw error;
+    }
+}
+
+/**
+ * Get backup for a user
+ */
+export async function getBackup(userId: string): Promise<DashboardBackup | null> {
+    try {
+        const row = db.prepare('SELECT * FROM dashboard_backups WHERE user_id = ?').get(userId) as BackupRow | undefined;
+
+        if (!row) return null;
+
+        let widgets: unknown[] = [];
+        let mobileWidgets: unknown[] | null = null;
+
+        try {
+            widgets = JSON.parse(row.widgets);
+        } catch {
+            logger.warn('Failed to parse backup widgets', { userId });
+        }
+
+        if (row.mobile_widgets) {
+            try {
+                mobileWidgets = JSON.parse(row.mobile_widgets);
+            } catch {
+                logger.warn('Failed to parse backup mobile widgets', { userId });
+            }
+        }
+
+        return {
+            id: row.id,
+            userId: row.user_id,
+            widgets,
+            mobileLayoutMode: row.mobile_layout_mode as 'linked' | 'independent',
+            mobileWidgets,
+            backedUpAt: new Date(row.backed_up_at * 1000).toISOString(),
+        };
+    } catch (error) {
+        logger.error('Failed to get backup', { error: (error as Error).message, userId });
+        throw error;
+    }
+}
+
+/**
+ * Delete backup after revert
+ */
+export async function deleteBackup(userId: string): Promise<boolean> {
+    try {
+        const result = db.prepare('DELETE FROM dashboard_backups WHERE user_id = ?').run(userId);
+        return result.changes > 0;
+    } catch (error) {
+        logger.error('Failed to delete backup', { error: (error as Error).message, userId });
+        throw error;
+    }
+}
