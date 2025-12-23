@@ -54,7 +54,13 @@ description: Begin a new Framerr development session
    - UI work → read `docs/reference/theming.md`
    - Architecture work → read `docs/reference/architecture.md`
    - Widget work → read `docs/reference/widgets.md`
+   - Template engine work → read `docs/dash-template/IMPLEMENTATION_PLAN.md`
    - If doc doesn't exist → ask user before proceeding
+
+5b. **If on feature/template-engine branch**
+    - Read `docs/dash-template/IMPLEMENTATION_PLAN.md` for current phase
+    - Check Phase Progress table at bottom
+    - Continue from last incomplete phase/step
 
 6. **Summarize to user**
    - **Current branch** (highlight if not develop)

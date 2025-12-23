@@ -32,13 +32,21 @@ Before ending, verify:
 
 ## Steps
 
-1. **Verify build passes**
+1. **Run tests (if test files exist)**
+   ```bash
+   npm run test:run
+   ```
+   If fails → fix first, do not proceed
+   
+   ⚠️ Skip if no test files exist for the changed code
+
+2. **Verify build passes**
    ```bash
    npm run build
    ```
    If fails → fix first, do not proceed
 
-2. **Check branch before committing**
+3. **Check branch before committing**
    ```bash
    git branch --show-current
    ```
@@ -47,7 +55,7 @@ Before ending, verify:
    
    ⚠️ If on wrong branch, switch before committing!
 
-3. **Update draft changelog**
+4. **Update draft changelog**
    
    If you made changes this session, update the draft changelog:
    ```
@@ -61,7 +69,7 @@ Before ending, verify:
 
    ⚠️ Keep "DRAFT" status marker - do NOT change to RELEASED
 
-4. **Update session state**
+5. **Update session state**
    
    Edit `docs/chatflow/TASK_CURRENT.md` with:
    - **Last Updated:** [timestamp]
@@ -72,7 +80,7 @@ Before ending, verify:
 
    ⚠️ Use `replace_file_content` - do NOT use CLI append
 
-5. **Update reference docs if you changed systems**
+6. **Update reference docs if you changed systems**
    
    | If you changed... | Update... |
    |-------------------|-----------|
@@ -80,13 +88,13 @@ Before ending, verify:
    | CSS/theming | `theming.md` |
    | Widget behavior | `widgets.md` |
 
-6. **Commit changes**
+7. **Commit changes**
    ```bash
    git add .
    git commit -m "Session: [brief summary]"
    ```
 
-7. **Remind user about push**
+8. **Remind user about push**
    
    "Changes committed to `[branch]`. Don't forget to push if desired:
    ```bash
