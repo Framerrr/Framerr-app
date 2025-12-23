@@ -1,7 +1,7 @@
 # Session State
 
-**Last Updated:** 2025-12-22 22:55 EST  
-**Branch:** `feature/mobile-dashboard-editing`
+**Last Updated:** 2025-12-22 23:10 EST  
+**Branch:** `develop`
 
 ---
 
@@ -9,80 +9,44 @@
 
 | Field | Value |
 |-------|-------|
-| **Last Released Version** | `1.3.0` |
+| **Last Released Version** | `1.3.1` |
 | **Release Status** | RELEASED |
-| **Draft Changelog** | `docs/versions/v1.3.1.md` |
-| **Draft Status** | DRAFT - In Development |
+| **Draft Changelog** | - |
+| **Draft Status** | - |
 
 ---
 
 ## Current State
 
-**Status:** ✅ TypeScript Errors Resolved
+**Status:** ✅ Production Release v1.3.1 Complete
 
-**Feature Branch:** `feature/mobile-dashboard-editing`
-
-This session fixed all TypeScript compilation errors (295 → 0 lines).
-
----
-
-## Completed This Session (2025-12-22 Late Evening)
-
-### TypeScript Error Fixes ✅
-
-Resolved all TypeScript compilation errors without changing functionality:
-
-1. **NotificationSettings.tsx**: Fixed PushSubscription date type (accepts string|number)
-2. **Dashboard.tsx + DevDashboard.tsx**: Fixed LucideIcon vs React.FC type for widget icons
-3. **Sidebar.tsx**: Fixed TabGroup.id vs Group.id types, removed invalid framer-motion exit property
-4. **TabContainer.tsx**: Fixed SystemConfig vs SystemConfigForAuth for auth detection functions
-5. **ProtectedRoute.tsx**: Fixed groups type mismatch for hasPermission function
-6. **IntegrationsSettings.tsx**: Fixed duplicate IntegrationConfig type conflicts
-7. **PlexWidget.tsx**: Fixed PlexSessionData vs PlexSession for modal components
-
-**Files Changed:**
-- `src/components/settings/NotificationSettings.tsx`
-- `src/pages/Dashboard.tsx`
-- `src/pages/DevDashboard.tsx`
-- `src/components/Sidebar.tsx`
-- `src/pages/TabContainer.tsx`
-- `src/components/common/ProtectedRoute.tsx`
-- `src/components/settings/IntegrationsSettings.tsx`
-- `src/components/widgets/PlexWidget.tsx`
+**Release Summary:**
+- Squash merged `develop` to `main`
+- Tagged as `v1.3.1` 
+- Docker images pushed: `pickels23/framerr:1.3.1` and `:latest`
+- Branches synced (develop merged with main)
 
 ---
 
-## Key Files Modified
+## Key Changes in v1.3.1
 
-| File | Changes |
-|------|---------|
-| `NotificationSettings.tsx` | PushSubscription interface accepts string\|number for dates |
-| `Dashboard.tsx` | Cast Icon as LucideIcon when passing to WidgetWrapper |
-| `Sidebar.tsx` | Group.id type updated, String() conversions, removed exit prop |
-| `TabContainer.tsx` | Cast systemConfig for auth detection functions |
-| `IntegrationsSettings.tsx` | Cast onUpdate callback values through unknown |
-| `PlexWidget.tsx` | Cast session data when passing to modal components |
-
----
-
-## Next Step
-
-**Merge feature branch and prepare for production release**
-
-1. Merge `feature/mobile-dashboard-editing` to `develop`
-2. Run final testing on develop Docker image
-3. Consider production release v1.3.1
-4. Update CHANGELOG.md when releasing
+- iOS-style hold-to-drag for mobile widget editing
+- iOS safe area blur header
+- TypeScript compilation fixes (295 lines → 0)
+- iOS PWA black bar fix (home indicator region)
+- SSE auto-reconnect with exponential backoff
+- Navigation guards for unsaved dashboard changes
+- Widget polling resilience (retry logic)
+- Setup wizard persistence fixes
 
 ---
 
-## Known Issues (Non-blocking)
+## Next Steps
 
-1. **Iframe Tab Container Scroll** - Minor rubber-band on iOS
-   - All functionality works, just visual polish issue
+Ready for new development work or next feature.
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-22 22:55 EST
+Session ended: 2025-12-22 23:10 EST
