@@ -4,9 +4,9 @@ import { Share2, Users, User, Globe, Lock, ChevronDown, Check, LucideIcon } from
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../../utils/logger';
 
-type SharingMode = 'none' | 'everyone' | 'groups' | 'users';
+export type SharingMode = 'none' | 'everyone' | 'groups' | 'users';
 
-interface SharingState {
+export interface SharingState {
     enabled: boolean;
     mode?: SharingMode;
     groups?: string[];

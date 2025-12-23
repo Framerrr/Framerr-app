@@ -6,7 +6,7 @@ import { Button } from '../../common/Button';
 import BackendSelector from './BackendSelector';
 import GlancesConfig from './backends/GlancesConfig';
 import CustomBackendConfig from './backends/CustomBackendConfig';
-import SharingDropdown from '../SharingDropdown';
+import SharingDropdown, { SharingState } from '../SharingDropdown';
 
 type BackendType = 'glances' | 'custom';
 
@@ -29,14 +29,7 @@ interface IntegrationConfig {
     sharing?: SharingState;
 }
 
-interface SharingState {
-    enabled: boolean;
-    mode?: string;
-    groups?: string[];
-    users?: string[];
-    sharedBy?: string;
-    sharedAt?: string;
-}
+
 
 interface TestState {
     loading: boolean;
