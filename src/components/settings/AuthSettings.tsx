@@ -469,7 +469,7 @@ const AuthSettings: React.FC = () => {
             {activeTab === 'plex' && (
                 <PlexAuthSettings
                     onSaveNeeded={setPlexHasChanges}
-                    onSave={plexSaveRef as MutableRefObject<(() => Promise<void>) | null>}
+                    onSave={plexSaveRef as MutableRefObject<(() => Promise<void>) | undefined>}
                 />
             )}
 

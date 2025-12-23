@@ -222,7 +222,7 @@ const Sidebar: React.FC = () => {
             return <img src={iconValue} alt="icon" className="object-cover rounded" style={{ width: size, height: size }} />;
         }
 
-        const IconComponent = (Icons as Record<string, LucideIcon>)[iconValue] || Icons.Server;
+        const IconComponent = (Icons as unknown as Record<string, LucideIcon>)[iconValue] || Icons.Server;
         return <IconComponent size={size} />;
     };
 
