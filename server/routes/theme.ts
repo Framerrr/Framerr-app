@@ -43,20 +43,20 @@ router.get('/default', async (req: Request, res: Response) => {
         // Get the first admin user to use their theme as default
         const { db } = await import('../database/db');
         const adminUser = db.prepare(`
-            SELECT id FROM users WHERE \`group\` = 'admin' LIMIT 1
+            SELECT id FROM users WHERE "group" = 'admin' LIMIT 1
         `).get() as { id: string } | undefined;
 
-        logger.info('Default theme lookup', { adminFound: !!adminUser, adminId: adminUser?.id });
+        logger.warn('Default theme lookup', { adminFound: !!adminUser, adminId: adminUser?.id });
 
         if (adminUser) {
             const userConfig = await getUserConfig(adminUser.id);
             const themeConfig = userConfig.theme as any;
 
-            logger.info('Theme config from getUserConfig', { themeConfig });
+            logger.warn('Theme config from getUserConfig', { themeConfig });
 
             // Check for preset first (set when user changes theme via UI)
             if (themeConfig?.preset) {
-                logger.debug('Returning admin theme preset', { theme: themeConfig.preset });
+                logger.warn('Returning admin theme preset', { theme: themeConfig.preset });
                 res.json({ theme: themeConfig.preset });
                 return;
             }
@@ -66,13 +66,13 @@ router.get('/default', async (req: Request, res: Response) => {
                 SELECT theme_config FROM user_preferences WHERE user_id = ?
             `).get(adminUser.id) as { theme_config: string | null } | undefined;
 
-            logger.info('Raw theme_config from DB', { rawConfig: rawConfig?.theme_config });
+            logger.warn('Raw theme_config from DB', { rawConfig: rawConfig?.theme_config });
 
             if (rawConfig?.theme_config) {
                 try {
                     const parsed = JSON.parse(rawConfig.theme_config);
                     if (parsed.preset) {
-                        logger.debug('Returning admin theme from raw config', { theme: parsed.preset });
+                        logger.warn('Returning admin theme from raw config', { theme: parsed.preset });
                         res.json({ theme: parsed.preset });
                         return;
                     }
