@@ -340,7 +340,15 @@ const Sidebar: React.FC = () => {
                                 {/* Dashboard Link */}
                                 <a
                                     href="/#dashboard"
-                                    onClick={(e) => handleNavigation(e, '#dashboard')}
+                                    onClick={(e) => {
+                                        const isAlreadyOnDashboard = !window.location.hash || window.location.hash === '#dashboard';
+                                        if (isAlreadyOnDashboard) {
+                                            e.preventDefault();
+                                            document.getElementById('main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
+                                            return;
+                                        }
+                                        handleNavigation(e, '#dashboard');
+                                    }}
                                     onMouseEnter={() => handleMouseEnter('dashboard')}
                                     onMouseLeave={handleMouseLeave}
                                     className={(() => {
@@ -1001,7 +1009,16 @@ const Sidebar: React.FC = () => {
                     </button>
                     <a
                         href="/#dashboard"
-                        onClick={(e) => { handleNavigation(e, '#dashboard'); if (!dashboardEdit?.editMode || !dashboardEdit?.hasUnsavedChanges) setIsMobileMenuOpen(false); }}
+                        onClick={(e) => {
+                            const isAlreadyOnDashboard = !window.location.hash || window.location.hash === '#dashboard';
+                            if (isAlreadyOnDashboard) {
+                                e.preventDefault();
+                                document.getElementById('main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
+                                return;
+                            }
+                            handleNavigation(e, '#dashboard');
+                            if (!dashboardEdit?.editMode || !dashboardEdit?.hasUnsavedChanges) setIsMobileMenuOpen(false);
+                        }}
                         className="flex flex-col items-center gap-1 transition-colors py-2 px-3 rounded-lg relative text-theme-tertiary active:text-theme-primary"
                     >
                         {/* Animated sliding indicator - active state only */}

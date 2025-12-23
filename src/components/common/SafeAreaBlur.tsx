@@ -50,9 +50,15 @@ const SafeAreaBlur: React.FC = () => {
 
     if (!isMobile) return null;
 
+    // Scroll to top when safe area is tapped
+    const handleTap = () => {
+        document.getElementById('main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
         <div
-            className="fixed top-0 left-0 right-0 z-50 pointer-events-none"
+            className={`fixed top-0 left-0 right-0 z-50 ${isScrolled ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}`}
+            onClick={isScrolled ? handleTap : undefined}
             style={{
                 height: 'env(safe-area-inset-top, 0px)',
                 backgroundColor: isScrolled ? 'var(--glass-bg, rgba(10, 14, 26, 0.7))' : 'transparent',
