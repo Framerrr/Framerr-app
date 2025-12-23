@@ -20,7 +20,7 @@ interface Tab {
 }
 
 interface Group {
-    id: string;
+    id: string | number;
     name: string;
 }
 
@@ -167,8 +167,8 @@ const Sidebar: React.FC = () => {
     useEffect(() => {
         if (groups && groups.length > 0) {
             const initialState: ExpandedGroups = {};
-            groups.forEach((group: Group) => {
-                initialState[group.id] = true;
+            groups.forEach((group) => {
+                initialState[String(group.id)] = true;
             });
             setExpandedGroups(initialState);
         }
@@ -430,10 +430,7 @@ const Sidebar: React.FC = () => {
                                                             initial={{ opacity: 0, x: -10 }}
                                                             animate={{ opacity: 1, x: 0 }}
                                                             exit={{ opacity: 0 }}
-                                                            transition={{
-                                                                ...textSpring,
-                                                                exit: { duration: 0.1 },
-                                                            }}
+                                                            transition={textSpring}
                                                             className={`whitespace-nowrap relative z-10 ${window.location.hash.slice(1) === tab.slug ? 'text-accent' : ''}`}
                                                         >
                                                             {tab.name}
@@ -449,8 +446,8 @@ const Sidebar: React.FC = () => {
                                         ))}
 
                                         {/* Grouped tabs */}
-                                        {groups && (groups as Group[]).map((group: Group) => {
-                                            const groupTabs = tabs.filter(tab => tab.groupId === group.id);
+                                        {groups && (groups as unknown as Group[]).map((group: Group) => {
+                                            const groupTabs = tabs.filter(tab => String(tab.groupId) === String(group.id));
                                             if (groupTabs.length === 0) return null;
 
                                             return (
@@ -458,7 +455,7 @@ const Sidebar: React.FC = () => {
                                                     {isExpanded ? (
                                                         <>
                                                             <button
-                                                                onClick={() => toggleGroup(group.id)}
+                                                                onClick={() => toggleGroup(String(group.id))}
                                                                 onMouseEnter={() => handleMouseEnter(`group-${group.id}`)}
                                                                 onMouseLeave={handleMouseLeave}
                                                                 className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-theme-tertiary uppercase tracking-wider hover:text-theme-secondary transition-colors rounded-lg relative"
