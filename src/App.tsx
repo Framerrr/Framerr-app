@@ -8,6 +8,7 @@ import { SystemConfigProvider } from './context/SystemConfigContext';
 import { AppDataProvider } from './context/AppDataContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
+import { DashboardEditProvider } from './context/DashboardEditContext';
 import { LAYOUT } from './constants/layout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/Sidebar';
@@ -69,7 +70,7 @@ const MainLayout: React.FC = () => {
     const { isMobile } = useLayout();
 
     return (
-        <>
+        <DashboardEditProvider>
             {/* Safe area blur overlay for top notch/camera region */}
             <SafeAreaBlur />
 
@@ -102,7 +103,7 @@ const MainLayout: React.FC = () => {
                     </div>
                 </ProtectedRoute>
             </div>
-        </>
+        </DashboardEditProvider>
     );
 };
 

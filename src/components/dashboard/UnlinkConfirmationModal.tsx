@@ -5,16 +5,19 @@ interface UnlinkConfirmationModalProps {
     isOpen: boolean;
     onConfirm: () => void;
     onCancel: () => void;
+    onDiscard?: () => void;  // Optional - shown when navigating away
 }
 
 /**
  * UnlinkConfirmationModal - Shows when saving changes that will unlink mobile from desktop
  * Final confirmation before making mobile dashboard independent
+ * When onDiscard is provided, shows a Discard button for navigation scenarios
  */
 const UnlinkConfirmationModal: React.FC<UnlinkConfirmationModalProps> = ({
     isOpen,
     onConfirm,
-    onCancel
+    onCancel,
+    onDiscard
 }) => {
     return (
         <Modal isOpen={isOpen} onClose={onCancel} title="Save Custom Mobile Layout?" size="sm">
@@ -35,6 +38,14 @@ const UnlinkConfirmationModal: React.FC<UnlinkConfirmationModalProps> = ({
                     >
                         Cancel
                     </button>
+                    {onDiscard && (
+                        <button
+                            onClick={onDiscard}
+                            className="px-4 py-2 text-sm font-medium text-error hover:text-error bg-error/10 hover:bg-error/20 border border-error/30 rounded-lg transition-colors"
+                        >
+                            Discard
+                        </button>
+                    )}
                     <button
                         onClick={onConfirm}
                         className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
@@ -48,3 +59,4 @@ const UnlinkConfirmationModal: React.FC<UnlinkConfirmationModalProps> = ({
 };
 
 export default UnlinkConfirmationModal;
+

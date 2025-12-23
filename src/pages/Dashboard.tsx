@@ -15,6 +15,8 @@ import AddWidgetModal from '../components/dashboard/AddWidgetModal';
 import MobileEditDisclaimerModal from '../components/dashboard/MobileEditDisclaimerModal';
 import UnlinkConfirmationModal from '../components/dashboard/UnlinkConfirmationModal';
 import RelinkConfirmationModal from '../components/dashboard/RelinkConfirmationModal';
+import UnsavedChangesModal from '../components/dashboard/UnsavedChangesModal';
+import { useDashboardEdit } from '../context/DashboardEditContext';
 import DevDebugOverlay from '../components/dev/DevDebugOverlay';
 import { useTouchDragDelay } from '../hooks/useTouchDragDelay';
 import { isAdmin } from '../utils/permissions';
@@ -123,6 +125,9 @@ const Dashboard = (): React.JSX.Element => {
     const [mobileDisclaimerDismissed, setMobileDisclaimerDismissed] = useState<boolean>(false);
     const [pendingUnlink, setPendingUnlink] = useState<boolean>(false);
     const [isUserDragging, setIsUserDragging] = useState<boolean>(false);
+
+    // Dashboard Edit Context - syncs state with context for Sidebar navigation blocking
+    const dashboardEditContext = useDashboardEdit();
 
     // Widget management
     const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -642,6 +647,38 @@ const Dashboard = (): React.JSX.Element => {
         setPendingUnlink(false);
         setShowUnlinkConfirmation(false);
     };
+
+    // Navigation guard handlers - for modal actions when navigating away
+    const handleDiscardAndNavigate = (): void => {
+        const destination = dashboardEditContext?.pendingDestination;
+        handleCancel();
+        dashboardEditContext?.setPendingDestination(null);
+        if (destination) {
+            window.location.hash = destination;
+        }
+    };
+
+    const handleSaveAndNavigate = async (): Promise<void> => {
+        const destination = dashboardEditContext?.pendingDestination;
+        dashboardEditContext?.setPendingDestination(null);
+        await performSave();
+        if (destination) {
+            window.location.hash = destination;
+        }
+    };
+
+    const handleCancelNavigation = (): void => {
+        dashboardEditContext?.setPendingDestination(null);
+    };
+
+    // Sync edit state to context for Sidebar navigation blocking
+    useEffect(() => {
+        dashboardEditContext?.updateEditState({
+            editMode,
+            hasUnsavedChanges,
+            pendingUnlink
+        });
+    }, [editMode, hasUnsavedChanges, pendingUnlink, dashboardEditContext]);
 
     // Toggle edit mode
     const handleToggleEdit = (): void => {
@@ -1180,6 +1217,24 @@ const Dashboard = (): React.JSX.Element => {
                 }}
                 onCancel={() => setShowRelinkConfirmation(false)}
             />
+
+            {/* Navigation Guard Modals - shown when pendingDestination is set */}
+            {dashboardEditContext?.pendingDestination && pendingUnlink && (
+                <UnlinkConfirmationModal
+                    isOpen={true}
+                    onConfirm={handleSaveAndNavigate}
+                    onCancel={handleCancelNavigation}
+                    onDiscard={handleDiscardAndNavigate}
+                />
+            )}
+            {dashboardEditContext?.pendingDestination && !pendingUnlink && hasUnsavedChanges && (
+                <UnsavedChangesModal
+                    isOpen={true}
+                    onSave={handleSaveAndNavigate}
+                    onCancel={handleCancelNavigation}
+                    onDiscard={handleDiscardAndNavigate}
+                />
+            )}
 
             {/* Bottom Spacer */}
             <div style={{ height: isMobile ? LAYOUT.TABBAR_HEIGHT + LAYOUT.PAGE_MARGIN : LAYOUT.PAGE_MARGIN }} aria-hidden="true" />
