@@ -22,6 +22,7 @@ type WidgetComponent = React.ComponentType<any>;
  * Widget metadata interface
  */
 export interface WidgetMetadata {
+    type?: string; // Added when retrieved via getWidgetsByCategory
     component: WidgetComponent;
     icon: LucideIcon;
     name: string;

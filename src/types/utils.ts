@@ -30,6 +30,7 @@ export interface WidgetSize {
  * Widget metadata in registry
  */
 export interface WidgetMetadata {
+    type?: string; // Added when retrieved via getWidgetsByCategory
     component: LazyExoticComponent<ComponentType<unknown>>;
     icon: LucideIcon;
     name: string;
@@ -67,10 +68,10 @@ export interface StartupConfig {
 export interface Logger {
     level: LogLevel;
     isProduction: boolean;
-    error(message: string, meta?: LogMeta): void;
-    warn(message: string, meta?: LogMeta): void;
-    info(message: string, meta?: LogMeta): void;
-    debug(message: string, meta?: LogMeta): void;
+    error(message: string, meta?: unknown): void;
+    warn(message: string, meta?: unknown): void;
+    info(message: string, meta?: unknown): void;
+    debug(message: string, meta?: unknown): void;
     startup(appName: string, config?: StartupConfig): void;
 }
 
