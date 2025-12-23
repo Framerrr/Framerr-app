@@ -373,21 +373,46 @@ const Dashboard = (): React.JSX.Element => {
         h: widget.layouts?.sm?.h ?? 2
     });
 
-    // Handle layout change - only mark as unsaved if user is actually dragging
-    // This prevents false pendingUnlink triggers on breakpoint changes
-    const handleLayoutChange = (currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }): void => {
-        if (!editMode) return;
+    // Check if current layouts differ from original (for smart change detection)
+    // Returns whether there are actual changes and whether unlink should be pending
+    const checkForActualChanges = (
+        updatedWidgets: Widget[],
+        breakpoint: 'lg' | 'sm'
+    ): { hasChanges: boolean; shouldUnlink: boolean } => {
+        // Determine which original to compare against
+        const originalToCompare = (breakpoint === 'sm' && mobileLayoutMode === 'independent')
+            ? mobileOriginalLayout
+            : originalLayout;
 
-        // Only mark as unsaved if user is actively dragging/resizing
-        // This prevents breakpoint changes from triggering unlink logic
-        if (!isUserDragging) return;
-
-        setHasUnsavedChanges(true);
-
-        // Mark as pending unlink if on mobile and currently linked
-        if ((isMobile || currentBreakpoint === 'sm') && mobileLayoutMode === 'linked') {
-            setPendingUnlink(true);
+        // Different widget count = definitely changed (handled by add/delete, not here)
+        if (updatedWidgets.length !== originalToCompare.length) {
+            return { hasChanges: true, shouldUnlink: breakpoint === 'sm' && mobileLayoutMode === 'linked' };
         }
+
+        // Compare each widget's layout at the relevant breakpoint
+        const hasLayoutChanges = updatedWidgets.some(widget => {
+            const original = originalToCompare.find(w => w.id === widget.id);
+            if (!original) return true; // Widget doesn't exist in original
+
+            const curr = widget.layouts?.[breakpoint];
+            const orig = original.layouts?.[breakpoint];
+
+            return curr?.x !== orig?.x ||
+                curr?.y !== orig?.y ||
+                curr?.w !== orig?.w ||
+                curr?.h !== orig?.h;
+        });
+
+        return {
+            hasChanges: hasLayoutChanges,
+            shouldUnlink: hasLayoutChanges && breakpoint === 'sm' && mobileLayoutMode === 'linked'
+        };
+    };
+
+    // Handle layout change - no-op, change detection happens in handleDragResizeStop
+    // This callback fires too frequently during drag and before positions are finalized
+    const handleLayoutChange = (currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }): void => {
+        // Intentionally empty - smart change detection happens after drag/resize completes
     };
 
     // Handle drag/resize start - marks that user is actively interacting
@@ -444,8 +469,16 @@ const Dashboard = (): React.JSX.Element => {
 
             if (mobileLayoutMode === 'independent') {
                 setMobileWidgets(updatedWidgets);
+                // Check for actual changes vs mobileOriginalLayout
+                const { hasChanges } = checkForActualChanges(updatedWidgets, 'sm');
+                setHasUnsavedChanges(hasChanges);
+                // Already independent, no pendingUnlink needed
             } else {
                 setWidgets(updatedWidgets);
+                // Check for actual changes vs originalLayout
+                const { hasChanges, shouldUnlink } = checkForActualChanges(updatedWidgets, 'sm');
+                setHasUnsavedChanges(hasChanges);
+                setPendingUnlink(shouldUnlink);
             }
 
             // Reset user dragging flag
@@ -492,6 +525,11 @@ const Dashboard = (): React.JSX.Element => {
                 })),
                 sm: withMobileLayouts.map(w => createSmLayoutItem(w))
             });
+
+            // Check for actual changes vs originalLayout (desktop edits)
+            const { hasChanges } = checkForActualChanges(withMobileLayouts, 'lg');
+            setHasUnsavedChanges(hasChanges);
+            // Desktop edits never trigger pendingUnlink
         }
 
         // Reset user dragging flag and touch gesture state
