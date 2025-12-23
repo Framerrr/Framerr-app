@@ -6,6 +6,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
 import { useEditModeAware } from '../../hooks/useEditModeAware';
+import { useCloseOnScroll } from '../../hooks/useCloseOnScroll';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -77,6 +78,10 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
     const [dlPopoverOpen, setDlPopoverOpen] = useState<boolean>(false);
     const [ulPopoverOpen, setUlPopoverOpen] = useState<boolean>(false);
     const { editMode } = useEditModeAware();
+
+    // Close popovers on scroll
+    useCloseOnScroll(dlPopoverOpen, () => setDlPopoverOpen(false));
+    useCloseOnScroll(ulPopoverOpen, () => setUlPopoverOpen(false));
 
     // Block popover from opening when in edit mode
     const handleDlPopoverChange = (open: boolean) => {

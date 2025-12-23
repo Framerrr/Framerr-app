@@ -1,3 +1,0 @@
-Auto-merging docs/chatflow/TASK_CURRENT.md
-CONFLICT (add/add): Merge conflict in docs/chatflow/TASK_CURRENT.md
-Automatic merge failed; fix conflicts and then commit the result.

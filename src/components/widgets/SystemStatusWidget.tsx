@@ -7,6 +7,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
 import { useEditModeAware } from '../../hooks/useEditModeAware';
+import { useCloseOnScroll } from '../../hooks/useCloseOnScroll';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -83,6 +84,7 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
     const [loading, setLoading] = useState<boolean>(false);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const { editMode } = useEditModeAware();
+    useCloseOnScroll(isOpen, () => setIsOpen(false));
 
     // Block popover from opening when in edit mode
     const handleOpenChange = (open: boolean) => {

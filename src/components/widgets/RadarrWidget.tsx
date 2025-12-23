@@ -6,6 +6,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
 import { useEditModeAware } from '../../hooks/useEditModeAware';
+import { useCloseOnScroll } from '../../hooks/useCloseOnScroll';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -29,6 +30,7 @@ interface MoviePopoverProps {
 const MoviePopover = ({ movie }: MoviePopoverProps): React.JSX.Element => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const { editMode } = useEditModeAware();
+    useCloseOnScroll(isOpen, () => setIsOpen(false));
 
     const title = movie.title || 'Unknown Movie';
     const year = movie.year;
