@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell, LucideIcon } from 'lucide-react';
+import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell, LayoutDashboard, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence, Transition } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -19,6 +19,7 @@ import WidgetsSettings from '../components/settings/WidgetsSettings';
 import TabGroupsSettings from '../components/settings/TabGroupsSettings';
 import AuthSettings from '../components/settings/AuthSettings';
 import AdvancedSettings from '../components/settings/AdvancedSettings';
+import DashboardSettingsPage from '../components/settings/DashboardSettingsPage';
 
 interface SettingsTab {
     id: string;
@@ -81,6 +82,7 @@ const UserSettings = (): React.JSX.Element => {
     // User tabs (always visible)
     const userTabs: SettingsTab[] = [
         { id: 'tabs', label: 'My Tabs', icon: Layout },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         ...(hasAdminAccess ? [{ id: 'tabgroups', label: 'Tab Groups', icon: FolderTree }] : []),
         { id: 'integrations', label: 'Integrations', icon: Puzzle },
         { id: 'customization', label: 'Customization', icon: SettingsIcon },
@@ -182,6 +184,17 @@ const UserSettings = (): React.JSX.Element => {
                             transition={contentSpring}
                         >
                             <UserTabsSettings />
+                        </motion.div>
+                    )}
+                    {activeTab === 'dashboard' && (
+                        <motion.div
+                            key="dashboard"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <DashboardSettingsPage />
                         </motion.div>
                     )}
                     {activeTab === 'customization' && (

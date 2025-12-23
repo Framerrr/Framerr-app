@@ -1,37 +1,27 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { LayoutGrid, Cpu, Activity, Link2, Share2, LucideIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
-import { isAdmin } from '../../utils/permissions';
-import WidgetGallery from './WidgetGallery';
-import IntegrationsSettings from './IntegrationsSettings';
-import ActiveWidgets from './ActiveWidgets';
-import LinkedAccountsSettings from './LinkedAccountsSettings';
-import SharedWidgetsSettings from './SharedWidgetsSettings';
+/**
+ * DashboardSettingsPage - Main Dashboard settings with sub-tabs
+ * 
+ * Sub-tabs:
+ * - General: Mobile layout mode, reset dashboard
+ * - Templates: Create, save current, apply templates
+ */
 
-type SubTabId = 'gallery' | 'active' | 'services' | 'shared' | 'linked';
+import React, { useState, useRef, useEffect } from 'react';
+import { Settings2, Layout, LucideIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import DashboardManagement from './DashboardManagement';
+import TemplateSettings from './TemplateSettings';
+
+type SubTabId = 'general' | 'templates';
 
 interface SubTab {
     id: SubTabId;
     label: string;
     icon: LucideIcon;
-    adminOnly: boolean;
 }
 
-/**
- * Integrations Settings - Main wrapper with sub-tabs
- * Sub-tabs: 
- *   - Widget Gallery (all users)
- *   - Active Widgets (all users)
- *   - Service Settings (admin only - API keys, URLs)
- *   - My Linked Accounts (all users - link Overseerr username, etc.)
- */
-const WidgetsSettings: React.FC = () => {
-    const [activeSubTab, setActiveSubTab] = useState<SubTabId>('gallery');
-    const { user } = useAuth();
-    const hasAdminAccess = isAdmin(user);
-
-    // Refs for auto-scrolling sub-tab buttons into view
+const DashboardSettingsPage: React.FC = () => {
+    const [activeSubTab, setActiveSubTab] = useState<SubTabId>('general');
     const subTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     // Scroll active sub-tab into view when it changes
@@ -46,15 +36,9 @@ const WidgetsSettings: React.FC = () => {
         }
     }, [activeSubTab]);
 
-    // Build sub-tabs based on permissions
     const subTabs: SubTab[] = [
-        { id: 'gallery', label: 'Widget Gallery', icon: LayoutGrid, adminOnly: false },
-        { id: 'active', label: 'Active Widgets', icon: Activity, adminOnly: false },
-        ...(hasAdminAccess ? [
-            { id: 'services' as const, label: 'Service Settings', icon: Cpu, adminOnly: true },
-            { id: 'shared' as const, label: 'Shared Widgets', icon: Share2, adminOnly: true }
-        ] : []),
-        { id: 'linked', label: 'My Linked Accounts', icon: Link2, adminOnly: false }
+        { id: 'general', label: 'General', icon: Settings2 },
+        { id: 'templates', label: 'Templates', icon: Layout },
     ];
 
     // Spring config for sub-tab indicator
@@ -77,12 +61,9 @@ const WidgetsSettings: React.FC = () => {
         <div className="fade-in">
             {/* Header */}
             <div className="mb-6 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">Integrations</h2>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-theme-primary">Dashboard</h2>
                 <p className="text-theme-secondary text-sm">
-                    {hasAdminAccess
-                        ? 'Manage widgets, service connections, and linked accounts'
-                        : 'Manage your widgets and linked accounts'
-                    }
+                    Manage your dashboard layout and templates
                 </p>
             </div>
 
@@ -107,7 +88,7 @@ const WidgetsSettings: React.FC = () => {
                                 {/* Animated sliding indicator */}
                                 {isActive && (
                                     <motion.div
-                                        layoutId="integrationsSubTabIndicator"
+                                        layoutId="dashboardSubTabIndicator"
                                         className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
                                         transition={tabSpring}
                                     />
@@ -120,34 +101,16 @@ const WidgetsSettings: React.FC = () => {
 
             {/* Content - Crossfade between tabs */}
             <div style={{ position: 'relative', overflow: 'hidden' }}>
-                <div style={getTabStyle('gallery')}>
-                    <WidgetGallery />
+                <div style={getTabStyle('general')}>
+                    <DashboardManagement />
                 </div>
 
-                <div style={getTabStyle('active')}>
-                    <ActiveWidgets />
-                </div>
-
-                {/* Admin-only: Service Settings */}
-                {hasAdminAccess && (
-                    <div style={getTabStyle('services')}>
-                        <IntegrationsSettings />
-                    </div>
-                )}
-
-                {/* Admin-only: Shared Widgets Management */}
-                {hasAdminAccess && (
-                    <div style={getTabStyle('shared')}>
-                        <SharedWidgetsSettings />
-                    </div>
-                )}
-
-                <div style={getTabStyle('linked')}>
-                    <LinkedAccountsSettings />
+                <div style={getTabStyle('templates')}>
+                    <TemplateSettings />
                 </div>
             </div>
         </div>
     );
 };
 
-export default WidgetsSettings;
+export default DashboardSettingsPage;
