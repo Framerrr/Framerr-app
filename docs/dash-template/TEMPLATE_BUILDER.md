@@ -11,7 +11,25 @@
 
 The Template Builder is a **wizard-style interface** for creating and editing dashboard templates. It provides a visual grid editor identical to the main dashboard, with a widget sidebar for adding components.
 
-**Platform:** Desktop only. Mobile users see a message directing them to desktop.
+---
+
+## Critical: Builder ↔ Dashboard Parity
+
+> **IMPORTANT:** The Template Builder must behave **exactly** like the real dashboard.
+
+The builder grid is not a separate implementation - it should use the **same components and logic** as the actual dashboard:
+
+| Aspect | Requirement |
+|--------|-------------|
+| **Grid System** | Same `react-grid-layout` config (columns, row height, breakpoints) |
+| **Widget Sizing** | Same min/max constraints per widget type |
+| **Widget Behavior** | Same drag, resize, snap behavior |
+| **Mobile Generation** | Same `layoutUtils` functions for auto-generating mobile layout |
+| **Visual Appearance** | Widgets look identical (same components with mock data) |
+
+**Why this matters:** Users must see WYSIWYG (What You See Is What You Get). If a user builds a template in the builder, applying it to their real dashboard must produce an **identical** result. Any mismatch creates confusion and distrust.
+
+**Implementation approach:** Reuse existing dashboard components wherever possible rather than creating builder-specific versions.
 
 ---
 
@@ -371,22 +389,55 @@ Available on all steps.
 
 ## Mobile Handling
 
-When accessing template builder on mobile:
+### Template List on Mobile
+
+**Visible on mobile:**
+- Template cards (horizontal layout)
+- Preview window (clickable)
+- Category filter dropdown
+- Share button (if admin)
+- Delete button
+- Apply functionality via Preview Modal
+
+**Hidden on mobile:**
+- "Create Template" button
+- "Save Current as Template" button  
+- Edit button on template cards
+
+### Preview Modal on Mobile
+
+- **Available** - users can click preview window to open modal
+- **Defaults to Mobile layout** preview tab
+- Desktop/Mobile toggle works for comparison
+- **Edit button hidden**
+- Apply Template and Close work normally
+
+### Template Builder on Mobile
+
+If builder is somehow accessed on mobile (deep link, screen rotation, etc.):
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
 │     [Monitor icon - React Icon]                             │
 │                                                             │
-│     Template Builder requires desktop                       │
+│     Template editing requires desktop                       │
 │                                                             │
-│     The template builder is only available on larger        │
-│     screens. You can still browse and apply templates       │
-│     from this device.                                       │
+│     Template creation and editing is only available on      │
+│     larger screens. You can still browse and apply          │
+│     templates from this device.                             │
 │                                                             │
-│     [Got It]                                                │
+│     [Back to Templates]                                     │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### Mobile User Workflow
+
+1. View template list
+2. Click preview window on template card
+3. See Preview Modal with mobile layout preview
+4. Apply template to their dashboard
+5. Customize mobile layout later from normal dashboard edit mode
 
 ---
 
@@ -425,3 +476,4 @@ Should be **consistent with existing app animations**:
 | Date | Changes |
 |------|---------|
 | 2025-12-23 | Initial draft based on design discussion |
+| 2025-12-23 | Added: Dashboard Parity section, detailed mobile handling, category filtering |

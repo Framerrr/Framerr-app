@@ -98,31 +98,117 @@ Settings
 
 ## Template List Display
 
-### Template Card Design (with Thumbnail)
+### Category Filtering
+
+- Template list includes category filter dropdown at top
+- Options: "All Categories" (default) + all existing categories
+- Filters list to show only templates in selected category
+
+### Template Card Design (Horizontal Layout)
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  ┌─────────────┐                                         │
-│  │ ┌──┐ ┌────┐ │  Media Server Setup          [Edit]    │
-│  │ └──┘ └────┘ │  Category: Media                       │
-│  │ ┌────────┐  │  [Shared icon] Shared by @admin        │
-│  │ └────────┘  │                                         │
-│  └─────────────┘  [Set] [Duplicate] [Export] [Delete]   │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ ┌─────────┐  Media Server Setup                [Edit][Share][X] │
+│ │ preview │  Shared by @admin                                   │
+│ │ window  │  Category: Media                                    │
+│ └─────────┘                                                     │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-The thumbnail shows a **CSS-scaled miniaturized view** of the template layout:
-- Square preview window showing scaled-down dashboard
+**Layout Structure:**
+- **Left:** Square miniaturized preview window (clickable)
+- **Center:** Template name, shared info, category
+- **Right:** Action buttons (Edit, Share, Delete)
+
+**Interactions:**
+- **Click preview window** → Opens Preview Modal (view-only walkthrough)
+- **Edit button** → Opens Template Builder wizard
+- **Share button** → Opens share options (admin only)
+- **Delete button** → Opens delete confirmation
+
+### Preview Window (Thumbnail)
+
+- Square preview showing CSS-scaled miniaturized dashboard layout
 - Uses CSS transform/scale for miniaturization
 - Shows actual widget positions with widget icons
-- Generated/updated when template is saved or updated (always current)
-- Click on card to expand details
+- Generated/updated when template is saved (always current)
+- **Clickable** - opens Preview Modal
 
-### Badges (React Icons, no emojis)
-- **"Shared from @{username}"** - Template was shared with you (with share icon)
-- **"Default for New Users"** - Admin-set default (admin only sees this, with star icon)
-- **"Updated"** - Shared template has been modified since you last applied it (with refresh icon)
-- Category tag badge (colored by category)
+### Badges (React Icons)
+- **"Shared from @{username}"** - with share icon
+- **"Default for New Users"** - with star icon (admin only sees)
+- **"Updated"** - with refresh icon (template modified since last apply)
+- Category label (theme-colored, no custom category colors)
+
+---
+
+## Preview Modal
+
+Opened when user clicks the preview window on a template card.
+
+**Purpose:** View-only walkthrough of template contents without opening the full builder.
+
+### Layout
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│  Template Preview                                 [Edit]     [X] │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Name: Media Server Setup                                         │
+│  Category: Media                                                  │
+│  Description: A setup for media monitoring with Plex, Sonarr,    │
+│               and Radarr widgets.                                 │
+│                                                                   │
+│  Widgets: Plex, Sonarr, Radarr, Calendar (4 total)               │
+│  Created by: @admin                                               │
+│  Last updated: Dec 23, 2025                                       │
+│                                                                   │
+├───────────────────────────────────────────────────────────────────┤
+│                                         [Desktop][Mobile]         │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │                                                             │ │
+│  │              Read-only grid layout preview                  │ │
+│  │              (same as builder Step 2 but no editing)        │ │
+│  │                                                             │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+├───────────────────────────────────────────────────────────────────┤
+│  [Apply Template]                                        [Close] │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### Content
+
+**Info Section:**
+- Template name
+- Category
+- Description (if provided)
+- Widget list and count
+- Creator username
+- Last updated timestamp
+
+**Layout Preview:**
+- Desktop/Mobile toggle tabs
+- Read-only grid showing widget positions
+- Widgets display with mock data (same as builder)
+- No editing capability
+
+### Actions
+
+| Button | Behavior |
+|--------|----------|
+| Edit | Opens Template Builder wizard (desktop only) |
+| Apply Template | Applies template to user's dashboard (with backup warning) |
+| Close | Closes modal |
+
+### Mobile Behavior (Preview Modal)
+
+- Preview modal IS available on mobile
+- Defaults to showing Mobile layout preview
+- Desktop/Mobile toggle still works for comparison
+- **Edit button hidden** on mobile
+- Apply Template and Close buttons work normally
 
 ---
 
