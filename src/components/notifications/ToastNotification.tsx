@@ -27,7 +27,7 @@ export interface ToastNotificationProps {
     type?: ToastType;
     title: string;
     message: string;
-    iconId?: string;
+    iconId?: string | null;
     duration?: number;
     action?: ToastAction;
     actions?: ToastActionItem[];
