@@ -46,9 +46,13 @@ router.get('/default', async (req: Request, res: Response) => {
             SELECT id FROM users WHERE \`group\` = 'admin' LIMIT 1
         `).get() as { id: string } | undefined;
 
+        logger.info('Default theme lookup', { adminFound: !!adminUser, adminId: adminUser?.id });
+
         if (adminUser) {
             const userConfig = await getUserConfig(adminUser.id);
             const themeConfig = userConfig.theme as any;
+
+            logger.info('Theme config from getUserConfig', { themeConfig });
 
             // Check for preset first (set when user changes theme via UI)
             if (themeConfig?.preset) {
@@ -61,6 +65,8 @@ router.get('/default', async (req: Request, res: Response) => {
             const rawConfig = db.prepare(`
                 SELECT theme_config FROM user_preferences WHERE user_id = ?
             `).get(adminUser.id) as { theme_config: string | null } | undefined;
+
+            logger.info('Raw theme_config from DB', { rawConfig: rawConfig?.theme_config });
 
             if (rawConfig?.theme_config) {
                 try {
