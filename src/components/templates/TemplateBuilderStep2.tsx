@@ -121,7 +121,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
     const activeBreakpoints = viewMode === 'desktop' ? { lg: 0 } : { sm: 0 };
 
     return (
-        <div className="flex flex-col h-[calc(80vh-100px)] min-h-[500px]">
+        <div className="flex flex-col h-full min-h-[400px]">
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-theme bg-theme-secondary rounded-t-lg">
                 <div className="flex items-center gap-2">
@@ -130,8 +130,8 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         <button
                             onClick={() => setViewMode('desktop')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'desktop'
-                                    ? 'bg-accent text-white'
-                                    : 'text-theme-secondary hover:text-theme-primary'
+                                ? 'bg-accent text-white'
+                                : 'text-theme-secondary hover:text-theme-primary'
                                 }`}
                         >
                             <Monitor size={14} />
@@ -140,8 +140,8 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         <button
                             onClick={() => setViewMode('mobile')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'mobile'
-                                    ? 'bg-accent text-white'
-                                    : 'text-theme-secondary hover:text-theme-primary'
+                                ? 'bg-accent text-white'
+                                : 'text-theme-secondary hover:text-theme-primary'
                                 }`}
                         >
                             <Smartphone size={14} />

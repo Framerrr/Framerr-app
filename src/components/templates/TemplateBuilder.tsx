@@ -137,10 +137,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 title={getTitle()}
                 size={currentStep === 2 ? 'full' : 'lg'}
             >
-                <div className="flex flex-col min-h-[400px]">
+                <div className="flex flex-col h-full">
 
-                    {/* Step Content */}
-                    <div className="flex-1 py-6 overflow-auto">
+                    {/* Step Content - flex-1 takes remaining space after footer */}
+                    <div className="flex-1 min-h-0 py-4">
                         <AnimatePresence mode="wait">
                             {currentStep === 1 && (
                                 <motion.div
@@ -190,8 +190,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                         </AnimatePresence>
                     </div>
 
-                    {/* Footer with navigation */}
-                    <div className="flex items-center justify-between pt-4 border-t border-theme">
+                    {/* Footer with navigation - flex-shrink-0 prevents compression */}
+                    <div className="flex-shrink-0 flex items-center justify-between py-4 border-t border-theme">
                         {/* Cancel/Back */}
                         <Button
                             variant="secondary"
