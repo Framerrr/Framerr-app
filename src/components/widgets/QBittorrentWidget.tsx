@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import { useEditModeAware } from '../../hooks/useEditModeAware';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -75,6 +76,18 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
     const [limit, setLimit] = useState<number>(20);
     const [dlPopoverOpen, setDlPopoverOpen] = useState<boolean>(false);
     const [ulPopoverOpen, setUlPopoverOpen] = useState<boolean>(false);
+    const { editMode } = useEditModeAware();
+
+    // Block popover from opening when in edit mode
+    const handleDlPopoverChange = (open: boolean) => {
+        if (editMode && open) return;
+        setDlPopoverOpen(open);
+    };
+
+    const handleUlPopoverChange = (open: boolean) => {
+        if (editMode && open) return;
+        setUlPopoverOpen(open);
+    };
 
     useEffect(() => {
         if (!isIntegrationEnabled) {
@@ -173,7 +186,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                 </div>
 
                 {/* Download Stats - Popover */}
-                <Popover.Root open={dlPopoverOpen} onOpenChange={setDlPopoverOpen}>
+                <Popover.Root open={dlPopoverOpen} onOpenChange={handleDlPopoverChange}>
                     <Popover.Trigger asChild>
                         <button
                             className="bg-success/10 text-center p-2 rounded-lg transition-all hover:bg-success/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-success/50"
@@ -251,7 +264,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                 </Popover.Root>
 
                 {/* Upload Stats - Popover */}
-                <Popover.Root open={ulPopoverOpen} onOpenChange={setUlPopoverOpen}>
+                <Popover.Root open={ulPopoverOpen} onOpenChange={handleUlPopoverChange}>
                     <Popover.Trigger asChild>
                         <button
                             className="bg-info/10 text-center p-2 rounded-lg transition-all hover:bg-info/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-info/50"

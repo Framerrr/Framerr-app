@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import { useEditModeAware } from '../../hooks/useEditModeAware';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -34,6 +35,7 @@ interface EpisodePopoverProps {
 // Episode Detail Popover Component
 const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
+    const { editMode } = useEditModeAware();
 
     const seriesTitle = episode.series?.title || episode.seriesTitle || 'Unknown Series';
     const episodeTitle = episode.title || 'TBA';
@@ -46,8 +48,14 @@ const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => 
         ? `${seriesTitle} - ${episodeTitle}`
         : seriesTitle;
 
+    // Block popover from opening when in edit mode
+    const handleOpenChange = (open: boolean) => {
+        if (editMode && open) return;
+        setIsOpen(open);
+    };
+
     return (
-        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
             <Popover.Trigger asChild>
                 <button
                     style={{

@@ -6,6 +6,7 @@ import logger from '../../utils/logger';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import { useEditModeAware } from '../../hooks/useEditModeAware';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -81,6 +82,13 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
     const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const { editMode } = useEditModeAware();
+
+    // Block popover from opening when in edit mode
+    const handleOpenChange = (open: boolean) => {
+        if (editMode && open) return;
+        setIsOpen(open);
+    };
 
     // Metric display configuration - memoized to prevent re-creation on every render
     const config: MetricConfig = useMemo(() => {
@@ -262,7 +270,7 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
     };
 
     return (
-        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
             <Popover.Trigger asChild>
                 <div className="cursor-pointer group">
                     <div className="flex justify-between mb-1 text-sm text-theme-primary group-hover:text-accent transition-colors">

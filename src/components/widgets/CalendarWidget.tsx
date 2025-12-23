@@ -6,6 +6,7 @@ import { Filter, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'luc
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import { useEditModeAware } from '../../hooks/useEditModeAware';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -51,13 +52,20 @@ interface CalendarWidgetProps {
 // Event Popover Component
 const EventPopover: React.FC<EventPopoverProps> = ({ event }) => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
+    const { editMode } = useEditModeAware();
 
     const displayTitle = event.type === 'sonarr'
         ? (event.series?.title || event.seriesTitle || 'Unknown Show')
         : (event.title || 'Unknown Movie');
 
+    // Block popover from opening when in edit mode
+    const handleOpenChange = (open: boolean) => {
+        if (editMode && open) return;
+        setIsOpen(open);
+    };
+
     return (
-        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
             <Popover.Trigger asChild>
                 <button
                     className={`
