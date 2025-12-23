@@ -82,9 +82,9 @@ const UserSettings = (): React.JSX.Element => {
     // User tabs (always visible)
     const userTabs: SettingsTab[] = [
         { id: 'tabs', label: 'My Tabs', icon: Layout },
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         ...(hasAdminAccess ? [{ id: 'tabgroups', label: 'Tab Groups', icon: FolderTree }] : []),
         { id: 'integrations', label: 'Integrations', icon: Puzzle },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'customization', label: 'Customization', icon: SettingsIcon },
         { id: 'profile', label: 'Profile', icon: User },
         { id: 'notifications', label: 'Notifications', icon: Bell },
