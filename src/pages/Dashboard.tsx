@@ -134,8 +134,8 @@ const Dashboard = (): React.JSX.Element => {
     const [integrations, setIntegrations] = useState<Record<string, IntegrationConfig>>({});
     const [sharedIntegrations, setSharedIntegrations] = useState<SharedIntegration[]>([]);
     const [widgetVisibility, setWidgetVisibility] = useState<Record<string, boolean>>({}); // Track widget visibility: {widgetId: boolean}
-    const [greetingEnabled] = useState<boolean>(true);
-    const [greetingText] = useState<string>('Your personal dashboard');
+    const [greetingEnabled, setGreetingEnabled] = useState<boolean>(true);
+    const [greetingText, setGreetingText] = useState<string>('Your personal dashboard');
 
     // Debug overlay toggle (controlled from Settings > Advanced > Debug)
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false);
@@ -248,8 +248,21 @@ const Dashboard = (): React.JSX.Element => {
             fetchWidgets();
         };
 
+        // Listen for greeting updates from CustomizationSettings
+        const handleGreetingUpdated = (event: Event): void => {
+            const customEvent = event as CustomEvent<{ enabled: boolean; text: string }>;
+            if (customEvent.detail) {
+                setGreetingEnabled(customEvent.detail.enabled);
+                setGreetingText(customEvent.detail.text);
+            }
+        };
+
         window.addEventListener('widgets-added', handleWidgetsAdded);
-        return () => window.removeEventListener('widgets-added', handleWidgetsAdded);
+        window.addEventListener('greetingUpdated', handleGreetingUpdated);
+        return () => {
+            window.removeEventListener('widgets-added', handleWidgetsAdded);
+            window.removeEventListener('greetingUpdated', handleGreetingUpdated);
+        };
     }, []);
 
     const loadUserPreferences = async (): Promise<void> => {
@@ -257,6 +270,12 @@ const Dashboard = (): React.JSX.Element => {
             const response = await axios.get<UserConfigResponse>('/api/config/user', { withCredentials: true });
             if (response.data?.preferences?.mobileEditDisclaimerDismissed) {
                 setMobileDisclaimerDismissed(true);
+            }
+            // Load greeting preferences
+            if (response.data?.preferences?.dashboardGreeting) {
+                const greeting = response.data.preferences.dashboardGreeting;
+                setGreetingEnabled(greeting.enabled ?? true);
+                setGreetingText(greeting.text || 'Your personal dashboard');
             }
         } catch (error) {
             logger.debug('Could not load user preferences');
@@ -971,7 +990,9 @@ const Dashboard = (): React.JSX.Element => {
                         <h1 className="text-5xl font-bold mb-3 gradient-text">
                             Dev Dashboard (Beta)
                         </h1>
-                        <p className="text-xl text-slate-400">{greetingText}</p>
+                        {greetingEnabled && (
+                            <p className="text-xl text-slate-400">{greetingText}</p>
+                        )}
                     </div>
                     <button
                         onClick={() => setEditMode(true)}
@@ -994,9 +1015,11 @@ const Dashboard = (): React.JSX.Element => {
                     <h1 className="text-4xl font-bold mb-2 gradient-text">
                         Welcome back, {user?.displayName || user?.username || 'User'}
                     </h1>
-                    <p className="text-lg text-slate-400">
-                        {editMode ? 'Editing mode - Drag to rearrange widgets' : greetingText}
-                    </p>
+                    {(editMode || greetingEnabled) && (
+                        <p className="text-lg text-slate-400">
+                            {editMode ? 'Editing mode - Drag to rearrange widgets' : greetingText}
+                        </p>
+                    )}
                     {/* Debug mode indicator - only visible when debug overlay enabled */}
                     {debugOverlayEnabled && (
                         <div className="flex items-center gap-2 mt-2">
