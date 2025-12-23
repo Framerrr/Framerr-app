@@ -45,12 +45,84 @@ When a template is applied, widgets use the **user's existing service connection
 | Save current dashboard as template | ✅ | ✅ |
 | Use template builder | ✅ | ✅ |
 | Edit own templates | ✅ | ✅ |
+| Edit shared templates (creates personal copy) | ✅ | ✅ |
 | Delete own templates | ✅ | ✅ |
 | Share templates with users | ✅ | ❌ |
+| Create categories | ✅ | ❌ |
 | Set default template for new users | ✅ | ❌ |
 | View shared templates | ✅ | ✅ |
 | Apply templates to own dashboard | ✅ | ✅ |
 | Export/Import templates | ✅ | ✅ |
+
+**Ownership Model:**
+- Each user (including admins) can only **edit their own templates**
+- Admins share with each other like any other user
+- No concurrent editing conflicts - you own your templates
+
+---
+
+## Draft System
+
+Templates support **auto-save drafts** to prevent work loss.
+
+### How Drafts Work
+
+1. User starts creating/editing a template
+2. System auto-saves to database as a **Draft** periodically
+3. Draft appears in template list with "Draft" badge
+4. User can:
+   - Continue editing the draft later
+   - Delete the draft
+   - Save the draft as a completed template
+
+### Draft Persistence
+
+Drafts solve these edge cases:
+- Browser closes unexpectedly
+- Internet connection lost
+- Accidental navigation away
+- Mobile breakpoint triggered during editing
+
+### Multiple Drafts
+
+- Users can have **multiple drafts** simultaneously
+- Each draft is a separate entry in the template list
+- Drafts are user-specific (not shared)
+
+---
+
+## Sharing Model - Dynamic Copy
+
+When an admin shares a template, the recipient gets a **linked copy**:
+
+```
+Admin creates template
+    ↓
+Admin shares with User
+    ↓
+User receives a COPY linked to original
+    ↓
+Admin updates original → User sees "Updated" badge → User can apply or ignore
+    ↓
+Admin deletes original → User keeps copy, "Shared by" badge removed, no more updates
+```
+
+### User Editing of Shared Templates
+
+- User **CAN edit** their copy of a shared template
+- Edits do NOT affect the admin's original
+- If admin pushes update → **overwrites user's edits** (resync)
+- "Revert to Shared" button appears if user has made edits
+  - Syncs back to admin's current version
+  - Warning: "This will reset your customizations to the shared version"
+
+### Sharing Notifications
+
+| Event | Toast | Persistent Notification |
+|-------|-------|------------------------|
+| Template shared with you | ✅ | ✅ |
+| Shared template updated | ✅ | ✅ |
+| Admin deletes shared template | ✅ (copy kept) | ✅ |
 
 ---
 
@@ -98,6 +170,16 @@ Settings
 
 ## Template List Display
 
+### List Ordering
+
+Templates are displayed in this order:
+
+1. **Drafts** (if any) - unsaved work in progress
+2. **Uncategorized** (if any) - templates without a category
+3. **Categories** (alphabetically) - each category's templates grouped together
+
+Within each section, templates are sorted alphabetically by name.
+
 ### Category Filtering
 
 - Template list includes category filter dropdown at top
@@ -135,10 +217,17 @@ Settings
 - **Clickable** - opens Preview Modal
 
 ### Badges (React Icons)
-- **"Shared from @{username}"** - with share icon
-- **"Default for New Users"** - with star icon (admin only sees)
-- **"Updated"** - with refresh icon (template modified since last apply)
-- Category label (theme-colored, no custom category colors)
+
+| Badge | Icon | When Shown |
+|-------|------|------------|
+| "Draft" | Edit/pencil icon | Unsaved work in progress |
+| "Shared by @{username}" | Share icon | Template shared with you |
+| "Default for New Users" | Star icon | Admin-set default (admin only sees) |
+| "Updated" | Refresh icon | Admin updated shared template |
+| "Contains deprecated widgets" | Warning icon | Some widgets will be skipped on apply |
+| "Revert to Shared" | Reset icon | User has edited their shared copy (click to resync) |
+
+Category label uses theme accent color (no custom category colors).
 
 ---
 

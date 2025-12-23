@@ -89,6 +89,11 @@ The builder uses a **3-step wizard**:
 | Template Name | Yes | Display name for the template |
 | Category | Yes | Dropdown with admin-defined categories |
 | Description | No | Optional text explaining the template purpose |
+| Default for New Users | No | (Admin only) Radio toggle - only one template can be default |
+
+### Empty Templates
+
+Templates can be saved with **zero widgets**. This allows creating placeholder templates to be filled in later.
 
 ### Category Dropdown
 
@@ -414,7 +419,13 @@ Available on all steps.
 
 ### Template Builder on Mobile
 
-If builder is somehow accessed on mobile (deep link, screen rotation, etc.):
+If screen drops to mobile breakpoint during editing:
+
+1. **Wizard is hidden** (not destroyed)
+2. **Error overlay appears** with message
+3. **Auto-save continues** - draft is preserved
+4. If user resizes back to desktop → wizard reappears exactly where they left off
+5. If user can't return to desktop → draft is saved, can continue later
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -424,8 +435,8 @@ If builder is somehow accessed on mobile (deep link, screen rotation, etc.):
 │     Template editing requires desktop                       │
 │                                                             │
 │     Template creation and editing is only available on      │
-│     larger screens. You can still browse and apply          │
-│     templates from this device.                             │
+│     larger screens. Your progress has been saved as a       │
+│     draft.                                                  │
 │                                                             │
 │     [Back to Templates]                                     │
 └─────────────────────────────────────────────────────────────┘
