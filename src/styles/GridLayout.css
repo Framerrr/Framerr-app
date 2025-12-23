@@ -114,12 +114,12 @@
     height: 10px;
 }
 
-/* Placeholder while dragging */
-.react-grid-placeholder {
-    background: var(--accent-edit-soft);
-    border: 2px dashed var(--accent-edit);
+/* Placeholder while dragging - More specific selector to override RGL's red default */
+.react-grid-item.react-grid-placeholder {
+    background: var(--accent-edit-soft) !important;
+    border: 2px dashed var(--accent-edit) !important;
     border-radius: 0.75rem;
-    opacity: 1;
+    opacity: 1 !important;
     transition-duration: 100ms;
     z-index: 2;
 }
