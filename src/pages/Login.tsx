@@ -167,25 +167,9 @@ const Login = (): React.JSX.Element => {
         }
     };
 
+    // Splash screen covers everything during auth check - no need for visible spinner here
     if (authLoading) {
-        return (
-            <div className="min-h-screen w-full flex items-center justify-center bg-theme-primary p-4">
-                <motion.div
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: "spring", stiffness: 220, damping: 30 }}
-                >
-                    <motion.div
-                        className="w-12 h-12 border-4 border-theme rounded-full mx-auto mb-4"
-                        style={{ borderTopColor: 'var(--accent)' }}
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    <p className="text-theme-secondary">Checking authentication...</p>
-                </motion.div>
-            </div>
-        );
+        return <></>;
     }
 
     return (
