@@ -43,7 +43,7 @@ router.get('/default', async (req: Request, res: Response) => {
         // Get the first admin user to use their theme as default
         const { db } = await import('../database/db');
         const adminUser = db.prepare(`
-            SELECT id FROM users WHERE "group" = 'admin' LIMIT 1
+            SELECT id FROM users WHERE group_id = 'admin' LIMIT 1
         `).get() as { id: string } | undefined;
 
         logger.warn('Default theme lookup', { adminFound: !!adminUser, adminId: adminUser?.id });
