@@ -48,15 +48,36 @@ router.get('/default', async (req: Request, res: Response) => {
 
         if (adminUser) {
             const userConfig = await getUserConfig(adminUser.id);
-            // The theme preset is stored in userConfig.theme.preset (or theme.mode for legacy)
-            const themePreset = (userConfig.theme as any)?.preset;
-            if (themePreset) {
-                res.json({ theme: themePreset });
+            const themeConfig = userConfig.theme as any;
+
+            // Check for preset first (set when user changes theme via UI)
+            if (themeConfig?.preset) {
+                logger.debug('Returning admin theme preset', { theme: themeConfig.preset });
+                res.json({ theme: themeConfig.preset });
                 return;
+            }
+
+            // Check the raw theme_config in database for any saved preset
+            const rawConfig = db.prepare(`
+                SELECT theme_config FROM user_preferences WHERE user_id = ?
+            `).get(adminUser.id) as { theme_config: string | null } | undefined;
+
+            if (rawConfig?.theme_config) {
+                try {
+                    const parsed = JSON.parse(rawConfig.theme_config);
+                    if (parsed.preset) {
+                        logger.debug('Returning admin theme from raw config', { theme: parsed.preset });
+                        res.json({ theme: parsed.preset });
+                        return;
+                    }
+                } catch {
+                    // Parse error - continue to default
+                }
             }
         }
 
         // Default fallback
+        logger.debug('Returning default theme', { theme: 'dark-pro' });
         res.json({ theme: 'dark-pro' });
     } catch (error) {
         logger.error('Failed to get default theme', {
