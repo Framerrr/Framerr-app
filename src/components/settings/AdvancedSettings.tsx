@@ -45,7 +45,7 @@ const AdvancedSettings: React.FC = () => {
         type: 'spring',
         stiffness: 350,
         damping: 35,
-    };
+    } as const;
 
     const getTabStyle = (tabId: SubTabId): React.CSSProperties => ({
         opacity: activeSubTab === tabId ? 1 : 0,
