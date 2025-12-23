@@ -478,7 +478,8 @@ const Dashboard = (): React.JSX.Element => {
                 // Check for actual changes vs originalLayout
                 const { hasChanges, shouldUnlink } = checkForActualChanges(updatedWidgets, 'sm');
                 setHasUnsavedChanges(hasChanges);
-                setPendingUnlink(shouldUnlink);
+                // Clear pendingUnlink if no changes (nothing to unlink), otherwise set based on shouldUnlink
+                setPendingUnlink(hasChanges ? shouldUnlink : false);
             }
 
             // Reset user dragging flag
