@@ -151,8 +151,8 @@ const WidgetGallery: React.FC = () => {
             if (hasAdminAccess && metadata.requiresIntegration && integrations[metadata.requiresIntegration]) {
                 widgetConfig = {
                     ...widgetConfig,
-                    enabled: true,
-                    ...integrations[metadata.requiresIntegration]
+                    ...integrations[metadata.requiresIntegration],
+                    enabled: true  // Force enabled for new widget
                 };
             }
             // For users: inject shared integration config
