@@ -181,6 +181,7 @@ const CustomizationSettings: React.FC = () => {
 
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [theme, customColorsEnabled, loading]);
 
     // Load custom colors and application name from backend on mount

@@ -121,6 +121,7 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                 window.removeEventListener('mouseup', handleMouseUp);
             };
         }
+        return undefined;
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
     // Touch drag handlers (for mobile)
@@ -165,6 +166,7 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                 window.removeEventListener('touchend', handleTouchEnd);
             };
         }
+        return undefined;
     }, [isDragging, handleTouchMove, handleTouchEnd]);
 
     // Get widgets to display based on mode
