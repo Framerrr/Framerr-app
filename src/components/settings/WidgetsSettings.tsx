@@ -9,6 +9,7 @@ import ActiveWidgets from './ActiveWidgets';
 import LinkedAccountsSettings from './LinkedAccountsSettings';
 import SharedWidgetsSettings from './SharedWidgetsSettings';
 import DashboardManagement from './DashboardManagement';
+import TemplateSettings from './TemplateSettings';
 
 type SubTabId = 'gallery' | 'active' | 'dashboard' | 'services' | 'shared' | 'linked';
 
@@ -131,7 +132,10 @@ const WidgetsSettings: React.FC = () => {
                 </div>
 
                 <div style={getTabStyle('dashboard')}>
-                    <DashboardManagement />
+                    <div className="space-y-6">
+                        <DashboardManagement />
+                        <TemplateSettings />
+                    </div>
                 </div>
 
                 {/* Admin-only: Service Settings */}
