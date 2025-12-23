@@ -21,14 +21,14 @@
 > 📍 **Active Project:** Dashboard Template System  
 > 📖 **Documentation:** `docs/dash-template/IMPLEMENTATION_PLAN.md`
 
-### Current Phase: Phase 0 (Pre-Implementation)
-### Current Step: Test infrastructure complete
-### Next Action: Begin Phase 1 - Database Schema & API
+### Current Phase: Phase 1 Complete
+### Current Step: Database & API implemented
+### Next Action: Begin Phase 2 - Template Builder Steps 1 & 3
 
 ### Phase Checklist
 
 - [x] Phase 0: Test Infrastructure Setup
-- [ ] Phase 1: Database Schema & API Foundation (2-3 sessions)
+- [x] Phase 1: Database Schema & API Foundation (2-3 sessions)
 - [ ] Phase 2: Template Builder UI - Steps 1 & 3 (2 sessions)
 - [ ] Phase 3: Template Builder UI - Step 2 Grid Editor (2-3 sessions)
 - [ ] Phase 4: Template List & Preview Modal (1-2 sessions)
@@ -52,6 +52,12 @@
 ### Workflow Updates
 - `.agent/workflows/start-session.md` - Added template engine branch handling
 - `.agent/workflows/end-session.md` - Added test verification step (step 1)
+
+### Phase 1: Database & API
+- `server/database/migrations/0007_add_templates.js` - New - Migration for 4 tables
+- `server/db/templates.ts` - New - Database layer with full CRUD
+- `server/routes/templates.ts` - New - API routes (15+ endpoints)
+- `server/index.ts` - Registered templates routes
 
 ---
 
