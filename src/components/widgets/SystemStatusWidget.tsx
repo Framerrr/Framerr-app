@@ -110,7 +110,7 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
                 if (backend === 'glances') {
                     endpoint = '/api/systemstatus/glances/history';
                     params.append('url', backendConfig?.url || '');
-                    if (backendConfig?.password) params.append('password', backendConfig.password);
+                    if ((backendConfig as { password?: string })?.password) params.append('password', (backendConfig as { password?: string }).password || '');
                 } else {
                     endpoint = '/api/systemstatus/history';
                     params.append('url', backendConfig?.url || '');
@@ -421,7 +421,7 @@ const SystemStatusWidget: React.FC<SystemStatusWidgetProps> = ({ config }) => {
                 if (backend === 'glances') {
                     endpoint = '/api/systemstatus/glances/status';
                     params.append('url', backendConfig?.url || '');
-                    if (backendConfig?.password) params.append('password', backendConfig.password);
+                    if ((backendConfig as { password?: string })?.password) params.append('password', (backendConfig as { password?: string }).password || '');
                 } else {
                     endpoint = '/api/systemstatus/status';
                     params.append('url', backendConfig?.url || '');
