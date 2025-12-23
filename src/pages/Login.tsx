@@ -45,6 +45,22 @@ const Login = (): React.JSX.Element => {
     const from = locationState?.from?.pathname || '/';
     const loggedOut = locationState?.loggedOut;
 
+    // Fetch admin's theme for login page (public endpoint, no auth required)
+    useEffect(() => {
+        const fetchDefaultTheme = async (): Promise<void> => {
+            try {
+                const response = await axios.get<{ theme: string }>('/api/theme/default');
+                if (response.data.theme) {
+                    // Apply the admin's theme to the login page
+                    document.documentElement.setAttribute('data-theme', response.data.theme);
+                }
+            } catch {
+                // Silently fail - keep whatever theme is currently applied
+            }
+        };
+        fetchDefaultTheme();
+    }, []);
+
     // Check if Plex SSO is enabled (delayed slightly to avoid race with auth check)
     useEffect(() => {
         const timer = setTimeout(async () => {

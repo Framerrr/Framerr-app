@@ -34,6 +34,40 @@ const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
 };
 
 /**
+ * GET /api/theme/default
+ * Get the default/admin theme (public - no auth required)
+ * Used for login page theming
+ */
+router.get('/default', async (req: Request, res: Response) => {
+    try {
+        // Get the first admin user to use their theme as default
+        const { db } = await import('../database/db');
+        const adminUser = db.prepare(`
+            SELECT id FROM users WHERE \`group\` = 'admin' LIMIT 1
+        `).get() as { id: string } | undefined;
+
+        if (adminUser) {
+            const userConfig = await getUserConfig(adminUser.id);
+            // The theme preset is stored in userConfig.theme.preset (or theme.mode for legacy)
+            const themePreset = (userConfig.theme as any)?.preset;
+            if (themePreset) {
+                res.json({ theme: themePreset });
+                return;
+            }
+        }
+
+        // Default fallback
+        res.json({ theme: 'dark-pro' });
+    } catch (error) {
+        logger.error('Failed to get default theme', {
+            error: (error as Error).message
+        });
+        // Return safe default on error
+        res.json({ theme: 'dark-pro' });
+    }
+});
+
+/**
  * GET /api/theme
  * Get current user's theme preferences
  */
