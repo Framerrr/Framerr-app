@@ -217,25 +217,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                                         className="glass-card border-theme rounded-xl shadow-2xl p-4 z-50"
                                         style={{ minWidth: 'max-content' }}
                                     >
-                                        {/* Glass Arrow - matches glass-card */}
-                                        <Popover.Arrow
-                                            width={16}
-                                            height={8}
-                                            style={{
-                                                fill: 'url(#glass-gradient-qbit-dl)',
-                                                filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
-                                            }}
-                                        />
 
-                                        {/* SVG Gradient Definition for Glass Effect */}
-                                        <svg width="0" height="0" style={{ position: 'absolute' }}>
-                                            <defs>
-                                                <linearGradient id="glass-gradient-qbit-dl" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
-                                                    <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
-                                                </linearGradient>
-                                            </defs>
-                                        </svg>
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between gap-4">
                                                 <span className="text-theme-secondary">Download Speed:</span>
@@ -295,25 +277,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                                         className="glass-card border-theme rounded-xl shadow-2xl p-4 z-50"
                                         style={{ minWidth: 'max-content' }}
                                     >
-                                        {/* Glass Arrow - matches glass-card */}
-                                        <Popover.Arrow
-                                            width={16}
-                                            height={8}
-                                            style={{
-                                                fill: 'url(#glass-gradient-qbit-ul)',
-                                                filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
-                                            }}
-                                        />
 
-                                        {/* SVG Gradient Definition for Glass Effect */}
-                                        <svg width="0" height="0" style={{ position: 'absolute' }}>
-                                            <defs>
-                                                <linearGradient id="glass-gradient-qbit-ul" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
-                                                    <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
-                                                </linearGradient>
-                                            </defs>
-                                        </svg>
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between gap-4">
                                                 <span className="text-theme-secondary">Upload Speed:</span>
