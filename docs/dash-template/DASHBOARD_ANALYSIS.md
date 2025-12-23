@@ -4,6 +4,49 @@
 
 ---
 
+## ⚠️ CRITICAL: Isolation Guarantees
+
+> **Template Builder and Dashboard are COMPLETELY ISOLATED systems.**
+
+### What This Means
+
+| System | Data Source | Writes To |
+|--------|-------------|-----------|
+| **Real Dashboard** | Live API data from services | `user_preferences.dashboard_config` |
+| **Template Builder** | Static mock data only | `dashboard_templates` table only |
+
+### Isolation Rules
+
+1. **Template editing NEVER affects real dashboard**
+   - Adding/moving/removing widgets in builder = template only
+   - No automatic sync or translation of actions
+   - User must explicitly "Apply Template" to affect dashboard
+
+2. **Widgets in builder use MOCK DATA**
+   - Same visual design as real widgets
+   - Static placeholder content (not connected to APIs)
+   - No real service calls from template builder
+
+3. **Applying template = REPLACE operation**
+   - Template widget definitions → converted to real widgets
+   - Real widgets connect to user's actual service configs
+   - Old dashboard backed up before replacement
+
+4. **Dashboard edits NEVER affect templates**
+   - User applies template, then modifies dashboard
+   - Template remains unchanged
+   - To update template: user must "Save Current as Template"
+
+### Implementation Requirement
+
+The template builder must:
+- Store templates in separate `dashboard_templates` table
+- Use `<WidgetPreview>` components with hardcoded mock data
+- Only modify `user_preferences.dashboard_config` when user clicks "Apply"
+- Create backup before apply operation
+
+---
+
 ## Critical Parity Points
 
 ### 1. Grid Configuration
