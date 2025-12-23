@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import logger from '../utils/logger';
 
 /**
  * useTouchDragDelay - iOS-style hold-to-drag gesture detection
@@ -151,7 +152,7 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
 
                     element.dispatchEvent(syntheticEvent);
                 } catch (error) {
-                    console.warn('Synthetic touch dispatch failed:', error);
+                    logger.warn('Synthetic touch dispatch failed', { error });
                 }
             });
 
@@ -203,7 +204,7 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
             element.dispatchEvent(syntheticEvent);
         } catch (error) {
             // Fallback for browsers that don't support Touch constructor
-            console.warn('Synthetic touch dispatch failed:', error);
+            logger.warn('Synthetic touch dispatch failed', { error });
         }
     }, []);
 

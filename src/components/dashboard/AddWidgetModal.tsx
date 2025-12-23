@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, Plus, AlertCircle, CheckCircle2, Loader, Share2 } from 'lucide-react';
 import { getWidgetsByCategory, getWidgetMetadata, WidgetMetadata } from '../../utils/widgetRegistry';
+import logger from '../../utils/logger';
 
 interface IntegrationConfig {
     enabled?: boolean;
@@ -120,7 +121,7 @@ const AddWidgetModal = ({
         try {
             await onAddWidget(widgetType);
         } catch (error) {
-            console.error('Failed to add widget', { error: (error as Error).message, modal: 'AddWidget' });
+            logger.error('Failed to add widget', { error: (error as Error).message, modal: 'AddWidget' });
         } finally {
             setAdding(null);
         }
@@ -275,10 +276,10 @@ const AddWidgetModal = ({
 
                                                     {/* Integration status - only for admins */}
                                                     {isAdmin && isIntegrationRequired && (
-                                                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${isIntegrationReady
+                                                        <div className={`flex items - center gap - 1 px - 2 py - 1 rounded ${isIntegrationReady
                                                             ? 'bg-green-500/20 text-green-400'
                                                             : 'bg-amber-500/20 text-amber-400'
-                                                            }`}>
+                                                            } `}>
                                                             {isIntegrationReady ? (
                                                                 <CheckCircle2 size={12} />
                                                             ) : (
