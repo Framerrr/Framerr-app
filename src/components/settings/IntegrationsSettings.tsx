@@ -6,15 +6,10 @@ import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import SystemHealthIntegration from './integrations/SystemHealthIntegration';
 import PlexIntegration from './integrations/PlexIntegration';
-import SharingDropdown from './SharingDropdown';
+import SharingDropdown, { SharingState } from './SharingDropdown';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 
-interface SharingConfig {
-    enabled: boolean;
-    sharedBy?: string | null;
-    sharedWith?: string[];
-}
 
 interface IntegrationConfig {
     enabled: boolean;
@@ -23,7 +18,7 @@ interface IntegrationConfig {
     apiKey?: string;
     username?: string;
     password?: string;
-    sharing?: SharingConfig;
+    sharing?: SharingState;
     _isValid?: boolean;
     [key: string]: unknown;
 }
@@ -136,14 +131,14 @@ const IntegrationsSettings: React.FC = () => {
         }));
     };
 
-    const handleSharingChange = (service: string, sharingConfig: SharingConfig): void => {
+    const handleSharingChange = (service: string, sharingConfig: SharingState): void => {
         setIntegrations(prev => ({
             ...prev,
             [service]: {
                 ...prev[service],
                 sharing: {
                     ...sharingConfig,
-                    sharedBy: sharingConfig.enabled ? (sharingConfig.sharedBy || user?.id) : null
+                    sharedBy: sharingConfig.enabled ? (sharingConfig.sharedBy || user?.id) : undefined
                 }
             }
         }));
@@ -330,7 +325,7 @@ const IntegrationsSettings: React.FC = () => {
                         }));
                     }}
                     sharing={integrations.systemstatus?.sharing}
-                    onSharingChange={(sharingConfig: SharingConfig) => handleSharingChange('systemstatus', sharingConfig)}
+                    onSharingChange={(sharingConfig: SharingState) => handleSharingChange('systemstatus', sharingConfig)}
                 />
 
                 {/* Plex Integration - Special OAuth Component */}
@@ -343,7 +338,7 @@ const IntegrationsSettings: React.FC = () => {
                         }));
                     }}
                     sharing={integrations.plex?.sharing}
-                    onSharingChange={(sharingConfig: SharingConfig) => handleSharingChange('plex', sharingConfig)}
+                    onSharingChange={(sharingConfig: SharingState) => handleSharingChange('plex', sharingConfig)}
                 />
 
                 {/* Other Integrations */}
@@ -426,7 +421,7 @@ const IntegrationsSettings: React.FC = () => {
                                             <SharingDropdown
                                                 service={config.id}
                                                 sharing={integrations[config.id]?.sharing}
-                                                onChange={(sharingConfig: SharingConfig) => handleSharingChange(config.id, sharingConfig)}
+                                                onChange={(sharingConfig: SharingState) => handleSharingChange(config.id, sharingConfig)}
                                                 disabled={!isConfigured(config.id)}
                                             />
 
