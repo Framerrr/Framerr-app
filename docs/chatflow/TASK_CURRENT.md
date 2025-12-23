@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-23 00:25 EST  
+**Last Updated:** 2025-12-23 11:28 EST  
 **Branch:** `develop`
 
 ---
@@ -18,43 +18,47 @@
 
 ## Current State
 
-**Status:** ✅ Theme-Aware Edit Mode Colors Complete
+**Status:** ✅ Theme & UX Improvements Complete
 
 **Session Summary:**
-- Investigated scroll behavior differences between Sonarr/Radarr and qBittorrent widgets
-- Identified hardcoded purple (`rgba(147, 51, 234)`) in 13 places in `GridLayout.css`
-- Added `--accent-edit`, `--accent-edit-soft`, `--scrollbar-thumb`, `--scrollbar-track` CSS variables to all 7 themes
-- Fixed RGL placeholder red override with more specific CSS selector
-- Fixed CSS load order issue by removing duplicate fallback from `design-system.css`
-- Removed hardcoded inline blue borders from `Dashboard.tsx` and `DevDashboard.tsx`
-- Removed widget-content scrollbar override for consistency with global hidden scrollbars
+- Implemented theme-aware splash screen to prevent flash of wrong theme (FOUC)
+- Added `/api/theme/default` public endpoint for login page theming
+- Login page now displays admin's selected theme
+- Fixed tab iframe loading spinner to use theme variables
+- Fixed toast notifications safe area for mobile notch
+- Added goodbye toast notification on logout
+- Removed redundant loading spinners from Login.tsx and ProtectedRoute.tsx
 
 ---
 
 ## Files Changed
 
-- `src/styles/themes/dark-pro.css` - Added edit mode variables
-- `src/styles/themes/light.css` - Added edit mode variables
-- `src/styles/themes/dracula.css` - Added edit mode variables
-- `src/styles/themes/nord.css` - Added edit mode variables
-- `src/styles/themes/nebula.css` - Added edit mode variables
-- `src/styles/themes/noir.css` - Added edit mode variables
-- `src/styles/themes/catppuccin.css` - Added edit mode variables
-- `src/styles/GridLayout.css` - Replaced hardcoded colors with CSS variables
-- `src/styles/design-system.css` - Removed duplicate fallback
-- `src/pages/Dashboard.tsx` - Removed hardcoded inline border
-- `src/pages/DevDashboard.tsx` - Removed hardcoded inline border
+### Frontend
+- `index.html` - Inline critical CSS for splash screen with theme colors
+- `src/context/AuthContext.tsx` - Splash screen hide logic
+- `src/pages/Login.tsx` - Fetch and apply admin theme, removed loading spinner
+- `src/pages/TabContainer.tsx` - Theme-aware iframe loading spinner
+- `src/components/common/ProtectedRoute.tsx` - Removed loading spinner
+- `src/components/Sidebar.tsx` - Goodbye toast on logout
+- `src/components/notifications/ToastContainer.tsx` - Safe area for mobile notch
+
+### Backend
+- `server/routes/theme.ts` - Added `/api/theme/default` public endpoint
+
+### Documentation
+- `docs/reference/theming.md` - Instructions for adding new themes with splash colors
+- `docs/versions/v1.3.2.md` - Updated draft changelog
 
 ---
 
 ## Next Steps
 
-- Test edit mode colors across all themes
-- Consider adding theme-aware colors to other hardcoded values (debug backgrounds, etc.)
+- Test splash screen, login theme, and goodbye toast in production
+- Consider additional theme-related improvements
 - Review backlog items in `docs/chatflow/TASK_BACKLOG.md`
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-23 00:25 EST
+Session ended: 2025-12-23 11:28 EST
