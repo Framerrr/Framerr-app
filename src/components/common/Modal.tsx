@@ -87,8 +87,8 @@ const Modal = ({
                     </button>
                 </div>
 
-                {/* Content - Scrollable */}
-                <div className={`flex-1 overflow-y-auto custom-scrollbar min-h-0 ${size === 'full' ? 'p-4' : 'p-6'}`}>
+                {/* Content */}
+                <div className={`flex-1 min-h-0 ${size === 'full' ? 'overflow-hidden p-4' : 'overflow-y-auto p-6 custom-scrollbar'}`}>
                     {children}
                 </div>
             </div>

@@ -232,7 +232,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                 </div>
 
                 {/* Grid Canvas */}
-                <div className={`flex-1 bg-theme-tertiary overflow-auto ${viewMode === 'mobile' ? 'max-w-[400px] mx-auto' : ''}`}>
+                <div className={`flex-1 bg-theme-tertiary overflow-hidden ${viewMode === 'mobile' ? 'max-w-[400px] mx-auto' : ''}`}>
                     {data.widgets.length === 0 ? (
                         /* Empty State */
                         <div className="h-full flex flex-col items-center justify-center text-center p-8">
