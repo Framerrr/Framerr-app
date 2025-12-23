@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-23 11:28 EST  
+**Last Updated:** 2025-12-23 13:55 EST  
 **Branch:** `develop`
 
 ---
@@ -18,47 +18,45 @@
 
 ## Current State
 
-**Status:** ✅ Theme & UX Improvements Complete
+**Status:** ✅ Popover & Navigation Improvements Complete
 
 **Session Summary:**
-- Implemented theme-aware splash screen to prevent flash of wrong theme (FOUC)
-- Added `/api/theme/default` public endpoint for login page theming
-- Login page now displays admin's selected theme
-- Fixed tab iframe loading spinner to use theme variables
-- Fixed toast notifications safe area for mobile notch
-- Added goodbye toast notification on logout
-- Removed redundant loading spinners from Login.tsx and ProtectedRoute.tsx
+- Reduced popover `sideOffset` from 8px to 4px (closer to trigger elements)
+- Removed popover arrows/pointers for cleaner flat design
+- Created `useCloseOnScroll` hook for consistent scroll-close behavior
+- Popovers now close automatically when main content scrolls
+- Scroll-to-top on dashboard re-tap (both desktop and mobile sidebar)
+- Scroll-to-top on safe area tap (mobile only)
+- `SafeAreaBlur` now tracks both `#main-scroll` and `#settings-scroll` containers
 
 ---
 
 ## Files Changed
 
 ### Frontend
-- `index.html` - Inline critical CSS for splash screen with theme colors
-- `src/context/AuthContext.tsx` - Splash screen hide logic
-- `src/pages/Login.tsx` - Fetch and apply admin theme, removed loading spinner
-- `src/pages/TabContainer.tsx` - Theme-aware iframe loading spinner
-- `src/components/common/ProtectedRoute.tsx` - Removed loading spinner
-- `src/components/Sidebar.tsx` - Goodbye toast on logout
-- `src/components/notifications/ToastContainer.tsx` - Safe area for mobile notch
-
-### Backend
-- `server/routes/theme.ts` - Added `/api/theme/default` public endpoint
+- `src/hooks/useCloseOnScroll.ts` - New hook for closing popovers on scroll
+- `src/components/widgets/SonarrWidget.tsx` - Popover refinements + scroll-close
+- `src/components/widgets/RadarrWidget.tsx` - Popover refinements + scroll-close
+- `src/components/widgets/CalendarWidget.tsx` - Popover refinements + scroll-close
+- `src/components/widgets/QBittorrentWidget.tsx` - Popover refinements + scroll-close (both popovers)
+- `src/components/widgets/SystemStatusWidget.tsx` - Popover refinements + scroll-close (3 popovers)
+- `src/components/Sidebar.tsx` - Dashboard re-tap scrolls to top
+- `src/components/common/SafeAreaBlur.tsx` - Tap-to-scroll-top, tracks both containers
+- `src/pages/MainContent.tsx` - Added id to settings scroll container
 
 ### Documentation
-- `docs/reference/theming.md` - Instructions for adding new themes with splash colors
-- `docs/versions/v1.3.2.md` - Updated draft changelog
+- `docs/versions/v1.3.2.md` - Updated draft changelog with popover refinements
 
 ---
 
 ## Next Steps
 
-- Test splash screen, login theme, and goodbye toast in production
-- Consider additional theme-related improvements
+- Test popover improvements on mobile and desktop
+- Consider additional navigation polish items
 - Review backlog items in `docs/chatflow/TASK_BACKLOG.md`
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-23 11:28 EST
+Session ended: 2025-12-23 13:55 EST
