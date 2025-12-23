@@ -11,6 +11,7 @@ import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Modal from '../common/Modal';
 import TemplateBuilderStep1 from './TemplateBuilderStep1';
+import TemplateBuilderStep2 from './TemplateBuilderStep2';
 import TemplateBuilderStep3 from './TemplateBuilderStep3';
 import { Button } from '../common/Button';
 
@@ -96,24 +97,19 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
 
     const handleNext = () => {
         if (currentStep < 3 && canGoNext()) {
-            // Skip Step 2 for now (Phase 3 will implement it)
-            setCurrentStep(currentStep === 1 ? 3 : currentStep + 1);
+            setCurrentStep(currentStep + 1);
         }
     };
 
     const handleBack = () => {
         if (currentStep > 1) {
-            // Skip Step 2 for now
-            setCurrentStep(currentStep === 3 ? 1 : currentStep - 1);
+            setCurrentStep(currentStep - 1);
         }
     };
 
     const handleStepClick = (step: number) => {
-        // Allow jumping between steps 1 and 3 for now
-        if (step === 1 || step === 3) {
-            if (step === 1 || canGoNext()) {
-                setCurrentStep(step);
-            }
+        if (step <= currentStep || (step === currentStep + 1 && canGoNext())) {
+            setCurrentStep(step);
         }
     };
 
@@ -168,12 +164,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.2 }}
-                                    className="flex items-center justify-center h-full"
                                 >
-                                    <div className="text-center text-theme-secondary">
-                                        <p className="text-lg font-medium mb-2">Grid Editor</p>
-                                        <p className="text-sm">Coming in Phase 3</p>
-                                    </div>
+                                    <TemplateBuilderStep2
+                                        data={templateData}
+                                        onChange={updateTemplateData}
+                                    />
                                 </motion.div>
                             )}
                             {currentStep === 3 && (
@@ -212,13 +207,12 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                     key={step.id}
                                     onClick={() => handleStepClick(step.id)}
                                     className={`w-3 h-3 rounded-full transition-colors ${currentStep === step.id
-                                        ? 'bg-accent'
-                                        : step.id < currentStep
-                                            ? 'bg-accent/50'
-                                            : 'bg-theme-tertiary'
-                                        } ${step.id === 2 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
+                                            ? 'bg-accent'
+                                            : step.id < currentStep
+                                                ? 'bg-accent/50'
+                                                : 'bg-theme-tertiary'
+                                        } cursor-pointer hover:opacity-80`}
                                     title={step.label}
-                                    disabled={step.id === 2}
                                 />
                             ))}
                         </div>
