@@ -20,7 +20,11 @@ const ToastContainer = (): React.ReactPortal => {
 
     const toastContent = (
         <div
-            className="fixed top-4 right-4 z-[1070] flex flex-col gap-3 pointer-events-none"
+            className="fixed right-4 z-[1070] flex flex-col gap-3 pointer-events-none"
+            style={{
+                top: 'calc(1rem + env(safe-area-inset-top, 0px))',
+                right: 'calc(1rem + env(safe-area-inset-right, 0px))'
+            }}
             aria-live="polite"
             aria-atomic="false"
         >

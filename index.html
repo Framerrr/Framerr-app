@@ -33,26 +33,32 @@
       background-color: var(--splash-bg, #0a0e1a);
       transition: opacity 0.3s ease-out;
     }
+
     #framerr-splash.fade-out {
       opacity: 0;
       pointer-events: none;
     }
+
     #framerr-splash .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid var(--splash-border, rgba(148, 163, 184, 0.2));
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--splash-border, rgba(148, 163, 184, 0.2));
       border-top-color: var(--splash-accent, #3b82f6);
       border-radius: 50%;
       animation: splash-spin 1s linear infinite;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
+
     #framerr-splash .text {
       color: var(--splash-text, #94a3b8);
       font-family: system-ui, -apple-system, sans-serif;
       font-size: 14px;
     }
+
     @keyframes splash-spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 

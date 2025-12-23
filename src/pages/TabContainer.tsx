@@ -421,10 +421,10 @@ const TabContainer = (): React.JSX.Element | null => {
                         {/* Iframe Container - min-h-0 + overflow:hidden critical for iOS */}
                         <div className="flex-1 relative bg-white min-h-0 overflow-hidden">
                             {isLoading && (
-                                <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10">
-                                    <div className="text-center text-slate-400">
-                                        <div className="w-12 h-12 border-4 border-slate-700 border-t-accent rounded-full animate-spin mx-auto mb-4"></div>
-                                        <p>Loading {tab.name}...</p>
+                                <div className="absolute inset-0 bg-theme-primary flex items-center justify-center z-10">
+                                    <div className="text-center text-theme-secondary">
+                                        <div className="w-8 h-8 border-2 border-theme border-t-accent rounded-full animate-spin mx-auto mb-3"></div>
+                                        <p className="text-sm">Loading {tab.name}...</p>
                                     </div>
                                 </div>
                             )}
