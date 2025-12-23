@@ -46,6 +46,7 @@ export interface DebugOverlayProps {
 }
 
 interface SortedWidget extends LayoutItem {
+    id: string;   // Added from layout.i in the mapping
     index: number;
     title: string;
 }
