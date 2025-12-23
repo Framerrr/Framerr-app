@@ -298,7 +298,7 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
                         <Popover.Content
                             side="bottom"
                             align="center"
-                            sideOffset={8}
+                            sideOffset={4}
                             collisionPadding={24}
                             asChild
                         >

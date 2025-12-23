@@ -84,7 +84,7 @@ const EventPopover: React.FC<EventPopoverProps> = ({ event }) => {
                         <Popover.Content
                             side="bottom"
                             align="start"
-                            sideOffset={8}
+                            sideOffset={4}
                             collisionPadding={24}
                             asChild
                         >

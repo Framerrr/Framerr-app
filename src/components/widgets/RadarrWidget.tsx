@@ -77,7 +77,7 @@ const MoviePopover = ({ movie }: MoviePopoverProps): React.JSX.Element => {
                         <Popover.Content
                             side="bottom"
                             align="start"
-                            sideOffset={8}
+                            sideOffset={4}
                             collisionPadding={24}
                             asChild
                         >

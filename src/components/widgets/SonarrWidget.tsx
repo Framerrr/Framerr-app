@@ -84,7 +84,7 @@ const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => 
                         <Popover.Content
                             side="bottom"
                             align="start"
-                            sideOffset={8}
+                            sideOffset={4}
                             collisionPadding={24}
                             asChild
                         >
