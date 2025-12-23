@@ -436,7 +436,7 @@ const TabContainer = (): React.JSX.Element | null => {
                             )}
 
                             <iframe
-                                ref={el => iframeRefs.current[slug] = el}
+                                ref={el => { iframeRefs.current[slug] = el; }}
                                 key={reloadKeys[slug] || 0}
                                 src={tab.url}
                                 title={tab.name}
