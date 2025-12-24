@@ -148,7 +148,7 @@ const TemplateBuilderStep1: React.FC<Step1Props> = ({
                                    text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent 
                                    focus:border-transparent appearance-none cursor-pointer transition-colors"
                     >
-                        <option value="">Uncategorized</option>
+                        <option value="">None</option>
                         {categories.map((cat) => (
                             <option key={cat.id} value={cat.id}>
                                 {cat.name}

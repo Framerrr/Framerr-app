@@ -56,7 +56,7 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
             const response = await axios[method]<{ template: TemplateData & { id: string } }>(endpoint, {
                 name: data.name,
                 description: data.description || undefined,
-                categoryId: data.categoryId || undefined,
+                categoryId: data.categoryId, // Send null explicitly to clear category
                 widgets: data.widgets,
                 isDraft: false,
             });
@@ -122,7 +122,7 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
                     <div>
                         <div className="text-sm text-theme-tertiary">Category</div>
                         <div className="text-theme-primary">
-                            {data.categoryId ? 'Custom' : 'Uncategorized'}
+                            {data.categoryId ? 'Custom' : 'None'}
                         </div>
                     </div>
                     <div>
