@@ -196,6 +196,19 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                 },
             };
         });
+
+        // Skip if nothing actually changed (prevents spurious pushes from grid mount)
+        const hasChanges = newWidgets.some((w, i) => {
+            const orig = data.widgets[i];
+            return (
+                w.layout.x !== orig.layout.x ||
+                w.layout.y !== orig.layout.y ||
+                w.layout.w !== orig.layout.w ||
+                w.layout.h !== orig.layout.h
+            );
+        });
+        if (!hasChanges) return;
+
         onChange({ widgets: newWidgets });
     }, [data.widgets, onChange, viewMode]);
 
@@ -467,6 +480,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         /* Grid Layout */
                         <div className="p-4 h-full">
                             <ResponsiveGridLayout
+                                key={`grid-${data.widgets.length}`}
                                 layouts={layouts}
                                 breakpoints={activeBreakpoints}
                                 cols={activeCols}
