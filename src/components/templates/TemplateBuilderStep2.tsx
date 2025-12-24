@@ -198,13 +198,11 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
     // Capture state when drag or resize starts
     const handleDragStart = useCallback(() => {
-        console.log('[UNDO DEBUG] handleDragStart called, capturing state:', data.widgets.length, 'widgets');
         dragStartStateRef.current = data.widgets;
     }, [data.widgets]);
 
     // handleDragStop intentionally does NOT clear the ref - handleLayoutChange fires AFTER and needs it
     const handleDragStop = useCallback(() => {
-        console.log('[UNDO DEBUG] handleDragStop called, ref is:', dragStartStateRef.current ? 'SET' : 'NULL');
         // Don't clear here - handleLayoutChange will clear after using it
     }, []);
 
@@ -238,13 +236,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
             );
         });
 
-        console.log('[UNDO DEBUG] handleLayoutChange - hasChanges:', hasChanges, 'dragStartState:', dragStartStateRef.current ? 'SET' : 'NULL');
-
         if (!hasChanges) return;
 
         // If we have a captured drag start state, push it to undo BEFORE making changes
         if (dragStartStateRef.current) {
-            console.log('[UNDO DEBUG] Pushing to undo stack!');
             setUndoStack(prev => {
                 const newStack = [...prev, dragStartStateRef.current!];
                 return newStack.length > MAX_HISTORY_SIZE ? newStack.slice(-MAX_HISTORY_SIZE) : newStack;
