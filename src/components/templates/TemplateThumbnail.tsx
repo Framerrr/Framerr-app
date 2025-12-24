@@ -3,10 +3,7 @@
  * 
  * Uses CSS transform: scale() to create a miniature version of the grid.
  * The thumbnail shows mock widgets in their actual positions, scaled down.
- * 
- * Used for:
- * - TemplateCard thumbnail
- * - iOS folder-style animation (thumbnail grows into full preview)
+ * Centers the content for a balanced appearance.
  */
 
 import React, { useMemo } from 'react';
@@ -43,23 +40,30 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     // Calculate the full grid dimensions
     const gridMetrics = useMemo(() => {
         if (widgets.length === 0) {
-            return { maxY: 1, fullWidth: 1000, fullHeight: 60, scale: 0.1 };
+            return { maxY: 1, fullWidth: 800, fullHeight: 60, scale: 0.1, offsetX: 0, offsetY: 0 };
         }
 
-        // Find max Y extent (bottom of lowest widget)
+        // Find bounds of the template
+        const maxX = Math.max(...widgets.map(w => w.layout.x + w.layout.w));
         const maxY = Math.max(...widgets.map(w => w.layout.y + w.layout.h));
 
         // Calculate full grid size at 1:1 scale
-        // Use a reasonable "full width" that represents 24 columns
-        const fullWidth = 800; // Simulated full grid width
+        const fullWidth = 800; // Standard grid width
         const fullHeight = maxY * ROW_HEIGHT + (maxY - 1) * GRID_GAP;
 
-        // Calculate scale to fit in container
-        const scaleX = width / fullWidth;
-        const scaleY = height / fullHeight;
+        // Calculate scale to fit in container with some padding
+        const padding = 4;
+        const scaleX = (width - padding * 2) / fullWidth;
+        const scaleY = (height - padding * 2) / fullHeight;
         const scale = Math.min(scaleX, scaleY);
 
-        return { maxY, fullWidth, fullHeight, scale };
+        // Calculate offsets to center the content
+        const scaledWidth = fullWidth * scale;
+        const scaledHeight = fullHeight * scale;
+        const offsetX = (width - scaledWidth) / 2;
+        const offsetY = (height - scaledHeight) / 2;
+
+        return { maxY, fullWidth, fullHeight, scale, offsetX, offsetY };
     }, [widgets, width, height]);
 
     if (widgets.length === 0) {
@@ -68,7 +72,7 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                 className={`bg-theme-tertiary rounded flex items-center justify-center ${className}`}
                 style={{ width, height }}
             >
-                <span className="text-[10px] text-theme-tertiary">Empty</span>
+                <span style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>Empty</span>
             </div>
         );
     }
@@ -78,14 +82,16 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
             className={`relative overflow-hidden bg-theme-tertiary rounded ${className}`}
             style={{ width, height }}
         >
-            {/* Scaled grid container */}
+            {/* Scaled grid container - centered */}
             <div
                 style={{
                     width: gridMetrics.fullWidth,
                     height: gridMetrics.fullHeight,
                     transform: `scale(${gridMetrics.scale})`,
                     transformOrigin: 'top left',
-                    position: 'relative',
+                    position: 'absolute',
+                    left: gridMetrics.offsetX,
+                    top: gridMetrics.offsetY,
                 }}
             >
                 {widgets.map((widget, index) => {
@@ -100,7 +106,7 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                     return (
                         <div
                             key={index}
-                            className="absolute bg-theme-secondary rounded border border-theme overflow-hidden"
+                            className="absolute glass-subtle rounded-lg border border-theme overflow-hidden"
                             style={{
                                 left,
                                 top,

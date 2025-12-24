@@ -1,18 +1,18 @@
 /**
- * MockWidgets - Static mock versions of widgets for template preview/thumbnail
+ * MockWidgets - EXACT visual replicas of real widgets with fake data
  * 
- * Each mock component renders with fake data matching the real widget appearance.
- * Key: overflow:hidden, no scrolling - content clips if widget is too small.
+ * These are CSS-perfect copies of the actual widget rendering.
+ * Styled to match real widgets 1:1 - only the data is fake.
  */
 
 import React from 'react';
 import {
-    Film, Download, ArrowDown, ArrowUp, Activity, HardDrive, Thermometer, Clock,
-    Globe, Music, Sun, Calendar as CalendarIcon, Code, Tv, Clapperboard
+    Film, Download, ArrowDown, ArrowUp, Activity, Disc, Thermometer, Clock,
+    Globe, Music, Sun, Code, Tv
 } from 'lucide-react';
 
 // =============================================================================
-// PLEX WIDGET (3 Sessions)
+// PLEX WIDGET (3 Sessions) - EXACT replica of PlexWidget render
 // =============================================================================
 const PLEX_MOCK_DATA = [
     { title: "Breaking Bad", subtitle: "S5 • E16", user: "JohnDoe", progress: 65 },
@@ -21,207 +21,359 @@ const PLEX_MOCK_DATA = [
 ];
 
 export const MockPlexWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1">
-        <div className="grid gap-2 h-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
-            {PLEX_MOCK_DATA.map((session, i) => (
-                <div key={i} className="bg-theme-hover rounded-lg overflow-hidden flex flex-col">
-                    {/* Image placeholder with gradient */}
-                    <div
-                        className="flex-[0_0_65%] relative"
-                        style={{ background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)` }}
-                    >
-                        <Film size={24} className="absolute inset-0 m-auto text-white/30" />
-                    </div>
-                    {/* Progress bar */}
-                    <div className="h-1 bg-theme-tertiary">
-                        <div className="h-full bg-accent" style={{ width: `${session.progress}%` }} />
-                    </div>
-                    {/* Info */}
-                    <div className="p-1.5 flex-1">
-                        <div className="text-[10px] font-semibold text-theme-primary truncate">{session.title}</div>
-                        <div className="flex justify-between text-[8px] text-theme-tertiary">
-                            <span>{session.subtitle}</span>
-                            <span>{session.user}</span>
-                        </div>
+    <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        gap: '1rem',
+        height: '100%',
+        overflowY: 'hidden',
+        padding: '0.25rem'
+    }}>
+        {PLEX_MOCK_DATA.map((session, i) => (
+            <div
+                key={i}
+                style={{
+                    background: 'var(--bg-hover)',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                    position: 'relative',
+                }}
+            >
+                {/* Image Container - 70% height */}
+                <div style={{
+                    flex: '0 0 70%',
+                    position: 'relative',
+                    background: 'var(--bg-tertiary)',
+                }}>
+                    {/* Gradient placeholder for poster */}
+                    <div style={{
+                        width: '100%',
+                        height: '100%',
+                        background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}>
+                        <Film size={32} style={{ opacity: 0.3, color: 'white' }} />
                     </div>
                 </div>
-            ))}
-        </div>
+
+                {/* Progress Bar - 6px */}
+                <div style={{ height: '6px', background: 'var(--bg-tertiary)' }}>
+                    <div style={{
+                        width: `${session.progress}%`,
+                        background: 'var(--accent)',
+                        height: '100%',
+                        transition: 'width 0.3s ease'
+                    }} />
+                </div>
+
+                {/* Info Section */}
+                <div style={{ padding: '0.75rem 0.5rem' }}>
+                    <div style={{
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        marginBottom: '0.25rem',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        color: 'var(--text-primary)'
+                    }}>
+                        {session.title}
+                    </div>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '0.7rem',
+                        color: 'var(--text-secondary)'
+                    }}>
+                        <span>{session.subtitle}</span>
+                        <span style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '80px'
+                        }}>{session.user}</span>
+                    </div>
+                </div>
+            </div>
+        ))}
     </div>
 );
 
 // =============================================================================
-// RADARR WIDGET (5 Movies)
+// RADARR WIDGET (5 Movies) - EXACT replica of RadarrWidget MoviePopover trigger
 // =============================================================================
 const RADARR_MOCK_DATA = [
-    "Dune: Part Two (2024)",
-    "Oppenheimer (2023)",
-    "Barbie (2023)",
-    "Avatar 3 (2025)",
-    "Deadpool 4 (2025)"
+    { title: "Dune: Part Two", year: 2024, release: "2024-03-01" },
+    { title: "Oppenheimer", year: 2023, release: "2023-07-21" },
+    { title: "Barbie", year: 2023, release: "2023-07-21" },
+    { title: "Avatar 3", year: 2025, release: "2025-12-19" },
+    { title: "Deadpool 4", year: 2025, release: "TBA" },
 ];
 
 export const MockRadarrWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1 flex flex-col gap-1">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <span>Upcoming Movies</span>
+        </div>
         {RADARR_MOCK_DATA.map((movie, i) => (
-            <div key={i} className="flex items-center gap-2 py-1 px-2 bg-theme-tertiary/30 rounded">
-                <Film size={12} className="text-accent flex-shrink-0" />
-                <span className="text-xs text-theme-primary truncate">{movie}</span>
-            </div>
+            <button
+                key={i}
+                style={{
+                    padding: '0.5rem',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 'none',
+                    cursor: 'default',
+                }}
+            >
+                <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                    {movie.title}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {movie.year} • {movie.release}
+                </div>
+            </button>
         ))}
     </div>
 );
 
 // =============================================================================
-// SONARR WIDGET (5 Shows)
+// SONARR WIDGET (5 Shows) - EXACT same as Radarr style
 // =============================================================================
 const SONARR_MOCK_DATA = [
-    "The Last of Us",
-    "House of Dragon",
-    "The Bear",
-    "Severance",
-    "Wednesday"
+    { title: "The Last of Us", season: "S2", episode: "E3", airdate: "2025-01-19" },
+    { title: "House of Dragon", season: "S3", episode: "E1", airdate: "2025-06-15" },
+    { title: "The Bear", season: "S4", episode: "E1", airdate: "2025-06-22" },
+    { title: "Severance", season: "S2", episode: "E6", airdate: "2025-02-14" },
+    { title: "Wednesday", season: "S2", episode: "E1", airdate: "2025-08-01" },
 ];
 
 export const MockSonarrWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1 flex flex-col gap-1">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <span>Upcoming Episodes</span>
+        </div>
         {SONARR_MOCK_DATA.map((show, i) => (
-            <div key={i} className="flex items-center gap-2 py-1 px-2 bg-theme-tertiary/30 rounded">
-                <Tv size={12} className="text-accent flex-shrink-0" />
-                <span className="text-xs text-theme-primary truncate">{show}</span>
-            </div>
+            <button
+                key={i}
+                style={{
+                    padding: '0.5rem',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 'none',
+                    cursor: 'default',
+                }}
+            >
+                <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                    {show.title}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {show.season} • {show.episode} • {show.airdate}
+                </div>
+            </button>
         ))}
     </div>
 );
 
 // =============================================================================
-// QBITTORRENT WIDGET (3 Torrents)
+// QBITTORRENT WIDGET (3 Torrents) - EXACT replica
 // =============================================================================
 const QBIT_MOCK_DATA = {
+    total: 47,
     dlSpeed: "12.5 MB/s",
+    dlCount: 3,
     ulSpeed: "2.1 MB/s",
+    ulCount: 5,
     torrents: [
-        { name: "ubuntu-22.04.iso", progress: 87 },
-        { name: "movie.2024.mkv", progress: 23 },
-        { name: "album.flac.zip", progress: 100 },
+        { name: "ubuntu-22.04-desktop-amd64.iso", progress: 87, size: "4.2 GB", dlspeed: "5.2 MB/s", upspeed: "156 KB/s", state: "downloading" },
+        { name: "LinuxMint-21.2-cinnamon-64bit.iso", progress: 23, size: "2.8 GB", dlspeed: "3.1 MB/s", upspeed: "89 KB/s", state: "downloading" },
+        { name: "debian-12.1.0-amd64-netinst.iso", progress: 100, size: "628 MB", dlspeed: "0 B/s", upspeed: "1.8 MB/s", state: "uploading" },
     ]
 };
 
 export const MockQBittorrentWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1 flex flex-col gap-1">
-        {/* Speed Header */}
-        <div className="flex justify-between items-center py-1 px-2 bg-theme-tertiary/30 rounded">
-            <div className="flex items-center gap-1 text-success">
-                <ArrowDown size={10} />
-                <span className="text-[10px] font-medium">{QBIT_MOCK_DATA.dlSpeed}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%', overflow: 'hidden' }}>
+        {/* Stats - 3-column grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', fontSize: '0.8rem' }}>
+            {/* Total */}
+            <div className="bg-theme-tertiary" style={{ textAlign: 'center', padding: '0.5rem', borderRadius: '0.5rem' }}>
+                <div style={{ color: 'var(--text-secondary)' }}>Total</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{QBIT_MOCK_DATA.total}</div>
             </div>
-            <div className="flex items-center gap-1 text-info">
-                <ArrowUp size={10} />
-                <span className="text-[10px] font-medium">{QBIT_MOCK_DATA.ulSpeed}</span>
+
+            {/* Download */}
+            <div style={{ textAlign: 'center', padding: '0.5rem', borderRadius: '0.5rem', background: 'rgba(var(--success-rgb), 0.1)' }}>
+                <div style={{ color: 'var(--text-secondary)' }}>↓ {QBIT_MOCK_DATA.dlSpeed}</div>
+                <div style={{ fontWeight: 600, color: 'var(--success)' }}>{QBIT_MOCK_DATA.dlCount} DL</div>
+            </div>
+
+            {/* Upload */}
+            <div style={{ textAlign: 'center', padding: '0.5rem', borderRadius: '0.5rem', background: 'rgba(var(--info-rgb), 0.1)' }}>
+                <div style={{ color: 'var(--text-secondary)' }}>↑ {QBIT_MOCK_DATA.ulSpeed}</div>
+                <div style={{ fontWeight: 600, color: 'var(--info)' }}>{QBIT_MOCK_DATA.ulCount} UP</div>
             </div>
         </div>
-        {/* Torrents */}
-        {QBIT_MOCK_DATA.torrents.map((torrent, i) => (
-            <div key={i} className="flex flex-col gap-0.5 py-1 px-2 bg-theme-tertiary/30 rounded">
-                <div className="flex items-center gap-1">
-                    <Download size={10} className="text-accent flex-shrink-0" />
-                    <span className="text-[10px] text-theme-primary truncate">{torrent.name}</span>
-                </div>
-                <div className="h-1 bg-theme-tertiary rounded-full overflow-hidden">
+
+        {/* Torrent List */}
+        <div style={{ flex: 1, overflowY: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {QBIT_MOCK_DATA.torrents.map((torrent, i) => {
+                const isActive = torrent.state === 'downloading' || torrent.state === 'uploading';
+                return (
                     <div
-                        className={`h-full ${torrent.progress === 100 ? 'bg-success' : 'bg-accent'}`}
-                        style={{ width: `${torrent.progress}%` }}
-                    />
-                </div>
-            </div>
-        ))}
+                        key={i}
+                        className="bg-theme-tertiary"
+                        style={{ padding: '0.5rem', borderRadius: '0.5rem', fontSize: '0.75rem' }}
+                    >
+                        <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {torrent.name}
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="bg-theme-hover" style={{ height: '4px', borderRadius: '9999px', marginBottom: '0.25rem', overflow: 'hidden' }}>
+                            <div style={{
+                                width: `${torrent.progress}%`,
+                                height: '100%',
+                                background: isActive ? 'var(--success)' : 'var(--text-secondary)',
+                                transition: 'width 0.3s ease'
+                            }} />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                            <span>{torrent.progress}% • {torrent.size}</span>
+                            {isActive && (
+                                <span>
+                                    <ArrowDown size={12} style={{ display: 'inline' }} /> {torrent.dlspeed}
+                                    {' '}
+                                    <ArrowUp size={12} style={{ display: 'inline' }} /> {torrent.upspeed}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
     </div>
 );
 
 // =============================================================================
-// SYSTEM STATUS WIDGET (3 Bars + Uptime)
+// SYSTEM STATUS WIDGET (3 Bars + Uptime) - EXACT replica
 // =============================================================================
-const SYSTEM_MOCK_DATA = { cpu: 45, memory: 68, temperature: 52, uptime: "14d 6h" };
+const SYSTEM_MOCK_DATA = { cpu: 45, memory: 68, temperature: 52, uptime: "14d 6h 23m" };
 
 const getMetricColor = (value: number): string => {
-    if (value < 50) return 'bg-success';
-    if (value < 80) return 'bg-warning';
-    return 'bg-error';
+    if (value < 50) return 'var(--success)';
+    if (value < 80) return 'var(--warning)';
+    return 'var(--error)';
 };
 
+interface MetricRowProps {
+    icon: React.FC<{ size?: number }>;
+    label: string;
+    value: number;
+    unit: string;
+}
+
+const MetricRow: React.FC<MetricRowProps> = ({ icon: Icon, label, value, unit }) => (
+    <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <Icon size={14} />
+                {label}
+            </span>
+            <span>{value.toFixed(label === 'Temperature' ? 0 : 1)}{unit}</span>
+        </div>
+        <div style={{ width: '100%', height: '6px', background: 'var(--bg-tertiary)', borderRadius: '9999px', overflow: 'hidden' }}>
+            <div
+                style={{
+                    width: `${Math.min(value, 100)}%`,
+                    backgroundColor: getMetricColor(value),
+                    height: '100%',
+                    borderRadius: '9999px',
+                    transition: 'all 0.3s',
+                }}
+            />
+        </div>
+    </div>
+);
+
 export const MockSystemStatusWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1 grid grid-cols-2 gap-1">
-        {/* CPU */}
-        <div className="flex flex-col items-center justify-center p-1 bg-theme-tertiary/30 rounded">
-            <Activity size={14} className="text-accent mb-0.5" />
-            <span className="text-[8px] text-theme-tertiary">CPU</span>
-            <div className="w-full h-1.5 bg-theme-tertiary rounded-full mt-0.5 overflow-hidden">
-                <div className={`h-full ${getMetricColor(SYSTEM_MOCK_DATA.cpu)}`} style={{ width: `${SYSTEM_MOCK_DATA.cpu}%` }} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.75rem', height: '100%', justifyContent: 'space-around' }}>
+        <MetricRow icon={Activity} label="CPU" value={SYSTEM_MOCK_DATA.cpu} unit="%" />
+        <MetricRow icon={Disc} label="Memory" value={SYSTEM_MOCK_DATA.memory} unit="%" />
+        <MetricRow icon={Thermometer} label="Temperature" value={SYSTEM_MOCK_DATA.temperature} unit="°C" />
+
+        {/* Uptime - no bar */}
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <Clock size={14} />
+                    Uptime
+                </span>
+                <span style={{ fontSize: '0.75rem' }}>{SYSTEM_MOCK_DATA.uptime}</span>
             </div>
-            <span className="text-[10px] font-medium text-theme-primary">{SYSTEM_MOCK_DATA.cpu}%</span>
-        </div>
-        {/* Memory */}
-        <div className="flex flex-col items-center justify-center p-1 bg-theme-tertiary/30 rounded">
-            <HardDrive size={14} className="text-accent mb-0.5" />
-            <span className="text-[8px] text-theme-tertiary">Memory</span>
-            <div className="w-full h-1.5 bg-theme-tertiary rounded-full mt-0.5 overflow-hidden">
-                <div className={`h-full ${getMetricColor(SYSTEM_MOCK_DATA.memory)}`} style={{ width: `${SYSTEM_MOCK_DATA.memory}%` }} />
-            </div>
-            <span className="text-[10px] font-medium text-theme-primary">{SYSTEM_MOCK_DATA.memory}%</span>
-        </div>
-        {/* Temperature */}
-        <div className="flex flex-col items-center justify-center p-1 bg-theme-tertiary/30 rounded">
-            <Thermometer size={14} className="text-accent mb-0.5" />
-            <span className="text-[8px] text-theme-tertiary">Temp</span>
-            <div className="w-full h-1.5 bg-theme-tertiary rounded-full mt-0.5 overflow-hidden">
-                <div className={`h-full ${getMetricColor(SYSTEM_MOCK_DATA.temperature)}`} style={{ width: `${SYSTEM_MOCK_DATA.temperature}%` }} />
-            </div>
-            <span className="text-[10px] font-medium text-theme-primary">{SYSTEM_MOCK_DATA.temperature}°C</span>
-        </div>
-        {/* Uptime */}
-        <div className="flex flex-col items-center justify-center p-1 bg-theme-tertiary/30 rounded">
-            <Clock size={14} className="text-accent mb-0.5" />
-            <span className="text-[8px] text-theme-tertiary">Uptime</span>
-            <span className="text-[10px] font-medium text-theme-primary mt-1">{SYSTEM_MOCK_DATA.uptime}</span>
         </div>
     </div>
 );
 
 // =============================================================================
-// CALENDAR WIDGET (Fake Movie Events)
+// CALENDAR WIDGET - Compact calendar with events
 // =============================================================================
-const CALENDAR_MOCK_EVENTS = ["Dune: Part Two", "Avatar 3", "The Batman 2", "Blade", "Fantastic Four"];
+const CALENDAR_MOCK_EVENTS = ["Dune: Part Two", "Avatar 3", "The Batman", "Blade", "Fantastic 4"];
 
 export const MockCalendarWidget: React.FC = () => {
-    const days = Array.from({ length: 35 }, (_, i) => i - 3); // Start from previous month
-    const eventDays = [5, 12, 18, 23, 28]; // Days with events
+    const days = Array.from({ length: 35 }, (_, i) => i - 3);
+    const eventDays = [5, 12, 18, 23, 28];
 
     return (
-        <div className="h-full w-full overflow-hidden p-1 flex flex-col">
-            {/* Month header */}
-            <div className="flex items-center justify-between mb-1 px-1">
-                <span className="text-xs font-medium text-theme-primary">December 2024</span>
+        <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.5rem', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', padding: '0 0.25rem' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>December 2024</span>
             </div>
-            {/* Day headers */}
-            <div className="grid grid-cols-7 gap-0.5 mb-1">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '0.25rem' }}>
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                    <div key={i} className="text-[8px] text-center text-theme-tertiary">{d}</div>
+                    <div key={i} style={{ fontSize: '0.625rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>{d}</div>
                 ))}
             </div>
-            {/* Days grid */}
-            <div className="grid grid-cols-7 gap-0.5 flex-1">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', flex: 1 }}>
                 {days.map((day, i) => {
                     const isCurrentMonth = day > 0 && day <= 31;
                     const hasEvent = eventDays.includes(day);
                     return (
                         <div
                             key={i}
-                            className={`relative flex items-center justify-center rounded text-[9px] ${isCurrentMonth ? 'text-theme-primary' : 'text-theme-tertiary/40'
-                                }`}
+                            style={{
+                                position: 'relative',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                fontSize: '0.625rem',
+                                color: isCurrentMonth ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                                opacity: isCurrentMonth ? 1 : 0.4,
+                            }}
                         >
                             {isCurrentMonth ? day : ''}
                             {hasEvent && (
-                                <div className="absolute bottom-0 w-1 h-1 rounded-full bg-accent" />
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '1px',
+                                    width: '3px',
+                                    height: '3px',
+                                    borderRadius: '50%',
+                                    background: 'var(--accent)',
+                                }} />
                             )}
                         </div>
                     );
@@ -235,8 +387,8 @@ export const MockCalendarWidget: React.FC = () => {
 // CLOCK WIDGET
 // =============================================================================
 export const MockClockWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden flex items-center justify-center">
-        <span className="text-2xl font-bold text-theme-primary">12:34</span>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>12:34</span>
     </div>
 );
 
@@ -244,10 +396,10 @@ export const MockClockWidget: React.FC = () => (
 // WEATHER WIDGET
 // =============================================================================
 export const MockWeatherWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden flex flex-col items-center justify-center gap-1">
-        <Sun size={32} className="text-warning" />
-        <span className="text-lg font-bold text-theme-primary">72°F</span>
-        <span className="text-xs text-theme-tertiary">Sunny</span>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+        <Sun size={40} style={{ color: 'var(--warning)' }} />
+        <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>72°F</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Sunny</span>
     </div>
 );
 
@@ -261,14 +413,24 @@ const LINK_MOCK_DATA = [
 ];
 
 export const MockLinkGridWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1 flex items-center justify-center gap-2">
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
         {LINK_MOCK_DATA.map((link, i) => (
             <div
                 key={i}
-                className="w-12 h-12 rounded-full bg-theme-tertiary border border-theme flex flex-col items-center justify-center"
+                style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
             >
-                <link.icon size={16} className="text-accent" />
-                <span className="text-[8px] text-theme-primary mt-0.5">{link.title}</span>
+                <link.icon size={20} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontSize: '0.625rem', color: 'var(--text-primary)', marginTop: '0.25rem' }}>{link.title}</span>
             </div>
         ))}
     </div>
@@ -278,13 +440,27 @@ export const MockLinkGridWidget: React.FC = () => (
 // OVERSEERR WIDGET (3 Request Cards)
 // =============================================================================
 export const MockOverseerrWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1 flex flex-col gap-1">
-        {["Dune: Part Two", "Avatar 3", "The Batman 2"].map((title, i) => (
-            <div key={i} className="flex items-center gap-2 py-1 px-2 bg-theme-tertiary/30 rounded">
-                <Clapperboard size={12} className="text-accent flex-shrink-0" />
-                <span className="text-xs text-theme-primary truncate">{title}</span>
-                <span className="text-[10px] text-warning ml-auto">Pending</span>
-            </div>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {["Dune: Part Three", "Avatar 4", "The Batman 2"].map((title, i) => (
+            <button
+                key={i}
+                style={{
+                    padding: '0.5rem',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 'none',
+                    cursor: 'default',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}
+            >
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--warning)' }}>Pending</span>
+            </button>
         ))}
     </div>
 );
@@ -293,14 +469,23 @@ export const MockOverseerrWidget: React.FC = () => (
 // UPCOMING MEDIA WIDGET (3 Posters)
 // =============================================================================
 export const MockUpcomingMediaWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden p-1 flex items-center gap-2">
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {[1, 2, 3].map((_, i) => (
             <div
                 key={i}
-                className="w-16 h-24 rounded bg-theme-tertiary border border-theme flex items-center justify-center flex-shrink-0"
-                style={{ background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)` }}
+                style={{
+                    width: '70px',
+                    height: '100px',
+                    borderRadius: '8px',
+                    background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)`,
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                }}
             >
-                <Film size={20} className="text-white/30" />
+                <Film size={24} style={{ opacity: 0.3, color: 'white' }} />
             </div>
         ))}
     </div>
@@ -310,9 +495,9 @@ export const MockUpcomingMediaWidget: React.FC = () => (
 // CUSTOM HTML WIDGET
 // =============================================================================
 export const MockCustomHTMLWidget: React.FC = () => (
-    <div className="h-full w-full overflow-hidden flex items-center justify-center">
-        <Code size={24} className="text-theme-tertiary mr-2" />
-        <span className="text-sm text-theme-tertiary">Custom HTML</span>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Code size={24} style={{ color: 'var(--text-tertiary)', marginRight: '0.5rem' }} />
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>Custom HTML</span>
     </div>
 );
 
@@ -320,8 +505,8 @@ export const MockCustomHTMLWidget: React.FC = () => (
 // GENERIC FALLBACK
 // =============================================================================
 export const MockGenericWidget: React.FC<{ type: string }> = ({ type }) => (
-    <div className="h-full w-full overflow-hidden flex items-center justify-center">
-        <span className="text-xs text-theme-tertiary">{type}</span>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{type}</span>
     </div>
 );
 
