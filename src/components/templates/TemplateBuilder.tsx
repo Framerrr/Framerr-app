@@ -24,6 +24,7 @@ export interface TemplateWidget {
         w: number;
         h: number;
     };
+    config?: Record<string, unknown>; // Widget-specific settings (showHeader, flatten, etc.)
 }
 
 export interface TemplateData {

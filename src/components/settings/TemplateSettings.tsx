@@ -30,6 +30,7 @@ interface WidgetData {
     layouts?: {
         lg?: { x: number; y: number; w: number; h: number };
     };
+    config?: Record<string, unknown>;
 }
 
 interface BackupData {
@@ -163,6 +164,7 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                 widgets: currentWidgets.map(w => ({
                     type: w.type,
                     layout: w.layouts?.lg || { x: 0, y: 0, w: 2, h: 2 },
+                    config: w.config, // Preserve widget settings (showHeader, flatten, etc.)
                 }))
             };
         }

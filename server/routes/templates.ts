@@ -390,7 +390,7 @@ router.post('/:id/apply', requireAuth, async (req: Request, res: Response) => {
         );
 
         // Convert template widgets to dashboard widgets
-        // Dashboard expects: i, id, x, y, w, h, type, layouts
+        // Dashboard expects: i, id, x, y, w, h, type, layouts, config
         const dashboardWidgets = template.widgets.map((tw, index) => {
             const widgetId = `widget-${Date.now()}-${index}`;
             return {
@@ -406,6 +406,8 @@ router.post('/:id/apply', requireAuth, async (req: Request, res: Response) => {
                 layouts: {
                     lg: tw.layout,
                 },
+                // Widget-specific config (showHeader, flatten, etc.)
+                config: tw.config || {},
             };
         });
 
