@@ -40,6 +40,7 @@ interface TemplateBuilderProps {
     onClose: () => void;
     initialData?: Partial<TemplateData>;
     mode: 'create' | 'edit' | 'duplicate' | 'save-current';
+    editingTemplateId?: string;
     onSave?: (template: TemplateData) => void;
     isAdmin?: boolean;
 }
@@ -55,6 +56,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     onClose,
     initialData,
     mode,
+    editingTemplateId,
     onSave,
     isAdmin = false,
 }) => {
