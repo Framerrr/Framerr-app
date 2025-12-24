@@ -214,9 +214,19 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
     // Ref to track previous widgets state (for undo history)
     const prevWidgetsRef = useRef<TemplateWidget[] | null>(null);
+    // Flag to skip history tracking on initial mount
+    const isFirstMountRef = useRef(true);
 
     // Track widget changes and push PREVIOUS state to history
     useEffect(() => {
+        // Skip history tracking on initial mount - just record the initial state
+        if (isFirstMountRef.current) {
+            isFirstMountRef.current = false;
+            prevWidgetsRef.current = data.widgets;
+            lastCommittedRef.current = JSON.stringify(data.widgets);
+            return;
+        }
+
         if (isUndoRedoRef.current) return;
 
         const currentState = JSON.stringify(data.widgets);
@@ -480,7 +490,6 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         /* Grid Layout */
                         <div className="p-4 h-full">
                             <ResponsiveGridLayout
-                                key={`grid-${data.widgets.length}`}
                                 layouts={layouts}
                                 breakpoints={activeBreakpoints}
                                 cols={activeCols}
