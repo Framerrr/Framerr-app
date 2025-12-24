@@ -1,18 +1,63 @@
 /**
- * MockWidgets - EXACT visual replicas of real widgets with fake data
+ * MockWidgets - Accurate visual replicas of real widgets
  * 
- * These are CSS-perfect copies of the actual widget rendering.
- * Styled to match real widgets 1:1 - only the data is fake.
+ * ANALYSIS OF REAL WIDGET BEHAVIOR:
+ * 
+ * PLEX:
+ * - Layout: CSS Grid with `repeat(auto-fill, minmax(220px, 1fr))`
+ * - Overflow: `overflowY: auto` (scrolls vertically)
+ * - Gap: 1rem (16px)
+ * - Padding: 0.25rem
+ * - Card: bg-hover, 8px radius, boxShadow, 70% image container
+ * - Content: 6px progress bar, title (0.85rem bold), subtitle (0.7rem)
+ * 
+ * SONARR/RADARR:
+ * - Layout: Flex column, gap 0.5rem
+ * - Header: "Upcoming Episodes/Movies" text
+ * - Items: Button with rgba(255,255,255,0.05) bg, 0.5rem padding
+ * - Text: Title bold, subtitle 0.75rem secondary
+ * 
+ * CALENDAR:
+ * - Layout: flex-col with header, filters, 7-col grid
+ * - Header: Month navigation with chevrons + "Today" button
+ * - Filters: All/TV/Movies buttons
+ * - Grid: 7 columns, 2px gaps, min-h-50px cells
+ * 
+ * CLOCK:
+ * - Layout: flex center, responsive isWide detection at 410px
+ * - Wide: flex-row with gap-6, time 4xl
+ * - Narrow: flex-col, time 5xl
+ * - Date: text-base/sm, optional
+ * 
+ * WEATHER:
+ * - Layout: flex center, responsive isWide detection at 410px
+ * - Wide: flex-row with icon, temp (5xl), info column
+ * - Narrow: flex-col centered, temp (5xl) + icon row
+ * 
+ * LINK-GRID:
+ * - Layout: 6-column grid with 80px min cells
+ * - Items: Circles (1x1) or Rectangles (2x1)
+ * - Gap: 8px mobile, 16px desktop
+ * 
+ * QBITTORRENT:
+ * - Layout: flex-col with stats row + torrent list
+ * - Stats: 3-column grid for Total, DL, UL
+ * - Torrents: List with progress bars
+ * 
+ * SYSTEM-STATUS:
+ * - Layout: flex-col with metric rows
+ * - Each row: icon + label + value + progress bar
  */
 
 import React from 'react';
 import {
-    Film, Download, ArrowDown, ArrowUp, Activity, Disc, Thermometer, Clock,
-    Globe, Music, Sun, Code, Tv
+    Film, ArrowDown, ArrowUp, Activity, Disc, Thermometer, Clock,
+    Globe, Music, Sun, Code, ChevronLeft, ChevronRight, Filter, MapPin,
+    Link, Tv
 } from 'lucide-react';
 
 // =============================================================================
-// PLEX WIDGET (3 Sessions) - EXACT replica of PlexWidget render
+// PLEX WIDGET - Horizontal card grid (overflow hidden for thumbnail)
 // =============================================================================
 const PLEX_MOCK_DATA = [
     { title: "Breaking Bad", subtitle: "S5 • E16", user: "JohnDoe", progress: 65 },
@@ -22,82 +67,56 @@ const PLEX_MOCK_DATA = [
 
 export const MockPlexWidget: React.FC = () => (
     <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-        gap: '1rem',
+        display: 'flex',
+        gap: '0.75rem',
         height: '100%',
+        overflowX: 'hidden',
         overflowY: 'hidden',
-        padding: '0.25rem'
+        padding: '0.25rem',
+        alignItems: 'stretch',
     }}>
         {PLEX_MOCK_DATA.map((session, i) => (
             <div
                 key={i}
                 style={{
+                    minWidth: '140px',
+                    flex: '0 0 140px',
                     background: 'var(--bg-hover)',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                    position: 'relative',
                 }}
             >
-                {/* Image Container - 70% height */}
+                {/* Image Container - 60% height */}
                 <div style={{
-                    flex: '0 0 70%',
-                    position: 'relative',
-                    background: 'var(--bg-tertiary)',
+                    flex: '0 0 60%',
+                    background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                 }}>
-                    {/* Gradient placeholder for poster */}
-                    <div style={{
-                        width: '100%',
-                        height: '100%',
-                        background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}>
-                        <Film size={32} style={{ opacity: 0.3, color: 'white' }} />
-                    </div>
+                    <Film size={20} style={{ opacity: 0.3, color: 'white' }} />
                 </div>
 
-                {/* Progress Bar - 6px */}
-                <div style={{ height: '6px', background: 'var(--bg-tertiary)' }}>
+                {/* Progress Bar */}
+                <div style={{ height: '4px', background: 'var(--bg-tertiary)' }}>
                     <div style={{
                         width: `${session.progress}%`,
                         background: 'var(--accent)',
                         height: '100%',
-                        transition: 'width 0.3s ease'
                     }} />
                 </div>
 
-                {/* Info Section */}
-                <div style={{ padding: '0.75rem 0.5rem' }}>
-                    <div style={{
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        marginBottom: '0.25rem',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        color: 'var(--text-primary)'
-                    }}>
+                {/* Info */}
+                <div style={{ padding: '0.4rem', flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.7rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {session.title}
                     </div>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        fontSize: '0.7rem',
-                        color: 'var(--text-secondary)'
-                    }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
                         <span>{session.subtitle}</span>
-                        <span style={{
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            maxWidth: '80px'
-                        }}>{session.user}</span>
+                        <span>{session.user}</span>
                     </div>
                 </div>
             </div>
@@ -106,386 +125,261 @@ export const MockPlexWidget: React.FC = () => (
 );
 
 // =============================================================================
-// RADARR WIDGET (5 Movies) - EXACT replica of RadarrWidget MoviePopover trigger
+// RADARR WIDGET - Vertical list with buttons
 // =============================================================================
 const RADARR_MOCK_DATA = [
-    { title: "Dune: Part Two", year: 2024, release: "2024-03-01" },
-    { title: "Oppenheimer", year: 2023, release: "2023-07-21" },
-    { title: "Barbie", year: 2023, release: "2023-07-21" },
-    { title: "Avatar 3", year: 2025, release: "2025-12-19" },
+    { title: "Dune: Part Two", year: 2024, release: "Mar 1" },
+    { title: "Oppenheimer", year: 2023, release: "Jul 21" },
+    { title: "Barbie", year: 2023, release: "Jul 21" },
+    { title: "Avatar 3", year: 2025, release: "Dec 19" },
     { title: "Deadpool 4", year: 2025, release: "TBA" },
 ];
 
 export const MockRadarrWidget: React.FC = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            <span>Upcoming Movies</span>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', height: '100%', overflow: 'hidden' }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>Upcoming Movies</div>
         {RADARR_MOCK_DATA.map((movie, i) => (
-            <button
+            <div
                 key={i}
                 style={{
-                    padding: '0.5rem',
+                    padding: '0.35rem 0.5rem',
                     background: 'rgba(255,255,255,0.05)',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.85rem',
-                    width: '100%',
-                    textAlign: 'left',
-                    border: 'none',
-                    cursor: 'default',
+                    borderRadius: '0.35rem',
+                    fontSize: '0.7rem',
                 }}
             >
-                <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {movie.title}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
                     {movie.year} • {movie.release}
                 </div>
-            </button>
+            </div>
         ))}
     </div>
 );
 
 // =============================================================================
-// SONARR WIDGET (5 Shows) - EXACT same as Radarr style
+// SONARR WIDGET - Same style as Radarr
 // =============================================================================
 const SONARR_MOCK_DATA = [
-    { title: "The Last of Us", season: "S2", episode: "E3", airdate: "2025-01-19" },
-    { title: "House of Dragon", season: "S3", episode: "E1", airdate: "2025-06-15" },
-    { title: "The Bear", season: "S4", episode: "E1", airdate: "2025-06-22" },
-    { title: "Severance", season: "S2", episode: "E6", airdate: "2025-02-14" },
-    { title: "Wednesday", season: "S2", episode: "E1", airdate: "2025-08-01" },
+    { title: "The Last of Us", info: "S2E3 • Jan 19" },
+    { title: "House of Dragon", info: "S3E1 • Jun 15" },
+    { title: "The Bear", info: "S4E1 • Jun 22" },
+    { title: "Severance", info: "S2E6 • Feb 14" },
+    { title: "Wednesday", info: "S2E1 • Aug 1" },
 ];
 
 export const MockSonarrWidget: React.FC = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            <span>Upcoming Episodes</span>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', height: '100%', overflow: 'hidden' }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>Upcoming Episodes</div>
         {SONARR_MOCK_DATA.map((show, i) => (
-            <button
+            <div
                 key={i}
                 style={{
-                    padding: '0.5rem',
+                    padding: '0.35rem 0.5rem',
                     background: 'rgba(255,255,255,0.05)',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.85rem',
-                    width: '100%',
-                    textAlign: 'left',
-                    border: 'none',
-                    cursor: 'default',
+                    borderRadius: '0.35rem',
+                    fontSize: '0.7rem',
                 }}
             >
-                <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {show.title}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    {show.season} • {show.episode} • {show.airdate}
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
+                    {show.info}
                 </div>
-            </button>
+            </div>
         ))}
     </div>
 );
 
 // =============================================================================
-// QBITTORRENT WIDGET (3 Torrents) - EXACT replica
+// QBITTORRENT WIDGET - Stats + torrent list
 // =============================================================================
-const QBIT_MOCK_DATA = {
-    total: 47,
-    dlSpeed: "12.5 MB/s",
-    dlCount: 3,
-    ulSpeed: "2.1 MB/s",
-    ulCount: 5,
-    torrents: [
-        { name: "ubuntu-22.04-desktop-amd64.iso", progress: 87, size: "4.2 GB", dlspeed: "5.2 MB/s", upspeed: "156 KB/s", state: "downloading" },
-        { name: "LinuxMint-21.2-cinnamon-64bit.iso", progress: 23, size: "2.8 GB", dlspeed: "3.1 MB/s", upspeed: "89 KB/s", state: "downloading" },
-        { name: "debian-12.1.0-amd64-netinst.iso", progress: 100, size: "628 MB", dlspeed: "0 B/s", upspeed: "1.8 MB/s", state: "uploading" },
-    ]
-};
-
 export const MockQBittorrentWidget: React.FC = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%', overflow: 'hidden' }}>
-        {/* Stats - 3-column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', fontSize: '0.8rem' }}>
-            {/* Total */}
-            <div className="bg-theme-tertiary" style={{ textAlign: 'center', padding: '0.5rem', borderRadius: '0.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%', overflow: 'hidden' }}>
+        {/* Stats Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', fontSize: '0.65rem' }}>
+            <div style={{ textAlign: 'center', padding: '0.35rem', borderRadius: '0.35rem', background: 'var(--bg-tertiary)' }}>
                 <div style={{ color: 'var(--text-secondary)' }}>Total</div>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{QBIT_MOCK_DATA.total}</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>47</div>
             </div>
-
-            {/* Download */}
-            <div style={{ textAlign: 'center', padding: '0.5rem', borderRadius: '0.5rem', background: 'rgba(var(--success-rgb), 0.1)' }}>
-                <div style={{ color: 'var(--text-secondary)' }}>↓ {QBIT_MOCK_DATA.dlSpeed}</div>
-                <div style={{ fontWeight: 600, color: 'var(--success)' }}>{QBIT_MOCK_DATA.dlCount} DL</div>
+            <div style={{ textAlign: 'center', padding: '0.35rem', borderRadius: '0.35rem', background: 'rgba(34,197,94,0.1)' }}>
+                <div style={{ color: 'var(--text-secondary)' }}>↓ 12.5 MB/s</div>
+                <div style={{ fontWeight: 600, color: 'var(--success)' }}>3 DL</div>
             </div>
-
-            {/* Upload */}
-            <div style={{ textAlign: 'center', padding: '0.5rem', borderRadius: '0.5rem', background: 'rgba(var(--info-rgb), 0.1)' }}>
-                <div style={{ color: 'var(--text-secondary)' }}>↑ {QBIT_MOCK_DATA.ulSpeed}</div>
-                <div style={{ fontWeight: 600, color: 'var(--info)' }}>{QBIT_MOCK_DATA.ulCount} UP</div>
+            <div style={{ textAlign: 'center', padding: '0.35rem', borderRadius: '0.35rem', background: 'rgba(59,130,246,0.1)' }}>
+                <div style={{ color: 'var(--text-secondary)' }}>↑ 2.1 MB/s</div>
+                <div style={{ fontWeight: 600, color: 'var(--info)' }}>5 UP</div>
             </div>
         </div>
 
         {/* Torrent List */}
-        <div style={{ flex: 1, overflowY: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {QBIT_MOCK_DATA.torrents.map((torrent, i) => {
-                const isActive = torrent.state === 'downloading' || torrent.state === 'uploading';
-                return (
-                    <div
-                        key={i}
-                        className="bg-theme-tertiary"
-                        style={{ padding: '0.5rem', borderRadius: '0.5rem', fontSize: '0.75rem' }}
-                    >
-                        <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {torrent.name}
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="bg-theme-hover" style={{ height: '4px', borderRadius: '9999px', marginBottom: '0.25rem', overflow: 'hidden' }}>
-                            <div style={{
-                                width: `${torrent.progress}%`,
-                                height: '100%',
-                                background: isActive ? 'var(--success)' : 'var(--text-secondary)',
-                                transition: 'width 0.3s ease'
-                            }} />
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                            <span>{torrent.progress}% • {torrent.size}</span>
-                            {isActive && (
-                                <span>
-                                    <ArrowDown size={12} style={{ display: 'inline' }} /> {torrent.dlspeed}
-                                    {' '}
-                                    <ArrowUp size={12} style={{ display: 'inline' }} /> {torrent.upspeed}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
+        {[
+            { name: "ubuntu-22.04.iso", progress: 87 },
+            { name: "LinuxMint-21.iso", progress: 23 },
+            { name: "debian-12.iso", progress: 100 },
+        ].map((t, i) => (
+            <div key={i} style={{ padding: '0.35rem', borderRadius: '0.35rem', background: 'var(--bg-tertiary)', fontSize: '0.6rem' }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '0.2rem' }}>
+                    {t.name}
+                </div>
+                <div style={{ height: '3px', borderRadius: '999px', background: 'var(--bg-hover)', overflow: 'hidden' }}>
+                    <div style={{ width: `${t.progress}%`, height: '100%', background: t.progress < 100 ? 'var(--success)' : 'var(--text-secondary)' }} />
+                </div>
+            </div>
+        ))}
     </div>
 );
 
 // =============================================================================
-// SYSTEM STATUS WIDGET (3 Bars + Uptime) - EXACT replica
+// SYSTEM STATUS WIDGET - Metric bars
 // =============================================================================
-const SYSTEM_MOCK_DATA = { cpu: 45, memory: 68, temperature: 52, uptime: "14d 6h 23m" };
+export const MockSystemStatusWidget: React.FC = () => {
+    const metrics = [
+        { icon: Activity, label: 'CPU', value: 45, unit: '%' },
+        { icon: Disc, label: 'Memory', value: 68, unit: '%' },
+        { icon: Thermometer, label: 'Temp', value: 52, unit: '°C' },
+        { icon: Clock, label: 'Uptime', value: null, display: '14d 6h' },
+    ];
 
-const getMetricColor = (value: number): string => {
-    if (value < 50) return 'var(--success)';
-    if (value < 80) return 'var(--warning)';
-    return 'var(--error)';
+    const getColor = (v: number) => v < 50 ? 'var(--success)' : v < 80 ? 'var(--warning)' : 'var(--error)';
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.25rem', height: '100%', justifyContent: 'space-around' }}>
+            {metrics.map((m, i) => (
+                <div key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem', fontSize: '0.7rem', color: 'var(--text-primary)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <m.icon size={12} />
+                            {m.label}
+                        </span>
+                        <span>{m.display || `${m.value}${m.unit}`}</span>
+                    </div>
+                    {m.value !== null && (
+                        <div style={{ height: '4px', borderRadius: '999px', background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+                            <div style={{ width: `${m.value}%`, height: '100%', background: getColor(m.value), borderRadius: '999px' }} />
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
 };
 
-interface MetricRowProps {
-    icon: React.FC<{ size?: number }>;
-    label: string;
-    value: number;
-    unit: string;
-}
-
-const MetricRow: React.FC<MetricRowProps> = ({ icon: Icon, label, value, unit }) => (
-    <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <Icon size={14} />
-                {label}
-            </span>
-            <span>{value.toFixed(label === 'Temperature' ? 0 : 1)}{unit}</span>
-        </div>
-        <div style={{ width: '100%', height: '6px', background: 'var(--bg-tertiary)', borderRadius: '9999px', overflow: 'hidden' }}>
-            <div
-                style={{
-                    width: `${Math.min(value, 100)}%`,
-                    backgroundColor: getMetricColor(value),
-                    height: '100%',
-                    borderRadius: '9999px',
-                    transition: 'all 0.3s',
-                }}
-            />
-        </div>
-    </div>
-);
-
-export const MockSystemStatusWidget: React.FC = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.75rem', height: '100%', justifyContent: 'space-around' }}>
-        <MetricRow icon={Activity} label="CPU" value={SYSTEM_MOCK_DATA.cpu} unit="%" />
-        <MetricRow icon={Disc} label="Memory" value={SYSTEM_MOCK_DATA.memory} unit="%" />
-        <MetricRow icon={Thermometer} label="Temperature" value={SYSTEM_MOCK_DATA.temperature} unit="°C" />
-
-        {/* Uptime - no bar */}
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    <Clock size={14} />
-                    Uptime
-                </span>
-                <span style={{ fontSize: '0.75rem' }}>{SYSTEM_MOCK_DATA.uptime}</span>
-            </div>
-        </div>
-    </div>
-);
-
 // =============================================================================
-// CALENDAR WIDGET - Compact calendar with events
+// CALENDAR WIDGET - Month grid with header
 // =============================================================================
-const CALENDAR_MOCK_EVENTS = ["Dune: Part Two", "Avatar 3", "The Batman", "Blade", "Fantastic 4"];
-
 export const MockCalendarWidget: React.FC = () => {
-    const days = Array.from({ length: 35 }, (_, i) => i - 3);
+    const days = Array.from({ length: 31 }, (_, i) => i + 1);
     const eventDays = [5, 12, 18, 23, 28];
 
     return (
-        <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.5rem', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', padding: '0 0.25rem' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>December 2024</span>
+        <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.25rem' }}>
+                <ChevronLeft size={14} style={{ color: 'var(--text-secondary)' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>December 2024</span>
+                <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '0.25rem' }}>
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                    <div key={i} style={{ fontSize: '0.625rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>{d}</div>
+
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                <Filter size={10} style={{ color: 'var(--text-tertiary)' }} />
+                {['All', 'TV', 'Movies'].map((f, i) => (
+                    <span key={f} style={{ fontSize: '0.5rem', padding: '0.1rem 0.3rem', borderRadius: '0.2rem', background: i === 0 ? 'var(--accent)' : 'var(--bg-tertiary)', color: i === 0 ? 'white' : 'var(--text-secondary)' }}>{f}</span>
                 ))}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', flex: 1 }}>
-                {days.map((day, i) => {
-                    const isCurrentMonth = day > 0 && day <= 31;
-                    const hasEvent = eventDays.includes(day);
-                    return (
-                        <div
-                            key={i}
-                            style={{
-                                position: 'relative',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '4px',
-                                fontSize: '0.625rem',
-                                color: isCurrentMonth ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                                opacity: isCurrentMonth ? 1 : 0.4,
-                            }}
-                        >
-                            {isCurrentMonth ? day : ''}
-                            {hasEvent && (
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: '1px',
-                                    width: '3px',
-                                    height: '3px',
-                                    borderRadius: '50%',
-                                    background: 'var(--accent)',
-                                }} />
-                            )}
-                        </div>
-                    );
-                })}
+
+            {/* Day headers */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                    <div key={i} style={{ fontSize: '0.5rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>{d}</div>
+                ))}
+            </div>
+
+            {/* Calendar grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', flex: 1 }}>
+                {/* Empty cells for month start */}
+                {Array.from({ length: 0 }).map((_, i) => <div key={`e${i}`} />)}
+                {days.slice(0, 28).map((day) => (
+                    <div key={day} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', color: 'var(--text-primary)', background: 'var(--bg-tertiary)', borderRadius: '2px', minHeight: '14px' }}>
+                        {day}
+                        {eventDays.includes(day) && <div style={{ position: 'absolute', bottom: '1px', width: '3px', height: '3px', borderRadius: '50%', background: 'var(--accent)' }} />}
+                    </div>
+                ))}
             </div>
         </div>
     );
 };
 
 // =============================================================================
-// CLOCK WIDGET
+// CLOCK WIDGET - Centered time display
 // =============================================================================
 export const MockClockWidget: React.FC = () => (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>12:34</span>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>12:34</div>
+        <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Tuesday, December 24</div>
     </div>
 );
 
 // =============================================================================
-// WEATHER WIDGET
+// WEATHER WIDGET - Temp + conditions
 // =============================================================================
 export const MockWeatherWidget: React.FC = () => (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-        <Sun size={40} style={{ color: 'var(--warning)' }} />
-        <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>72°F</span>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Sunny</span>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+            <MapPin size={8} />
+            <span>New York, NY</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>42°</span>
+            <Sun size={24} style={{ color: 'var(--warning)', opacity: 0.8 }} />
+        </div>
+        <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Sunny</div>
+        <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)' }}>H: 48° · L: 35°</div>
     </div>
 );
 
 // =============================================================================
-// LINK GRID WIDGET (3 Buttons)
+// LINK GRID WIDGET - Circle/rectangle links
 // =============================================================================
-const LINK_MOCK_DATA = [
-    { icon: Globe, title: "Google" },
-    { icon: Film, title: "Netflix" },
-    { icon: Music, title: "Spotify" },
-];
-
 export const MockLinkGridWidget: React.FC = () => (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-        {LINK_MOCK_DATA.map((link, i) => (
-            <div
-                key={i}
-                style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    background: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                <link.icon size={20} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: '0.625rem', color: 'var(--text-primary)', marginTop: '0.25rem' }}>{link.title}</span>
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.25rem' }}>
+        {[
+            { icon: Globe, title: "Google" },
+            { icon: Tv, title: "Netflix" },
+            { icon: Music, title: "Spotify" },
+        ].map((link, i) => (
+            <div key={i} style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <link.icon size={16} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontSize: '0.45rem', color: 'var(--text-primary)', marginTop: '0.15rem' }}>{link.title}</span>
             </div>
         ))}
     </div>
 );
 
 // =============================================================================
-// OVERSEERR WIDGET (3 Request Cards)
+// OVERSEERR WIDGET - Request list
 // =============================================================================
 export const MockOverseerrWidget: React.FC = () => (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', height: '100%', overflow: 'hidden' }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Pending Requests</div>
         {["Dune: Part Three", "Avatar 4", "The Batman 2"].map((title, i) => (
-            <button
-                key={i}
-                style={{
-                    padding: '0.5rem',
-                    background: 'rgba(255,255,255,0.05)',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.85rem',
-                    width: '100%',
-                    textAlign: 'left',
-                    border: 'none',
-                    cursor: 'default',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                }}
-            >
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--warning)' }}>Pending</span>
-            </button>
-        ))}
-    </div>
-);
-
-// =============================================================================
-// UPCOMING MEDIA WIDGET (3 Posters)
-// =============================================================================
-export const MockUpcomingMediaWidget: React.FC = () => (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', padding: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {[1, 2, 3].map((_, i) => (
-            <div
-                key={i}
-                style={{
-                    width: '70px',
-                    height: '100px',
-                    borderRadius: '8px',
-                    background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)`,
-                    border: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                }}
-            >
-                <Film size={24} style={{ opacity: 0.3, color: 'white' }} />
+            <div key={i} style={{ padding: '0.35rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
+                <span style={{ fontSize: '0.55rem', color: 'var(--warning)' }}>Pending</span>
             </div>
         ))}
     </div>
@@ -495,9 +389,22 @@ export const MockUpcomingMediaWidget: React.FC = () => (
 // CUSTOM HTML WIDGET
 // =============================================================================
 export const MockCustomHTMLWidget: React.FC = () => (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Code size={24} style={{ color: 'var(--text-tertiary)', marginRight: '0.5rem' }} />
-        <span style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>Custom HTML</span>
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Code size={20} style={{ color: 'var(--text-tertiary)', marginRight: '0.35rem' }} />
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Custom HTML</span>
+    </div>
+);
+
+// =============================================================================
+// UPCOMING MEDIA WIDGET
+// =============================================================================
+export const MockUpcomingMediaWidget: React.FC = () => (
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem', overflow: 'hidden' }}>
+        {[1, 2, 3].map((_, i) => (
+            <div key={i} style={{ width: '50px', height: '70px', borderRadius: '4px', background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)`, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Film size={16} style={{ opacity: 0.3, color: 'white' }} />
+            </div>
+        ))}
     </div>
 );
 
@@ -505,8 +412,8 @@ export const MockCustomHTMLWidget: React.FC = () => (
 // GENERIC FALLBACK
 // =============================================================================
 export const MockGenericWidget: React.FC<{ type: string }> = ({ type }) => (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{type}</span>
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>{type}</span>
     </div>
 );
 
@@ -514,7 +421,6 @@ export const MockGenericWidget: React.FC<{ type: string }> = ({ type }) => (
 // WIDGET TYPE MAPPING
 // =============================================================================
 export const getMockWidget = (type: string): React.FC => {
-    // Keys must match widgetRegistry.ts exactly (hyphenated names)
     const widgets: Record<string, React.FC> = {
         'plex': MockPlexWidget,
         'radarr': MockRadarrWidget,
