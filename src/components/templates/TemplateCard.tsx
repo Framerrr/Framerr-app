@@ -32,6 +32,7 @@ interface TemplateCardProps {
     onDuplicate: (template: Template) => void;
     onDelete: (template: Template) => void;
     onNameChange: (template: Template, newName: string) => void;
+    onPreview?: (template: Template) => void;
     isAdmin?: boolean;
 }
 
@@ -42,6 +43,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     onDuplicate,
     onDelete,
     onNameChange,
+    onPreview,
     isAdmin = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -66,12 +68,16 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
     return (
         <div className="flex items-center gap-4 p-4 rounded-lg bg-theme-primary border border-theme hover:border-accent/50 transition-colors group">
-            {/* Thumbnail placeholder */}
-            <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-theme-tertiary border border-theme flex items-center justify-center overflow-hidden">
+            {/* Thumbnail - clickable to preview */}
+            <button
+                onClick={() => onPreview?.(template)}
+                className="flex-shrink-0 w-20 h-20 rounded-lg bg-theme-tertiary border border-theme flex items-center justify-center overflow-hidden hover:border-accent/50 transition-colors cursor-pointer"
+                title="Click to preview"
+            >
                 <div className="text-xs text-theme-tertiary text-center p-2">
                     {template.widgets.length} widget{template.widgets.length !== 1 ? 's' : ''}
                 </div>
-            </div>
+            </button>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
