@@ -53,15 +53,66 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
             maxH: WIDGET_TYPES[widget.type]?.maxSize?.h,
         }));
 
-        // Auto-generate mobile layouts - sorted by desktop Y position for proper stacking
-        // This ensures changes in desktop layout order are reflected in mobile preview
-        const sortedWidgetIndices = data.widgets
-            .map((w, i) => ({ index: i, y: w.layout.y, x: w.layout.x }))
-            .sort((a, b) => a.y - b.y || a.x - b.x) // Sort by Y, then X
-            .map(item => item.index);
+        // Auto-generate mobile layouts using band detection algorithm (matches layoutUtils.ts)
+        // This ensures template preview matches actual dashboard mobile layout
 
+        // Step 1: Build widget info with Y ranges
+        const widgetInfos = data.widgets.map((w, i) => ({
+            index: i,
+            x: w.layout.x,
+            y: w.layout.y,
+            h: w.layout.h,
+            yStart: w.layout.y,
+            yEnd: w.layout.y + w.layout.h,
+        }));
+
+        // Step 2: Sort by Y, then X, then index for deterministic ordering
+        const ySorted = [...widgetInfos].sort((a, b) => {
+            if (a.y !== b.y) return a.y - b.y;
+            if (a.x !== b.x) return a.x - b.x;
+            return a.index - b.index;
+        });
+
+        // Step 3: Band detection - group widgets that overlap vertically
+        const bands: typeof widgetInfos[] = [];
+        let currentBand: typeof widgetInfos = [];
+        let currentBandMaxY = -1;
+
+        ySorted.forEach((widget) => {
+            if (currentBand.length === 0) {
+                currentBand.push(widget);
+                currentBandMaxY = widget.yEnd;
+                return;
+            }
+
+            // Hard cut: widget starts at or after current band's bottom
+            if (widget.y >= currentBandMaxY) {
+                bands.push(currentBand);
+                currentBand = [widget];
+                currentBandMaxY = widget.yEnd;
+            } else {
+                // Widget overlaps with current band
+                currentBand.push(widget);
+                currentBandMaxY = Math.max(currentBandMaxY, widget.yEnd);
+            }
+        });
+
+        if (currentBand.length > 0) {
+            bands.push(currentBand);
+        }
+
+        // Step 4: Sort each band by X (left column first), then Y, then index
+        const sortedIndices = bands.flatMap(band =>
+            [...band].sort((a, b) => {
+                if (a.x !== b.x) return a.x - b.x;
+                if (a.y !== b.y) return a.y - b.y;
+                return a.index - b.index;
+            }).map(item => item.index)
+        );
+
+        // Step 5: Create stacked mobile layout
         let mobileY = 0;
-        const smLayout: Layout[] = sortedWidgetIndices.map(originalIndex => {
+        const smLayout: Layout[] = sortedIndices.map(originalIndex => {
             const widget = data.widgets[originalIndex];
             const layoutItem = {
                 i: `widget-${originalIndex}`,
