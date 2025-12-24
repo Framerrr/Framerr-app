@@ -913,7 +913,7 @@ const Dashboard = (): React.JSX.Element => {
             <WidgetWrapper
                 id={widget.id}
                 type={widget.type}
-                title={widget.config?.title as string || 'Widget'}
+                title={widget.config?.title as string || getWidgetMetadata(widget.type)?.name || 'Widget'}
                 icon={Icon as LucideIcon}
                 editMode={editMode}
                 onDelete={handleDeleteWidget}
