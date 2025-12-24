@@ -166,8 +166,8 @@ const TemplateList: React.FC<TemplateListProps> = ({
 
     return (
         <div className="space-y-4">
-            {/* Category Filter */}
-            {categories.length > 0 && (
+            {/* Category Filter - only show if some templates have categories */}
+            {enrichedTemplates.some(t => t.categoryId) && (
                 <div className="flex items-center gap-2">
                     <Filter size={16} className="text-theme-tertiary" />
                     <select
