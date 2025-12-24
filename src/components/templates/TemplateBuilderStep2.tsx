@@ -7,11 +7,12 @@
  * - New widgets placed at y:0, existing shifted down
  * - Edit mode CSS classes for hover effects
  * - Delete button with .no-drag class
+ * - Undo/Redo with Ctrl+Z / Ctrl+Shift+Z
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { Plus, X, ChevronLeft, ChevronRight, LayoutGrid, Monitor, Smartphone } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, LayoutGrid, Monitor, Smartphone, Undo2, Redo2 } from 'lucide-react';
 import { getWidgetsByCategory, getWidgetIcon, getWidgetMetadata, WIDGET_TYPES } from '../../utils/widgetRegistry';
 import type { TemplateData, TemplateWidget } from './TemplateBuilder';
 import 'react-grid-layout/css/styles.css';
@@ -30,11 +31,23 @@ const GRID_COLS = { lg: 24, sm: 2 };
 const ROW_HEIGHT = 60;
 const BREAKPOINTS = { lg: 768, sm: 0 };
 
+// Max history size to prevent memory issues
+const MAX_HISTORY_SIZE = 50;
+
 type ViewMode = 'desktop' | 'mobile';
 
 const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [viewMode, setViewMode] = useState<ViewMode>('desktop');
+
+    // Undo/Redo history stacks
+    const [undoStack, setUndoStack] = useState<TemplateWidget[][]>([]);
+    const [redoStack, setRedoStack] = useState<TemplateWidget[][]>([]);
+
+    // Track if we're in the middle of an undo/redo operation
+    const isUndoRedoRef = useRef(false);
+    // Track the last committed state to detect real changes
+    const lastCommittedRef = useRef<string>(JSON.stringify(data.widgets));
 
     // Get all available widgets
     const widgetsByCategory = useMemo(() => getWidgetsByCategory(), []);
@@ -185,9 +198,116 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         onChange({ widgets: newWidgets });
     }, [data.widgets, onChange, viewMode]);
 
+    // Push current state to undo stack (called before making changes)
+    const pushToHistory = useCallback(() => {
+        if (isUndoRedoRef.current) return; // Don't push during undo/redo
+
+        const currentState = JSON.stringify(data.widgets);
+        // Only push if state actually changed
+        if (currentState !== lastCommittedRef.current) {
+            setUndoStack(prev => {
+                const newStack = [...prev, data.widgets];
+                // Limit history size
+                if (newStack.length > MAX_HISTORY_SIZE) {
+                    return newStack.slice(-MAX_HISTORY_SIZE);
+                }
+                return newStack;
+            });
+            // Clear redo stack on new action
+            setRedoStack([]);
+            lastCommittedRef.current = currentState;
+        }
+    }, [data.widgets]);
+
+    // Track widget changes for history
+    useEffect(() => {
+        const currentState = JSON.stringify(data.widgets);
+        if (!isUndoRedoRef.current && currentState !== lastCommittedRef.current) {
+            pushToHistory();
+        }
+    }, [data.widgets, pushToHistory]);
+
+    // Undo handler
+    const handleUndo = useCallback(() => {
+        if (undoStack.length === 0) return;
+
+        isUndoRedoRef.current = true;
+
+        // Save current state to redo stack
+        setRedoStack(prev => [...prev, data.widgets]);
+
+        // Pop from undo stack and apply
+        const newUndoStack = [...undoStack];
+        const previousState = newUndoStack.pop()!;
+        setUndoStack(newUndoStack);
+
+        lastCommittedRef.current = JSON.stringify(previousState);
+        onChange({ widgets: previousState });
+
+        // Reset flag after state update
+        setTimeout(() => {
+            isUndoRedoRef.current = false;
+        }, 0);
+    }, [undoStack, data.widgets, onChange]);
+
+    // Redo handler
+    const handleRedo = useCallback(() => {
+        if (redoStack.length === 0) return;
+
+        isUndoRedoRef.current = true;
+
+        // Save current state to undo stack
+        setUndoStack(prev => [...prev, data.widgets]);
+
+        // Pop from redo stack and apply
+        const newRedoStack = [...redoStack];
+        const nextState = newRedoStack.pop()!;
+        setRedoStack(newRedoStack);
+
+        lastCommittedRef.current = JSON.stringify(nextState);
+        onChange({ widgets: nextState });
+
+        // Reset flag after state update
+        setTimeout(() => {
+            isUndoRedoRef.current = false;
+        }, 0);
+    }, [redoStack, data.widgets, onChange]);
+
+    // Keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Only handle if not in an input field
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    handleRedo();
+                } else {
+                    handleUndo();
+                }
+            }
+
+            // Also support Ctrl+Y for redo (Windows standard)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                e.preventDefault();
+                handleRedo();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleUndo, handleRedo]);
+
     // Determine grid cols based on view mode
     const activeCols = viewMode === 'desktop' ? { lg: 24 } : { sm: 2 };
     const activeBreakpoints = viewMode === 'desktop' ? { lg: 0 } : { sm: 0 };
+
+    // Can undo/redo checks
+    const canUndo = undoStack.length > 0;
+    const canRedo = redoStack.length > 0;
 
     return (
         <div className="flex flex-col h-full min-h-[400px]">
@@ -215,6 +335,32 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         >
                             <Smartphone size={14} />
                             Mobile
+                        </button>
+                    </div>
+
+                    {/* Undo/Redo Buttons */}
+                    <div className="flex items-center gap-1 ml-2">
+                        <button
+                            onClick={handleUndo}
+                            disabled={!canUndo || viewMode === 'mobile'}
+                            className={`p-2 rounded-lg transition-colors ${canUndo && viewMode === 'desktop'
+                                    ? 'hover:bg-theme-hover text-theme-primary'
+                                    : 'text-theme-tertiary opacity-50 cursor-not-allowed'
+                                }`}
+                            title="Undo (Ctrl+Z)"
+                        >
+                            <Undo2 size={16} />
+                        </button>
+                        <button
+                            onClick={handleRedo}
+                            disabled={!canRedo || viewMode === 'mobile'}
+                            className={`p-2 rounded-lg transition-colors ${canRedo && viewMode === 'desktop'
+                                    ? 'hover:bg-theme-hover text-theme-primary'
+                                    : 'text-theme-tertiary opacity-50 cursor-not-allowed'
+                                }`}
+                            title="Redo (Ctrl+Shift+Z)"
+                        >
+                            <Redo2 size={16} />
                         </button>
                     </div>
                 </div>
