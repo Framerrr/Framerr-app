@@ -170,6 +170,9 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
         }
         if ((builderMode === 'edit' || builderMode === 'duplicate') && editingTemplate) {
             return {
+                // Include ID for edit mode so Step3 uses PUT instead of POST
+                // For duplicate mode, id is cleared in handleDuplicate
+                id: editingTemplate.id || undefined,
                 name: editingTemplate.name,
                 description: editingTemplate.description,
                 categoryId: editingTemplate.categoryId,

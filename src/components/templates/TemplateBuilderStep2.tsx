@@ -53,14 +53,26 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
             maxH: WIDGET_TYPES[widget.type]?.maxSize?.h,
         }));
 
-        // Auto-generate mobile layouts (stacked, full-width)
-        const smLayout: Layout[] = data.widgets.map((widget, index) => ({
-            i: `widget-${index}`,
-            x: 0,
-            y: index * 2,
-            w: 2, // Full width on mobile
-            h: widget.layout.h,
-        }));
+        // Auto-generate mobile layouts - sorted by desktop Y position for proper stacking
+        // This ensures changes in desktop layout order are reflected in mobile preview
+        const sortedWidgetIndices = data.widgets
+            .map((w, i) => ({ index: i, y: w.layout.y, x: w.layout.x }))
+            .sort((a, b) => a.y - b.y || a.x - b.x) // Sort by Y, then X
+            .map(item => item.index);
+
+        let mobileY = 0;
+        const smLayout: Layout[] = sortedWidgetIndices.map(originalIndex => {
+            const widget = data.widgets[originalIndex];
+            const layoutItem = {
+                i: `widget-${originalIndex}`,
+                x: 0,
+                y: mobileY,
+                w: 2, // Full width on mobile
+                h: widget.layout.h,
+            };
+            mobileY += widget.layout.h;
+            return layoutItem;
+        });
 
         return { lg: lgLayout, sm: smLayout };
     }, [data.widgets]);
