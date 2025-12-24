@@ -53,7 +53,7 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
     const [hasBackup, setHasBackup] = useState(false);
     const [reverting, setReverting] = useState(false);
 
-    // Check for backup on mount
+    // Check for backup on mount and when templates are applied
     useEffect(() => {
         const checkBackup = async () => {
             try {
@@ -64,7 +64,16 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
             }
         };
         checkBackup();
-    }, []);
+
+        // Re-check backup when widgets are added (template applied triggers this event)
+        const handleWidgetsAdded = () => {
+            // Small delay to ensure API has finished creating the backup
+            setTimeout(checkBackup, 500);
+        };
+
+        window.addEventListener('widgets-added', handleWidgetsAdded);
+        return () => window.removeEventListener('widgets-added', handleWidgetsAdded);
+    }, [refreshTrigger]);
 
     // Open builder in create mode (empty template)
     const handleCreateNew = () => {
