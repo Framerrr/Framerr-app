@@ -223,6 +223,16 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         });
         if (!hasChanges) return;
 
+        // If we have a captured drag start state, push it to undo BEFORE making changes
+        if (dragStartStateRef.current) {
+            setUndoStack(prev => {
+                const newStack = [...prev, dragStartStateRef.current!];
+                return newStack.length > MAX_HISTORY_SIZE ? newStack.slice(-MAX_HISTORY_SIZE) : newStack;
+            });
+            setRedoStack([]);
+            dragStartStateRef.current = null; // Clear so we don't push again for same drag
+        }
+
         onChange({ widgets: newWidgets });
     }, [data.widgets, onChange, viewMode]);
 
@@ -234,25 +244,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         dragStartStateRef.current = data.widgets;
     }, [data.widgets]);
 
-    // When drag/resize stops, push to undo if positions actually changed
+    // Clear drag state on stop (history was already pushed in handleLayoutChange if needed)
     const handleDragStop = useCallback(() => {
-        if (!dragStartStateRef.current) return;
-
-        // Check if anything actually changed
-        const startState = JSON.stringify(dragStartStateRef.current);
-        const endState = JSON.stringify(data.widgets);
-
-        if (startState !== endState) {
-            // Push the START state to undo (what it was before dragging)
-            setUndoStack(prev => {
-                const newStack = [...prev, dragStartStateRef.current!];
-                return newStack.length > MAX_HISTORY_SIZE ? newStack.slice(-MAX_HISTORY_SIZE) : newStack;
-            });
-            setRedoStack([]);
-        }
-
         dragStartStateRef.current = null;
-    }, [data.widgets]);
+    }, []);
 
     // Undo handler
     const handleUndo = useCallback(() => {
