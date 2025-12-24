@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { Edit2, Copy, Trash2, Play, Check, X, Clock, Share2, Star, AlertTriangle } from 'lucide-react';
 import { Button } from '../common/Button';
+import TemplateThumbnail from './TemplateThumbnail';
 
 export interface Template {
     id: string;
@@ -71,12 +72,10 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {/* Thumbnail - clickable to preview */}
             <button
                 onClick={() => onPreview?.(template)}
-                className="flex-shrink-0 w-20 h-20 rounded-lg bg-theme-tertiary border border-theme flex items-center justify-center overflow-hidden hover:border-accent/50 transition-colors cursor-pointer"
+                className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden hover:ring-2 hover:ring-accent/50 transition-all cursor-pointer"
                 title="Click to preview"
             >
-                <div className="text-xs text-theme-tertiary text-center p-2">
-                    {template.widgets.length} widget{template.widgets.length !== 1 ? 's' : ''}
-                </div>
+                <TemplateThumbnail widgets={template.widgets} width={80} height={80} />
             </button>
 
             {/* Info */}

@@ -12,6 +12,7 @@ import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { X, Monitor, Smartphone, Play, Edit2 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { getWidgetIcon, WIDGET_TYPES } from '../../utils/widgetRegistry';
+import { getMockWidget } from './MockWidgets';
 import type { Template } from './TemplateCard';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -165,8 +166,8 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                         <button
                             onClick={() => setViewMode('desktop')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'desktop'
-                                    ? 'bg-accent text-white'
-                                    : 'text-theme-secondary hover:text-theme-primary'
+                                ? 'bg-accent text-white'
+                                : 'text-theme-secondary hover:text-theme-primary'
                                 }`}
                             title="Desktop View"
                         >
@@ -175,8 +176,8 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                         <button
                             onClick={() => setViewMode('mobile')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'mobile'
-                                    ? 'bg-accent text-white'
-                                    : 'text-theme-secondary hover:text-theme-primary'
+                                ? 'bg-accent text-white'
+                                : 'text-theme-secondary hover:text-theme-primary'
                                 }`}
                             title="Mobile View"
                         >
@@ -208,6 +209,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                             {template.widgets.map((widget, index) => {
                                 const Icon = getWidgetIcon(widget.type);
                                 const metadata = WIDGET_TYPES[widget.type];
+                                const MockWidget = getMockWidget(widget.type);
 
                                 return (
                                     <div
@@ -220,10 +222,8 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                                                 {metadata?.name || widget.type}
                                             </span>
                                         </div>
-                                        <div className="flex-1 flex items-center justify-center p-2">
-                                            <div className="text-xs text-theme-tertiary text-center">
-                                                Preview
-                                            </div>
+                                        <div className="flex-1 overflow-hidden">
+                                            <MockWidget />
                                         </div>
                                     </div>
                                 );
