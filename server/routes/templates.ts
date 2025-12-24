@@ -389,14 +389,25 @@ router.post('/:id/apply', requireAuth, async (req: Request, res: Response) => {
             currentDashboard.mobileWidgets
         );
 
-        // Convert template widgets to dashboard widgets (add IDs)
-        const dashboardWidgets = template.widgets.map((tw, index) => ({
-            i: `widget-${Date.now()}-${index}`,
-            type: tw.type,
-            layouts: {
-                lg: tw.layout,
-            },
-        }));
+        // Convert template widgets to dashboard widgets
+        // Dashboard expects: i, id, x, y, w, h, type, layouts
+        const dashboardWidgets = template.widgets.map((tw, index) => {
+            const widgetId = `widget-${Date.now()}-${index}`;
+            return {
+                i: widgetId,
+                id: widgetId,
+                type: tw.type,
+                // Root level position (for backward compatibility)
+                x: tw.layout.x,
+                y: tw.layout.y,
+                w: tw.layout.w,
+                h: tw.layout.h,
+                // Responsive layouts
+                layouts: {
+                    lg: tw.layout,
+                },
+            };
+        });
 
         // Apply template to dashboard
         await updateUserConfig(authReq.user!.id, {
