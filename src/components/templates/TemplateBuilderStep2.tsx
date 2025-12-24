@@ -202,10 +202,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         dragStartStateRef.current = data.widgets;
     }, [data.widgets]);
 
-    // Clear drag state on stop (history was already pushed in handleLayoutChange if needed)
+    // handleDragStop intentionally does NOT clear the ref - handleLayoutChange fires AFTER and needs it
     const handleDragStop = useCallback(() => {
-        console.log('[UNDO DEBUG] handleDragStop called, ref was:', dragStartStateRef.current ? 'SET' : 'NULL');
-        dragStartStateRef.current = null;
+        console.log('[UNDO DEBUG] handleDragStop called, ref is:', dragStartStateRef.current ? 'SET' : 'NULL');
+        // Don't clear here - handleLayoutChange will clear after using it
     }, []);
 
     // Handle layout change from grid (desktop editing only)
