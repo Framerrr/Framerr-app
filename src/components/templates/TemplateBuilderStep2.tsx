@@ -43,6 +43,8 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
     // Undo/Redo history stacks
     const [undoStack, setUndoStack] = useState<TemplateWidget[][]>([]);
     const [redoStack, setRedoStack] = useState<TemplateWidget[][]>([]);
+    // Version counter to force grid re-render on undo/redo
+    const [layoutVersion, setLayoutVersion] = useState(0);
 
     // Track if we're in the middle of an undo/redo operation
     const isUndoRedoRef = useRef(false);
@@ -181,6 +183,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
     // Handle layout change from grid (desktop editing only)
     const handleLayoutChange = useCallback((layout: Layout[]) => {
         if (viewMode !== 'desktop') return; // Don't update on mobile preview
+        if (isUndoRedoRef.current) return; // Don't update during undo/redo
 
         const newWidgets = data.widgets.map((widget, index) => {
             const layoutItem = layout.find(l => l.i === `widget-${index}`);
@@ -243,6 +246,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
         lastCommittedRef.current = JSON.stringify(previousState);
         onChange({ widgets: previousState });
+        setLayoutVersion(v => v + 1); // Force grid re-render
 
         // Reset flag after state update
         setTimeout(() => {
@@ -266,6 +270,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
         lastCommittedRef.current = JSON.stringify(nextState);
         onChange({ widgets: nextState });
+        setLayoutVersion(v => v + 1); // Force grid re-render
 
         // Reset flag after state update
         setTimeout(() => {
@@ -344,8 +349,8 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                             onClick={handleUndo}
                             disabled={!canUndo || viewMode === 'mobile'}
                             className={`p-2 rounded-lg transition-colors ${canUndo && viewMode === 'desktop'
-                                    ? 'hover:bg-theme-hover text-theme-primary'
-                                    : 'text-theme-tertiary opacity-50 cursor-not-allowed'
+                                ? 'hover:bg-theme-hover text-theme-primary'
+                                : 'text-theme-tertiary opacity-50 cursor-not-allowed'
                                 }`}
                             title="Undo (Ctrl+Z)"
                         >
@@ -355,8 +360,8 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                             onClick={handleRedo}
                             disabled={!canRedo || viewMode === 'mobile'}
                             className={`p-2 rounded-lg transition-colors ${canRedo && viewMode === 'desktop'
-                                    ? 'hover:bg-theme-hover text-theme-primary'
-                                    : 'text-theme-tertiary opacity-50 cursor-not-allowed'
+                                ? 'hover:bg-theme-hover text-theme-primary'
+                                : 'text-theme-tertiary opacity-50 cursor-not-allowed'
                                 }`}
                             title="Redo (Ctrl+Shift+Z)"
                         >
@@ -466,6 +471,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         /* Grid Layout */
                         <div className="p-4 h-full">
                             <ResponsiveGridLayout
+                                key={`grid-${layoutVersion}`}
                                 layouts={layouts}
                                 breakpoints={activeBreakpoints}
                                 cols={activeCols}
