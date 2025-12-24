@@ -74,6 +74,23 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         ...(initialData?.id && { id: initialData.id }),
     });
 
+    // Reset state when modal opens or initialData changes
+    React.useEffect(() => {
+        if (isOpen) {
+            setCurrentStep(1);
+            setIsDirty(false);
+            setShowConfirmClose(false);
+            setTemplateData({
+                name: initialData?.name || '',
+                description: initialData?.description || '',
+                categoryId: initialData?.categoryId || null,
+                widgets: initialData?.widgets || [],
+                isDraft: initialData?.isDraft || false,
+                ...(initialData?.id && { id: initialData.id }),
+            });
+        }
+    }, [isOpen, initialData]);
+
     // Handle close with confirmation if dirty
     const handleClose = useCallback(() => {
         if (isDirty) {
@@ -82,6 +99,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
             onClose();
         }
     }, [isDirty, onClose]);
+
 
     // Update template data and mark as dirty
     const updateTemplateData = useCallback((updates: Partial<TemplateData>) => {

@@ -2,6 +2,10 @@
  * Template Routes
  * 
  * API endpoints for dashboard template management.
+ * 
+ * IMPORTANT: Route order matters! Specific routes (categories, backup, revert, draft)
+ * must be defined BEFORE parameterized routes (/:id) to prevent Express from
+ * matching them as template IDs.
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
@@ -47,7 +51,183 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction): void => 
 };
 
 // ============================================================================
-// Template Routes
+// Category Routes (MUST be before /:id routes)
+// ============================================================================
+
+/**
+ * GET /api/templates/categories
+ * Get all categories
+ */
+router.get('/categories', requireAuth, async (_req: Request, res: Response) => {
+    try {
+        const categories = await templateDb.getCategories();
+        res.json({ categories });
+    } catch (error) {
+        logger.error('Failed to get categories', { error: (error as Error).message });
+        res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+});
+
+/**
+ * POST /api/templates/categories
+ * Create a new category (admin only)
+ */
+router.post('/categories', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const { name } = req.body;
+
+        if (!name || typeof name !== 'string') {
+            res.status(400).json({ error: 'Category name is required' });
+            return;
+        }
+
+        const category = await templateDb.createCategory(name, authReq.user!.id);
+        logger.info('Category created', { id: category.id, name, by: authReq.user!.id });
+        res.status(201).json({ category });
+    } catch (error) {
+        if ((error as Error).message.includes('UNIQUE constraint')) {
+            res.status(409).json({ error: 'Category already exists' });
+            return;
+        }
+        logger.error('Failed to create category', { error: (error as Error).message });
+        res.status(500).json({ error: 'Failed to create category' });
+    }
+});
+
+/**
+ * DELETE /api/templates/categories/:id
+ * Delete a category (admin only)
+ */
+router.delete('/categories/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const deleted = await templateDb.deleteCategory(req.params.id);
+
+        if (!deleted) {
+            res.status(404).json({ error: 'Category not found' });
+            return;
+        }
+
+        logger.info('Category deleted', { id: req.params.id });
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Failed to delete category', { error: (error as Error).message });
+        res.status(500).json({ error: 'Failed to delete category' });
+    }
+});
+
+// ============================================================================
+// Backup Routes (MUST be before /:id routes)
+// ============================================================================
+
+/**
+ * GET /api/templates/backup
+ * Get user's dashboard backup
+ */
+router.get('/backup', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const backup = await templateDb.getBackup(authReq.user!.id);
+
+        if (!backup) {
+            res.json({ backup: null });
+            return;
+        }
+
+        res.json({ backup });
+    } catch (error) {
+        logger.error('Failed to get backup', { error: (error as Error).message });
+        res.status(500).json({ error: 'Failed to fetch backup' });
+    }
+});
+
+/**
+ * POST /api/templates/revert
+ * Revert dashboard to backup
+ */
+router.post('/revert', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const backup = await templateDb.getBackup(authReq.user!.id);
+
+        if (!backup) {
+            res.status(404).json({ error: 'No backup available' });
+            return;
+        }
+
+        // Restore dashboard from backup
+        await updateUserConfig(authReq.user!.id, {
+            dashboard: {
+                widgets: backup.widgets,
+                mobileLayoutMode: backup.mobileLayoutMode,
+                mobileWidgets: backup.mobileWidgets || undefined,
+            },
+        });
+
+        // Delete backup after revert
+        await templateDb.deleteBackup(authReq.user!.id);
+
+        logger.info('Dashboard reverted', { userId: authReq.user!.id });
+        res.json({
+            success: true,
+            widgets: backup.widgets,
+            mobileLayoutMode: backup.mobileLayoutMode,
+        });
+    } catch (error) {
+        logger.error('Failed to revert dashboard', { error: (error as Error).message });
+        res.status(500).json({ error: 'Failed to revert dashboard' });
+    }
+});
+
+/**
+ * POST /api/templates/draft
+ * Auto-save draft (creates or updates)
+ */
+router.post('/draft', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const { templateId, name, description, categoryId, widgets, thumbnail } = req.body;
+
+        let template;
+
+        if (templateId) {
+            // Update existing draft
+            template = await templateDb.updateTemplate(templateId, authReq.user!.id, {
+                name,
+                description,
+                categoryId,
+                widgets,
+                thumbnail,
+                isDraft: true,
+            });
+
+            if (!template) {
+                res.status(404).json({ error: 'Draft not found' });
+                return;
+            }
+        } else {
+            // Create new draft
+            template = await templateDb.createTemplate({
+                ownerId: authReq.user!.id,
+                name: name || 'Untitled Draft',
+                description,
+                categoryId,
+                widgets: widgets || [],
+                thumbnail,
+                isDraft: true,
+            });
+        }
+
+        logger.debug('Draft saved', { id: template.id, userId: authReq.user!.id });
+        res.json({ template });
+    } catch (error) {
+        logger.error('Failed to save draft', { error: (error as Error).message });
+        res.status(500).json({ error: 'Failed to save draft' });
+    }
+});
+
+// ============================================================================
+// Template CRUD Routes (parameterized routes AFTER specific routes)
 // ============================================================================
 
 /**
@@ -64,37 +244,6 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     } catch (error) {
         logger.error('Failed to get templates', { error: (error as Error).message });
         res.status(500).json({ error: 'Failed to fetch templates' });
-    }
-});
-
-/**
- * GET /api/templates/:id
- * Get a specific template
- */
-router.get('/:id', requireAuth, async (req: Request, res: Response) => {
-    try {
-        const template = await templateDb.getTemplateById(req.params.id);
-
-        if (!template) {
-            res.status(404).json({ error: 'Template not found' });
-            return;
-        }
-
-        // Check access (owner or shared)
-        const authReq = req as AuthenticatedRequest;
-        const shares = await templateDb.getTemplateShares(template.id);
-        const isOwner = template.ownerId === authReq.user!.id;
-        const isShared = shares.some(s => s.sharedWith === authReq.user!.id || s.sharedWith === 'everyone');
-
-        if (!isOwner && !isShared) {
-            res.status(403).json({ error: 'Access denied' });
-            return;
-        }
-
-        res.json({ template, shares: isOwner ? shares : undefined });
-    } catch (error) {
-        logger.error('Failed to get template', { error: (error as Error).message, id: req.params.id });
-        res.status(500).json({ error: 'Failed to fetch template' });
     }
 });
 
@@ -127,6 +276,37 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     } catch (error) {
         logger.error('Failed to create template', { error: (error as Error).message });
         res.status(500).json({ error: 'Failed to create template' });
+    }
+});
+
+/**
+ * GET /api/templates/:id
+ * Get a specific template
+ */
+router.get('/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const template = await templateDb.getTemplateById(req.params.id);
+
+        if (!template) {
+            res.status(404).json({ error: 'Template not found' });
+            return;
+        }
+
+        // Check access (owner or shared)
+        const authReq = req as AuthenticatedRequest;
+        const shares = await templateDb.getTemplateShares(template.id);
+        const isOwner = template.ownerId === authReq.user!.id;
+        const isShared = shares.some(s => s.sharedWith === authReq.user!.id || s.sharedWith === 'everyone');
+
+        if (!isOwner && !isShared) {
+            res.status(403).json({ error: 'Access denied' });
+            return;
+        }
+
+        res.json({ template, shares: isOwner ? shares : undefined });
+    } catch (error) {
+        logger.error('Failed to get template', { error: (error as Error).message, id: req.params.id });
+        res.status(500).json({ error: 'Failed to fetch template' });
     }
 });
 
@@ -336,182 +516,6 @@ router.post('/:id/set-default', requireAuth, requireAdmin, async (req: Request, 
     } catch (error) {
         logger.error('Failed to set default template', { error: (error as Error).message });
         res.status(500).json({ error: 'Failed to set default template' });
-    }
-});
-
-// ============================================================================
-// Category Routes
-// ============================================================================
-
-/**
- * GET /api/templates/categories
- * Get all categories
- */
-router.get('/categories', requireAuth, async (_req: Request, res: Response) => {
-    try {
-        const categories = await templateDb.getCategories();
-        res.json({ categories });
-    } catch (error) {
-        logger.error('Failed to get categories', { error: (error as Error).message });
-        res.status(500).json({ error: 'Failed to fetch categories' });
-    }
-});
-
-/**
- * POST /api/templates/categories
- * Create a new category (admin only)
- */
-router.post('/categories', requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-        const authReq = req as AuthenticatedRequest;
-        const { name } = req.body;
-
-        if (!name || typeof name !== 'string') {
-            res.status(400).json({ error: 'Category name is required' });
-            return;
-        }
-
-        const category = await templateDb.createCategory(name, authReq.user!.id);
-        logger.info('Category created', { id: category.id, name, by: authReq.user!.id });
-        res.status(201).json({ category });
-    } catch (error) {
-        if ((error as Error).message.includes('UNIQUE constraint')) {
-            res.status(409).json({ error: 'Category already exists' });
-            return;
-        }
-        logger.error('Failed to create category', { error: (error as Error).message });
-        res.status(500).json({ error: 'Failed to create category' });
-    }
-});
-
-/**
- * DELETE /api/templates/categories/:id
- * Delete a category (admin only)
- */
-router.delete('/categories/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-        const deleted = await templateDb.deleteCategory(req.params.id);
-
-        if (!deleted) {
-            res.status(404).json({ error: 'Category not found' });
-            return;
-        }
-
-        logger.info('Category deleted', { id: req.params.id });
-        res.json({ success: true });
-    } catch (error) {
-        logger.error('Failed to delete category', { error: (error as Error).message });
-        res.status(500).json({ error: 'Failed to delete category' });
-    }
-});
-
-// ============================================================================
-// Backup Routes
-// ============================================================================
-
-/**
- * GET /api/templates/backup
- * Get user's dashboard backup
- */
-router.get('/backup', requireAuth, async (req: Request, res: Response) => {
-    try {
-        const authReq = req as AuthenticatedRequest;
-        const backup = await templateDb.getBackup(authReq.user!.id);
-
-        if (!backup) {
-            res.json({ backup: null });
-            return;
-        }
-
-        res.json({ backup });
-    } catch (error) {
-        logger.error('Failed to get backup', { error: (error as Error).message });
-        res.status(500).json({ error: 'Failed to fetch backup' });
-    }
-});
-
-/**
- * POST /api/templates/revert
- * Revert dashboard to backup
- */
-router.post('/revert', requireAuth, async (req: Request, res: Response) => {
-    try {
-        const authReq = req as AuthenticatedRequest;
-        const backup = await templateDb.getBackup(authReq.user!.id);
-
-        if (!backup) {
-            res.status(404).json({ error: 'No backup available' });
-            return;
-        }
-
-        // Restore dashboard from backup
-        await updateUserConfig(authReq.user!.id, {
-            dashboard: {
-                widgets: backup.widgets,
-                mobileLayoutMode: backup.mobileLayoutMode,
-                mobileWidgets: backup.mobileWidgets || undefined,
-            },
-        });
-
-        // Delete backup after revert
-        await templateDb.deleteBackup(authReq.user!.id);
-
-        logger.info('Dashboard reverted', { userId: authReq.user!.id });
-        res.json({
-            success: true,
-            widgets: backup.widgets,
-            mobileLayoutMode: backup.mobileLayoutMode,
-        });
-    } catch (error) {
-        logger.error('Failed to revert dashboard', { error: (error as Error).message });
-        res.status(500).json({ error: 'Failed to revert dashboard' });
-    }
-});
-
-/**
- * POST /api/templates/draft
- * Auto-save draft (creates or updates)
- */
-router.post('/draft', requireAuth, async (req: Request, res: Response) => {
-    try {
-        const authReq = req as AuthenticatedRequest;
-        const { templateId, name, description, categoryId, widgets, thumbnail } = req.body;
-
-        let template;
-
-        if (templateId) {
-            // Update existing draft
-            template = await templateDb.updateTemplate(templateId, authReq.user!.id, {
-                name,
-                description,
-                categoryId,
-                widgets,
-                thumbnail,
-                isDraft: true,
-            });
-
-            if (!template) {
-                res.status(404).json({ error: 'Draft not found' });
-                return;
-            }
-        } else {
-            // Create new draft
-            template = await templateDb.createTemplate({
-                ownerId: authReq.user!.id,
-                name: name || 'Untitled Draft',
-                description,
-                categoryId,
-                widgets: widgets || [],
-                thumbnail,
-                isDraft: true,
-            });
-        }
-
-        logger.debug('Draft saved', { id: template.id, userId: authReq.user!.id });
-        res.json({ template });
-    } catch (error) {
-        logger.error('Failed to save draft', { error: (error as Error).message });
-        res.status(500).json({ error: 'Failed to save draft' });
     }
 });
 
