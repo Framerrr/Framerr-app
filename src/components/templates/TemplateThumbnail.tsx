@@ -2,12 +2,14 @@
  * TemplateThumbnail - CSS-scaled mini preview of a template grid
  * 
  * Uses CSS transform: scale() to create a miniature version of the grid.
- * The thumbnail shows mock widgets in their actual positions, scaled down.
- * Centers the content for a balanced appearance.
+ * The thumbnail shows simplified widget blocks with type indicators.
+ * 
+ * Note: At small scales, borders must be thick enough to remain visible.
+ * A 1px border at 0.1x scale = 0.1px = invisible.
  */
 
 import React, { useMemo } from 'react';
-import { getMockWidget } from './MockWidgets';
+import { getWidgetIcon } from '../../utils/widgetRegistry';
 
 interface TemplateWidget {
     type: string;
@@ -29,7 +31,7 @@ interface TemplateThumbnailProps {
 // Grid configuration matching dashboard
 const GRID_COLS = 24;
 const ROW_HEIGHT = 60; // px per row at full scale
-const GRID_GAP = 8;    // px gap at full scale
+const GRID_GAP = 12;   // px gap at full scale (increased for visibility)
 
 const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     widgets,
@@ -44,7 +46,6 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
         }
 
         // Find bounds of the template
-        const maxX = Math.max(...widgets.map(w => w.layout.x + w.layout.w));
         const maxY = Math.max(...widgets.map(w => w.layout.y + w.layout.h));
 
         // Calculate full grid size at 1:1 scale
@@ -77,6 +78,10 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
         );
     }
 
+    // Calculate border thickness that will be visible after scaling
+    // At 0.1x scale, we need 10px borders to show as 1px
+    const borderThickness = Math.max(8, Math.round(1 / gridMetrics.scale));
+
     return (
         <div
             className={`relative overflow-hidden bg-theme-tertiary rounded ${className}`}
@@ -95,11 +100,11 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                 }}
             >
                 {widgets.map((widget, index) => {
-                    const MockWidget = getMockWidget(widget.type);
+                    const Icon = getWidgetIcon(widget.type);
 
                     // Calculate position and size
                     const left = (widget.layout.x / GRID_COLS) * gridMetrics.fullWidth;
-                    const widgetWidth = (widget.layout.w / GRID_COLS) * gridMetrics.fullWidth;
+                    const widgetWidth = (widget.layout.w / GRID_COLS) * gridMetrics.fullWidth - GRID_GAP;
                     const top = widget.layout.y * (ROW_HEIGHT + GRID_GAP);
                     const widgetHeight = widget.layout.h * ROW_HEIGHT + (widget.layout.h - 1) * GRID_GAP;
 
@@ -113,12 +118,19 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                                 width: widgetWidth,
                                 height: widgetHeight,
                                 background: 'var(--bg-secondary)',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border)',
+                                borderRadius: `${borderThickness * 2}px`,
+                                border: `${borderThickness}px solid var(--border)`,
                                 overflow: 'hidden',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                             }}
                         >
-                            <MockWidget />
+                            {/* Simple icon indicator instead of full mock content */}
+                            <Icon
+                                size={Math.min(widgetWidth, widgetHeight) * 0.4}
+                                style={{ color: 'var(--accent)', opacity: 0.6 }}
+                            />
                         </div>
                     );
                 })}
