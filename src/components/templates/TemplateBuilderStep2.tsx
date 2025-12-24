@@ -146,6 +146,13 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         const metadata = getWidgetMetadata(widgetType);
         if (!metadata) return;
 
+        // Capture state for undo BEFORE making changes
+        setUndoStack(prev => {
+            const newStack = [...prev, data.widgets];
+            return newStack.length > MAX_HISTORY_SIZE ? newStack.slice(-MAX_HISTORY_SIZE) : newStack;
+        });
+        setRedoStack([]);
+
         const newWidgetHeight = metadata.defaultSize.h;
 
         // Create new widget at y:0, full width (24 cols)
@@ -173,6 +180,13 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
     // Remove widget from template
     const handleRemoveWidget = useCallback((index: number) => {
+        // Capture state for undo BEFORE making changes
+        setUndoStack(prev => {
+            const newStack = [...prev, data.widgets];
+            return newStack.length > MAX_HISTORY_SIZE ? newStack.slice(-MAX_HISTORY_SIZE) : newStack;
+        });
+        setRedoStack([]);
+
         const newWidgets = [...data.widgets];
         newWidgets.splice(index, 1);
         onChange({ widgets: newWidgets });
@@ -212,43 +226,32 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         onChange({ widgets: newWidgets });
     }, [data.widgets, onChange, viewMode]);
 
-    // Ref to track previous widgets state (for undo history)
-    const prevWidgetsRef = useRef<TemplateWidget[] | null>(null);
-    // Flag to skip history tracking on initial mount
-    const isFirstMountRef = useRef(true);
+    // Ref to track state at drag/resize start (for undo on actual changes)
+    const dragStartStateRef = useRef<TemplateWidget[] | null>(null);
 
-    // Track widget changes and push PREVIOUS state to history
-    useEffect(() => {
-        // Skip history tracking on initial mount - just record the initial state
-        if (isFirstMountRef.current) {
-            isFirstMountRef.current = false;
-            prevWidgetsRef.current = data.widgets;
-            lastCommittedRef.current = JSON.stringify(data.widgets);
-            return;
-        }
+    // Capture state when drag or resize starts
+    const handleDragStart = useCallback(() => {
+        dragStartStateRef.current = data.widgets;
+    }, [data.widgets]);
 
-        if (isUndoRedoRef.current) return;
+    // When drag/resize stops, push to undo if positions actually changed
+    const handleDragStop = useCallback(() => {
+        if (!dragStartStateRef.current) return;
 
-        const currentState = JSON.stringify(data.widgets);
+        // Check if anything actually changed
+        const startState = JSON.stringify(dragStartStateRef.current);
+        const endState = JSON.stringify(data.widgets);
 
-        // If we have a previous state and it's different from current, push it to history
-        if (prevWidgetsRef.current !== null &&
-            JSON.stringify(prevWidgetsRef.current) !== currentState) {
-
+        if (startState !== endState) {
+            // Push the START state to undo (what it was before dragging)
             setUndoStack(prev => {
-                const newStack = [...prev, prevWidgetsRef.current!];
-                if (newStack.length > MAX_HISTORY_SIZE) {
-                    return newStack.slice(-MAX_HISTORY_SIZE);
-                }
-                return newStack;
+                const newStack = [...prev, dragStartStateRef.current!];
+                return newStack.length > MAX_HISTORY_SIZE ? newStack.slice(-MAX_HISTORY_SIZE) : newStack;
             });
-            // Clear redo stack on new action
             setRedoStack([]);
         }
 
-        // Update previous state for next comparison
-        prevWidgetsRef.current = data.widgets;
-        lastCommittedRef.current = currentState;
+        dragStartStateRef.current = null;
     }, [data.widgets]);
 
     // Undo handler
@@ -495,6 +498,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                                 cols={activeCols}
                                 rowHeight={ROW_HEIGHT}
                                 onLayoutChange={handleLayoutChange}
+                                onDragStart={handleDragStart}
+                                onDragStop={handleDragStop}
+                                onResizeStart={handleDragStart}
+                                onResizeStop={handleDragStop}
                                 isDraggable={viewMode === 'desktop'}
                                 isResizable={viewMode === 'desktop'}
                                 // PARITY: 8-direction resize handles like dashboard
