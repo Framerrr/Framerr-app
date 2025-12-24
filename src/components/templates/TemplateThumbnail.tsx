@@ -1,11 +1,8 @@
 /**
- * TemplateThumbnail - CSS-scaled mini preview of a template grid
+ * TemplateThumbnail - Mini preview of a template grid
  * 
- * Uses CSS transform: scale() to create a miniature version of the grid.
- * The thumbnail shows simplified widget blocks with type indicators.
- * 
- * Note: At small scales, borders must be thick enough to remain visible.
- * A 1px border at 0.1x scale = 0.1px = invisible.
+ * Renders widgets at actual small pixel sizes (no CSS transform: scale).
+ * This ensures borders, spacing, and styling render correctly.
  */
 
 import React, { useMemo } from 'react';
@@ -28,10 +25,8 @@ interface TemplateThumbnailProps {
     className?: string;
 }
 
-// Grid configuration matching dashboard
+// Grid configuration - scaled to fit in the thumbnail
 const GRID_COLS = 24;
-const ROW_HEIGHT = 60; // px per row at full scale
-const GRID_GAP = 12;   // px gap at full scale (increased for visibility)
 
 const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     widgets,
@@ -39,32 +34,26 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     height = 60,
     className = '',
 }) => {
-    // Calculate the full grid dimensions
-    const gridMetrics = useMemo(() => {
+    // Calculate dimensions to fit widgets in the container
+    const { cellWidth, cellHeight, maxRows } = useMemo(() => {
         if (widgets.length === 0) {
-            return { maxY: 1, fullWidth: 800, fullHeight: 60, scale: 0.1, offsetX: 0, offsetY: 0 };
+            return { cellWidth: 3, cellHeight: 8, maxRows: 1 };
         }
 
-        // Find bounds of the template
         const maxY = Math.max(...widgets.map(w => w.layout.y + w.layout.h));
 
-        // Calculate full grid size at 1:1 scale
-        const fullWidth = 800; // Standard grid width
-        const fullHeight = maxY * ROW_HEIGHT + (maxY - 1) * GRID_GAP;
+        // Calculate cell sizes to fit in container with padding
+        const padding = 2;
+        const gap = 1; // 1px gap between widgets
+        const availableWidth = width - padding * 2;
+        const availableHeight = height - padding * 2;
 
-        // Calculate scale to fit in container with some padding
-        const padding = 4;
-        const scaleX = (width - padding * 2) / fullWidth;
-        const scaleY = (height - padding * 2) / fullHeight;
-        const scale = Math.min(scaleX, scaleY);
+        // Width per column
+        const cw = availableWidth / GRID_COLS;
+        // Height per row - fit all rows in available height
+        const ch = Math.max(6, availableHeight / maxY);
 
-        // Calculate offsets to center the content
-        const scaledWidth = fullWidth * scale;
-        const scaledHeight = fullHeight * scale;
-        const offsetX = (width - scaledWidth) / 2;
-        const offsetY = (height - scaledHeight) / 2;
-
-        return { maxY, fullWidth, fullHeight, scale, offsetX, offsetY };
+        return { cellWidth: cw, cellHeight: ch, maxRows: maxY };
     }, [widgets, width, height]);
 
     if (widgets.length === 0) {
@@ -73,68 +62,55 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                 className={`bg-theme-tertiary rounded flex items-center justify-center ${className}`}
                 style={{ width, height }}
             >
-                <span style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>Empty</span>
+                <span style={{ fontSize: '8px', color: 'var(--text-tertiary)' }}>Empty</span>
             </div>
         );
     }
 
-    // Calculate border thickness that will be visible after scaling
-    // At 0.1x scale, we need 10px borders to show as 1px
-    const borderThickness = Math.max(8, Math.round(1 / gridMetrics.scale));
-
     return (
         <div
-            className={`relative overflow-hidden bg-theme-tertiary rounded ${className}`}
-            style={{ width, height }}
+            className={`relative overflow-hidden rounded ${className}`}
+            style={{
+                width,
+                height,
+                background: 'var(--bg-tertiary)',
+                padding: '2px',
+            }}
         >
-            {/* Scaled grid container - centered */}
-            <div
-                style={{
-                    width: gridMetrics.fullWidth,
-                    height: gridMetrics.fullHeight,
-                    transform: `scale(${gridMetrics.scale})`,
-                    transformOrigin: 'top left',
-                    position: 'absolute',
-                    left: gridMetrics.offsetX,
-                    top: gridMetrics.offsetY,
-                }}
-            >
-                {widgets.map((widget, index) => {
-                    const Icon = getWidgetIcon(widget.type);
+            {widgets.map((widget, index) => {
+                const Icon = getWidgetIcon(widget.type);
 
-                    // Calculate position and size
-                    const left = (widget.layout.x / GRID_COLS) * gridMetrics.fullWidth;
-                    const widgetWidth = (widget.layout.w / GRID_COLS) * gridMetrics.fullWidth - GRID_GAP;
-                    const top = widget.layout.y * (ROW_HEIGHT + GRID_GAP);
-                    const widgetHeight = widget.layout.h * ROW_HEIGHT + (widget.layout.h - 1) * GRID_GAP;
+                // Calculate position and size in actual pixels
+                const left = widget.layout.x * cellWidth;
+                const top = widget.layout.y * cellHeight;
+                const w = widget.layout.w * cellWidth - 1; // -1 for gap
+                const h = widget.layout.h * cellHeight - 1;
 
-                    return (
-                        <div
-                            key={index}
-                            style={{
-                                position: 'absolute',
-                                left,
-                                top,
-                                width: widgetWidth,
-                                height: widgetHeight,
-                                background: 'var(--bg-secondary)',
-                                borderRadius: `${borderThickness * 2}px`,
-                                border: `${borderThickness}px solid var(--border)`,
-                                overflow: 'hidden',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            {/* Simple icon indicator instead of full mock content */}
-                            <Icon
-                                size={Math.min(widgetWidth, widgetHeight) * 0.4}
-                                style={{ color: 'var(--accent)', opacity: 0.6 }}
-                            />
-                        </div>
-                    );
-                })}
-            </div>
+                return (
+                    <div
+                        key={index}
+                        style={{
+                            position: 'absolute',
+                            left: `${left + 2}px`, // +2 for padding
+                            top: `${top + 2}px`,
+                            width: `${w}px`,
+                            height: `${h}px`,
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '3px',
+                            border: '1px solid var(--border)',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <Icon
+                            size={Math.min(w, h) * 0.5}
+                            style={{ color: 'var(--accent)', opacity: 0.7 }}
+                        />
+                    </div>
+                );
+            })}
         </div>
     );
 };
