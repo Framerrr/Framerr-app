@@ -106,12 +106,16 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                     return (
                         <div
                             key={index}
-                            className="absolute glass-subtle rounded-lg border border-theme overflow-hidden"
                             style={{
+                                position: 'absolute',
                                 left,
                                 top,
                                 width: widgetWidth,
                                 height: widgetHeight,
+                                background: 'var(--bg-secondary)',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border)',
+                                overflow: 'hidden',
                             }}
                         >
                             <MockWidget />

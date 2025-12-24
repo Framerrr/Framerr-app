@@ -514,19 +514,20 @@ export const MockGenericWidget: React.FC<{ type: string }> = ({ type }) => (
 // WIDGET TYPE MAPPING
 // =============================================================================
 export const getMockWidget = (type: string): React.FC => {
+    // Keys must match widgetRegistry.ts exactly (hyphenated names)
     const widgets: Record<string, React.FC> = {
         'plex': MockPlexWidget,
         'radarr': MockRadarrWidget,
         'sonarr': MockSonarrWidget,
         'qbittorrent': MockQBittorrentWidget,
-        'systemstatus': MockSystemStatusWidget,
+        'system-status': MockSystemStatusWidget,
         'calendar': MockCalendarWidget,
         'clock': MockClockWidget,
         'weather': MockWeatherWidget,
-        'linkgrid': MockLinkGridWidget,
+        'link-grid': MockLinkGridWidget,
         'overseerr': MockOverseerrWidget,
         'upcomingmedia': MockUpcomingMediaWidget,
-        'customhtml': MockCustomHTMLWidget,
+        'custom-html': MockCustomHTMLWidget,
     };
 
     return widgets[type.toLowerCase()] || (() => <MockGenericWidget type={type} />);
