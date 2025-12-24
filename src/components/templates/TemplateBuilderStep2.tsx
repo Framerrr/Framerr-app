@@ -43,8 +43,6 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
     // Undo/Redo history stacks
     const [undoStack, setUndoStack] = useState<TemplateWidget[][]>([]);
     const [redoStack, setRedoStack] = useState<TemplateWidget[][]>([]);
-    // Version counter to force grid re-render on undo/redo
-    const [layoutVersion, setLayoutVersion] = useState(0);
 
     // Track if we're in the middle of an undo/redo operation
     const isUndoRedoRef = useRef(false);
@@ -246,7 +244,6 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
         lastCommittedRef.current = JSON.stringify(previousState);
         onChange({ widgets: previousState });
-        setLayoutVersion(v => v + 1); // Force grid re-render
 
         // Reset flag after state update
         setTimeout(() => {
@@ -270,7 +267,6 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
         lastCommittedRef.current = JSON.stringify(nextState);
         onChange({ widgets: nextState });
-        setLayoutVersion(v => v + 1); // Force grid re-render
 
         // Reset flag after state update
         setTimeout(() => {
@@ -471,7 +467,6 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         /* Grid Layout */
                         <div className="p-4 h-full">
                             <ResponsiveGridLayout
-                                key={`grid-${layoutVersion}`}
                                 layouts={layouts}
                                 breakpoints={activeBreakpoints}
                                 cols={activeCols}
