@@ -1,11 +1,12 @@
 /**
  * TemplateBuilderStep2 - Grid Editor for template building
  * 
- * Features:
- * - Toolbar with Desktop/Mobile toggle, Undo/Redo (future)
- * - Widget sidebar with available widgets
- * - react-grid-layout canvas matching dashboard (24 cols desktop, 2 cols mobile)
- * - Add/remove/move/resize widgets (same as dashboard edit mode)
+ * DASHBOARD PARITY: Editing behavior matches Dashboard.tsx
+ * - Full widget drag (not just header)
+ * - 8-direction resize handles on desktop
+ * - New widgets placed at y:0, existing shifted down
+ * - Edit mode CSS classes for hover effects
+ * - Delete button with .no-drag class
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -15,6 +16,7 @@ import { getWidgetsByCategory, getWidgetIcon, getWidgetMetadata, WIDGET_TYPES } 
 import type { TemplateData, TemplateWidget } from './TemplateBuilder';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import '../../styles/GridLayout.css'; // Dashboard edit mode styles
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -23,7 +25,7 @@ interface Step2Props {
     onChange: (updates: Partial<TemplateData>) => void;
 }
 
-// Grid configuration matching REAL dashboard (DevDashboard.tsx line 159)
+// Grid configuration matching REAL dashboard (Dashboard.tsx)
 const GRID_COLS = { lg: 24, sm: 2 };
 const ROW_HEIGHT = 60;
 const BREAKPOINTS = { lg: 768, sm: 0 };
@@ -63,29 +65,34 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         return { lg: lgLayout, sm: smLayout };
     }, [data.widgets]);
 
-    // Add widget to template
+    // Add widget to template - PARITY: y:0, full width, shift existing down
     const handleAddWidget = useCallback((widgetType: string) => {
         const metadata = getWidgetMetadata(widgetType);
         if (!metadata) return;
 
-        // Find next available Y position
-        let maxY = 0;
-        data.widgets.forEach(w => {
-            const bottom = w.layout.y + w.layout.h;
-            if (bottom > maxY) maxY = bottom;
-        });
+        const newWidgetHeight = metadata.defaultSize.h;
 
+        // Create new widget at y:0, full width (24 cols)
         const newWidget: TemplateWidget = {
             type: widgetType,
             layout: {
                 x: 0,
-                y: maxY,
-                w: metadata.defaultSize.w,
-                h: metadata.defaultSize.h,
+                y: 0,
+                w: 24, // Full width like dashboard
+                h: newWidgetHeight,
             },
         };
 
-        onChange({ widgets: [...data.widgets, newWidget] });
+        // Shift all existing widgets down by new widget's height
+        const shiftedWidgets = data.widgets.map(w => ({
+            ...w,
+            layout: {
+                ...w.layout,
+                y: w.layout.y + newWidgetHeight,
+            },
+        }));
+
+        onChange({ widgets: [newWidget, ...shiftedWidgets] });
     }, [data.widgets, onChange]);
 
     // Remove widget from template
@@ -116,14 +123,13 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
     }, [data.widgets, onChange, viewMode]);
 
     // Determine grid cols based on view mode
-    const activeBreakpoint = viewMode === 'desktop' ? 'lg' : 'sm';
     const activeCols = viewMode === 'desktop' ? { lg: 24 } : { sm: 2 };
     const activeBreakpoints = viewMode === 'desktop' ? { lg: 0 } : { sm: 0 };
 
     return (
         <div className="flex flex-col h-full min-h-[400px]">
             {/* Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-theme bg-theme-secondary rounded-t-lg">
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-theme bg-theme-secondary rounded-t-lg">
                 <div className="flex items-center gap-2">
                     {/* Desktop/Mobile Toggle */}
                     <div className="flex items-center gap-1 bg-theme-primary rounded-lg p-1">
@@ -157,21 +163,21 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
             {/* Mobile Preview Banner */}
             {viewMode === 'mobile' && (
-                <div className="px-4 py-2 bg-info/10 border-b border-info/30 text-info text-sm text-center">
+                <div className="flex-shrink-0 px-4 py-2 bg-info/10 border-b border-info/30 text-info text-sm text-center">
                     Mobile layout is auto-generated. You can customize it later from your dashboard.
                 </div>
             )}
 
-            <div className="flex flex-1 overflow-hidden rounded-b-lg border border-t-0 border-theme">
+            <div className="flex flex-1 min-h-0 overflow-hidden rounded-b-lg border border-t-0 border-theme">
                 {/* Widget Sidebar */}
                 <div
-                    className={`flex-shrink-0 bg-theme-secondary border-r border-theme transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-12'
+                    className={`flex-shrink-0 bg-theme-secondary border-r border-theme transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-72' : 'w-12'
                         }`}
                 >
                     {sidebarOpen ? (
-                        <div className="flex flex-col h-full">
+                        <div className="flex flex-col h-full min-h-0">
                             {/* Sidebar Header */}
-                            <div className="flex items-center justify-between p-3 border-b border-theme">
+                            <div className="flex-shrink-0 flex items-center justify-between p-3 border-b border-theme">
                                 <span className="font-medium text-theme-primary text-sm">Add Widget</span>
                                 <button
                                     onClick={() => setSidebarOpen(false)}
@@ -181,8 +187,8 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                                 </button>
                             </div>
 
-                            {/* Widget List */}
-                            <div className="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar">
+                            {/* Widget List - ONLY SCROLLABLE ELEMENT */}
+                            <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-3 custom-scrollbar">
                                 {Object.entries(widgetsByCategory).map(([category, widgets]) => (
                                     <div key={category}>
                                         <div className="text-xs font-medium text-theme-tertiary uppercase tracking-wide mb-2 px-2">
@@ -249,7 +255,7 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                         </div>
                     ) : (
                         /* Grid Layout */
-                        <div className="p-4 min-h-full">
+                        <div className="p-4 h-full">
                             <ResponsiveGridLayout
                                 layouts={layouts}
                                 breakpoints={activeBreakpoints}
@@ -258,7 +264,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                                 onLayoutChange={handleLayoutChange}
                                 isDraggable={viewMode === 'desktop'}
                                 isResizable={viewMode === 'desktop'}
-                                draggableHandle=".drag-handle"
+                                // PARITY: 8-direction resize handles like dashboard
+                                resizeHandles={['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
+                                // PARITY: No draggableHandle - entire widget is draggable
+                                draggableCancel=".no-drag"
                                 margin={[12, 12]}
                                 containerPadding={[0, 0]}
                                 compactType="vertical"
@@ -270,10 +279,11 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                                     return (
                                         <div
                                             key={`widget-${index}`}
-                                            className="glass-subtle rounded-lg border border-theme overflow-hidden flex flex-col"
+                                            // PARITY: edit-mode class for CSS hover effects
+                                            className="edit-mode glass-subtle rounded-lg border border-theme overflow-hidden flex flex-col"
                                         >
                                             {/* Widget Header */}
-                                            <div className={`drag-handle flex items-center justify-between px-3 py-2 bg-theme-secondary/50 border-b border-theme ${viewMode === 'desktop' ? 'cursor-move' : 'cursor-default'}`}>
+                                            <div className="flex items-center justify-between px-3 py-2 bg-theme-secondary/50 border-b border-theme">
                                                 <div className="flex items-center gap-2">
                                                     <Icon size={14} className="text-accent" />
                                                     <span className="text-sm font-medium text-theme-primary">
@@ -281,14 +291,19 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                                                     </span>
                                                 </div>
                                                 {viewMode === 'desktop' && (
+                                                    // PARITY: Delete button with .no-drag + styled like WidgetWrapper
                                                     <button
+                                                        onPointerDown={(e) => e.stopPropagation()}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             handleRemoveWidget(index);
                                                         }}
-                                                        className="p-1 rounded hover:bg-error/20 text-theme-tertiary hover:text-error transition-colors"
+                                                        className="no-drag w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500/30 
+                                                            flex items-center justify-center text-red-400 hover:text-red-300
+                                                            transition-all duration-200"
+                                                        style={{ pointerEvents: 'auto', touchAction: 'none' }}
                                                     >
-                                                        <X size={14} />
+                                                        <X size={16} />
                                                     </button>
                                                 )}
                                             </div>
