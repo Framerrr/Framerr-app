@@ -192,6 +192,20 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         onChange({ widgets: newWidgets });
     }, [data.widgets, onChange]);
 
+    // Ref to track state at drag/resize start (for undo on actual changes)
+    // MUST be defined before handleLayoutChange which uses it
+    const dragStartStateRef = useRef<TemplateWidget[] | null>(null);
+
+    // Capture state when drag or resize starts
+    const handleDragStart = useCallback(() => {
+        dragStartStateRef.current = data.widgets;
+    }, [data.widgets]);
+
+    // Clear drag state on stop (history was already pushed in handleLayoutChange if needed)
+    const handleDragStop = useCallback(() => {
+        dragStartStateRef.current = null;
+    }, []);
+
     // Handle layout change from grid (desktop editing only)
     const handleLayoutChange = useCallback((layout: Layout[]) => {
         if (viewMode !== 'desktop') return; // Don't update on mobile preview
@@ -235,19 +249,6 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
 
         onChange({ widgets: newWidgets });
     }, [data.widgets, onChange, viewMode]);
-
-    // Ref to track state at drag/resize start (for undo on actual changes)
-    const dragStartStateRef = useRef<TemplateWidget[] | null>(null);
-
-    // Capture state when drag or resize starts
-    const handleDragStart = useCallback(() => {
-        dragStartStateRef.current = data.widgets;
-    }, [data.widgets]);
-
-    // Clear drag state on stop (history was already pushed in handleLayoutChange if needed)
-    const handleDragStop = useCallback(() => {
-        dragStartStateRef.current = null;
-    }, []);
 
     // Undo handler
     const handleUndo = useCallback(() => {
