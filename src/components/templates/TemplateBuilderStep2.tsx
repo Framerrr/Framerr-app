@@ -201,16 +201,21 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         onChange({ widgets: newWidgets });
     }, [data.widgets, onChange, viewMode]);
 
-    // Push current state to undo stack (called before making changes)
-    const pushToHistory = useCallback(() => {
-        if (isUndoRedoRef.current) return; // Don't push during undo/redo
+    // Ref to track previous widgets state (for undo history)
+    const prevWidgetsRef = useRef<TemplateWidget[] | null>(null);
+
+    // Track widget changes and push PREVIOUS state to history
+    useEffect(() => {
+        if (isUndoRedoRef.current) return;
 
         const currentState = JSON.stringify(data.widgets);
-        // Only push if state actually changed
-        if (currentState !== lastCommittedRef.current) {
+
+        // If we have a previous state and it's different from current, push it to history
+        if (prevWidgetsRef.current !== null &&
+            JSON.stringify(prevWidgetsRef.current) !== currentState) {
+
             setUndoStack(prev => {
-                const newStack = [...prev, data.widgets];
-                // Limit history size
+                const newStack = [...prev, prevWidgetsRef.current!];
                 if (newStack.length > MAX_HISTORY_SIZE) {
                     return newStack.slice(-MAX_HISTORY_SIZE);
                 }
@@ -218,17 +223,12 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
             });
             // Clear redo stack on new action
             setRedoStack([]);
-            lastCommittedRef.current = currentState;
         }
-    }, [data.widgets]);
 
-    // Track widget changes for history
-    useEffect(() => {
-        const currentState = JSON.stringify(data.widgets);
-        if (!isUndoRedoRef.current && currentState !== lastCommittedRef.current) {
-            pushToHistory();
-        }
-    }, [data.widgets, pushToHistory]);
+        // Update previous state for next comparison
+        prevWidgetsRef.current = data.widgets;
+        lastCommittedRef.current = currentState;
+    }, [data.widgets]);
 
     // Undo handler
     const handleUndo = useCallback(() => {
