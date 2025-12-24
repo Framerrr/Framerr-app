@@ -1,15 +1,13 @@
 /**
  * TemplateThumbnail - Apple-style mini preview of a template grid
  * 
- * Approach: Render at full size (800px wide), THEN scale down the entire
- * composed result. This preserves all styling, borders, and spacing.
- * 
- * Key: Everything is rendered at full resolution first, then CSS transform
- * scales it as a bitmap - just like iOS folder icons show app icons.
+ * Renders at full size with widget headers, then scales down.
+ * Shows top-left portion prominently, bottom overflow hidden.
  */
 
 import React, { useMemo } from 'react';
 import { getMockWidget } from './MockWidgets';
+import { getWidgetIcon, WIDGET_TYPES } from '../../utils/widgetRegistry';
 
 interface TemplateWidget {
     type: string;
@@ -29,10 +27,11 @@ interface TemplateThumbnailProps {
 }
 
 // Grid configuration at FULL SIZE (before scaling)
-const FULL_WIDTH = 800;   // Render width
+const FULL_WIDTH = 600;   // Smaller = more zoomed in
 const GRID_COLS = 24;
-const ROW_HEIGHT = 60;    // px per row
-const GRID_GAP = 8;       // px gap
+const ROW_HEIGHT = 50;    // px per row
+const GRID_GAP = 6;       // px gap
+const HEADER_HEIGHT = 24; // Widget header height
 
 const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     widgets,
@@ -40,29 +39,11 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     height = 60,
     className = '',
 }) => {
-    // Calculate full-size dimensions and scale factor
-    const gridMetrics = useMemo(() => {
-        if (widgets.length === 0) {
-            return { fullHeight: 120, scale: height / 120, offsetX: 0, offsetY: 0 };
-        }
-
-        // Find max Y extent
-        const maxY = Math.max(...widgets.map(w => w.layout.y + w.layout.h));
-        const fullHeight = maxY * ROW_HEIGHT + (maxY - 1) * GRID_GAP;
-
-        // Calculate scale to fit in thumbnail container
-        const scaleX = width / FULL_WIDTH;
-        const scaleY = height / fullHeight;
-        const scale = Math.min(scaleX, scaleY) * 0.95; // 95% to leave tiny margin
-
-        // Calculate offsets to center
-        const scaledWidth = FULL_WIDTH * scale;
-        const scaledHeight = fullHeight * scale;
-        const offsetX = (width - scaledWidth) / 2;
-        const offsetY = (height - scaledHeight) / 2;
-
-        return { fullHeight, scale, offsetX, offsetY };
-    }, [widgets, width, height]);
+    // Calculate scale to fill width (more zoomed in)
+    const scale = useMemo(() => {
+        // Scale to fit width, let height overflow
+        return width / FULL_WIDTH;
+    }, [width]);
 
     if (widgets.length === 0) {
         return (
@@ -84,24 +65,24 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                 background: 'var(--bg-tertiary)',
             }}
         >
-            {/* This div is rendered at FULL SIZE, then scaled down */}
+            {/* Rendered at FULL SIZE, then scaled - top-left aligned, bottom overflows */}
             <div
                 style={{
                     position: 'absolute',
-                    left: gridMetrics.offsetX,
-                    top: gridMetrics.offsetY,
+                    left: 0,
+                    top: 0,
                     width: FULL_WIDTH,
-                    height: gridMetrics.fullHeight,
-                    transform: `scale(${gridMetrics.scale})`,
+                    transform: `scale(${scale})`,
                     transformOrigin: 'top left',
-                    // GPU acceleration for smooth scaling
                     willChange: 'transform',
                 }}
             >
                 {widgets.map((widget, index) => {
                     const MockWidget = getMockWidget(widget.type);
+                    const Icon = getWidgetIcon(widget.type);
+                    const metadata = WIDGET_TYPES[widget.type];
 
-                    // Position at FULL SIZE (before scaling)
+                    // Position at FULL SIZE
                     const left = (widget.layout.x / GRID_COLS) * FULL_WIDTH;
                     const w = (widget.layout.w / GRID_COLS) * FULL_WIDTH - GRID_GAP;
                     const top = widget.layout.y * (ROW_HEIGHT + GRID_GAP);
@@ -117,12 +98,40 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                                 width: w,
                                 height: h,
                                 background: 'var(--bg-secondary)',
-                                borderRadius: '8px',
+                                borderRadius: '6px',
                                 border: '1px solid var(--border)',
                                 overflow: 'hidden',
+                                display: 'flex',
+                                flexDirection: 'column',
                             }}
                         >
-                            <MockWidget />
+                            {/* Widget Header */}
+                            <div style={{
+                                height: HEADER_HEIGHT,
+                                padding: '0 8px',
+                                borderBottom: '1px solid var(--border)',
+                                background: 'var(--bg-tertiary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                flexShrink: 0,
+                            }}>
+                                <Icon size={12} style={{ color: 'var(--accent)' }} />
+                                <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: 500,
+                                    color: 'var(--text-primary)',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                }}>
+                                    {metadata?.name || widget.type}
+                                </span>
+                            </div>
+                            {/* Widget Content */}
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                <MockWidget />
+                            </div>
                         </div>
                     );
                 })}
