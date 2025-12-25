@@ -65,6 +65,17 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
 
             const savedTemplate = response.data.template;
 
+            // If marked as default, call the setDefault API
+            if (data.isDefault) {
+                try {
+                    await axios.post(`/api/templates/${savedTemplate.id}/set-default`);
+                    logger.info('Template set as default for new users', { templateId: savedTemplate.id });
+                } catch (defaultError) {
+                    logger.error('Failed to set template as default:', { error: defaultError });
+                    // Continue with save - don't fail the whole operation
+                }
+            }
+
             // Handle action-specific logic
             if (action === 'apply') {
                 // Apply template to dashboard

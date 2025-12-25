@@ -188,18 +188,16 @@ const TemplateBuilderStep1: React.FC<Step1Props> = ({
                         <div className="relative">
                             <input
                                 type="checkbox"
-                                checked={false} // Will be implemented with setDefault API
-                                onChange={() => {
-                                    // TODO: This will be wired up in Step 3 save actions
-                                }}
+                                checked={data.isDefault || false}
+                                onChange={(e) => onChange({ isDefault: e.target.checked })}
                                 className="sr-only peer"
-                                disabled
                             />
-                            <div className="w-5 h-5 rounded border-2 border-theme bg-theme-primary 
-                                            peer-checked:bg-accent peer-checked:border-accent
-                                            peer-disabled:opacity-50
-                                            transition-colors flex items-center justify-center">
-                                <Star size={12} className="text-white opacity-0 peer-checked:opacity-100" />
+                            <div className={`w-5 h-5 rounded border-2 bg-theme-primary 
+                                            transition-colors flex items-center justify-center
+                                            ${data.isDefault
+                                    ? 'bg-accent border-accent'
+                                    : 'border-theme hover:border-accent'}`}>
+                                {data.isDefault && <Star size={12} className="text-white" />}
                             </div>
                         </div>
                         <div className="flex-1">

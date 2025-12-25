@@ -36,6 +36,7 @@ export interface TemplateData {
     categoryId: string | null;
     widgets: TemplateWidget[];
     isDraft: boolean;
+    isDefault?: boolean; // Set as default template for new users
 }
 
 interface TemplateBuilderProps {
