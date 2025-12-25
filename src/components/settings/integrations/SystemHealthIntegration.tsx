@@ -6,7 +6,7 @@ import { Button } from '../../common/Button';
 import BackendSelector from './BackendSelector';
 import GlancesConfig from './backends/GlancesConfig';
 import CustomBackendConfig from './backends/CustomBackendConfig';
-import SharingDropdown, { SharingState } from '../SharingDropdown';
+import SharingDropdown from '../SharingDropdown';
 
 type BackendType = 'glances' | 'custom';
 
@@ -26,7 +26,6 @@ interface IntegrationConfig {
     glances: GlancesConfigData;
     custom: CustomConfigData;
     _isValid?: boolean;
-    sharing?: SharingState;
 }
 
 
@@ -40,14 +39,13 @@ interface TestState {
 export interface SystemHealthIntegrationProps {
     integration?: Partial<IntegrationConfig>;
     onUpdate: (config: IntegrationConfig) => void;
-    sharing?: SharingState;
-    onSharingChange: (sharing: SharingState) => void;
+    integrationName?: string;
 }
 
 /**
  * SystemHealthIntegration - Multi-backend System Status configuration
  */
-const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChange }: SystemHealthIntegrationProps): React.JSX.Element => {
+const SystemHealthIntegration = ({ integration, onUpdate, integrationName = 'systemstatus' }: SystemHealthIntegrationProps): React.JSX.Element => {
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
     const [selectedBackend, setSelectedBackend] = useState<BackendType>((integration?.backend as BackendType) || 'glances');
     const [config, setConfig] = useState<IntegrationConfig>(integration as IntegrationConfig || {
@@ -60,7 +58,7 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
     const [confirmReset, setConfirmReset] = useState<boolean>(false);
 
     const handleToggle = (): void => {
-        const newConfig: IntegrationConfig = { ...config, enabled: !config.enabled, sharing };
+        const newConfig: IntegrationConfig = { ...config, enabled: !config.enabled };
         setConfig(newConfig);
         onUpdate(newConfig);
 
@@ -70,7 +68,7 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
     };
 
     const handleBackendChange = (backend: BackendType): void => {
-        const newConfig: IntegrationConfig = { ...config, backend, sharing };
+        const newConfig: IntegrationConfig = { ...config, backend };
         setSelectedBackend(backend);
         setConfig(newConfig);
         onUpdate(newConfig);
@@ -82,8 +80,7 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
             [selectedBackend]: {
                 ...config[selectedBackend],
                 [field]: value
-            },
-            sharing
+            }
         };
         setConfig(newConfig);
         onUpdate(newConfig);
@@ -255,9 +252,7 @@ const SystemHealthIntegration = ({ integration, onUpdate, sharing, onSharingChan
                             </div>
 
                             <SharingDropdown
-                                service="systemstatus"
-                                sharing={sharing}
-                                onChange={onSharingChange}
+                                integrationName={integrationName}
                                 disabled={!isConfigured}
                             />
 

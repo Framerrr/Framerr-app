@@ -5,7 +5,7 @@ import axios from 'axios';
 import logger from '../../../utils/logger';
 import { Button } from '../../common/Button';
 import { Input } from '../../common/Input';
-import SharingDropdown, { SharingState } from '../SharingDropdown';
+import SharingDropdown from '../SharingDropdown';
 import { useNotifications } from '../../../context/NotificationContext';
 
 interface PlexConnection {
@@ -32,7 +32,6 @@ interface IntegrationConfig {
     token: string;
     machineId: string;
     servers: PlexServer[];
-    sharing?: SharingState;
 }
 
 
@@ -46,14 +45,13 @@ interface TestState {
 export interface PlexIntegrationProps {
     integration?: Partial<IntegrationConfig>;
     onUpdate: (config: IntegrationConfig) => void;
-    sharing?: SharingState;
-    onSharingChange: (sharing: SharingState) => void;
+    integrationName?: string;
 }
 
 /**
  * PlexIntegration - Plex integration configuration with OAuth
  */
-const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: PlexIntegrationProps): React.JSX.Element => {
+const PlexIntegration = ({ integration, onUpdate, integrationName = 'plex' }: PlexIntegrationProps): React.JSX.Element => {
     const { success: showSuccess, error: showError } = useNotifications();
     const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -90,7 +88,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: Pl
     const isConfigured = config.enabled && config.token && config.url;
 
     const handleToggle = (): void => {
-        const newConfig: IntegrationConfig = { ...config, enabled: !config.enabled, sharing };
+        const newConfig: IntegrationConfig = { ...config, enabled: !config.enabled };
         setConfig(newConfig);
         onUpdate(newConfig);
 
@@ -100,7 +98,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: Pl
     };
 
     const handleConfigChange = (field: string, value: string): void => {
-        const newConfig: IntegrationConfig = { ...config, [field]: value, sharing };
+        const newConfig: IntegrationConfig = { ...config, [field]: value };
         setConfig(newConfig);
         onUpdate(newConfig);
     };
@@ -136,7 +134,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: Pl
                         const { authToken, user } = tokenResponse.data;
                         setPlexUser(user);
 
-                        const newConfig: IntegrationConfig = { ...config, token: authToken, sharing };
+                        const newConfig: IntegrationConfig = { ...config, token: authToken };
                         setConfig(newConfig);
                         onUpdate(newConfig);
 
@@ -181,7 +179,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: Pl
             const fetchedServers: PlexServer[] = response.data;
             setServers(fetchedServers);
 
-            let newConfig: IntegrationConfig = { ...config, servers: fetchedServers, sharing };
+            let newConfig: IntegrationConfig = { ...config, servers: fetchedServers };
 
             if (!config.machineId && fetchedServers.length > 0) {
                 const ownedServer = fetchedServers.find(s => s.owned) || fetchedServers[0];
@@ -205,7 +203,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: Pl
         const server = servers.find(s => s.machineId === machineId);
         const url = server?.connections?.find(c => c.local)?.uri || server?.connections?.[0]?.uri || '';
 
-        const newConfig: IntegrationConfig = { ...config, machineId, url, sharing };
+        const newConfig: IntegrationConfig = { ...config, machineId, url };
         setConfig(newConfig);
         onUpdate(newConfig);
     };
@@ -402,9 +400,7 @@ const PlexIntegration = ({ integration, onUpdate, sharing, onSharingChange }: Pl
 
                             {/* Widget Sharing */}
                             <SharingDropdown
-                                service="plex"
-                                sharing={sharing}
-                                onChange={onSharingChange}
+                                integrationName={integrationName}
                                 disabled={!isConfigured}
                             />
 

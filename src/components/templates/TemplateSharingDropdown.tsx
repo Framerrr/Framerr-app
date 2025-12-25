@@ -232,7 +232,7 @@ const TemplateSharingDropdown: React.FC<TemplateSharingDropdownProps> = ({
         }
     };
 
-    const executeSharing = async (): Promise<void> => {
+    const executeSharing = async (shareIntegrations: boolean = false): Promise<void> => {
         // Remove all existing shares
         for (const share of currentShares) {
             await axios.delete(`/api/templates/${templateId}/share/${share.sharedWith}`);
@@ -240,88 +240,42 @@ const TemplateSharingDropdown: React.FC<TemplateSharingDropdownProps> = ({
 
         // Add new shares based on mode
         if (selectedMode === 'everyone') {
-            await axios.post(`/api/templates/${templateId}/share`, { sharedWith: 'everyone' });
+            await axios.post(`/api/templates/${templateId}/share`, {
+                sharedWith: 'everyone',
+                shareIntegrations
+            });
         } else if (selectedMode === 'users' && selectedUsers.length > 0) {
             for (const userId of selectedUsers) {
-                await axios.post(`/api/templates/${templateId}/share`, { sharedWith: userId });
+                await axios.post(`/api/templates/${templateId}/share`, {
+                    sharedWith: userId,
+                    shareIntegrations
+                });
             }
         }
 
-        logger.info('Template sharing updated', { templateId, mode: selectedMode, userCount: selectedUsers.length });
+        logger.info('Template sharing updated', { templateId, mode: selectedMode, userCount: selectedUsers.length, shareIntegrations });
         setIsOpen(false);
         onShareComplete();
     };
 
     const handleShareWithConflicts = async (): Promise<void> => {
-        // User chose to proceed - just share without sharing integrations
-        await executeSharing();
+        // User chose to proceed - just share WITHOUT sharing integrations
+        await executeSharing(false);
         setShowConflictModal(false);
     };
 
     const handleShareIntegrations = async (): Promise<void> => {
         try {
-            // Get current integrations config
-            const integrationsResponse = await axios.get<{ integrations: Record<string, unknown> }>('/api/integrations');
-            const integrations = integrationsResponse.data.integrations;
-
-            // Update sharing for each conflicted integration
-            for (const conflict of conflicts) {
-                const integrationConfig = integrations[conflict.integration] as {
-                    enabled?: boolean;
-                    sharing?: {
-                        enabled?: boolean;
-                        mode?: 'everyone' | 'groups' | 'users';
-                        groups?: string[];
-                        users?: string[];
-                        sharedBy?: string;
-                        sharedAt?: string;
-                    };
-                } | undefined;
-
-                if (!integrationConfig) continue;
-
-                // Determine new sharing state based on template share mode
-                if (selectedMode === 'everyone') {
-                    // Share integration with everyone
-                    integrations[conflict.integration] = {
-                        ...integrationConfig,
-                        sharing: {
-                            ...integrationConfig.sharing,
-                            enabled: true,
-                            mode: 'everyone',
-                            sharedAt: new Date().toISOString()
-                        }
-                    };
-                } else if (selectedMode === 'users' && selectedUsers.length > 0) {
-                    // Add these users to the integration's shared users
-                    const existingUsers = integrationConfig.sharing?.users || [];
-                    const newUsers = [...new Set([...existingUsers, ...selectedUsers])];
-
-                    integrations[conflict.integration] = {
-                        ...integrationConfig,
-                        sharing: {
-                            ...integrationConfig.sharing,
-                            enabled: true,
-                            mode: 'users',
-                            users: newUsers,
-                            sharedAt: new Date().toISOString()
-                        }
-                    };
-                }
-            }
-
-            // Save updated integrations
-            await axios.put('/api/integrations', { integrations });
-            logger.info('Integrations shared with users', {
+            // Use server-side shareIntegrations option
+            await executeSharing(true);
+            logger.info('Template shared with integrations', {
+                templateId,
                 integrations: conflicts.map(c => c.integration),
                 mode: selectedMode
             });
-
-            // Now share the template
-            await executeSharing();
             setShowConflictModal(false);
         } catch (error) {
-            logger.error('Failed to share integrations', { error });
+            logger.error('Failed to share template with integrations', { error });
         }
     };
 

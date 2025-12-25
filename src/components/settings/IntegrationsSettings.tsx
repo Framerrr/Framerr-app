@@ -6,7 +6,7 @@ import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import SystemHealthIntegration from './integrations/SystemHealthIntegration';
 import PlexIntegration from './integrations/PlexIntegration';
-import SharingDropdown, { SharingState } from './SharingDropdown';
+import SharingDropdown from './SharingDropdown';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -18,7 +18,7 @@ interface IntegrationConfig {
     apiKey?: string;
     username?: string;
     password?: string;
-    sharing?: SharingState;
+    // Note: sharing is now handled via database, not config
     _isValid?: boolean;
     [key: string]: unknown;
 }
@@ -131,18 +131,8 @@ const IntegrationsSettings: React.FC = () => {
         }));
     };
 
-    const handleSharingChange = (service: string, sharingConfig: SharingState): void => {
-        setIntegrations(prev => ({
-            ...prev,
-            [service]: {
-                ...prev[service],
-                sharing: {
-                    ...sharingConfig,
-                    sharedBy: sharingConfig.enabled ? (sharingConfig.sharedBy || user?.id) : undefined
-                }
-            }
-        }));
-    };
+    // Note: SharingDropdown now handles its own API calls
+    // No need for handleSharingChange - sharing is persisted immediately
 
     const handleSave = async (): Promise<void> => {
         setSaving(true);
@@ -324,8 +314,7 @@ const IntegrationsSettings: React.FC = () => {
                             systemstatus: updated as unknown as IntegrationConfig
                         }));
                     }}
-                    sharing={integrations.systemstatus?.sharing}
-                    onSharingChange={(sharingConfig: SharingState) => handleSharingChange('systemstatus', sharingConfig)}
+                    integrationName="systemstatus"
                 />
 
                 {/* Plex Integration - Special OAuth Component */}
@@ -337,8 +326,7 @@ const IntegrationsSettings: React.FC = () => {
                             plex: updated as unknown as IntegrationConfig
                         }));
                     }}
-                    sharing={integrations.plex?.sharing}
-                    onSharingChange={(sharingConfig: SharingState) => handleSharingChange('plex', sharingConfig)}
+                    integrationName="plex"
                 />
 
                 {/* Other Integrations */}
@@ -419,9 +407,7 @@ const IntegrationsSettings: React.FC = () => {
 
                                             {/* Widget Sharing */}
                                             <SharingDropdown
-                                                service={config.id}
-                                                sharing={integrations[config.id]?.sharing}
-                                                onChange={(sharingConfig: SharingState) => handleSharingChange(config.id, sharingConfig)}
+                                                integrationName={config.id}
                                                 disabled={!isConfigured(config.id)}
                                             />
 
