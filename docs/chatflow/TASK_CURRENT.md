@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-25 02:05 EST  
+**Last Updated:** 2025-12-25 03:58 EST  
 **Branch:** `feature/template-engine`
 
 ---
@@ -21,9 +21,9 @@
 > 📍 **Active Project:** Dashboard Template System  
 > 📖 **Documentation:** `docs/dash-template/IMPLEMENTATION_PLAN.md`
 
-### Current Phase: Phase 7 (Sharing Refinements) Complete
-### Current Step: Ready for Phase 8 (Polish & Edge Cases)
-### Next Action: Test sharing end-to-end, then start Phase 8 polish
+### Current Phase: Phase 8 (Bug Fixes) - Mostly Complete
+### Current Step: Phase 9 (Default Template Refactor) - Planning Complete
+### Next Action: Move integration sharing to server-side, then complete default template system
 
 ### Phase Checklist
 
@@ -34,7 +34,8 @@
 - [x] Phase 5: Auto-Save Draft System
 - [x] Phase 6: Sharing System (User Copy Model)
 - [x] Phase 7: Sharing Refinements (badges, UI polish)
-- [ ] Phase 8: Polish & Edge Cases
+- [/] Phase 8: Bug Fixes (8 of 11 complete)
+- [ ] Phase 9: Default Template Refactor
 
 ---
 
@@ -42,36 +43,50 @@
 
 ### Completed This Session
 
-1. **Fixed 'Everyone' Share Issue** - Sharing with everyone now creates copies for all users
-2. **User Copy Model Complete** - Each user gets editable copy of shared templates
-3. **Sync/Revert Endpoints** - Users can sync with admin updates or revert changes
-4. **Share Count Badge** - Admin sees "Shared with N" badge on their templates
-5. **Compact Badge Text** - "by username", "with N", "Update" (with pulse animation)
-6. **Category Under Name** - Category badge moved under template name with Tag icon
-7. **Icon-Only Buttons** - Sync/Revert buttons now icon-only to save space
-8. **Save & Share Button** - Opens share modal after saving template
+1. **BUG-2 Fixed** - Link widget mockup overflow (single centered icon)
+2. **BUG-7 Fixed** - Share dropdown bidirectional auto-select (Everyone ↔ users)
+3. **BUG-9 Partial** - Default template checkbox wired, but layout format wrong
+4. **BUG-10 Fixed** - Share count now excludes all admin-group users
+5. **Architecture Analysis** - Full documentation of template/share/integration flows
+6. **Phase 9 Plan Created** - Complete implementation plan for default template refactor
 
 ### Key Files Changed
 
 **Backend:**
-- `server/routes/templates.ts` - Share endpoint creates copies for all users
-- `server/db/templates.ts` - Added `shareCount` to template query
+- `server/db/users.ts` - Default template application (needs refactor)
+- `server/routes/templates.ts` - Share excludes admins correctly
 
 **Frontend:**
-- `src/components/templates/TemplateCard.tsx` - Compact badges, category under name
-- `src/components/templates/TemplateList.tsx` - Sync/revert handlers
-- `src/components/settings/TemplateSettings.tsx` - Save & Share callback
+- `src/components/templates/MockWidgets.tsx` - Link widget simplified
+- `src/components/templates/TemplateSharingDropdown.tsx` - Bidirectional select
+- `src/components/templates/TemplateBuilderStep1.tsx` - isDefault checkbox wired
+- `src/components/templates/TemplateBuilderStep3.tsx` - setDefault API call
+
+**Documentation Created:**
+- `docs/dash-template/PHASE9_DEFAULT_TEMPLATE.md` - Complete refactor plan
+
+### Bugs Remaining
+
+| Bug | Description | Priority |
+|-----|-------------|----------|
+| BUG-1 | Sensitive config handling | P0 |
+| BUG-8 | Move Save/Share button to modal | P1 |
+| BUG-9 | Default template layout wrong | P0 (needs refactor) |
+| BUG-11 | isDefault checkbox not persisting | P1 |
 
 ---
 
-## Next Session
+## Next Session - Explicit Steps
 
-1. **End-to-End Testing** - Verify full share flow: admin shares → user sees copy → user edits → admin updates → sync works
-2. **Phase 8: Polish** - Edge cases, deprecated widget handling, animations
-3. **Admin Dropdown Sync** - Show who currently has copies in share dropdown
+1. **Read:** `docs/dash-template/PHASE9_DEFAULT_TEMPLATE.md`
+2. **First Task:** Create server-side integration sharing helper
+3. **Second Task:** Create widget conversion helper (reuse in Apply route)
+4. **Third Task:** Refactor createUser to use new helpers + share infrastructure
+5. **Fourth Task:** Update frontend toast for conditional message
+6. **Fifth Task:** Fix isDefault checkbox persistence
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-25 02:05 EST
+Session ended: 2025-12-25 03:58 EST
