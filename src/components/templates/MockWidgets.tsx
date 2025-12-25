@@ -346,7 +346,7 @@ export const MockWeatherWidget: React.FC = () => (
 // LINK GRID WIDGET - Circle/rectangle links
 // =============================================================================
 export const MockLinkGridWidget: React.FC = () => (
-    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.25rem' }}>
+    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.25rem', overflow: 'hidden' }}>
         {[
             { icon: Globe, title: "Google" },
             { icon: Tv, title: "Netflix" },

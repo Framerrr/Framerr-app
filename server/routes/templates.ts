@@ -700,6 +700,7 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
             if (!existingCopy) {
                 try {
                     // Create user's own copy of the template
+                    // Pass parent version so hasUpdate starts as false
                     const userCopy = await templateDb.createTemplate({
                         ownerId: userId,
                         name: template.name,
@@ -707,6 +708,7 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
                         categoryId: template.categoryId || undefined,
                         widgets: template.widgets,
                         sharedFromId: template.id,
+                        version: template.version, // Match parent version so hasUpdate = false
                         isDraft: false,
                     });
 

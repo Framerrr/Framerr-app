@@ -157,6 +157,7 @@ export interface CreateTemplateData {
     isDraft?: boolean;
     isDefault?: boolean;
     sharedFromId?: string;
+    version?: number; // For shared copies, match parent version
 }
 
 /**
@@ -169,8 +170,8 @@ export async function createTemplate(data: CreateTemplateData): Promise<Dashboar
     try {
         const insert = db.prepare(`
             INSERT INTO dashboard_templates 
-            (id, owner_id, name, description, category_id, widgets, thumbnail, is_draft, is_default, shared_from_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, owner_id, name, description, category_id, widgets, thumbnail, is_draft, is_default, shared_from_id, version, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         insert.run(
@@ -184,11 +185,12 @@ export async function createTemplate(data: CreateTemplateData): Promise<Dashboar
             data.isDraft ? 1 : 0,
             data.isDefault ? 1 : 0,
             data.sharedFromId || null,
+            data.version ?? 1, // Use provided version or default to 1
             now,
             now
         );
 
-        logger.debug('Template created', { id, name: data.name, ownerId: data.ownerId });
+        logger.debug('Template created', { id, name: data.name, ownerId: data.ownerId, version: data.version ?? 1 });
 
         return getTemplateById(id) as Promise<DashboardTemplate>;
     } catch (error) {

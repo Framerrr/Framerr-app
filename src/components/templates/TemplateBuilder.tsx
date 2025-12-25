@@ -71,7 +71,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     const [isDirty, setIsDirty] = useState(false);
     const [showConfirmClose, setShowConfirmClose] = useState(false);
 
-    // Draft save state
+    // Edit mode: no drafts, discard = revert (not delete)
+    const isEditMode = mode === 'edit';
+
+    // Draft save state (only used in create/duplicate/save-current modes)
     const [draftId, setDraftId] = useState<string | null>(null);
     const isSavingRef = useRef(false);
 
@@ -85,9 +88,17 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         ...(initialData?.id && { id: initialData.id }),
     });
 
-    // Reset state when modal opens or initialData changes
+    // Track previous isOpen state to detect open transition
+    const prevIsOpenRef = useRef(false);
+
+    // Reset state ONLY when modal opens (transition from false to true)
+    // Don't reset on every initialData or editingTemplateId change while open
     React.useEffect(() => {
-        if (isOpen) {
+        const wasOpen = prevIsOpenRef.current;
+        prevIsOpenRef.current = isOpen;
+
+        // Only reset when transitioning from closed to open
+        if (isOpen && !wasOpen) {
             setCurrentStep(1);
             setIsDirty(false);
             setShowConfirmClose(false);
@@ -128,8 +139,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         return true;
     };
 
-    // Save draft to API
+    // Save draft to API (skip in edit mode - no drafts when editing existing templates)
     const saveDraft = useCallback(async (widgetsOverride?: TemplateWidget[]) => {
+        // In edit mode, we don't create drafts - changes are either saved or discarded
+        if (isEditMode) return;
+
         if (isSavingRef.current) return;
         isSavingRef.current = true;
 
@@ -156,7 +170,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         } finally {
             isSavingRef.current = false;
         }
-    }, [draftId, templateData]);
+    }, [isEditMode, draftId, templateData]);
 
     const handleNext = async () => {
         if (currentStep < 3 && canGoNext()) {
@@ -304,16 +318,19 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 </div>
             </Modal>
 
-            {/* Confirm close modal */}
+            {/* Confirm close modal - different behavior for edit vs create mode */}
             <Modal
                 isOpen={showConfirmClose}
                 onClose={() => setShowConfirmClose(false)}
-                title="Save Changes?"
+                title={isEditMode ? 'Discard Changes?' : 'Save Changes?'}
                 size="sm"
             >
                 <div className="space-y-4">
                     <p className="text-theme-secondary">
-                        Would you like to save your template as a draft?
+                        {isEditMode
+                            ? 'Your changes have not been saved. Discard changes?'
+                            : 'Would you like to save your template as a draft?'
+                        }
                     </p>
                     <div className="flex gap-3 justify-end pt-4 border-t border-theme">
                         <Button
@@ -322,35 +339,52 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                         >
                             Keep Editing
                         </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={() => {
-                                // Draft is already saved from auto-save, just close and notify parent
-                                setShowConfirmClose(false);
-                                onDraftSaved?.(); // Trigger list refresh
-                                onClose();
-                            }}
-                        >
-                            Save Draft
-                        </Button>
-                        <Button
-                            variant="danger"
-                            onClick={async () => {
-                                // Delete draft if it exists
-                                if (draftId) {
-                                    try {
-                                        await axios.delete(`/api/templates/${draftId}`);
-                                        logger.debug('Draft deleted', { id: draftId });
-                                    } catch (err) {
-                                        logger.error('Failed to delete draft', { error: err });
-                                    }
-                                }
-                                setShowConfirmClose(false);
-                                onClose();
-                            }}
-                        >
-                            Discard
-                        </Button>
+
+                        {isEditMode ? (
+                            // Edit mode: Just close without deleting (revert = do nothing, template unchanged)
+                            <Button
+                                variant="danger"
+                                onClick={() => {
+                                    setShowConfirmClose(false);
+                                    onClose();
+                                }}
+                            >
+                                Discard Changes
+                            </Button>
+                        ) : (
+                            // Create mode: Save Draft or Discard (delete draft)
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => {
+                                        // Draft is already saved from auto-save, just close and notify parent
+                                        setShowConfirmClose(false);
+                                        onDraftSaved?.(); // Trigger list refresh
+                                        onClose();
+                                    }}
+                                >
+                                    Save Draft
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    onClick={async () => {
+                                        // Delete draft if it exists (only in create mode)
+                                        if (draftId) {
+                                            try {
+                                                await axios.delete(`/api/templates/${draftId}`);
+                                                logger.debug('Draft deleted', { id: draftId });
+                                            } catch (err) {
+                                                logger.error('Failed to delete draft', { error: err });
+                                            }
+                                        }
+                                        setShowConfirmClose(false);
+                                        onClose();
+                                    }}
+                                >
+                                    Discard
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             </Modal>
