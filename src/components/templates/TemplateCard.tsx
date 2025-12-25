@@ -171,7 +171,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                             className="text-success border-success/50 hover:bg-success/10"
                         >
                             <RefreshCw size={14} />
-                            Sync
                         </Button>
                     )}
 
@@ -184,7 +183,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                             title="Revert to shared version"
                         >
                             <RotateCcw size={14} />
-                            Revert
                         </Button>
                     )}
 
