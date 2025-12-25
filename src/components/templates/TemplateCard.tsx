@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Edit2, Copy, Trash2, Play, Check, X, Clock, Share2, Star, RefreshCw, RotateCcw } from 'lucide-react';
+import { Edit2, Copy, Trash2, Play, Check, X, Clock, Share2, Star, RefreshCw, RotateCcw, Tag } from 'lucide-react';
 import { Button } from '../common/Button';
 import TemplateThumbnail from './TemplateThumbnail';
 import { useLayout } from '../../context/LayoutContext';
@@ -83,6 +83,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     const isSharedCopy = !!template.sharedBy;
 
     // Badges component for reuse - Stack vertically, outline style like WidgetGallery
+    // Category is rendered separately under the name
     const BadgesSection = () => (
         <div className="flex flex-col items-start gap-1">
             {template.isDraft && (
@@ -94,14 +95,14 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {template.sharedBy && (
                 <div className="flex items-center gap-1 px-2 py-1 rounded bg-info/20 text-info text-xs">
                     <Share2 size={12} />
-                    <span>Shared by {template.sharedBy}</span>
+                    <span>by {template.sharedBy}</span>
                 </div>
             )}
             {/* Admin: Show share count if shared */}
             {isAdmin && !isSharedCopy && template.shareCount && template.shareCount > 0 && (
                 <div className="flex items-center gap-1 px-2 py-1 rounded bg-accent/20 text-accent text-xs">
                     <Share2 size={12} />
-                    <span>Shared with {template.shareCount}</span>
+                    <span>with {template.shareCount}</span>
                 </div>
             )}
             {template.isDefault && isAdmin && (
@@ -111,14 +112,9 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 </div>
             )}
             {template.hasUpdate && (
-                <div className="flex items-center gap-1 px-2 py-1 rounded bg-success/20 text-success text-xs">
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-success/20 text-success text-xs animate-pulse">
                     <Clock size={12} />
-                    <span>Update Available</span>
-                </div>
-            )}
-            {template.categoryName && (
-                <div className="flex items-center px-2 py-1 rounded bg-accent/10 text-accent text-xs">
-                    {template.categoryName}
+                    <span>Update</span>
                 </div>
             )}
         </div>
@@ -244,7 +240,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                         <TemplateThumbnail widgets={template.widgets} />
                     </button>
 
-                    {/* Name (truncated) */}
+                    {/* Name + Category */}
                     <div className="flex-1 min-w-0">
                         {isEditing ? (
                             <input
@@ -267,6 +263,13 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                             >
                                 {template.name}
                             </h3>
+                        )}
+                        {/* Category under name */}
+                        {template.categoryName && (
+                            <div className="flex items-center gap-1 text-xs text-theme-tertiary mt-0.5 truncate" title={template.categoryName}>
+                                <Tag size={10} className="flex-shrink-0" />
+                                <span className="truncate">{template.categoryName}</span>
+                            </div>
                         )}
                     </div>
 
@@ -320,6 +323,14 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                     >
                         {template.name}
                     </h3>
+                )}
+
+                {/* Category under name */}
+                {template.categoryName && (
+                    <div className="flex items-center gap-1 text-xs text-theme-tertiary mt-0.5 truncate" title={template.categoryName}>
+                        <Tag size={10} className="flex-shrink-0" />
+                        <span className="truncate">{template.categoryName}</span>
+                    </div>
                 )}
 
                 {/* Description */}
