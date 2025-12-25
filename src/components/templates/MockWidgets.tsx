@@ -343,28 +343,39 @@ export const MockWeatherWidget: React.FC = () => (
 );
 
 // =============================================================================
-// LINK GRID WIDGET - Circle/rectangle links
+// LINK GRID WIDGET - Circle/rectangle links (compact for thumbnails)
 // =============================================================================
 export const MockLinkGridWidget: React.FC = () => (
-    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.25rem', overflow: 'hidden' }}>
+    <div style={{
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+        flexWrap: 'wrap',
+        padding: '2px',
+        overflow: 'hidden',
+    }}>
         {[
-            { icon: Globe, title: "Google" },
-            { icon: Tv, title: "Netflix" },
-            { icon: Music, title: "Spotify" },
+            { icon: Globe, title: "G" },
+            { icon: Tv, title: "N" },
+            { icon: Music, title: "S" },
         ].map((link, i) => (
             <div key={i} style={{
-                width: '48px',
-                height: '48px',
+                width: '24px',
+                height: '24px',
+                minWidth: '24px',
+                minHeight: '24px',
                 borderRadius: '50%',
                 background: 'var(--bg-tertiary)',
                 border: '1px solid var(--border)',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
             }}>
-                <link.icon size={16} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: '0.45rem', color: 'var(--text-primary)', marginTop: '0.15rem' }}>{link.title}</span>
+                <link.icon size={10} style={{ color: 'var(--accent)' }} />
             </div>
         ))}
     </div>
