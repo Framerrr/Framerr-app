@@ -682,22 +682,34 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
             const existingCopy = await templateDb.getUserCopyOfTemplate(sharedWith, template.id);
 
             if (!existingCopy) {
-                // Create user's own copy of the template
-                await templateDb.createTemplate({
-                    ownerId: sharedWith,
-                    name: template.name,
-                    description: template.description || undefined,
-                    categoryId: template.categoryId || undefined,
-                    widgets: template.widgets,
-                    sharedFromId: template.id,
-                    isDraft: false,
-                });
+                try {
+                    // Create user's own copy of the template
+                    const userCopy = await templateDb.createTemplate({
+                        ownerId: sharedWith,
+                        name: template.name,
+                        description: template.description || undefined,
+                        categoryId: template.categoryId || undefined,
+                        widgets: template.widgets,
+                        sharedFromId: template.id,
+                        isDraft: false,
+                    });
 
-                logger.info('User copy created', {
-                    templateId: template.id,
-                    userId: sharedWith,
-                    originalOwner: authReq.user!.id
-                });
+                    logger.info('User copy created', {
+                        templateId: template.id,
+                        userCopyId: userCopy.id,
+                        userId: sharedWith,
+                        originalOwner: authReq.user!.id
+                    });
+                } catch (copyError) {
+                    logger.error('Failed to create user copy', {
+                        error: (copyError as Error).message,
+                        stack: (copyError as Error).stack,
+                        templateId: template.id,
+                        userId: sharedWith
+                    });
+                }
+            } else {
+                logger.debug('User already has copy', { existingCopyId: existingCopy.id, userId: sharedWith });
             }
 
             // Send notification
