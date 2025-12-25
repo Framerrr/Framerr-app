@@ -10,6 +10,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import * as templateDb from '../db/templates';
+import * as integrationSharesDb from '../db/integrationShares';
 import { getUserConfig, updateUserConfig } from '../db/userConfig';
 import { createNotification } from '../db/notifications';
 import logger from '../utils/logger';
@@ -656,11 +657,15 @@ router.post('/:id/check-conflicts', requireAuth, requireAdmin, async (req: Reque
  * POST /api/templates/:id/share
  * Share a template (admin only)
  * Creates a copy for the user with sharedFromId pointing to original
+ * 
+ * Options:
+ * - sharedWith: 'everyone' or user ID (required)
+ * - shareIntegrations: boolean - also share required integrations (optional)
  */
 router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
-        const { sharedWith } = req.body; // 'everyone' or user ID
+        const { sharedWith, shareIntegrations } = req.body; // 'everyone' or user ID, plus optional flag
 
         if (!sharedWith) {
             res.status(400).json({ error: 'sharedWith is required' });
@@ -695,6 +700,44 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
                 usersToShare = [sharedWith];
             } else {
                 logger.debug('Skipping share with admin user', { userId: sharedWith });
+            }
+        }
+
+        // Handle integration sharing if requested
+        let integrationShareResult: { shared: string[]; alreadyShared: string[] } | undefined;
+
+        if (shareIntegrations && usersToShare.length > 0) {
+            // Extract required integrations from template widgets
+            const requiredIntegrations = new Set<string>();
+            const integrationMap: Record<string, string> = {
+                'plex': 'plex',
+                'sonarr': 'sonarr',
+                'radarr': 'radarr',
+                'overseerr': 'overseerr',
+                'qbittorrent': 'qbittorrent',
+                'system-status': 'systemstatus'
+            };
+
+            for (const widget of template.widgets) {
+                const widgetData = widget as { type?: string };
+                const integration = integrationMap[widgetData.type || ''];
+                if (integration) {
+                    requiredIntegrations.add(integration);
+                }
+            }
+
+            if (requiredIntegrations.size > 0) {
+                integrationShareResult = await integrationSharesDb.shareIntegrationsForUsers(
+                    Array.from(requiredIntegrations),
+                    usersToShare,
+                    authReq.user!.id
+                );
+                logger.info('Integrations shared with template', {
+                    templateId: template.id,
+                    integrations: integrationShareResult.shared,
+                    alreadyShared: integrationShareResult.alreadyShared,
+                    userCount: usersToShare.length
+                });
             }
         }
 
@@ -752,8 +795,20 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
             }
         }
 
-        logger.info('Template shared', { templateId: req.params.id, sharedWith, userCount: usersToShare.length, by: authReq.user!.id });
-        res.json({ share });
+        logger.info('Template shared', {
+            templateId: req.params.id,
+            sharedWith,
+            userCount: usersToShare.length,
+            by: authReq.user!.id,
+            shareIntegrations: !!shareIntegrations
+        });
+
+        // Include integration share info in response if applicable
+        const response: { share: typeof share; integrationShares?: typeof integrationShareResult } = { share };
+        if (integrationShareResult) {
+            response.integrationShares = integrationShareResult;
+        }
+        res.json(response);
     } catch (error) {
         logger.error('Failed to share template', { error: (error as Error).message, id: req.params.id });
         res.status(500).json({ error: 'Failed to share template' });
