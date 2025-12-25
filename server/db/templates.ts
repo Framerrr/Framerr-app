@@ -211,24 +211,74 @@ export async function getTemplateById(id: string): Promise<DashboardTemplate | n
 }
 
 /**
- * Get all templates for a user (owned + shared with them)
+ * Extended template with sharing metadata
  */
-export async function getTemplatesForUser(userId: string): Promise<DashboardTemplate[]> {
+export interface TemplateWithMeta extends DashboardTemplate {
+    sharedBy?: string;      // Username of original owner (for shared templates)
+    hasUpdate?: boolean;    // Parent template has newer version
+    originalVersion?: number; // Parent's current version for comparison
+}
+
+/**
+ * Get all templates for a user (owned only - user copies of shared templates ARE owned)
+ * Includes sharedBy and hasUpdate for templates that were shared
+ */
+export async function getTemplatesForUser(userId: string): Promise<TemplateWithMeta[]> {
     try {
-        // Get templates owned by user OR shared with user OR shared with everyone
+        // Get all templates owned by this user
+        // This now includes user copies of shared templates (they have sharedFromId)
         const query = `
-            SELECT DISTINCT t.* FROM dashboard_templates t
-            LEFT JOIN template_shares s ON t.id = s.template_id
-            WHERE t.owner_id = ? 
-               OR s.shared_with = ? 
-               OR s.shared_with = 'everyone'
-            ORDER BY t.is_draft DESC, t.category_id ASC, t.name ASC
+            SELECT 
+                t.*,
+                parent.owner_id as parent_owner_id,
+                parent.version as parent_version,
+                u.username as parent_owner_username
+            FROM dashboard_templates t
+            LEFT JOIN dashboard_templates parent ON t.shared_from_id = parent.id
+            LEFT JOIN users u ON parent.owner_id = u.id
+            WHERE t.owner_id = ?
+            ORDER BY t.is_draft DESC, t.name ASC
         `;
 
-        const rows = db.prepare(query).all(userId, userId) as TemplateRow[];
-        return rows.map(rowToTemplate);
+        interface ExtendedRow extends TemplateRow {
+            parent_owner_id: string | null;
+            parent_version: number | null;
+            parent_owner_username: string | null;
+        }
+
+        const rows = db.prepare(query).all(userId) as ExtendedRow[];
+
+        return rows.map(row => {
+            const template = rowToTemplate(row);
+            const meta: TemplateWithMeta = { ...template };
+
+            // If this is a shared copy, add metadata
+            if (row.shared_from_id && row.parent_owner_username) {
+                meta.sharedBy = row.parent_owner_username;
+                meta.hasUpdate = row.parent_version !== null && row.parent_version > row.version;
+                meta.originalVersion = row.parent_version ?? undefined;
+            }
+
+            return meta;
+        });
     } catch (error) {
         logger.error('Failed to get templates for user', { error: (error as Error).message, userId });
+        throw error;
+    }
+}
+
+/**
+ * Get user's copy of a shared template (by sharedFromId)
+ */
+export async function getUserCopyOfTemplate(userId: string, originalTemplateId: string): Promise<DashboardTemplate | null> {
+    try {
+        const row = db.prepare(
+            'SELECT * FROM dashboard_templates WHERE owner_id = ? AND shared_from_id = ?'
+        ).get(userId, originalTemplateId) as TemplateRow | undefined;
+
+        return row ? rowToTemplate(row) : null;
+    } catch (error) {
+        logger.error('Failed to get user copy', { error: (error as Error).message, userId, originalTemplateId });
         throw error;
     }
 }

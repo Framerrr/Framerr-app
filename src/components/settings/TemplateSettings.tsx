@@ -11,8 +11,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, Layout, RotateCcw } from 'lucide-react';
 import { Button } from '../common/Button';
+import Modal from '../common/Modal';
 import TemplateBuilder from '../templates/TemplateBuilder';
 import TemplateList from '../templates/TemplateList';
+import TemplateSharingDropdown from '../templates/TemplateSharingDropdown';
 import { useLayout } from '../../context/LayoutContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -52,6 +54,9 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [hasBackup, setHasBackup] = useState(false);
     const [reverting, setReverting] = useState(false);
+
+    // Sharing modal state
+    const [sharingTemplate, setSharingTemplate] = useState<Template | null>(null);
 
     // Check for backup on mount and when templates are applied
     useEffect(() => {
@@ -254,6 +259,7 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                 <TemplateList
                     onEdit={handleEdit}
                     onDuplicate={handleDuplicate}
+                    onShare={isAdmin ? setSharingTemplate : undefined}
                     isAdmin={isAdmin}
                     refreshTrigger={refreshTrigger}
                 />
@@ -267,8 +273,34 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                 initialData={getBuilderInitialData()}
                 editingTemplateId={builderMode === 'edit' ? editingTemplate?.id : undefined}
                 onSave={handleTemplateSaved}
+                onDraftSaved={() => setRefreshTrigger(prev => prev + 1)}
                 isAdmin={isAdmin}
             />
+
+            {/* Share Template Modal */}
+            <Modal
+                isOpen={!!sharingTemplate}
+                onClose={() => setSharingTemplate(null)}
+                title={`Share "${sharingTemplate?.name || 'Template'}"`}
+                size="sm"
+            >
+                {sharingTemplate && (
+                    <div className="space-y-4">
+                        <p className="text-sm text-theme-secondary">
+                            Choose who can access this template.
+                        </p>
+                        <TemplateSharingDropdown
+                            templateId={sharingTemplate.id}
+                            templateName={sharingTemplate.name}
+                            onShareComplete={() => {
+                                setSharingTemplate(null);
+                                setRefreshTrigger(prev => prev + 1);
+                                success('Template Shared', `"${sharingTemplate.name}" sharing settings updated.`);
+                            }}
+                        />
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };

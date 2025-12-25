@@ -371,17 +371,132 @@ export const MockLinkGridWidget: React.FC = () => (
 );
 
 // =============================================================================
-// OVERSEERR WIDGET - Request list
+// OVERSEERR WIDGET - Horizontal poster carousel (matches real widget)
 // =============================================================================
 export const MockOverseerrWidget: React.FC = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', height: '100%', overflow: 'hidden' }}>
-        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Pending Requests</div>
-        {["Dune: Part Three", "Avatar 4", "The Batman 2"].map((title, i) => (
-            <div key={i} style={{ padding: '0.35rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
-                <span style={{ fontSize: '0.55rem', color: 'var(--warning)' }}>Pending</span>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        {/* Header with scroll buttons */}
+        <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            height: '24px',
+            marginBottom: '8px',
+            flexShrink: 0
+        }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Recent Requests
+            </span>
+            <div style={{ display: 'flex', gap: '2px' }}>
+                <div style={{
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '4px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border)'
+                }}>
+                    <ChevronLeft size={10} style={{ color: 'var(--text-secondary)' }} />
+                </div>
+                <div style={{
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '4px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border)'
+                }}>
+                    <ChevronRight size={10} style={{ color: 'var(--text-secondary)' }} />
+                </div>
             </div>
-        ))}
+        </div>
+
+        {/* Horizontal poster carousel */}
+        <div style={{
+            display: 'flex',
+            gap: '8px',
+            flex: 1,
+            overflowX: 'hidden',
+            overflowY: 'hidden',
+            alignItems: 'stretch'
+        }}>
+            {[
+                { title: "Dune 3", status: "Pending", color: "var(--warning)" },
+                { title: "Avatar 4", status: "Approved", color: "var(--success)" },
+                { title: "Batman 2", status: "Pending", color: "var(--warning)" },
+            ].map((item, i) => (
+                <div
+                    key={i}
+                    style={{
+                        height: '100%',
+                        aspectRatio: '2/3',
+                        flexShrink: 0,
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        background: `linear-gradient(135deg, var(--accent) 0%, var(--bg-tertiary) 100%)`,
+                    }}
+                >
+                    {/* Poster placeholder */}
+                    <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <Film size={16} style={{ opacity: 0.3, color: 'white' }} />
+                    </div>
+
+                    {/* Status badge */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        padding: '2px 4px',
+                        borderRadius: '3px',
+                        fontSize: '0.4rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        background: 'rgba(0,0,0,0.8)',
+                        color: item.color,
+                        border: `1px solid ${item.color}40`
+                    }}>
+                        {item.status}
+                    </div>
+
+                    {/* Title gradient overlay */}
+                    <div style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        padding: '12px 4px 4px 4px',
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                    }}>
+                        <span style={{
+                            fontSize: '0.5rem',
+                            fontWeight: 600,
+                            color: 'white',
+                            textAlign: 'center',
+                            lineHeight: 1.2
+                        }}>
+                            {item.title}
+                        </span>
+                        <span style={{ fontSize: '0.4rem', color: 'rgba(255,255,255,0.7)' }}>
+                            User
+                        </span>
+                    </div>
+                </div>
+            ))}
+        </div>
     </div>
 );
 

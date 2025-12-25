@@ -32,6 +32,7 @@ const GRID_COLS = 24;
 const ROW_HEIGHT = 50;    // px per row
 const GRID_GAP = 6;       // px gap
 const HEADER_HEIGHT = 24; // Widget header height
+const GRID_PADDING = 16;  // Padding around the grid
 
 const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     widgets,
@@ -82,10 +83,11 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                     const Icon = getWidgetIcon(widget.type);
                     const metadata = WIDGET_TYPES[widget.type];
 
-                    // Position at FULL SIZE
-                    const left = (widget.layout.x / GRID_COLS) * FULL_WIDTH;
-                    const w = (widget.layout.w / GRID_COLS) * FULL_WIDTH - GRID_GAP;
-                    const top = widget.layout.y * (ROW_HEIGHT + GRID_GAP);
+                    // Position at FULL SIZE (with padding offset)
+                    const gridContentWidth = FULL_WIDTH - (GRID_PADDING * 2);
+                    const left = GRID_PADDING + (widget.layout.x / GRID_COLS) * gridContentWidth;
+                    const w = (widget.layout.w / GRID_COLS) * gridContentWidth - GRID_GAP;
+                    const top = GRID_PADDING + widget.layout.y * (ROW_HEIGHT + GRID_GAP);
                     const h = widget.layout.h * ROW_HEIGHT + (widget.layout.h - 1) * GRID_GAP;
 
                     return (
@@ -129,7 +131,7 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                                 </span>
                             </div>
                             {/* Widget Content */}
-                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <div style={{ flex: 1, overflow: 'hidden', padding: '8px' }}>
                                 <MockWidget />
                             </div>
                         </div>

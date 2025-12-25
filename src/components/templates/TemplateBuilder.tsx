@@ -7,13 +7,15 @@
  * 3. Review - Preview and save actions
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import axios from 'axios';
 import Modal from '../common/Modal';
 import TemplateBuilderStep1 from './TemplateBuilderStep1';
 import TemplateBuilderStep2 from './TemplateBuilderStep2';
 import TemplateBuilderStep3 from './TemplateBuilderStep3';
 import { Button } from '../common/Button';
+import logger from '../../utils/logger';
 
 // Types
 export interface TemplateWidget {
@@ -43,6 +45,7 @@ interface TemplateBuilderProps {
     mode: 'create' | 'edit' | 'duplicate' | 'save-current';
     editingTemplateId?: string;
     onSave?: (template: TemplateData) => void;
+    onDraftSaved?: () => void; // Called when user explicitly saves draft
     isAdmin?: boolean;
 }
 
@@ -59,11 +62,16 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     mode,
     editingTemplateId,
     onSave,
+    onDraftSaved,
     isAdmin = false,
 }) => {
     const [currentStep, setCurrentStep] = useState(1);
     const [isDirty, setIsDirty] = useState(false);
     const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+    // Draft save state
+    const [draftId, setDraftId] = useState<string | null>(null);
+    const isSavingRef = useRef(false);
 
     // Template data state
     const [templateData, setTemplateData] = useState<TemplateData>({
@@ -81,6 +89,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
             setCurrentStep(1);
             setIsDirty(false);
             setShowConfirmClose(false);
+            // Use existing ID if editing, or initialData.id for drafts
+            setDraftId(editingTemplateId || initialData?.id || null);
             setTemplateData({
                 name: initialData?.name || '',
                 description: initialData?.description || '',
@@ -90,7 +100,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 ...(initialData?.id && { id: initialData.id }),
             });
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, editingTemplateId]);
 
     // Handle close with confirmation if dirty
     const handleClose = useCallback(() => {
@@ -116,8 +126,42 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         return true;
     };
 
-    const handleNext = () => {
+    // Save draft to API
+    const saveDraft = useCallback(async (widgetsOverride?: TemplateWidget[]) => {
+        if (isSavingRef.current) return;
+        isSavingRef.current = true;
+
+        try {
+            const response = await axios.post<{ template: { id: string } }>('/api/templates/draft', {
+                templateId: draftId,
+                name: templateData.name || 'Untitled Draft',
+                description: templateData.description,
+                categoryId: templateData.categoryId,
+                widgets: widgetsOverride ?? templateData.widgets,
+            });
+
+            // Store draft ID for subsequent saves
+            const newDraftId = response.data.template?.id;
+            if (!draftId && newDraftId) {
+                setDraftId(newDraftId);
+                // IMPORTANT: Also update templateData.id so Step3 uses PUT instead of POST
+                setTemplateData(prev => ({ ...prev, id: newDraftId }));
+            }
+
+            logger.debug('Draft saved', { id: newDraftId });
+        } catch (err) {
+            logger.error('Failed to save draft', { error: err });
+        } finally {
+            isSavingRef.current = false;
+        }
+    }, [draftId, templateData]);
+
+    const handleNext = async () => {
         if (currentStep < 3 && canGoNext()) {
+            // Save draft when leaving Step 1
+            if (currentStep === 1) {
+                await saveDraft();
+            }
             setCurrentStep(currentStep + 1);
         }
     };
@@ -190,6 +234,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                     <TemplateBuilderStep2
                                         data={templateData}
                                         onChange={updateTemplateData}
+                                        onDraftSave={saveDraft}
                                     />
                                 </motion.div>
                             )}
@@ -260,12 +305,12 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
             <Modal
                 isOpen={showConfirmClose}
                 onClose={() => setShowConfirmClose(false)}
-                title="Discard Changes?"
+                title="Save Changes?"
                 size="sm"
             >
                 <div className="space-y-4">
                     <p className="text-theme-secondary">
-                        Your template progress will be lost.
+                        Would you like to save your template as a draft?
                     </p>
                     <div className="flex gap-3 justify-end pt-4 border-t border-theme">
                         <Button
@@ -275,8 +320,28 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                             Keep Editing
                         </Button>
                         <Button
-                            variant="danger"
+                            variant="secondary"
                             onClick={() => {
+                                // Draft is already saved from auto-save, just close and notify parent
+                                setShowConfirmClose(false);
+                                onDraftSaved?.(); // Trigger list refresh
+                                onClose();
+                            }}
+                        >
+                            Save Draft
+                        </Button>
+                        <Button
+                            variant="danger"
+                            onClick={async () => {
+                                // Delete draft if it exists
+                                if (draftId) {
+                                    try {
+                                        await axios.delete(`/api/templates/${draftId}`);
+                                        logger.debug('Draft deleted', { id: draftId });
+                                    } catch (err) {
+                                        logger.error('Failed to delete draft', { error: err });
+                                    }
+                                }
                                 setShowConfirmClose(false);
                                 onClose();
                             }}

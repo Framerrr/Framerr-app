@@ -319,6 +319,10 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
         const authReq = req as AuthenticatedRequest;
         const { name, description, categoryId, widgets, thumbnail, isDraft } = req.body;
 
+        // Check if this is a shared copy - if so, mark as userModified
+        const existing = await templateDb.getTemplateById(req.params.id);
+        const isSharedCopy = existing?.sharedFromId ? true : false;
+
         const template = await templateDb.updateTemplate(req.params.id, authReq.user!.id, {
             name,
             description,
@@ -326,6 +330,8 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
             widgets,
             thumbnail,
             isDraft,
+            // Mark as user-modified if this is a shared copy
+            ...(isSharedCopy && { userModified: true }),
         });
 
         if (!template) {
@@ -333,7 +339,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
-        logger.info('Template updated', { id: template.id, userId: authReq.user!.id });
+        logger.info('Template updated', { id: template.id, userId: authReq.user!.id, isSharedCopy });
         res.json({ template });
     } catch (error) {
         logger.error('Failed to update template', { error: (error as Error).message, id: req.params.id });
@@ -438,8 +444,218 @@ router.post('/:id/apply', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/templates/:id/sync
+ * Sync user's copy with the original parent template
+ * User must own the template and it must have sharedFromId
+ */
+router.post('/:id/sync', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const template = await templateDb.getTemplateById(req.params.id);
+
+        if (!template || template.ownerId !== authReq.user!.id) {
+            res.status(404).json({ error: 'Template not found or access denied' });
+            return;
+        }
+
+        if (!template.sharedFromId) {
+            res.status(400).json({ error: 'This template is not a shared copy' });
+            return;
+        }
+
+        // Get the parent template
+        const parent = await templateDb.getTemplateById(template.sharedFromId);
+        if (!parent) {
+            res.status(404).json({ error: 'Original template no longer exists' });
+            return;
+        }
+
+        // Update user's copy with parent's data
+        await templateDb.updateTemplate(req.params.id, authReq.user!.id, {
+            name: parent.name,
+            description: parent.description || undefined,
+            widgets: parent.widgets,
+            userModified: false, // Reset since we're syncing
+        });
+
+        // Manually set version to match parent (bypassing increment)
+        const { db } = await import('../database/db');
+        db.prepare(
+            'UPDATE dashboard_templates SET version = ? WHERE id = ?'
+        ).run(parent.version, req.params.id);
+
+        logger.info('Template synced', {
+            templateId: req.params.id,
+            parentId: parent.id,
+            userId: authReq.user!.id
+        });
+
+        const updated = await templateDb.getTemplateById(req.params.id);
+        res.json({ success: true, template: updated });
+    } catch (error) {
+        logger.error('Failed to sync template', { error: (error as Error).message, id: req.params.id });
+        res.status(500).json({ error: 'Failed to sync template' });
+    }
+});
+
+/**
+ * GET /api/templates/:id/shares
+ * Get current shares for a template (admin only, owner only)
+ */
+router.get('/:id/shares', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const template = await templateDb.getTemplateById(req.params.id);
+
+        if (!template || template.ownerId !== authReq.user!.id) {
+            res.status(404).json({ error: 'Template not found or access denied' });
+            return;
+        }
+
+        const shares = await templateDb.getTemplateShares(req.params.id);
+        res.json({ shares: shares.map(s => ({ sharedWith: s.sharedWith })) });
+    } catch (error) {
+        logger.error('Failed to get template shares', { error: (error as Error).message, id: req.params.id });
+        res.status(500).json({ error: 'Failed to get shares' });
+    }
+});
+
+/**
+ * POST /api/templates/:id/check-conflicts
+ * Check for widget conflicts before sharing (admin only)
+ * Returns which integrations are needed but not shared with target users
+ */
+router.post('/:id/check-conflicts', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const { userIds, shareMode } = req.body; // userIds: string[], shareMode: 'everyone' | 'users' | 'groups'
+
+        const template = await templateDb.getTemplateById(req.params.id);
+        if (!template || template.ownerId !== authReq.user!.id) {
+            res.status(404).json({ error: 'Template not found or access denied' });
+            return;
+        }
+
+        // Get required integrations from template widgets
+        const requiredIntegrations = new Set<string>();
+        for (const widget of template.widgets) {
+            // Widget types that require integrations (from widgetRegistry)
+            const integrationMap: Record<string, string> = {
+                'plex': 'plex',
+                'sonarr': 'sonarr',
+                'radarr': 'radarr',
+                'overseerr': 'overseerr',
+                'qbittorrent': 'qbittorrent',
+                'system-status': 'systemstatus'
+            };
+            const integration = integrationMap[widget.type];
+            if (integration) {
+                requiredIntegrations.add(integration);
+            }
+        }
+
+        if (requiredIntegrations.size === 0) {
+            res.json({ conflicts: [] });
+            return;
+        }
+
+        // Get all integration configs to check sharing
+        const { getSystemConfig } = await import('../db/systemConfig');
+        const config = await getSystemConfig();
+        const integrations = config.integrations || {};
+
+        interface ConflictResult {
+            integration: string;
+            integrationDisplayName: string;
+            affectedUsers: { id: string; username: string }[];
+        }
+
+        const conflicts: ConflictResult[] = [];
+
+        // For each required integration, check if it's shared with target users
+        for (const integration of requiredIntegrations) {
+            const integrationConfig = integrations[integration] as {
+                enabled?: boolean;
+                sharing?: {
+                    enabled?: boolean;
+                    mode?: 'everyone' | 'groups' | 'users';
+                    groups?: string[];
+                    users?: string[];
+                };
+            } | undefined;
+
+            if (!integrationConfig?.enabled) {
+                // Integration not configured - skip
+                continue;
+            }
+
+            const sharing = integrationConfig.sharing;
+            const isSharedWithEveryone = sharing?.enabled && sharing.mode === 'everyone';
+
+            if (isSharedWithEveryone) {
+                // Already shared with everyone, no conflict
+                continue;
+            }
+
+            // Check which users don't have access
+            const affectedUsers: { id: string; username: string }[] = [];
+
+            if (shareMode === 'everyone' || (shareMode === 'users' && userIds?.length > 0)) {
+                // Get user details
+                const { getAllUsers } = await import('../db/users');
+                const allUsers = await getAllUsers();
+                const nonAdminUsers = allUsers.filter(u => u.group !== 'admin');
+
+                const targetUsers = shareMode === 'everyone'
+                    ? nonAdminUsers
+                    : nonAdminUsers.filter(u => userIds.includes(u.id));
+
+                for (const user of targetUsers) {
+                    let hasAccess = false;
+
+                    if (sharing?.enabled) {
+                        if (sharing.mode === 'groups' && sharing.groups?.includes(user.group)) {
+                            hasAccess = true;
+                        } else if (sharing.mode === 'users' && sharing.users?.includes(user.id)) {
+                            hasAccess = true;
+                        }
+                    }
+
+                    if (!hasAccess) {
+                        affectedUsers.push({ id: user.id, username: user.username });
+                    }
+                }
+            }
+
+            if (affectedUsers.length > 0) {
+                const displayNames: Record<string, string> = {
+                    'plex': 'Plex',
+                    'sonarr': 'Sonarr',
+                    'radarr': 'Radarr',
+                    'overseerr': 'Overseerr',
+                    'qbittorrent': 'qBittorrent',
+                    'systemstatus': 'System Status'
+                };
+
+                conflicts.push({
+                    integration,
+                    integrationDisplayName: displayNames[integration] || integration,
+                    affectedUsers
+                });
+            }
+        }
+
+        res.json({ conflicts });
+    } catch (error) {
+        logger.error('Failed to check conflicts', { error: (error as Error).message, id: req.params.id });
+        res.status(500).json({ error: 'Failed to check conflicts' });
+    }
+});
+
+/**
  * POST /api/templates/:id/share
  * Share a template (admin only)
+ * Creates a copy for the user with sharedFromId pointing to original
  */
 router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -457,10 +673,34 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
             return;
         }
 
+        // Create share record
         const share = await templateDb.shareTemplate(req.params.id, sharedWith);
 
-        // Send notification to recipient(s)
+        // For specific users (not 'everyone'), create a user copy
         if (sharedWith !== 'everyone') {
+            // Check if user already has a copy
+            const existingCopy = await templateDb.getUserCopyOfTemplate(sharedWith, template.id);
+
+            if (!existingCopy) {
+                // Create user's own copy of the template
+                await templateDb.createTemplate({
+                    ownerId: sharedWith,
+                    name: template.name,
+                    description: template.description || undefined,
+                    categoryId: template.categoryId || undefined,
+                    widgets: template.widgets,
+                    sharedFromId: template.id,
+                    isDraft: false,
+                });
+
+                logger.info('User copy created', {
+                    templateId: template.id,
+                    userId: sharedWith,
+                    originalOwner: authReq.user!.id
+                });
+            }
+
+            // Send notification
             await createNotification({
                 userId: sharedWith,
                 type: 'info',

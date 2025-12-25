@@ -27,6 +27,7 @@ interface Category {
 interface TemplateListProps {
     onEdit: (template: Template) => void;
     onDuplicate: (template: Template) => void;
+    onShare?: (template: Template) => void;
     isAdmin?: boolean;
     refreshTrigger?: number;
 }
@@ -34,6 +35,7 @@ interface TemplateListProps {
 const TemplateList: React.FC<TemplateListProps> = ({
     onEdit,
     onDuplicate,
+    onShare,
     isAdmin = false,
     refreshTrigger = 0,
 }) => {
@@ -110,6 +112,44 @@ const TemplateList: React.FC<TemplateListProps> = ({
         } catch (err) {
             logger.error('Failed to update template name', { error: err });
             showError('Update Failed', 'Failed to update template name.');
+        }
+    };
+
+    // Sync shared template with parent
+    const handleSync = async (template: Template) => {
+        if (!confirm(`Sync "${template.name}" with the latest version from @${template.sharedBy}?\n\nYour changes will be overwritten.`)) {
+            return;
+        }
+
+        try {
+            const response = await axios.post<{ template: Template }>(`/api/templates/${template.id}/sync`);
+            const updated = response.data.template;
+            setTemplates(prev => prev.map(t =>
+                t.id === template.id ? { ...t, ...updated, hasUpdate: false, userModified: false } : t
+            ));
+            success('Template Synced', `"${template.name}" has been updated to the latest version.`);
+        } catch (err) {
+            logger.error('Failed to sync template', { error: err });
+            showError('Sync Failed', 'Failed to sync template. Please try again.');
+        }
+    };
+
+    // Revert shared template to parent version
+    const handleRevert = async (template: Template) => {
+        if (!confirm(`Revert "${template.name}" to the shared version from @${template.sharedBy}?\n\nYour changes will be discarded.`)) {
+            return;
+        }
+
+        try {
+            const response = await axios.post<{ template: Template }>(`/api/templates/${template.id}/sync`);
+            const updated = response.data.template;
+            setTemplates(prev => prev.map(t =>
+                t.id === template.id ? { ...t, ...updated, hasUpdate: false, userModified: false } : t
+            ));
+            success('Template Reverted', `"${template.name}" has been restored to the shared version.`);
+        } catch (err) {
+            logger.error('Failed to revert template', { error: err });
+            showError('Revert Failed', 'Failed to revert template. Please try again.');
         }
     };
 
@@ -212,6 +252,9 @@ const TemplateList: React.FC<TemplateListProps> = ({
                             onEdit={onEdit}
                             onDuplicate={onDuplicate}
                             onDelete={handleDelete}
+                            onShare={onShare}
+                            onSync={handleSync}
+                            onRevert={handleRevert}
                             onNameChange={handleNameChange}
                             onPreview={setPreviewTemplate}
                             isAdmin={isAdmin}

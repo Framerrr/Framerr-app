@@ -203,7 +203,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                             isDraggable={false}
                             isResizable={false}
                             margin={[8, 8]}
-                            containerPadding={[0, 0]}
+                            containerPadding={[16, 16]}
                             compactType="vertical"
                         >
                             {template.widgets.map((widget, index) => {
@@ -222,7 +222,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                                                 {metadata?.name || widget.type}
                                             </span>
                                         </div>
-                                        <div className="flex-1 overflow-hidden">
+                                        <div className="flex-1 overflow-hidden p-2">
                                             <MockWidget />
                                         </div>
                                     </div>

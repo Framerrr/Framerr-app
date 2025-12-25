@@ -14,6 +14,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { Plus, X, ChevronLeft, ChevronRight, LayoutGrid, Monitor, Smartphone, Undo2, Redo2 } from 'lucide-react';
 import { getWidgetsByCategory, getWidgetIcon, getWidgetMetadata, WIDGET_TYPES } from '../../utils/widgetRegistry';
+import { getMockWidget } from './MockWidgets';
 import type { TemplateData, TemplateWidget } from './TemplateBuilder';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -24,6 +25,7 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 interface Step2Props {
     data: TemplateData;
     onChange: (updates: Partial<TemplateData>) => void;
+    onDraftSave?: (widgets?: TemplateWidget[]) => void;
 }
 
 // Grid configuration matching REAL dashboard (Dashboard.tsx)
@@ -36,7 +38,7 @@ const MAX_HISTORY_SIZE = 50;
 
 type ViewMode = 'desktop' | 'mobile';
 
-const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
+const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange, onDraftSave }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [viewMode, setViewMode] = useState<ViewMode>('desktop');
 
@@ -176,7 +178,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         }));
 
         onChange({ widgets: [newWidget, ...shiftedWidgets] });
-    }, [data.widgets, onChange]);
+
+        // Save draft after adding widget
+        onDraftSave?.([newWidget, ...shiftedWidgets]);
+    }, [data.widgets, onChange, onDraftSave]);
 
     // Remove widget from template
     const handleRemoveWidget = useCallback((index: number) => {
@@ -190,7 +195,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         const newWidgets = [...data.widgets];
         newWidgets.splice(index, 1);
         onChange({ widgets: newWidgets });
-    }, [data.widgets, onChange]);
+
+        // Save draft after removing widget
+        onDraftSave?.(newWidgets);
+    }, [data.widgets, onChange, onDraftSave]);
 
     // Ref to track state at drag/resize start (for undo on actual changes)
     // MUST be defined before handleLayoutChange which uses it
@@ -249,7 +257,10 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
         }
 
         onChange({ widgets: newWidgets });
-    }, [data.widgets, onChange, viewMode]);
+
+        // Save draft after move/resize
+        onDraftSave?.(newWidgets);
+    }, [data.widgets, onChange, viewMode, onDraftSave]);
 
     // Undo handler
     const handleUndo = useCallback(() => {
@@ -545,12 +556,12 @@ const TemplateBuilderStep2: React.FC<Step2Props> = ({ data, onChange }) => {
                                                 )}
                                             </div>
 
-                                            {/* Widget Preview Placeholder */}
-                                            <div className="flex-1 flex items-center justify-center p-4 text-center">
-                                                <div className="text-theme-tertiary">
-                                                    <Icon size={24} className="mx-auto mb-2 opacity-50" />
-                                                    <p className="text-xs">Preview</p>
-                                                </div>
+                                            {/* Widget Content - Uses MockWidget */}
+                                            <div className="flex-1 overflow-hidden p-2">
+                                                {(() => {
+                                                    const MockWidget = getMockWidget(widget.type);
+                                                    return <MockWidget />;
+                                                })()}
                                             </div>
                                         </div>
                                     );
