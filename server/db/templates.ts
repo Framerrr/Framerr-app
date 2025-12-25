@@ -217,6 +217,7 @@ export interface TemplateWithMeta extends DashboardTemplate {
     sharedBy?: string;      // Username of original owner (for shared templates)
     hasUpdate?: boolean;    // Parent template has newer version
     originalVersion?: number; // Parent's current version for comparison
+    shareCount?: number;    // Number of users this template is shared with (for admin)
 }
 
 /**
@@ -227,12 +228,14 @@ export async function getTemplatesForUser(userId: string): Promise<TemplateWithM
     try {
         // Get all templates owned by this user
         // This now includes user copies of shared templates (they have sharedFromId)
+        // For admin templates, count how many user copies exist
         const query = `
             SELECT 
                 t.*,
                 parent.owner_id as parent_owner_id,
                 parent.version as parent_version,
-                u.username as parent_owner_username
+                u.username as parent_owner_username,
+                (SELECT COUNT(*) FROM dashboard_templates WHERE shared_from_id = t.id) as share_count
             FROM dashboard_templates t
             LEFT JOIN dashboard_templates parent ON t.shared_from_id = parent.id
             LEFT JOIN users u ON parent.owner_id = u.id
@@ -244,6 +247,7 @@ export async function getTemplatesForUser(userId: string): Promise<TemplateWithM
             parent_owner_id: string | null;
             parent_version: number | null;
             parent_owner_username: string | null;
+            share_count: number;
         }
 
         const rows = db.prepare(query).all(userId) as ExtendedRow[];
@@ -257,6 +261,11 @@ export async function getTemplatesForUser(userId: string): Promise<TemplateWithM
                 meta.sharedBy = row.parent_owner_username;
                 meta.hasUpdate = row.parent_version !== null && row.parent_version > row.version;
                 meta.originalVersion = row.parent_version ?? undefined;
+            }
+
+            // For non-shared templates (admin's originals), show share count
+            if (!row.shared_from_id && row.share_count > 0) {
+                meta.shareCount = row.share_count;
             }
 
             return meta;

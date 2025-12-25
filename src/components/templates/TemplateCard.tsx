@@ -26,6 +26,7 @@ export interface Template {
     hasUpdate?: boolean;
     userModified?: boolean;
     sharedFromId?: string;
+    shareCount?: number; // Number of users this template is shared with (for admin view)
     createdAt: string;
     updatedAt: string;
 }
@@ -81,37 +82,44 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     // Is this a shared template (not owned by admin)?
     const isSharedCopy = !!template.sharedBy;
 
-    // Badges component for reuse
+    // Badges component for reuse - Stack vertically, outline style like WidgetGallery
     const BadgesSection = () => (
-        <div className={`flex items-center gap-2 flex-wrap ${isMobile ? 'flex-col items-start' : ''}`}>
+        <div className="flex flex-col items-start gap-1">
             {template.isDraft && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/20 text-warning text-xs">
-                    <Edit2 size={10} />
-                    Draft
-                </span>
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-warning/20 text-warning text-xs">
+                    <Edit2 size={12} />
+                    <span>Draft</span>
+                </div>
             )}
             {template.sharedBy && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-info/20 text-info text-xs">
-                    <Share2 size={10} />
-                    Shared by @{template.sharedBy}
-                </span>
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-info/20 text-info text-xs">
+                    <Share2 size={12} />
+                    <span>Shared by {template.sharedBy}</span>
+                </div>
+            )}
+            {/* Admin: Show share count if shared */}
+            {isAdmin && !isSharedCopy && template.shareCount && template.shareCount > 0 && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-accent/20 text-accent text-xs">
+                    <Share2 size={12} />
+                    <span>Shared with {template.shareCount}</span>
+                </div>
             )}
             {template.isDefault && isAdmin && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/20 text-accent text-xs">
-                    <Star size={10} />
-                    Default
-                </span>
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-accent/20 text-accent text-xs">
+                    <Star size={12} />
+                    <span>Default</span>
+                </div>
             )}
             {template.hasUpdate && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/20 text-success text-xs">
-                    <Clock size={10} />
-                    Update Available
-                </span>
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-success/20 text-success text-xs">
+                    <Clock size={12} />
+                    <span>Update Available</span>
+                </div>
             )}
             {template.categoryName && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent/10 text-accent text-xs">
+                <div className="flex items-center px-2 py-1 rounded bg-accent/10 text-accent text-xs">
                     {template.categoryName}
-                </span>
+                </div>
             )}
         </div>
     );
