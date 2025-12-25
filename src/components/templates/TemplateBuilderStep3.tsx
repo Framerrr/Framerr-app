@@ -22,6 +22,7 @@ import logger from '../../utils/logger';
 interface Step3Props {
     data: TemplateData;
     onSave?: (template: TemplateData) => void;
+    onShare?: (template: TemplateData & { id: string }) => void;
     onClose: () => void;
     isAdmin?: boolean;
 }
@@ -29,6 +30,7 @@ interface Step3Props {
 const TemplateBuilderStep3: React.FC<Step3Props> = ({
     data,
     onSave,
+    onShare,
     onClose,
     isAdmin = false,
 }) => {
@@ -73,6 +75,13 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
             // Call onSave callback if provided
             if (onSave) {
                 onSave(savedTemplate);
+            }
+
+            // For share action, close builder and trigger share modal
+            if (action === 'share' && onShare) {
+                onClose();
+                onShare(savedTemplate);
+                return; // Don't close again below
             }
 
             // Close builder

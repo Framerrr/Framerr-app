@@ -45,6 +45,7 @@ interface TemplateBuilderProps {
     mode: 'create' | 'edit' | 'duplicate' | 'save-current';
     editingTemplateId?: string;
     onSave?: (template: TemplateData) => void;
+    onShare?: (template: TemplateData & { id: string }) => void;
     onDraftSaved?: () => void; // Called when user explicitly saves draft
     isAdmin?: boolean;
 }
@@ -62,6 +63,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     mode,
     editingTemplateId,
     onSave,
+    onShare,
     onDraftSaved,
     isAdmin = false,
 }) => {
@@ -249,6 +251,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                     <TemplateBuilderStep3
                                         data={templateData}
                                         onSave={onSave}
+                                        onShare={onShare}
                                         onClose={onClose}
                                         isAdmin={isAdmin}
                                     />

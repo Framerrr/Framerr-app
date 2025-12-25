@@ -273,6 +273,10 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                 initialData={getBuilderInitialData()}
                 editingTemplateId={builderMode === 'edit' ? editingTemplate?.id : undefined}
                 onSave={handleTemplateSaved}
+                onShare={isAdmin ? (template) => {
+                    // After saving, open share modal with the saved template
+                    setSharingTemplate(template as Template);
+                } : undefined}
                 onDraftSaved={() => setRefreshTrigger(prev => prev + 1)}
                 isAdmin={isAdmin}
             />
