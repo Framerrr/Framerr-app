@@ -158,16 +158,34 @@ const TemplateSharingDropdown: React.FC<TemplateSharingDropdownProps> = ({
         if (mode === 'none') {
             setSelectedUsers([]);
         } else if (mode === 'everyone') {
-            setSelectedUsers([]);
+            // When selecting Everyone, show all users as selected (informational)
+            setSelectedUsers(users.map(u => u.id));
         }
     };
 
     const handleUserToggle = (userId: string): void => {
-        setSelectedUsers(prev =>
-            prev.includes(userId)
+        // If in Everyone mode and deselecting a user, switch to per-user mode
+        if (selectedMode === 'everyone') {
+            // Deselecting a user switches to per-user mode with remaining users
+            const remainingUsers = users.map(u => u.id).filter(id => id !== userId);
+            setSelectedMode('users');
+            setSelectedUsers(remainingUsers);
+            return;
+        }
+
+        setSelectedUsers(prev => {
+            const newSelection = prev.includes(userId)
                 ? prev.filter(u => u !== userId)
-                : [...prev, userId]
-        );
+                : [...prev, userId];
+
+            // If all users are now selected, auto-switch to Everyone mode
+            const allUserIds = users.map(u => u.id);
+            if (allUserIds.length > 0 && newSelection.length === allUserIds.length) {
+                setSelectedMode('everyone');
+            }
+
+            return newSelection;
+        });
     };
 
     const handleGroupToggle = (group: string): void => {
@@ -428,10 +446,14 @@ const TemplateSharingDropdown: React.FC<TemplateSharingDropdownProps> = ({
                             </div>
                         )}
 
-                        {/* Users Selection */}
-                        {selectedMode === 'users' && (
+                        {/* Users Selection - Show in both 'users' and 'everyone' mode */}
+                        {(selectedMode === 'users' || selectedMode === 'everyone') && (
                             <div className="border-t border-theme px-4 py-3 max-h-48 overflow-y-auto">
-                                <p className="text-xs text-theme-secondary mb-2">Select users:</p>
+                                <p className="text-xs text-theme-secondary mb-2">
+                                    {selectedMode === 'everyone'
+                                        ? 'Shared with all users (deselect to switch to per-user):'
+                                        : 'Select users:'}
+                                </p>
                                 {loadingData ? (
                                     <p className="text-xs text-theme-tertiary">Loading...</p>
                                 ) : users.length === 0 ? (
@@ -442,7 +464,7 @@ const TemplateSharingDropdown: React.FC<TemplateSharingDropdownProps> = ({
                                             <label key={user.id} className="flex items-center gap-2 cursor-pointer hover:bg-theme-hover px-2 py-1 rounded">
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedUsers.includes(user.id)}
+                                                    checked={selectedMode === 'everyone' || selectedUsers.includes(user.id)}
                                                     onChange={() => handleUserToggle(user.id)}
                                                     className="rounded border-theme text-accent focus:ring-accent"
                                                 />

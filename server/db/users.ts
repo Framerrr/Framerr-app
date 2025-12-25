@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
 import { db } from '../database/db';
+import * as templateDb from './templates';
 
 // Default user preferences
 const DEFAULT_PREFERENCES = {
@@ -162,6 +163,31 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
         );
 
         logger.info(`User created: ${userData.username} (${userData.group || 'user'})`);
+
+        // Apply default template for non-admin users
+        const isAdmin = userData.group === 'admin' || userData.isSetupAdmin;
+        if (!isAdmin) {
+            try {
+                const defaultTemplate = await templateDb.getDefaultTemplate();
+                if (defaultTemplate) {
+                    // Create a copy of the default template for the new user
+                    await templateDb.createTemplate({
+                        ownerId: id,
+                        name: defaultTemplate.name,
+                        description: defaultTemplate.description || undefined,
+                        categoryId: defaultTemplate.categoryId || undefined,
+                        widgets: defaultTemplate.widgets,
+                        sharedFromId: defaultTemplate.id,
+                        version: defaultTemplate.version,
+                        isDraft: false,
+                    });
+                    logger.info('Default template applied to new user', { userId: id, templateId: defaultTemplate.id });
+                }
+            } catch (templateError) {
+                // Don't fail user creation if template application fails
+                logger.warn('Failed to apply default template to new user', { error: (templateError as Error).message, userId: id });
+            }
+        }
 
         return {
             id,
