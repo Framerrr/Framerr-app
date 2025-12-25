@@ -676,16 +676,32 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
         // Create share record
         const share = await templateDb.shareTemplate(req.params.id, sharedWith);
 
-        // For specific users (not 'everyone'), create a user copy
-        if (sharedWith !== 'everyone') {
+        // Get list of users to create copies for
+        let usersToShare: string[] = [];
+
+        if (sharedWith === 'everyone') {
+            // Get all users (except admin who owns the template)
+            const { getAllUsers } = await import('../db/users');
+            const allUsers = await getAllUsers();
+            usersToShare = allUsers
+                .filter(u => u.id !== authReq.user!.id)
+                .map(u => u.id);
+            logger.debug('Sharing with everyone', { userCount: usersToShare.length });
+        } else {
+            // Single user
+            usersToShare = [sharedWith];
+        }
+
+        // Create user copies for each user
+        for (const userId of usersToShare) {
             // Check if user already has a copy
-            const existingCopy = await templateDb.getUserCopyOfTemplate(sharedWith, template.id);
+            const existingCopy = await templateDb.getUserCopyOfTemplate(userId, template.id);
 
             if (!existingCopy) {
                 try {
                     // Create user's own copy of the template
                     const userCopy = await templateDb.createTemplate({
-                        ownerId: sharedWith,
+                        ownerId: userId,
                         name: template.name,
                         description: template.description || undefined,
                         categoryId: template.categoryId || undefined,
@@ -697,7 +713,7 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
                     logger.info('User copy created', {
                         templateId: template.id,
                         userCopyId: userCopy.id,
-                        userId: sharedWith,
+                        userId: userId,
                         originalOwner: authReq.user!.id
                     });
                 } catch (copyError) {
@@ -705,24 +721,30 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
                         error: (copyError as Error).message,
                         stack: (copyError as Error).stack,
                         templateId: template.id,
-                        userId: sharedWith
+                        userId: userId
                     });
                 }
             } else {
-                logger.debug('User already has copy', { existingCopyId: existingCopy.id, userId: sharedWith });
+                logger.debug('User already has copy', { existingCopyId: existingCopy.id, userId: userId });
             }
 
-            // Send notification
-            await createNotification({
-                userId: sharedWith,
-                type: 'info',
-                title: 'New template shared',
-                message: `${authReq.user!.username} shared template "${template.name}" with you`,
-                metadata: { templateId: template.id }
-            });
+            // Send notification (only for specific user shares, not everyone)
+            if (sharedWith !== 'everyone') {
+                try {
+                    await createNotification({
+                        userId: userId,
+                        type: 'info',
+                        title: 'New template shared',
+                        message: `${authReq.user!.username} shared template "${template.name}" with you`,
+                        metadata: { templateId: template.id }
+                    });
+                } catch (notifyError) {
+                    logger.warn('Failed to send share notification', { userId, error: (notifyError as Error).message });
+                }
+            }
         }
 
-        logger.info('Template shared', { templateId: req.params.id, sharedWith, by: authReq.user!.id });
+        logger.info('Template shared', { templateId: req.params.id, sharedWith, userCount: usersToShare.length, by: authReq.user!.id });
         res.json({ share });
     } catch (error) {
         logger.error('Failed to share template', { error: (error as Error).message, id: req.params.id });
