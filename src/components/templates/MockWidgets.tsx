@@ -343,7 +343,7 @@ export const MockWeatherWidget: React.FC = () => (
 );
 
 // =============================================================================
-// LINK GRID WIDGET - Circle/rectangle links (compact for thumbnails)
+// LINK GRID WIDGET - Simple centered icon (scales for thumbnails)
 // =============================================================================
 export const MockLinkGridWidget: React.FC = () => (
     <div style={{
@@ -352,32 +352,21 @@ export const MockLinkGridWidget: React.FC = () => (
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '4px',
-        flexWrap: 'wrap',
-        padding: '2px',
         overflow: 'hidden',
     }}>
-        {[
-            { icon: Globe, title: "G" },
-            { icon: Tv, title: "N" },
-            { icon: Music, title: "S" },
-        ].map((link, i) => (
-            <div key={i} style={{
-                width: '24px',
-                height: '24px',
-                minWidth: '24px',
-                minHeight: '24px',
-                borderRadius: '50%',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-            }}>
-                <link.icon size={10} style={{ color: 'var(--accent)' }} />
-            </div>
-        ))}
+        {/* Single representative link icon that fits in any size */}
+        <div style={{
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+        }}>
+            <Link size={10} style={{ color: 'var(--accent)' }} />
+        </div>
     </div>
 );
 

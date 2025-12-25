@@ -680,16 +680,22 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
         let usersToShare: string[] = [];
 
         if (sharedWith === 'everyone') {
-            // Get all users (except admin who owns the template)
+            // Get all users (exclude all admins - they have inherent access)
             const { getAllUsers } = await import('../db/users');
             const allUsers = await getAllUsers();
             usersToShare = allUsers
-                .filter(u => u.id !== authReq.user!.id)
+                .filter(u => u.group !== 'admin') // Exclude all admins, not just owner
                 .map(u => u.id);
-            logger.debug('Sharing with everyone', { userCount: usersToShare.length });
+            logger.debug('Sharing with everyone (non-admin users)', { userCount: usersToShare.length });
         } else {
-            // Single user
-            usersToShare = [sharedWith];
+            // Single user - but skip if trying to share with an admin
+            const { getUserById } = await import('../db/users');
+            const targetUser = await getUserById(sharedWith);
+            if (targetUser && targetUser.group !== 'admin') {
+                usersToShare = [sharedWith];
+            } else {
+                logger.debug('Skipping share with admin user', { userId: sharedWith });
+            }
         }
 
         // Create user copies for each user

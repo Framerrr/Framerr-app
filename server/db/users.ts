@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
 import { db } from '../database/db';
 import * as templateDb from './templates';
+import { updateUserConfig } from './userConfig';
 
 // Default user preferences
 const DEFAULT_PREFERENCES = {
@@ -170,7 +171,7 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
             try {
                 const defaultTemplate = await templateDb.getDefaultTemplate();
                 if (defaultTemplate) {
-                    // Create a copy of the default template for the new user
+                    // 1. Create a copy of the default template for the user's template list
                     await templateDb.createTemplate({
                         ownerId: id,
                         name: defaultTemplate.name,
@@ -181,7 +182,29 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
                         version: defaultTemplate.version,
                         isDraft: false,
                     });
-                    logger.info('Default template applied to new user', { userId: id, templateId: defaultTemplate.id });
+
+                    // 2. Apply template widgets to user's actual dashboard
+                    // Convert template widgets to dashboard widget format
+                    const dashboardWidgets = defaultTemplate.widgets.map((tw, idx) => ({
+                        id: `${tw.type}-${idx}-${Date.now()}`,
+                        type: tw.type,
+                        layout: tw.layout,
+                        config: tw.config || {},
+                    }));
+
+                    await updateUserConfig(id, {
+                        dashboard: {
+                            widgets: dashboardWidgets,
+                            layout: [],
+                            mobileLayoutMode: 'linked',
+                        }
+                    });
+
+                    logger.info('Default template applied to new user (template + dashboard)', {
+                        userId: id,
+                        templateId: defaultTemplate.id,
+                        widgetCount: dashboardWidgets.length
+                    });
                 }
             } catch (templateError) {
                 // Don't fail user creation if template application fails
