@@ -428,6 +428,7 @@ const Dashboard = (): React.JSX.Element => {
 
     // Check if current layouts OR configs differ from original (for smart change detection)
     // Returns whether there are actual changes and whether unlink should be pending
+    // Note: shouldUnlink is only true for LAYOUT changes, not config-only changes
     const checkForActualChanges = (
         updatedWidgets: Widget[],
         breakpoint: 'lg' | 'sm'
@@ -442,32 +443,42 @@ const Dashboard = (): React.JSX.Element => {
             return { hasChanges: true, shouldUnlink: breakpoint === 'sm' && mobileLayoutMode === 'linked' };
         }
 
+        // Track layout and config changes separately
+        let hasLayoutChanges = false;
+        let hasConfigChanges = false;
+
         // Compare each widget's layout AND config at the relevant breakpoint
-        const hasChanges = updatedWidgets.some(widget => {
+        updatedWidgets.forEach(widget => {
             const original = originalToCompare.find(w => w.id === widget.id);
-            if (!original) return true; // Widget doesn't exist in original
+            if (!original) {
+                hasLayoutChanges = true; // Widget doesn't exist in original
+                return;
+            }
 
             // Check layout changes
             const curr = widget.layouts?.[breakpoint];
             const orig = original.layouts?.[breakpoint];
-            const hasLayoutChange = curr?.x !== orig?.x ||
+            if (curr?.x !== orig?.x ||
                 curr?.y !== orig?.y ||
                 curr?.w !== orig?.w ||
-                curr?.h !== orig?.h;
-
-            if (hasLayoutChange) return true;
+                curr?.h !== orig?.h) {
+                hasLayoutChanges = true;
+            }
 
             // Check config changes (for widgets like LinkGrid)
             const currConfig = JSON.stringify(widget.config || {});
             const origConfig = JSON.stringify(original.config || {});
-            const hasConfigChange = currConfig !== origConfig;
-
-            return hasConfigChange;
+            if (currConfig !== origConfig) {
+                hasConfigChanges = true;
+            }
         });
+
+        const hasChanges = hasLayoutChanges || hasConfigChanges;
 
         return {
             hasChanges,
-            shouldUnlink: hasChanges && breakpoint === 'sm' && mobileLayoutMode === 'linked'
+            // Only trigger unlink for LAYOUT changes, not config-only changes
+            shouldUnlink: hasLayoutChanges && breakpoint === 'sm' && mobileLayoutMode === 'linked'
         };
     };
 
