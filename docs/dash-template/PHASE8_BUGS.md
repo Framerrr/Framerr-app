@@ -10,7 +10,7 @@
 
 | Bug | Description | Status |
 |-----|-------------|--------|
-| BUG-1 | Sensitive config handling | ⏳ Not Started |
+| BUG-1 | Sensitive config handling | ✅ Fixed |
 | BUG-2 | Link widget mockup overflow | ✅ Fixed |
 | BUG-3 | "Update available" on first share | ✅ Fixed |
 | BUG-4 | Edit vs Create mode flow | ✅ Fixed |
@@ -27,15 +27,21 @@
 ## BUG-1: Sensitive Config Handling
 
 **Priority:** P0  
-**Status:** ⏳ Not Started
+**Status:** ✅ Fixed (2025-12-25)
 
 **Problem:**  
 When sharing templates, sensitive widget config properties (API keys, personal links) should be stripped.
 
-**Requirements:**
-- Add `sensitive: boolean` flag per config property in widget definitions
-- On share: strip sensitive properties from widget configs
-- On self-apply: preserve all properties
+**Solution Implemented:**
+- Added `WIDGET_SENSITIVE_CONFIG` map to `shared/widgetIntegrations.ts`
+- Supports `true` (entire config) or `string[]` (specific fields)
+- Added `stripSensitiveConfig()` helper function
+- Integrated stripping into template share endpoint and sync endpoint
+- `link-grid` and `custom-html` marked as fully sensitive
+
+**Files Modified:**
+- `shared/widgetIntegrations.ts` - Added config map and helper
+- `server/routes/templates.ts` - Integrated stripping in share/sync
 
 ---
 
