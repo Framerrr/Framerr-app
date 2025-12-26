@@ -149,7 +149,10 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
             {isOpen && (
                 <div
                     className="fixed inset-0 z-[1050] flex items-center justify-center p-4"
-                    style={isMobile ? { paddingBottom: 'calc(86px + env(safe-area-inset-bottom, 0px) + 16px)' } : undefined}
+                    style={isMobile ? {
+                        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+                        paddingBottom: 'calc(86px + env(safe-area-inset-bottom, 0px) + 16px)'
+                    } : undefined}
                 >
                     {/* Backdrop */}
                     <motion.div

@@ -1154,6 +1154,34 @@ const Dashboard = (): React.JSX.Element => {
                             {editMode ? 'Editing mode - Drag to rearrange widgets' : greetingText}
                         </p>
                     )}
+                    {/* Edit mode layout status badge - always visible in edit mode */}
+                    {editMode && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span
+                                className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${mobileLayoutMode === 'linked'
+                                        ? 'bg-accent/20 text-accent'
+                                        : 'bg-green-500/20 text-green-400'
+                                    }`}
+                            >
+                                {mobileLayoutMode === 'linked' ? (
+                                    <>
+                                        <Link size={12} />
+                                        Synced
+                                    </>
+                                ) : (
+                                    <>
+                                        <LayoutGrid size={12} />
+                                        Independent
+                                    </>
+                                )}
+                            </span>
+                            {pendingUnlink && (
+                                <span className="text-xs px-2 py-1 rounded bg-orange-500/20 text-orange-400">
+                                    Pending Unlink
+                                </span>
+                            )}
+                        </div>
+                    )}
                     {/* Debug mode indicator - only visible when debug overlay enabled */}
                     {debugOverlayEnabled && (
                         <div className="flex items-center gap-2 mt-2">
