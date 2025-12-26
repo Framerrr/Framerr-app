@@ -140,6 +140,9 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
     // Responsive gap: smaller on mobile for tighter layout
     const GRID_GAP = containerSize.width < 768 ? 8 : 16; // 8px on mobile, 16px on desktop
 
+    // Detect touch device - disable HTML5 draggable on touch devices (iOS doesn't support it and causes issues)
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     /**
      * Measure container size on mount and resize
      */
@@ -689,7 +692,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                     className={`${classes}${editModeClasses} ${editMode ? 'cursor-pointer' : ''}${dragClasses}`}
                     style={style}
                     onClick={handleLinkClick}
-                    draggable={editMode && !editingLinkId}
+                    draggable={editMode && !editingLinkId && !isTouchDevice}
                     onDragStart={(e) => editMode && handleDragStart(e, link.id)}
                     onDragEnd={handleDragEnd}
                     onDragEnter={(e) => e.preventDefault()}
@@ -717,7 +720,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                 disabled={isLoading}
                 className={`${classes}${editModeClasses} ${isLoading ? 'cursor-wait' : editMode ? 'cursor-pointer' : 'cursor-pointer'}${dragClasses}`}
                 style={style}
-                draggable={editMode && !editingLinkId}
+                draggable={editMode && !editingLinkId && !isTouchDevice}
                 onDragStart={(e) => editMode && handleDragStart(e, link.id)}
                 onDragEnd={handleDragEnd}
                 onDragEnter={(e) => e.preventDefault()}
