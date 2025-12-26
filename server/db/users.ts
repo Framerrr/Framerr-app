@@ -184,33 +184,12 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
                     });
 
                     // 2. Apply template widgets to user's actual dashboard
-                    // Convert template widgets to dashboard widget format
-                    const dashboardWidgets = defaultTemplate.widgets.map((tw, idx) => {
-                        const widgetId = `${tw.type}-${idx}-${Date.now()}`;
-                        return {
-                            id: widgetId,
-                            type: tw.type,
-                            layout: tw.layout,
-                            config: tw.config || {},
-                        };
-                    });
-
-                    // Build react-grid-layout format layout array
-                    const dashboardLayout = dashboardWidgets.map(w => ({
-                        i: w.id,
-                        x: w.layout?.x ?? 0,
-                        y: w.layout?.y ?? 0,
-                        w: w.layout?.w ?? 4,
-                        h: w.layout?.h ?? 4,
-                    }));
-
-                    await updateUserConfig(id, {
-                        dashboard: {
-                            widgets: dashboardWidgets,
-                            layout: dashboardLayout,
-                            mobileLayoutMode: 'linked',
-                        }
-                    });
+                    // Use the shared helper function (same as POST /api/templates/:id/apply)
+                    const dashboardWidgets = await templateDb.applyTemplateToUser(
+                        defaultTemplate,
+                        id,
+                        false // Don't create backup for new users (they have no existing dashboard)
+                    );
 
                     // 3. Share required integrations with the new user
                     // Extract unique integration types from template widgets
@@ -259,7 +238,7 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
                         });
                     }
 
-                    logger.info('Default template applied to new user (template + dashboard + integrations)', {
+                    logger.info('Default template applied to new user', {
                         userId: id,
                         templateId: defaultTemplate.id,
                         widgetCount: dashboardWidgets.length

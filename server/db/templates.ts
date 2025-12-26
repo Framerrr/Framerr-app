@@ -645,3 +645,105 @@ export async function deleteBackup(userId: string): Promise<boolean> {
         throw error;
     }
 }
+
+// ============================================================================
+// Template Application Helpers
+// ============================================================================
+
+interface DashboardWidget {
+    i: string;
+    id: string;
+    type: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    layouts: {
+        lg: {
+            x: number;
+            y: number;
+            w: number;
+            h: number;
+        };
+    };
+    config: Record<string, unknown>;
+}
+
+/**
+ * Convert template widgets to dashboard widget format
+ * This is the canonical conversion used by both:
+ * - POST /api/templates/:id/apply endpoint
+ * - User creation (applying default template)
+ */
+export function convertTemplateWidgets(widgets: TemplateWidget[]): DashboardWidget[] {
+    return widgets.map((tw, index) => {
+        const widgetId = `widget-${Date.now()}-${index}`;
+        return {
+            i: widgetId,
+            id: widgetId,
+            type: tw.type,
+            // Root level position (for backward compatibility)
+            x: tw.layout.x,
+            y: tw.layout.y,
+            w: tw.layout.w,
+            h: tw.layout.h,
+            // Responsive layouts
+            layouts: {
+                lg: tw.layout,
+            },
+            // Widget-specific config (showHeader, flatten, etc.)
+            config: tw.config || {},
+        };
+    });
+}
+
+/**
+ * Apply a template to a user's dashboard
+ * Used by both the apply endpoint and user creation (default template)
+ * 
+ * @param template - The template to apply
+ * @param userId - User ID to apply to
+ * @param createBackup - Whether to backup current dashboard (false for new users)
+ */
+export async function applyTemplateToUser(
+    template: DashboardTemplate,
+    userId: string,
+    createBackupFirst: boolean = true
+): Promise<DashboardWidget[]> {
+    // Dynamic import to avoid circular dependency
+    const { getUserConfig, updateUserConfig } = await import('./userConfig');
+
+    // Backup current dashboard if requested
+    if (createBackupFirst) {
+        const userConfig = await getUserConfig(userId);
+        const currentDashboard = userConfig.dashboard || {};
+
+        await createBackup(
+            userId,
+            currentDashboard.widgets || [],
+            currentDashboard.mobileLayoutMode || 'linked',
+            currentDashboard.mobileWidgets
+        );
+    }
+
+    // Convert template widgets to dashboard format
+    const dashboardWidgets = convertTemplateWidgets(template.widgets);
+
+    // Apply to user's dashboard
+    await updateUserConfig(userId, {
+        dashboard: {
+            widgets: dashboardWidgets,
+            mobileLayoutMode: 'linked',
+            mobileWidgets: undefined,
+        },
+    });
+
+    logger.info('Template applied to user', {
+        templateId: template.id,
+        userId,
+        widgetCount: dashboardWidgets.length,
+        backupCreated: createBackupFirst
+    });
+
+    return dashboardWidgets;
+}
