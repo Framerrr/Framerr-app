@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import logger from '../../utils/logger';
 
 interface ClockPreferences {
     format24h: boolean;
@@ -13,29 +11,19 @@ interface ClockConfig extends Partial<ClockPreferences> {
     [key: string]: unknown;
 }
 
-interface UserConfigResponse {
-    preferences?: {
-        clockWidget?: ClockPreferences;
-    };
-}
-
 export interface ClockWidgetProps {
     config?: ClockConfig;
     editMode?: boolean;
+    widgetId?: string;
 }
 
 /**
  * Clock Widget
  * Displays current time with timezone support and inline settings
+ * Uses widget-config-changed events for dashboard save flow
  */
-const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.Element => {
+const ClockWidget = ({ config, editMode = false, widgetId }: ClockWidgetProps): React.JSX.Element => {
     const [time, setTime] = useState<Date>(new Date());
-    const [preferences, setPreferences] = useState<ClockPreferences>({
-        format24h: true,
-        timezone: '',
-        showDate: true,
-        showSeconds: true
-    });
     const [isWide, setIsWide] = useState<boolean>(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -54,22 +42,12 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
         return () => observer.disconnect();
     }, []);
 
-    // Load preferences on mount
-    useEffect(() => {
-        loadPreferences();
-    }, []);
-
-    // Auto-save when preferences change
-    useEffect(() => {
-        if (preferences.timezone !== '' || !preferences.format24h || !preferences.showDate || !preferences.showSeconds) {
-            savePreferences(preferences);
-        }
-    }, [preferences.format24h, preferences.showDate, preferences.showSeconds]);
-
-    // Merge config with preferences (config takes priority)
+    // Get active config from props (managed by Dashboard)
     const activeConfig: ClockPreferences = {
-        ...preferences,
-        ...(config || {})
+        format24h: config?.format24h ?? true,
+        timezone: config?.timezone ?? '',
+        showDate: config?.showDate ?? true,
+        showSeconds: config?.showSeconds ?? true
     };
 
     const { format24h, timezone, showDate, showSeconds } = activeConfig;
@@ -79,31 +57,16 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
         return () => clearInterval(interval);
     }, [showSeconds]);
 
-    const loadPreferences = async (): Promise<void> => {
-        try {
-            const response = await axios.get<UserConfigResponse>('/api/config/user', {
-                withCredentials: true
-            });
-            if (response.data?.preferences?.clockWidget) {
-                setPreferences(response.data.preferences.clockWidget);
-            }
-        } catch (error) {
-            logger.error('Failed to load clock preferences:', { error });
-        }
-    };
+    // Dispatch config change to Dashboard (enables save button, cancellable)
+    const updateConfig = (newConfig: Partial<ClockPreferences>): void => {
+        if (!widgetId) return;
 
-    const savePreferences = async (newPrefs: ClockPreferences): Promise<void> => {
-        try {
-            await axios.put('/api/config/user', {
-                preferences: {
-                    clockWidget: newPrefs
-                }
-            }, {
-                withCredentials: true
-            });
-        } catch (error) {
-            logger.error('Failed to save clock preferences:', { error });
-        }
+        window.dispatchEvent(new CustomEvent('widget-config-changed', {
+            detail: {
+                widgetId,
+                config: { ...config, ...newConfig }
+            }
+        }));
     };
 
     const formatTime = (date: Date): string => {
@@ -138,15 +101,15 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
             {editMode && (
                 <div className="absolute top-2 left-2 right-2 flex justify-between z-10">
                     <button
-                        onClick={() => setPreferences({ ...preferences, format24h: !preferences.format24h })}
-                        className={`${toggleButtonClass} ${preferences.format24h ? activeToggleClass : inactiveToggleClass}`}
+                        onClick={() => updateConfig({ format24h: !format24h })}
+                        className={`${toggleButtonClass} ${format24h ? activeToggleClass : inactiveToggleClass}`}
                         title="Toggle time format"
                     >
-                        {preferences.format24h ? '24H' : '12H'}
+                        {format24h ? '24H' : '12H'}
                     </button>
                     <button
-                        onClick={() => setPreferences({ ...preferences, showSeconds: !preferences.showSeconds })}
-                        className={`${toggleButtonClass} ${preferences.showSeconds ? activeToggleClass : inactiveToggleClass}`}
+                        onClick={() => updateConfig({ showSeconds: !showSeconds })}
+                        className={`${toggleButtonClass} ${showSeconds ? activeToggleClass : inactiveToggleClass}`}
                         title="Toggle seconds display"
                     >
                         :SS
@@ -172,11 +135,11 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
                     {/* Date Toggle - only in edit mode */}
                     {editMode && (
                         <button
-                            onClick={() => setPreferences({ ...preferences, showDate: !preferences.showDate })}
-                            className={`mt-2 ${toggleButtonClass} ${preferences.showDate ? activeToggleClass : inactiveToggleClass}`}
+                            onClick={() => updateConfig({ showDate: !showDate })}
+                            className={`mt-2 ${toggleButtonClass} ${showDate ? activeToggleClass : inactiveToggleClass}`}
                             title="Toggle date display"
                         >
-                            {preferences.showDate ? 'Hide Date' : 'Show Date'}
+                            {showDate ? 'Hide Date' : 'Show Date'}
                         </button>
                     )}
                 </div>

@@ -61,14 +61,6 @@ interface PlexSessionsResponse {
     sessions?: PlexSessionData[];
 }
 
-interface WidgetData {
-    widgets?: Array<{
-        id?: string;
-        config?: Record<string, unknown>;
-        [key: string]: unknown;
-    }>;
-}
-
 const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widgetId, onVisibilityChange }) => {
     // Get auth state to determine admin status
     const { user } = useAuth();
@@ -222,40 +214,19 @@ const PlexWidget: React.FC<PlexWidgetProps> = ({ config, editMode = false, widge
         return `${integration.url}/web/index.html#!/server/${plexMachineId}/details?key=/library/metadata/${ratingKey}`;
     };
 
-    const handleToggleHideWhenEmpty = async (newValue: boolean): Promise<void> => {
+    // Toggle hideWhenEmpty via widget-config-changed event (enables Save button, cancellable)
+    const handleToggleHideWhenEmpty = (newValue: boolean): void => {
         setLocalHideWhenEmpty(newValue);
 
-        try {
-            const response = await fetch('/api/widgets');
-            if (!response.ok) throw new Error('Failed to fetch widgets');
-            const fetchedData: WidgetData = await response.json();
-            const widgets = fetchedData.widgets || [];
+        if (!widgetId) return;
 
-            const updatedWidgets = widgets.map(widget => {
-                if (widget.id === widgetId) {
-                    return {
-                        ...widget,
-                        config: {
-                            ...widget.config,
-                            hideWhenEmpty: newValue
-                        }
-                    };
-                }
-                return widget;
-            });
-
-            const saveResponse = await fetch('/api/widgets', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ widgets: updatedWidgets })
-            });
-
-            if (!saveResponse.ok) throw new Error('Failed to save widget config');
-        } catch (err) {
-            setLocalHideWhenEmpty(!newValue);
-            logger.error('Error updating hideWhenEmpty', { error: (err as Error).message, widget: 'Plex' });
-            setError('Failed to update hide when empty setting');
-        }
+        // Dispatch config change to Dashboard (enables save button, cancellable)
+        window.dispatchEvent(new CustomEvent('widget-config-changed', {
+            detail: {
+                widgetId,
+                config: { ...config, hideWhenEmpty: newValue }
+            }
+        }));
     };
 
     // Show appropriate message based on user role
