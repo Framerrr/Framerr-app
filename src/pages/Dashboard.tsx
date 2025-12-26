@@ -1159,8 +1159,8 @@ const Dashboard = (): React.JSX.Element => {
                         <div className="flex items-center gap-2 mt-2">
                             <span
                                 className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${mobileLayoutMode === 'linked'
-                                        ? 'bg-accent/20 text-accent'
-                                        : 'bg-green-500/20 text-green-400'
+                                    ? 'bg-accent/20 text-accent'
+                                    : 'bg-green-500/20 text-green-400'
                                     }`}
                             >
                                 {mobileLayoutMode === 'linked' ? (
@@ -1364,7 +1364,9 @@ const Dashboard = (): React.JSX.Element => {
                                         ...layoutItem,
                                         minH: metadata?.minSize?.h || 1,
                                         maxW: metadata?.maxSize?.w || 24,
-                                        maxH: metadata?.maxSize?.h || 10
+                                        maxH: metadata?.maxSize?.h || 10,
+                                        // On mobile: only allow dragging the specific widget that passed hold threshold
+                                        isDraggable: editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId === widget.id)
                                     }}
                                 >
                                     {renderedWidget}
