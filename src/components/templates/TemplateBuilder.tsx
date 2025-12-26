@@ -213,6 +213,47 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         }
     };
 
+    // Quick save for edit mode Step 1 (same logic as Step3 handleSave)
+    const handleQuickSave = useCallback(async () => {
+        if (!templateData.name.trim()) return;
+
+        try {
+            const endpoint = templateData.id ? `/api/templates/${templateData.id}` : '/api/templates';
+            const method = templateData.id ? 'put' : 'post';
+
+            const response = await axios[method]<{ template: TemplateData & { id: string } }>(endpoint, {
+                name: templateData.name,
+                description: templateData.description || undefined,
+                categoryId: templateData.categoryId,
+                widgets: templateData.widgets,
+                isDraft: false,
+                isDefault: templateData.isDefault || false,
+            });
+
+            const savedTemplate = response.data.template;
+
+            // Handle default template setting/clearing
+            if (templateData.isDefault) {
+                try {
+                    await axios.post(`/api/templates/${savedTemplate.id}/set-default`);
+                    logger.info('Template set as default for new users', { templateId: savedTemplate.id });
+                } catch (defaultError) {
+                    logger.error('Failed to set template as default:', { error: defaultError });
+                }
+            }
+
+            // Call onSave callback if provided
+            if (onSave) {
+                onSave(savedTemplate);
+            }
+
+            setIsDirty(false);
+            onClose();
+        } catch (error) {
+            logger.error('Failed to quick save template:', { error });
+        }
+    }, [templateData, onSave, onClose]);
+
     return (
         <>
             <Modal
@@ -221,10 +262,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 title={getTitle()}
                 size={currentStep === 2 ? 'full' : 'lg'}
             >
+                {/* Main container with fixed footer */}
                 <div className="flex flex-col h-full">
 
-                    {/* Step Content - flex-1 takes remaining space after footer */}
-                    <div className="flex-1 min-h-0 py-4">
+                    {/* Step Content - scrollable area */}
+                    <div className="flex-1 min-h-0 overflow-y-auto py-4 custom-scrollbar">
                         <AnimatePresence mode="wait">
                             {currentStep === 1 && (
                                 <motion.div
@@ -277,8 +319,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                         </AnimatePresence>
                     </div>
 
-                    {/* Footer with navigation - flex-shrink-0 prevents compression */}
-                    <div className="flex-shrink-0 flex items-center justify-between py-4 border-t border-theme">
+                    {/* Footer with navigation - always visible, never scrolls */}
+                    <div className="flex-shrink-0 flex items-center justify-between py-4 border-t border-theme bg-theme-secondary/50">
                         {/* Cancel/Back */}
                         <Button
                             variant="secondary"
@@ -304,19 +346,31 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                             ))}
                         </div>
 
-                        {/* Next */}
-                        {currentStep < 3 && (
-                            <Button
-                                variant="primary"
-                                onClick={handleNext}
-                                disabled={!canGoNext()}
-                            >
-                                Next →
-                            </Button>
-                        )}
-                        {currentStep === 3 && (
-                            <div className="w-20" /> // Spacer for layout balance
-                        )}
+                        {/* Next / Save (edit mode on Step 1) */}
+                        <div className="flex items-center gap-2">
+                            {/* Show Save button on Step 1 in edit mode if there are changes */}
+                            {currentStep === 1 && isEditMode && isDirty && (
+                                <Button
+                                    variant="primary"
+                                    onClick={handleQuickSave}
+                                    disabled={!templateData.name.trim()}
+                                >
+                                    Save
+                                </Button>
+                            )}
+                            {currentStep < 3 && (
+                                <Button
+                                    variant={isEditMode && isDirty ? 'secondary' : 'primary'}
+                                    onClick={handleNext}
+                                    disabled={!canGoNext()}
+                                >
+                                    Next →
+                                </Button>
+                            )}
+                            {currentStep === 3 && (
+                                <div className="w-20" /> // Spacer for layout balance
+                            )}
+                        </div>
                     </div>
                 </div>
             </Modal>
