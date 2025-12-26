@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, DragEvent, CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
-import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, Check, X, LucideIcon } from 'lucide-react';
+import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, Check, X, LucideIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import axios, { AxiosRequestConfig } from 'axios';
 import logger from '../../utils/logger';
@@ -23,6 +23,7 @@ type LinkSize = 'circle' | 'rectangle';
 type LinkType = 'link' | 'action';
 type LinkState = 'idle' | 'loading' | 'success' | 'error';
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+type GridJustify = 'left' | 'center' | 'right';
 
 interface LinkAction {
     method: HttpMethod;
@@ -80,6 +81,7 @@ interface ContainerSize {
 
 interface LinkGridWidgetConfig {
     links?: Link[];
+    gridJustify?: GridJustify;
     [key: string]: unknown;
 }
 
@@ -101,7 +103,7 @@ interface WidgetsResponse {
 }
 
 const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = false, widgetId, setGlobalDragEnabled }) => {
-    const { links = [] } = config || {};
+    const { links = [], gridJustify = 'center' } = config || {};
     const { error: showError, success: showSuccess } = useNotifications();
 
     // Refs for dimension measurement
@@ -255,15 +257,17 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
      */
     const calculateGridMetrics = (): GridMetrics => {
         if (containerSize.width === 0 || containerSize.height === 0) {
-            return { cols: 3, rows: 1, cellSize: 100, maxRows: 1 }; // Default fallback
+            return { cols: 6, rows: 1, cellSize: 100, maxRows: 1 }; // Default fallback
         }
 
         const availableWidth = containerSize.width;
         const availableHeight = containerSize.height;
 
-        // FIXED: Always use 6 columns on all breakpoints for consistency
-        // Cells will shrink to fit on mobile instead of reducing columns
-        const cols = 6;
+        // Responsive columns based on width (~100px per column)
+        const MIN_COLS = 6;  // Minimum for mobile
+        const MAX_COLS = 12; // Maximum for full-width widget
+        let cols = Math.floor(availableWidth / 100);
+        cols = Math.max(MIN_COLS, Math.min(MAX_COLS, cols));
 
         // Calculate rows that fit in height
         // Simple formula: how many rows can fit in available height?
@@ -736,11 +740,50 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
     // Grid width: always use full columns for consistent left-aligned layout
     const gridWidth = cols * cellSize + (cols - 1) * GRID_GAP;
 
+    // Justify toggle handler - cycles through left → center → right → left
+    const handleJustifyToggle = (): void => {
+        const nextJustify: GridJustify = gridJustify === 'left' ? 'center'
+            : gridJustify === 'center' ? 'right'
+                : 'left';
+
+        // Dispatch event to update Dashboard's local state
+        window.dispatchEvent(new CustomEvent('widget-config-changed', {
+            detail: {
+                widgetId,
+                config: { ...config, gridJustify: nextJustify }
+            }
+        }));
+    };
+
+    // Get justify icon based on current setting
+    const JustifyIcon = gridJustify === 'left' ? AlignLeft
+        : gridJustify === 'center' ? AlignCenter
+            : AlignRight;
+
+    // Get justify class for container
+    const justifyClass = gridJustify === 'left' ? 'justify-start'
+        : gridJustify === 'center' ? 'justify-center'
+            : 'justify-end';
+
     return (
         <div
             ref={containerRef}
-            className={`relative w-full h-full flex items-center justify-center ${editMode ? 'no-drag' : ''}`}
+            className={`relative w-full h-full flex items-center ${justifyClass} ${editMode ? 'no-drag' : ''}`}
         >
+            {/* Justify toggle button - edit mode only, positioned below where delete button would be */}
+            {editMode && (
+                <button
+                    onClick={handleJustifyToggle}
+                    className="absolute top-14 right-2 z-50 w-10 h-10 rounded-lg bg-accent/20 hover:bg-accent/30 
+                        flex items-center justify-center text-accent hover:text-accent
+                        transition-all duration-200 no-drag"
+                    style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title={`Align: ${gridJustify}`}
+                >
+                    <JustifyIcon size={20} />
+                </button>
+            )}
 
             {/* Empty state */}
             {links.length === 0 && !editMode ? (
