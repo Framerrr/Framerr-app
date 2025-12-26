@@ -384,48 +384,13 @@ router.post('/:id/apply', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
-        // Get current dashboard for backup
-        const userConfig = await getUserConfig(authReq.user!.id);
-        const currentDashboard = userConfig.dashboard || {};
-
-        // Create backup before applying
-        await templateDb.createBackup(
+        // Use canonical helper for template application
+        // This handles: backup creation, widget conversion, config update
+        const dashboardWidgets = await templateDb.applyTemplateToUser(
+            template,
             authReq.user!.id,
-            currentDashboard.widgets || [],
-            currentDashboard.mobileLayoutMode || 'linked',
-            currentDashboard.mobileWidgets
+            true // Create backup before applying
         );
-
-        // Convert template widgets to dashboard widgets
-        // Dashboard expects: i, id, x, y, w, h, type, layouts, config
-        const dashboardWidgets = template.widgets.map((tw, index) => {
-            const widgetId = `widget-${Date.now()}-${index}`;
-            return {
-                i: widgetId,
-                id: widgetId,
-                type: tw.type,
-                // Root level position (for backward compatibility)
-                x: tw.layout.x,
-                y: tw.layout.y,
-                w: tw.layout.w,
-                h: tw.layout.h,
-                // Responsive layouts
-                layouts: {
-                    lg: tw.layout,
-                },
-                // Widget-specific config (showHeader, flatten, etc.)
-                config: tw.config || {},
-            };
-        });
-
-        // Apply template to dashboard
-        await updateUserConfig(authReq.user!.id, {
-            dashboard: {
-                widgets: dashboardWidgets,
-                mobileLayoutMode: 'linked',
-                mobileWidgets: undefined,
-            },
-        });
 
         logger.info('Template applied', {
             templateId: template.id,
@@ -537,23 +502,11 @@ router.post('/:id/check-conflicts', requireAuth, requireAdmin, async (req: Reque
             return;
         }
 
-        // Get required integrations from template widgets
-        const requiredIntegrations = new Set<string>();
-        for (const widget of template.widgets) {
-            // Widget types that require integrations (from widgetRegistry)
-            const integrationMap: Record<string, string> = {
-                'plex': 'plex',
-                'sonarr': 'sonarr',
-                'radarr': 'radarr',
-                'overseerr': 'overseerr',
-                'qbittorrent': 'qbittorrent',
-                'system-status': 'systemstatus'
-            };
-            const integration = integrationMap[widget.type];
-            if (integration) {
-                requiredIntegrations.add(integration);
-            }
-        }
+        // Get required integrations from template widgets using canonical mapping
+        const { getRequiredIntegrations } = await import('../../shared/widgetIntegrations');
+        const widgetTypes = template.widgets.map(w => w.type);
+        const requiredIntegrationsArray = getRequiredIntegrations(widgetTypes);
+        const requiredIntegrations = new Set<string>(requiredIntegrationsArray);
 
         if (requiredIntegrations.size === 0) {
             res.json({ conflicts: [] });
@@ -707,24 +660,10 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
         let integrationShareResult: { shared: string[]; alreadyShared: string[] } | undefined;
 
         if (shareIntegrations && usersToShare.length > 0) {
-            // Extract required integrations from template widgets
-            const requiredIntegrations = new Set<string>();
-            const integrationMap: Record<string, string> = {
-                'plex': 'plex',
-                'sonarr': 'sonarr',
-                'radarr': 'radarr',
-                'overseerr': 'overseerr',
-                'qbittorrent': 'qbittorrent',
-                'system-status': 'systemstatus'
-            };
-
-            for (const widget of template.widgets) {
-                const widgetData = widget as { type?: string };
-                const integration = integrationMap[widgetData.type || ''];
-                if (integration) {
-                    requiredIntegrations.add(integration);
-                }
-            }
+            // Extract required integrations from template widgets using canonical mapping
+            const { getRequiredIntegrations } = await import('../../shared/widgetIntegrations');
+            const widgetTypes = template.widgets.map(w => w.type);
+            const requiredIntegrations = new Set<string>(getRequiredIntegrations(widgetTypes));
 
             if (requiredIntegrations.size > 0) {
                 integrationShareResult = await integrationSharesDb.shareIntegrationsForUsers(

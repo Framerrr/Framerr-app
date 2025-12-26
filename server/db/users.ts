@@ -192,31 +192,16 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
                     );
 
                     // 3. Share required integrations with the new user
-                    // Extract unique integration types from template widgets
-                    const integrationTypes = new Set<string>();
-                    for (const widget of defaultTemplate.widgets) {
-                        // Map widget types to integration names
-                        const integrationMap: Record<string, string> = {
-                            'plex': 'plex',
-                            'sonarr': 'sonarr',
-                            'radarr': 'radarr',
-                            'overseerr': 'overseerr',
-                            'qbittorrent': 'qbittorrent',
-                            'sabnzbd': 'sabnzbd',
-                            'systemstatus': 'systemstatus',
-                            'upcomingmedia': 'upcomingmedia',
-                        };
-                        const integrationName = integrationMap[widget.type.toLowerCase()];
-                        if (integrationName) {
-                            integrationTypes.add(integrationName);
-                        }
-                    }
+                    // Use canonical widget-integration mapping
+                    const { getRequiredIntegrations } = await import('../../shared/widgetIntegrations');
+                    const widgetTypes = defaultTemplate.widgets.map(w => w.type);
+                    const requiredIntegrations = getRequiredIntegrations(widgetTypes);
 
                     // Share each required integration with the new user
-                    if (integrationTypes.size > 0) {
+                    if (requiredIntegrations.length > 0) {
                         // Dynamic import to avoid circular dependency
                         const integrationShares = await import('./integrationShares');
-                        for (const integrationName of integrationTypes) {
+                        for (const integrationName of requiredIntegrations) {
                             try {
                                 await integrationShares.shareIntegration(
                                     integrationName,
@@ -236,7 +221,7 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
                         }
                         logger.info('Integrations shared with new user from default template', {
                             userId: id,
-                            integrations: Array.from(integrationTypes)
+                            integrations: requiredIntegrations
                         });
                     }
 
