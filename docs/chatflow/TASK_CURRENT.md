@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-25 22:25 EST  
+**Last Updated:** 2025-12-25 22:38 EST  
 **Branch:** `feature/template-engine`
 
 ---
@@ -16,56 +16,48 @@
 
 ---
 
-## Integration Sharing Migration - COMPLETE
+## Widget-Integration Mapping Refactor - COMPLETE ✅
 
-This session implemented database-backed integration sharing:
+Created canonical widget-integration mapping at `shared/widgetIntegrations.ts`:
 
-### Backend Changes
-- **New migration:** `0008_add_integration_shares.js` - `integration_shares` table
-- **New module:** `server/db/integrationShares.ts` - CRUD for sharing
-- **Updated routes:** `server/routes/integrations.ts` - Share/unshare endpoints
-- **Updated templates:** `server/routes/templates.ts` - `shareIntegrations` option
-- **Updated users:** `server/db/users.ts` - Uses `applyTemplateToUser()` helper
+### Changes Made
+- **New module:** `shared/widgetIntegrations.ts` - Single source of truth
+- **Updated:** `server/db/users.ts` - Uses `getRequiredIntegrations()` helper
+- **Updated:** `server/routes/templates.ts` - Uses shared module + `applyTemplateToUser()` helper
+- **Removed:** Hardcoded maps from 3 locations (~35 LOC reduction)
+- **Removed:** Inactive integrations (`sabnzbd`, `upcomingmedia`)
 
-### Frontend Changes
-- **`SharingDropdown.tsx`** - Direct API calls, self-contained
-- **`IntegrationsSettings.tsx`** - Uses new SharingDropdown
-- **`PlexIntegration.tsx`** / **`SystemHealthIntegration.tsx`** - New props
-- **`SharedWidgetsSettings.tsx`** - Uses database endpoints  
-- **`TemplateSharingDropdown.tsx`** - Uses `shareIntegrations: true` flag
-- **`TemplateBuilderStep1.tsx`** - Messaging about auto-share integrations
+### Files Modified
+| File | Change |
+|------|--------|
+| `shared/widgetIntegrations.ts` | **NEW** - Canonical mapping |
+| `server/db/users.ts` | Uses shared module |
+| `server/routes/templates.ts` | Uses shared module + helper |
 
 ---
 
-## ⚠️ KNOWN ISSUES (Next Session)
+## ⚠️ REMAINING ISSUES
 
 | Issue | Description | Priority |
 |-------|-------------|----------|
-| Widget integration mapping | Hardcoded in `users.ts`, should be centralized | P0 |
 | Link widget | Not working in dev server | P1 |
-| System status | Not sharing via default template | P1 |
-| Dev/Docker parity | Behavior differs between environments | P1 |
-| Template apply endpoint | May still have inline conversion (should use helper) | P2 |
+| Legacy config fallback | integrations.ts has config-based sharing fallback | P3 |
 
 ---
 
-## Next Session - Explicit Steps
+## Next Session
 
-1. **Read:** `.agent/rules/consistency-rules.md` - New consistency guidelines
-2. **MUST READ:** `docs/dash-template/PHASE9_DEFAULT_TEMPLATE.md` - Context on default template
-3. **Analyze:** Why link widget doesn't work in dev but works in Docker
-4. **Fix:** Centralize widget → integration mapping (remove from users.ts)
-5. **Verify:** Template apply endpoint uses the new helper, not inline code
-6. **Test:** System status widget sharing with new users
+1. Investigate link widget in dev server
+2. (Optional) Remove legacy config-based sharing fallback from integrations.ts
 
 ### Important Context
-- Integration sharing now uses `integration_shares` database table
-- Old config-based sharing still works as fallback (backwards compatible)
-- `applyTemplateToUser()` is the canonical function for template application
-- `getShareForUser()` looks up the correct share for sharedBy display
+- `shared/widgetIntegrations.ts` is the CANONICAL source for widget-integration mapping
+- `applyTemplateToUser()` in templates.ts is the canonical function for template application
+- Integration sharing uses `integration_shares` database table
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-25 22:25 EST
+Session ended: 2025-12-25 22:38 EST
+
