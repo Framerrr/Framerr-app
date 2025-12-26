@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-25 03:58 EST  
+**Last Updated:** 2025-12-25 22:25 EST  
 **Branch:** `feature/template-engine`
 
 ---
@@ -16,77 +16,56 @@
 
 ---
 
-## Template Engine Progress
+## Integration Sharing Migration - COMPLETE
 
-> 📍 **Active Project:** Dashboard Template System  
-> 📖 **Documentation:** `docs/dash-template/IMPLEMENTATION_PLAN.md`
+This session implemented database-backed integration sharing:
 
-### Current Phase: Phase 8 (Bug Fixes) - Mostly Complete
-### Current Step: Phase 9 (Default Template Refactor) - Planning Complete
-### Next Action: Move integration sharing to server-side, then complete default template system
+### Backend Changes
+- **New migration:** `0008_add_integration_shares.js` - `integration_shares` table
+- **New module:** `server/db/integrationShares.ts` - CRUD for sharing
+- **Updated routes:** `server/routes/integrations.ts` - Share/unshare endpoints
+- **Updated templates:** `server/routes/templates.ts` - `shareIntegrations` option
+- **Updated users:** `server/db/users.ts` - Uses `applyTemplateToUser()` helper
 
-### Phase Checklist
-
-- [x] Phase 1: Database Schema & API Foundation
-- [x] Phase 2: Template Builder UI - Steps 1 & 3
-- [x] Phase 3: Template Builder UI - Step 2 (Grid Editor)
-- [x] Phase 4: Template List & Preview Modal
-- [x] Phase 5: Auto-Save Draft System
-- [x] Phase 6: Sharing System (User Copy Model)
-- [x] Phase 7: Sharing Refinements (badges, UI polish)
-- [/] Phase 8: Bug Fixes (8 of 11 complete)
-- [ ] Phase 9: Default Template Refactor
+### Frontend Changes
+- **`SharingDropdown.tsx`** - Direct API calls, self-contained
+- **`IntegrationsSettings.tsx`** - Uses new SharingDropdown
+- **`PlexIntegration.tsx`** / **`SystemHealthIntegration.tsx`** - New props
+- **`SharedWidgetsSettings.tsx`** - Uses database endpoints  
+- **`TemplateSharingDropdown.tsx`** - Uses `shareIntegrations: true` flag
+- **`TemplateBuilderStep1.tsx`** - Messaging about auto-share integrations
 
 ---
 
-## Session Summary (2025-12-25)
+## ⚠️ KNOWN ISSUES (Next Session)
 
-### Completed This Session
-
-1. **BUG-2 Fixed** - Link widget mockup overflow (single centered icon)
-2. **BUG-7 Fixed** - Share dropdown bidirectional auto-select (Everyone ↔ users)
-3. **BUG-9 Partial** - Default template checkbox wired, but layout format wrong
-4. **BUG-10 Fixed** - Share count now excludes all admin-group users
-5. **Architecture Analysis** - Full documentation of template/share/integration flows
-6. **Phase 9 Plan Created** - Complete implementation plan for default template refactor
-
-### Key Files Changed
-
-**Backend:**
-- `server/db/users.ts` - Default template application (needs refactor)
-- `server/routes/templates.ts` - Share excludes admins correctly
-
-**Frontend:**
-- `src/components/templates/MockWidgets.tsx` - Link widget simplified
-- `src/components/templates/TemplateSharingDropdown.tsx` - Bidirectional select
-- `src/components/templates/TemplateBuilderStep1.tsx` - isDefault checkbox wired
-- `src/components/templates/TemplateBuilderStep3.tsx` - setDefault API call
-
-**Documentation Created:**
-- `docs/dash-template/PHASE9_DEFAULT_TEMPLATE.md` - Complete refactor plan
-
-### Bugs Remaining
-
-| Bug | Description | Priority |
-|-----|-------------|----------|
-| BUG-1 | Sensitive config handling | P0 |
-| BUG-8 | Move Save/Share button to modal | P1 |
-| BUG-9 | Default template layout wrong | P0 (needs refactor) |
-| BUG-11 | isDefault checkbox not persisting | P1 |
+| Issue | Description | Priority |
+|-------|-------------|----------|
+| Widget integration mapping | Hardcoded in `users.ts`, should be centralized | P0 |
+| Link widget | Not working in dev server | P1 |
+| System status | Not sharing via default template | P1 |
+| Dev/Docker parity | Behavior differs between environments | P1 |
+| Template apply endpoint | May still have inline conversion (should use helper) | P2 |
 
 ---
 
 ## Next Session - Explicit Steps
 
-1. **Read:** `docs/dash-template/PHASE9_DEFAULT_TEMPLATE.md`
-2. **First Task:** Create server-side integration sharing helper
-3. **Second Task:** Create widget conversion helper (reuse in Apply route)
-4. **Third Task:** Refactor createUser to use new helpers + share infrastructure
-5. **Fourth Task:** Update frontend toast for conditional message
-6. **Fifth Task:** Fix isDefault checkbox persistence
+1. **Read:** `.agent/rules/consistency-rules.md` - New consistency guidelines
+2. **MUST READ:** `docs/dash-template/PHASE9_DEFAULT_TEMPLATE.md` - Context on default template
+3. **Analyze:** Why link widget doesn't work in dev but works in Docker
+4. **Fix:** Centralize widget → integration mapping (remove from users.ts)
+5. **Verify:** Template apply endpoint uses the new helper, not inline code
+6. **Test:** System status widget sharing with new users
+
+### Important Context
+- Integration sharing now uses `integration_shares` database table
+- Old config-based sharing still works as fallback (backwards compatible)
+- `applyTemplateToUser()` is the canonical function for template application
+- `getShareForUser()` looks up the correct share for sharedBy display
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-25 03:58 EST
+Session ended: 2025-12-25 22:25 EST
