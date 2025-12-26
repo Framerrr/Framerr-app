@@ -43,7 +43,8 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
     onEdit,
     isMobile = false,
 }) => {
-    const [viewMode, setViewMode] = useState<ViewMode>('desktop');
+    // On mobile, force mobile view only
+    const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? 'mobile' : 'desktop');
 
     // Convert template widgets to grid layouts
     const layouts = useMemo(() => {
@@ -161,29 +162,36 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
 
                 {/* Toolbar */}
                 <div className="flex items-center justify-between p-3 border-b border-theme bg-theme-primary/50">
-                    {/* View Toggle */}
-                    <div className="flex items-center gap-1 p-1 rounded-lg bg-theme-tertiary">
-                        <button
-                            onClick={() => setViewMode('desktop')}
-                            className={`p-2 rounded-md transition-all ${viewMode === 'desktop'
-                                ? 'bg-accent text-white'
-                                : 'text-theme-secondary hover:text-theme-primary'
-                                }`}
-                            title="Desktop View"
-                        >
-                            <Monitor size={16} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('mobile')}
-                            className={`p-2 rounded-md transition-all ${viewMode === 'mobile'
-                                ? 'bg-accent text-white'
-                                : 'text-theme-secondary hover:text-theme-primary'
-                                }`}
-                            title="Mobile View"
-                        >
-                            <Smartphone size={16} />
-                        </button>
-                    </div>
+                    {/* View Toggle - Desktop only */}
+                    {!isMobile ? (
+                        <div className="flex items-center gap-1 p-1 rounded-lg bg-theme-tertiary">
+                            <button
+                                onClick={() => setViewMode('desktop')}
+                                className={`p-2 rounded-md transition-all ${viewMode === 'desktop'
+                                    ? 'bg-accent text-white'
+                                    : 'text-theme-secondary hover:text-theme-primary'
+                                    }`}
+                                title="Desktop View"
+                            >
+                                <Monitor size={16} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('mobile')}
+                                className={`p-2 rounded-md transition-all ${viewMode === 'mobile'
+                                    ? 'bg-accent text-white'
+                                    : 'text-theme-secondary hover:text-theme-primary'
+                                    }`}
+                                title="Mobile View"
+                            >
+                                <Smartphone size={16} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-theme-tertiary">
+                            <Smartphone size={14} />
+                            <span className="text-xs">Mobile Preview</span>
+                        </div>
+                    )}
 
                     {/* Widget count */}
                     <span className="text-xs text-theme-tertiary">
