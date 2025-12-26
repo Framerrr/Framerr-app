@@ -41,12 +41,12 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     height = 60,
     className = '',
 }) => {
-    // Calculate scale to fill container (cover-fit approach)
+    // Calculate scale to fit entire grid content (contain-fit approach)
     const scale = useMemo(() => {
         const scaleX = width / FULL_WIDTH;
         const scaleY = height / FULL_HEIGHT;
-        // Use the larger scale to ensure content fills container
-        return Math.max(scaleX, scaleY);
+        // Use the smaller scale to ensure entire content fits without cropping
+        return Math.min(scaleX, scaleY);
     }, [width, height]);
 
     // Calculate offset to center content when using cover-fit
