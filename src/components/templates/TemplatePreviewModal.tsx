@@ -150,7 +150,12 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                     {/* Modal - animated from thumbnail */}
                     <motion.div
                         layoutId={`template-preview-${template.id}`}
-                        className="relative z-10 w-full max-w-4xl max-h-[90vh] mx-4 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden"
+                        className="relative z-10 w-full max-w-4xl mx-4 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden"
+                        style={{
+                            maxHeight: isMobile
+                                ? 'calc(100vh - 86px - 24px - env(safe-area-inset-bottom, 0px))'  // Tab bar + margin + safe area
+                                : '90vh'
+                        }}
                         layout
                         transition={{
                             layout: { type: 'tween', ease: [0.4, 0, 0.2, 1], duration: 0.35 }
