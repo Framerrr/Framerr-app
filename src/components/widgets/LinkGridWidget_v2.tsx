@@ -751,7 +751,12 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
     return (
         <div
             ref={containerRef}
-            className={`relative w-full h-full flex items-center ${justifyClass} ${editMode ? 'no-drag' : ''}`}
+            className={`relative w-full h-full flex items-center ${justifyClass} no-drag`}
+            style={editMode ? {
+                touchAction: 'manipulation',
+                WebkitUserSelect: 'none',
+                userSelect: 'none'
+            } : undefined}
         >
 
             {/* Empty state */}
