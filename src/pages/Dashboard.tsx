@@ -877,24 +877,35 @@ const Dashboard = (): React.JSX.Element => {
             const newLgHeight = migratedWidget.layouts?.lg?.h ?? metadata.defaultSize.h;
             const newSmHeight = withLayouts.find(w => w.id === newWidgetId)?.layouts?.sm?.h ?? 2;
 
-            // Create layouts with new widget at y:0, FULL WIDTH, and all existing widgets shifted down
-            const lgLayouts = withLayouts.map(w => {
-                const item = createLgLayoutItem(w);
+            // Update widget objects with new positions (new widget at full width, existing shifted down)
+            const updatedWidgets = withLayouts.map(w => {
                 if (w.id === newWidgetId) {
-                    return { ...item, x: 0, y: 0, w: 24 }; // New widget at top, full width
+                    // New widget at top, full width
+                    return {
+                        ...w,
+                        layouts: {
+                            ...w.layouts,
+                            lg: { x: 0, y: 0, w: 24, h: w.layouts?.lg?.h ?? metadata.defaultSize.h },
+                            sm: { x: 0, y: 0, w: 2, h: w.layouts?.sm?.h ?? 2 }
+                        }
+                    };
                 }
-                return { ...item, y: item.y + newLgHeight }; // Shift existing down
+                // Shift existing widgets down
+                return {
+                    ...w,
+                    layouts: {
+                        ...w.layouts,
+                        lg: { ...w.layouts?.lg, y: (w.layouts?.lg?.y ?? 0) + newLgHeight } as WidgetLayout,
+                        sm: { ...w.layouts?.sm, y: (w.layouts?.sm?.y ?? 0) + newSmHeight } as WidgetLayout
+                    }
+                };
             });
 
-            const smLayouts = withLayouts.map(w => {
-                const item = createSmLayoutItem(w);
-                if (w.id === newWidgetId) {
-                    return { ...item, x: 0, y: 0, w: 2 }; // New widget at top, full width
-                }
-                return { ...item, y: item.y + newSmHeight }; // Shift existing down
-            });
+            // Create layouts from updated widgets
+            const lgLayouts = updatedWidgets.map(w => createLgLayoutItem(w));
+            const smLayouts = updatedWidgets.map(w => createSmLayoutItem(w));
 
-            setWidgets(withLayouts);
+            setWidgets(updatedWidgets);
             setLayouts({
                 lg: lgLayouts,
                 sm: smLayouts
