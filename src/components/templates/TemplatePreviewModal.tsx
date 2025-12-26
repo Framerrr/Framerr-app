@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { X, Monitor, Smartphone, Play, Edit2 } from 'lucide-react';
@@ -143,7 +144,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
         ? { sm: GRID_COLS.sm }
         : GRID_COLS;
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
                 <div
@@ -295,6 +296,8 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
             )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 };
 
 export default TemplatePreviewModal;
