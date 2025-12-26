@@ -62,6 +62,25 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
     // Revert confirmation dialog state
     const [showRevertConfirm, setShowRevertConfirm] = useState(false);
 
+    // Templates list for generating default names
+    const [templates, setTemplates] = useState<Template[]>([]);
+
+    // Generate next available default name (Dashboard 1, Dashboard 2, etc.)
+    const generateDefaultName = (templateList: Template[]) => {
+        const existingNumbers = templateList
+            .map(t => {
+                const match = t.name.match(/^Dashboard (\d+)$/);
+                return match ? parseInt(match[1], 10) : null;
+            })
+            .filter((n): n is number => n !== null);
+
+        let nextNumber = 1;
+        while (existingNumbers.includes(nextNumber)) {
+            nextNumber++;
+        }
+        return `Dashboard ${nextNumber}`;
+    };
+
     // Check for backup on mount and when templates are applied
     useEffect(() => {
         const checkBackup = async () => {
@@ -85,15 +104,41 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
     }, [refreshTrigger]);
 
     // Open builder in create mode (empty template)
-    const handleCreateNew = () => {
+    const handleCreateNew = async () => {
         if (isMobile) {
             showError('Desktop Required', 'Template builder is only available on desktop.');
             return;
         }
-        setBuilderMode('create');
-        setCurrentWidgets([]);
-        setEditingTemplate(null);
-        setShowBuilder(true);
+
+        // Fetch latest templates to generate default name
+        try {
+            const response = await axios.get<{ templates: Template[] }>('/api/templates');
+            const templateList = response.data.templates || [];
+            setTemplates(templateList);
+
+            // Set initial data with generated name
+            setBuilderMode('create');
+            setCurrentWidgets([]);
+            setEditingTemplate({
+                id: '',
+                name: generateDefaultName(templateList),
+                description: '',
+                categoryId: undefined,
+                ownerId: '',
+                widgets: [],
+                isDraft: false,
+                createdAt: '',
+                updatedAt: '',
+            } as Template);
+            setShowBuilder(true);
+        } catch (err) {
+            logger.error('Failed to fetch templates:', { error: err });
+            // Fall back to empty name
+            setBuilderMode('create');
+            setCurrentWidgets([]);
+            setEditingTemplate(null);
+            setShowBuilder(true);
+        }
     };
 
     // Open builder in save-current mode (with current dashboard widgets)
@@ -188,6 +233,12 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                     layout: w.layouts?.lg || { x: 0, y: 0, w: 2, h: 2 },
                     config: w.config, // Preserve widget settings (showHeader, flatten, etc.)
                 }))
+            };
+        }
+        if (builderMode === 'create' && editingTemplate) {
+            // Create mode with pre-generated default name
+            return {
+                name: editingTemplate.name,
             };
         }
         if ((builderMode === 'edit' || builderMode === 'duplicate') && editingTemplate) {
@@ -331,7 +382,9 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                 onClose={() => setShowRevertConfirm(false)}
                 onConfirm={executeRevert}
                 title="Revert Dashboard"
-                message="Revert to your previous dashboard?\n\nThis will restore the dashboard you had before applying a template."
+                message={`Revert to your previous dashboard?
+
+This will restore the dashboard you had before applying a template.`}
                 confirmLabel="Revert"
                 variant="danger"
                 isLoading={reverting}

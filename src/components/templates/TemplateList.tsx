@@ -208,14 +208,18 @@ const TemplateList: React.FC<TemplateListProps> = ({
             case 'apply':
                 return {
                     title: 'Apply Template',
-                    message: `Apply "${confirmTemplate.name}" to your dashboard?\n\nYour current dashboard will be backed up and can be restored later.`,
+                    message: `Apply "${confirmTemplate.name}" to your dashboard?
+
+Your current dashboard will be backed up and can be restored later.`,
                     confirmLabel: 'Apply',
                     onConfirm: executeApply,
                 };
             case 'sync':
                 return {
                     title: 'Sync Template',
-                    message: `Sync "${confirmTemplate.name}" with the latest version from @${confirmTemplate.sharedBy}?\n\nYour changes will be overwritten.`,
+                    message: `Sync "${confirmTemplate.name}" with the latest version from @${confirmTemplate.sharedBy}?
+
+Your changes will be overwritten.`,
                     confirmLabel: 'Sync',
                     variant: 'danger' as const,
                     onConfirm: executeSync,
@@ -223,7 +227,9 @@ const TemplateList: React.FC<TemplateListProps> = ({
             case 'revert':
                 return {
                     title: 'Revert Template',
-                    message: `Revert "${confirmTemplate.name}" to the shared version from @${confirmTemplate.sharedBy}?\n\nYour changes will be discarded.`,
+                    message: `Revert "${confirmTemplate.name}" to the shared version from @${confirmTemplate.sharedBy}?
+
+Your changes will be discarded.`,
                     confirmLabel: 'Revert',
                     variant: 'danger' as const,
                     onConfirm: executeRevert,
