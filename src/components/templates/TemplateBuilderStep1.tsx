@@ -209,6 +209,19 @@ const TemplateBuilderStep1: React.FC<Step1Props> = ({
                             </p>
                         </div>
                     </label>
+
+                    {/* Additional messaging when default is enabled */}
+                    {data.isDefault && (
+                        <div className="mt-3 ml-8 p-3 rounded-lg bg-theme-tertiary/30 border border-theme">
+                            <p className="text-sm text-theme-secondary">
+                                <span className="font-medium text-theme-primary">Integrations will be shared automatically.</span>
+                                {' '}When new users are created, any integrations required by this template's widgets will be shared with them.
+                            </p>
+                            <p className="text-xs text-theme-tertiary mt-1">
+                                Sharing can be revoked at any time in Integration Settings.
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -175,24 +175,33 @@ const SharingDropdown = ({
 
         setSaving(true);
         try {
-            // First, revoke all existing shares
-            await axios.delete(`/api/integrations/${name}/share`, { withCredentials: true });
-
-            // Then create new shares based on mode
+            // For 'everyone' or 'none', we make API calls immediately
             if (mode === 'everyone') {
+                // First revoke all existing shares
+                await axios.delete(`/api/integrations/${name}/share`, { withCredentials: true });
+                // Then share with everyone
                 await axios.post(`/api/integrations/${name}/share`, {
                     shareType: 'everyone'
                 }, { withCredentials: true });
                 showSuccess('Sharing Updated', `${name} is now shared with everyone`);
+                await fetchCurrentShares();
+                setIsOpen(false);
             } else if (mode === 'none') {
+                // Revoke all shares
+                await axios.delete(`/api/integrations/${name}/share`, { withCredentials: true });
                 showSuccess('Sharing Revoked', `${name} is no longer shared`);
+                await fetchCurrentShares();
+                setIsOpen(false);
+            } else {
+                // For 'groups' or 'users', just switch the mode locally
+                // User will select specific items, and we'll make API calls on each toggle
+                // First revoke all existing shares to start fresh
+                await axios.delete(`/api/integrations/${name}/share`, { withCredentials: true });
             }
-            // For groups/users, don't close - let user select
 
             setCurrentMode(mode);
             setSelectedUsers([]);
             setSelectedGroups([]);
-            await fetchCurrentShares();
 
             // Notify parent and dispatch event
             onSharingChange?.();

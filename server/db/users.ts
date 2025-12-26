@@ -212,7 +212,54 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
                         }
                     });
 
-                    logger.info('Default template applied to new user (template + dashboard)', {
+                    // 3. Share required integrations with the new user
+                    // Extract unique integration types from template widgets
+                    const integrationTypes = new Set<string>();
+                    for (const widget of defaultTemplate.widgets) {
+                        // Map widget types to integration names
+                        const integrationMap: Record<string, string> = {
+                            'plex': 'plex',
+                            'sonarr': 'sonarr',
+                            'radarr': 'radarr',
+                            'overseerr': 'overseerr',
+                            'qbittorrent': 'qbittorrent',
+                            'sabnzbd': 'sabnzbd',
+                            'systemstatus': 'systemstatus',
+                            'upcomingmedia': 'upcomingmedia',
+                        };
+                        const integrationName = integrationMap[widget.type.toLowerCase()];
+                        if (integrationName) {
+                            integrationTypes.add(integrationName);
+                        }
+                    }
+
+                    // Share each required integration with the new user
+                    if (integrationTypes.size > 0) {
+                        // Dynamic import to avoid circular dependency
+                        const integrationShares = await import('./integrationShares');
+                        for (const integrationName of integrationTypes) {
+                            try {
+                                await integrationShares.shareIntegration(
+                                    integrationName,
+                                    'user',
+                                    [id], // new user's ID as array
+                                    defaultTemplate.ownerId // admin who created the template
+                                );
+                            } catch (shareError) {
+                                // Don't fail if integration sharing fails (might already be shared)
+                                logger.debug('Integration share skipped (may already exist)', {
+                                    integrationName,
+                                    userId: id
+                                });
+                            }
+                        }
+                        logger.info('Integrations shared with new user from default template', {
+                            userId: id,
+                            integrations: Array.from(integrationTypes)
+                        });
+                    }
+
+                    logger.info('Default template applied to new user (template + dashboard + integrations)', {
                         userId: id,
                         templateId: defaultTemplate.id,
                         widgetCount: dashboardWidgets.length
