@@ -191,6 +191,7 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                 description: editingTemplate.description,
                 categoryId: editingTemplate.categoryId,
                 widgets: editingTemplate.widgets,
+                isDefault: editingTemplate.isDefault,
             };
         }
         return undefined;
