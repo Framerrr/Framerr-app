@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-26 01:08 EST  
+**Last Updated:** 2025-12-26 03:31 EST  
 **Branch:** `feature/template-engine`
 
 ---
@@ -18,40 +18,22 @@
 
 ## This Session Completed ✅
 
-### 1. Template Sharing Consolidation
-- Created `shareTemplateWithUser()` helper function in `server/db/templates.ts`
-- Consolidates manual share and auto-share (new user default) flows
-- Now properly strips sensitive configs from widgets (uses `stripSensitiveConfig`)
-- Properly shares required integrations with target users
+### 1. Template Preview Expand Animation
+- Implemented iOS-style shared element transition for template thumbnail → preview modal
+- Uses Framer Motion `layoutId` for seamless animation between thumbnail and modal
+- Consistent open/close animation timing (tween with 0.35s ease curve)
+- Added body scroll lock when modal is open
 
-### 2. isDefault Persistence Fixed
-- Added `isDefault` to Step3.tsx API request body (was missing)
-- PUT endpoint correctly processes and saves isDefault value
-- Issue was Docker caching - confirmed working after rebuild
+### 2. Mobile Modal Positioning Fixed
+- Added `createPortal` to render modal to `document.body` (outside scrollable containers)
+- Modal now properly fixed to screen
+- Max-height accounts for tab bar: `calc(100vh - 86px - safe-area)`
 
-### 3. Debug Logging Added
-- Enhanced logging in PUT `/api/templates/:id` endpoint
-- Enhanced logging in `updateTemplate()` function
-- Logs `isDefaultReceived` and `isDefaultSaved` for tracing
-
----
-
-## ⚠️ REMAINING ISSUES (Template Sharing)
-
-| Issue | Description | Priority |
-|-------|-------------|----------|
-| **Config stripping not verified** | Need to test that shared templates actually have sensitive config stripped (link-grid links, etc.) | P1 |
-| **Integration revoke not verified** | User reported revoke in SharedWidgetsSettings not working - needs investigation | P2 |
-| Link widget | Not working in dev server (needs investigation) | P2 |
-| Legacy config fallback | integrations.ts has config-based sharing fallback | P3 |
-| Deprecated widgets | Skip + badge if widget type no longer exists | P3 |
-
-### Testing Needed
-1. Create template with link-grid widget (has sensitive config)
-2. Share template with user
-3. Verify user's copy has empty config (links stripped)
-4. Test revoking integration sharing in SharedWidgetsSettings
-5. Check server logs for any errors
+### 3. Widget Settings Live Update Fixed
+- Fixed event name mismatch: `widget-config-updated` → `widget-config-changed`
+- ActiveWidgets now dispatches correct event with full config object
+- Dashboard processes config changes outside edit mode (not just in edit mode)
+- Flatten/showHeader changes now apply immediately without refresh
 
 ---
 
@@ -68,26 +50,19 @@
 
 ## Next Session
 
-1. **Verify config stripping** - Test that shared templates have sensitive config removed
-2. **Debug integration revoke** - Investigate SharedWidgetsSettings revoke not working
-3. **Remove debug logging** - Clean up the debug logs added this session once issues resolved
-4. (Optional) Investigate link widget not working in dev server
-5. (Optional) Implement deprecated widget handling
+1. **Test the expand animation** - Verify iOS-style animation works smoothly on real device
+2. **Verify flatten/showHeader** - Test settings update live from Settings page
+3. **Finish remaining polish items** - See TASK_BACKLOG.md
 
 ### Key Files Modified This Session
-- `server/db/templates.ts` - Added `shareTemplateWithUser()` helper
-- `server/routes/templates.ts` - Refactored share endpoint + debug logging
-- `server/db/users.ts` - Replaced inline logic with `shareTemplateWithUser()`
-- `src/components/templates/TemplateBuilderStep3.tsx` - Added isDefault to API request
-
-### Important Context
-- `shareTemplateWithUser()` is now the canonical function for sharing templates
-- It handles: creating copy, stripping sensitive config, sharing integrations
-- `WIDGET_SENSITIVE_CONFIG` in `shared/widgetIntegrations.ts` defines what to strip
-- `stripSensitiveConfig()` uses `.toLowerCase()` so widget types are case-insensitive
+- `src/components/templates/TemplateCard.tsx` - Added `motion.button` with `layoutId`
+- `src/components/templates/TemplatePreviewModal.tsx` - Added Framer Motion, `createPortal`, body scroll lock
+- `src/components/templates/TemplateThumbnail.tsx` - Changed to contain-fit scaling
+- `src/components/settings/ActiveWidgets.tsx` - Fixed event name to `widget-config-changed`
+- `src/pages/Dashboard.tsx` - Removed editMode check from config change handler
 
 ---
 
 ## SESSION END
 
-Session ended: 2025-12-26 01:08 EST
+Session ended: 2025-12-26 03:31 EST
