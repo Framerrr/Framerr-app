@@ -10,11 +10,13 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import axios from 'axios';
+import { Monitor } from 'lucide-react';
 import Modal from '../common/Modal';
 import TemplateBuilderStep1 from './TemplateBuilderStep1';
 import TemplateBuilderStep2 from './TemplateBuilderStep2';
 import TemplateBuilderStep3 from './TemplateBuilderStep3';
 import { Button } from '../common/Button';
+import { useLayout } from '../../context/LayoutContext';
 import logger from '../../utils/logger';
 
 // Types
@@ -68,6 +70,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     onDraftSaved,
     isAdmin = false,
 }) => {
+    const { isMobile } = useLayout();
     const [currentStep, setCurrentStep] = useState(1);
     const [isDirty, setIsDirty] = useState(false);
     const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -254,6 +257,62 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         }
     }, [templateData, onSave, onClose]);
 
+    // Footer content - passed to Modal's footer prop
+    const footerContent = (
+        <div className="flex items-center justify-between">
+            {/* Cancel/Back */}
+            <Button
+                variant="secondary"
+                onClick={currentStep === 1 ? handleClose : handleBack}
+            >
+                {currentStep === 1 ? 'Cancel' : '← Back'}
+            </Button>
+
+            {/* Step indicators */}
+            <div className="flex items-center gap-3">
+                {STEPS.map((step) => (
+                    <button
+                        key={step.id}
+                        onClick={() => handleStepClick(step.id)}
+                        className={`w-3 h-3 rounded-full transition-all border-2 ${currentStep === step.id
+                            ? 'bg-accent border-accent scale-125'
+                            : step.id < currentStep
+                                ? 'bg-accent/60 border-accent/60'
+                                : 'bg-theme-tertiary border-theme'
+                            } cursor-pointer hover:scale-110`}
+                        title={step.label}
+                    />
+                ))}
+            </div>
+
+            {/* Next / Save (edit mode on Step 1) */}
+            <div className="flex items-center gap-2">
+                {/* Show Save button on Step 1 in edit mode if there are changes */}
+                {currentStep === 1 && isEditMode && isDirty && (
+                    <Button
+                        variant="primary"
+                        onClick={handleQuickSave}
+                        disabled={!templateData.name.trim()}
+                    >
+                        Save
+                    </Button>
+                )}
+                {currentStep < 3 && (
+                    <Button
+                        variant={isEditMode && isDirty ? 'secondary' : 'primary'}
+                        onClick={handleNext}
+                        disabled={!canGoNext()}
+                    >
+                        Next →
+                    </Button>
+                )}
+                {currentStep === 3 && (
+                    <div className="w-20" /> // Spacer for layout balance
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <>
             <Modal
@@ -261,118 +320,75 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 onClose={handleClose}
                 title={getTitle()}
                 size={currentStep === 2 ? 'full' : 'lg'}
+                footer={!isMobile ? footerContent : undefined}
             >
-                {/* Main container with fixed footer */}
-                <div className="flex flex-col h-full">
-
-                    {/* Step Content - scrollable area */}
-                    <div className="flex-1 min-h-0 overflow-y-auto py-4 custom-scrollbar">
-                        <AnimatePresence mode="wait">
-                            {currentStep === 1 && (
-                                <motion.div
-                                    key="step1"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <TemplateBuilderStep1
-                                        data={templateData}
-                                        onChange={updateTemplateData}
-                                        isAdmin={isAdmin}
-                                    />
-                                </motion.div>
-                            )}
-                            {currentStep === 2 && (
-                                <motion.div
-                                    key="step2"
-                                    className="h-full"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <TemplateBuilderStep2
-                                        data={templateData}
-                                        onChange={updateTemplateData}
-                                        onDraftSave={saveDraft}
-                                    />
-                                </motion.div>
-                            )}
-                            {currentStep === 3 && (
-                                <motion.div
-                                    key="step3"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <TemplateBuilderStep3
-                                        data={templateData}
-                                        onSave={onSave}
-                                        onShare={onShare}
-                                        onClose={onClose}
-                                        isAdmin={isAdmin}
-                                    />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                {/* Mobile Overlay - shows when viewport is mobile but modal is open */}
+                {isMobile ? (
+                    <div className="flex flex-col items-center justify-center h-64 text-center px-6">
+                        <Monitor size={48} className="text-theme-tertiary mb-4" />
+                        <h3 className="text-lg font-semibold text-theme-primary mb-2">
+                            Desktop Required
+                        </h3>
+                        <p className="text-sm text-theme-secondary mb-4">
+                            The template builder requires a larger screen. Please resize your window or switch to a desktop device.
+                        </p>
+                        <p className="text-xs text-theme-tertiary">
+                            Your work is saved. The builder will reappear when you return to desktop.
+                        </p>
                     </div>
-
-                    {/* Footer with navigation - always visible, never scrolls */}
-                    <div className="flex-shrink-0 flex items-center justify-between py-4 border-t border-theme bg-theme-secondary/50">
-                        {/* Cancel/Back */}
-                        <Button
-                            variant="secondary"
-                            onClick={currentStep === 1 ? handleClose : handleBack}
-                        >
-                            {currentStep === 1 ? 'Cancel' : '← Back'}
-                        </Button>
-
-                        {/* Step indicators */}
-                        <div className="flex items-center gap-3">
-                            {STEPS.map((step) => (
-                                <button
-                                    key={step.id}
-                                    onClick={() => handleStepClick(step.id)}
-                                    className={`w-3 h-3 rounded-full transition-all border-2 ${currentStep === step.id
-                                        ? 'bg-accent border-accent scale-125'
-                                        : step.id < currentStep
-                                            ? 'bg-accent/60 border-accent/60'
-                                            : 'bg-theme-tertiary border-theme'
-                                        } cursor-pointer hover:scale-110`}
-                                    title={step.label}
+                ) : (
+                    /* Step Content - Modal handles scrolling */
+                    <AnimatePresence mode="wait">
+                        {currentStep === 1 && (
+                            <motion.div
+                                key="step1"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <TemplateBuilderStep1
+                                    data={templateData}
+                                    onChange={updateTemplateData}
+                                    isAdmin={isAdmin}
                                 />
-                            ))}
-                        </div>
-
-                        {/* Next / Save (edit mode on Step 1) */}
-                        <div className="flex items-center gap-2">
-                            {/* Show Save button on Step 1 in edit mode if there are changes */}
-                            {currentStep === 1 && isEditMode && isDirty && (
-                                <Button
-                                    variant="primary"
-                                    onClick={handleQuickSave}
-                                    disabled={!templateData.name.trim()}
-                                >
-                                    Save
-                                </Button>
-                            )}
-                            {currentStep < 3 && (
-                                <Button
-                                    variant={isEditMode && isDirty ? 'secondary' : 'primary'}
-                                    onClick={handleNext}
-                                    disabled={!canGoNext()}
-                                >
-                                    Next →
-                                </Button>
-                            )}
-                            {currentStep === 3 && (
-                                <div className="w-20" /> // Spacer for layout balance
-                            )}
-                        </div>
-                    </div>
-                </div>
+                            </motion.div>
+                        )}
+                        {currentStep === 2 && (
+                            <motion.div
+                                key="step2"
+                                className="h-full"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <TemplateBuilderStep2
+                                    data={templateData}
+                                    onChange={updateTemplateData}
+                                    onDraftSave={saveDraft}
+                                />
+                            </motion.div>
+                        )}
+                        {currentStep === 3 && (
+                            <motion.div
+                                key="step3"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <TemplateBuilderStep3
+                                    data={templateData}
+                                    onSave={onSave}
+                                    onShare={onShare}
+                                    onClose={onClose}
+                                    isAdmin={isAdmin}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                )}
             </Modal>
 
             {/* Confirm close modal - different behavior for edit vs create mode */}

@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Save, Layout, RotateCcw } from 'lucide-react';
 import { Button } from '../common/Button';
 import Modal from '../common/Modal';
+import ConfirmDialog from '../common/ConfirmDialog';
 import TemplateBuilder from '../templates/TemplateBuilder';
 import TemplateList from '../templates/TemplateList';
 import TemplateSharingDropdown from '../templates/TemplateSharingDropdown';
@@ -57,6 +58,9 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
 
     // Sharing modal state
     const [sharingTemplate, setSharingTemplate] = useState<Template | null>(null);
+
+    // Revert confirmation dialog state
+    const [showRevertConfirm, setShowRevertConfirm] = useState(false);
 
     // Check for backup on mount and when templates are applied
     useEffect(() => {
@@ -139,12 +143,13 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
         setShowBuilder(true);
     };
 
-    // Revert to previous dashboard
-    const handleRevert = async () => {
-        if (!confirm('Revert to your previous dashboard?\n\nThis will restore the dashboard you had before applying a template.')) {
-            return;
-        }
+    // Revert to previous dashboard - opens confirmation dialog
+    const handleRevert = () => {
+        setShowRevertConfirm(true);
+    };
 
+    // Execute revert after confirmation
+    const executeRevert = async () => {
         try {
             setReverting(true);
             await axios.post('/api/templates/revert');
@@ -153,6 +158,9 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
 
             // Trigger dashboard reload
             window.dispatchEvent(new CustomEvent('widgets-added'));
+
+            // Close dialog
+            setShowRevertConfirm(false);
         } catch (err) {
             logger.error('Failed to revert dashboard:', { error: err });
             showError('Revert Failed', 'Failed to restore previous dashboard.');
@@ -210,27 +218,37 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                     Create and save dashboard layouts as reusable templates.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Create New Template */}
-                    <Button
-                        variant="secondary"
-                        onClick={handleCreateNew}
-                        className="flex items-center justify-center gap-2 w-full py-3"
-                    >
-                        <Plus size={16} />
-                        Create New Template
-                    </Button>
+                {/* Desktop only: Template creation buttons */}
+                {!isMobile && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Create New Template */}
+                        <Button
+                            variant="secondary"
+                            onClick={handleCreateNew}
+                            className="flex items-center justify-center gap-2 w-full py-3"
+                        >
+                            <Plus size={16} />
+                            Create New Template
+                        </Button>
 
-                    {/* Save Current Dashboard */}
-                    <Button
-                        variant="secondary"
-                        onClick={handleSaveCurrent}
-                        className="flex items-center justify-center gap-2 w-full py-3"
-                    >
-                        <Save size={16} />
-                        Save Current Dashboard
-                    </Button>
-                </div>
+                        {/* Save Current Dashboard */}
+                        <Button
+                            variant="secondary"
+                            onClick={handleSaveCurrent}
+                            className="flex items-center justify-center gap-2 w-full py-3"
+                        >
+                            <Save size={16} />
+                            Save Current Dashboard
+                        </Button>
+                    </div>
+                )}
+
+                {/* Mobile: Show info message instead */}
+                {isMobile && (
+                    <p className="text-sm text-theme-tertiary italic">
+                        Template creation and editing is only available on desktop.
+                    </p>
+                )}
 
                 {/* Revert Button */}
                 {hasBackup && (
@@ -306,6 +324,18 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
                     </div>
                 )}
             </Modal>
+
+            {/* Revert Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={showRevertConfirm}
+                onClose={() => setShowRevertConfirm(false)}
+                onConfirm={executeRevert}
+                title="Revert Dashboard"
+                message="Revert to your previous dashboard?\n\nThis will restore the dashboard you had before applying a template."
+                confirmLabel="Revert"
+                variant="danger"
+                isLoading={reverting}
+            />
         </div>
     );
 };

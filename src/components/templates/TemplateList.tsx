@@ -13,6 +13,7 @@ import { Layout, RefreshCw, AlertCircle, Filter } from 'lucide-react';
 import axios from 'axios';
 import TemplateCard, { Template } from './TemplateCard';
 import TemplatePreviewModal from './TemplatePreviewModal';
+import ConfirmDialog from '../common/ConfirmDialog';
 import { Button } from '../common/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
 import logger from '../../utils/logger';
@@ -23,6 +24,9 @@ interface Category {
     id: string;
     name: string;
 }
+
+// Confirmation dialog types
+type ConfirmAction = 'apply' | 'sync' | 'revert' | null;
 
 interface TemplateListProps {
     onEdit: (template: Template) => void;
@@ -49,6 +53,11 @@ const TemplateList: React.FC<TemplateListProps> = ({
     const { success, error: showError } = useNotifications();
     const { isMobile } = useLayout();
 
+    // Confirmation dialog state
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+    const [confirmTemplate, setConfirmTemplate] = useState<Template | null>(null);
+    const [confirmLoading, setConfirmLoading] = useState(false);
+
     // Fetch templates
     const fetchTemplates = useCallback(async () => {
         try {
@@ -69,24 +78,34 @@ const TemplateList: React.FC<TemplateListProps> = ({
         fetchTemplates();
     }, [fetchTemplates, refreshTrigger]);
 
-    // Apply template
-    const handleApply = async (template: Template) => {
-        if (!confirm(`Apply "${template.name}" to your dashboard?\n\nYour current dashboard will be backed up and can be restored later.`)) {
-            return;
-        }
+    // Apply template - opens confirmation dialog
+    const handleApply = (template: Template) => {
+        setConfirmTemplate(template);
+        setConfirmAction('apply');
+    };
+
+    // Execute apply after confirmation
+    const executeApply = async () => {
+        if (!confirmTemplate) return;
 
         try {
-            setApplyingId(template.id);
-            await axios.post(`/api/templates/${template.id}/apply`);
-            success('Template Applied', `"${template.name}" has been applied to your dashboard.`);
+            setConfirmLoading(true);
+            setApplyingId(confirmTemplate.id);
+            await axios.post(`/api/templates/${confirmTemplate.id}/apply`);
+            success('Template Applied', `"${confirmTemplate.name}" has been applied to your dashboard.`);
 
             // Trigger dashboard reload
             window.dispatchEvent(new CustomEvent('widgets-added'));
+
+            // Close dialog
+            setConfirmAction(null);
+            setConfirmTemplate(null);
         } catch (err) {
             logger.error('Failed to apply template', { error: err });
             showError('Apply Failed', 'Failed to apply template. Please try again.');
         } finally {
             setApplyingId(null);
+            setConfirmLoading(false);
         }
     };
 
@@ -115,41 +134,102 @@ const TemplateList: React.FC<TemplateListProps> = ({
         }
     };
 
-    // Sync shared template with parent
-    const handleSync = async (template: Template) => {
-        if (!confirm(`Sync "${template.name}" with the latest version from @${template.sharedBy}?\n\nYour changes will be overwritten.`)) {
-            return;
-        }
+    // Sync shared template with parent - opens confirmation dialog
+    const handleSync = (template: Template) => {
+        setConfirmTemplate(template);
+        setConfirmAction('sync');
+    };
+
+    // Execute sync after confirmation
+    const executeSync = async () => {
+        if (!confirmTemplate) return;
 
         try {
-            const response = await axios.post<{ template: Template }>(`/api/templates/${template.id}/sync`);
+            setConfirmLoading(true);
+            const response = await axios.post<{ template: Template }>(`/api/templates/${confirmTemplate.id}/sync`);
             const updated = response.data.template;
             setTemplates(prev => prev.map(t =>
-                t.id === template.id ? { ...t, ...updated, hasUpdate: false, userModified: false } : t
+                t.id === confirmTemplate.id ? { ...t, ...updated, hasUpdate: false, userModified: false } : t
             ));
-            success('Template Synced', `"${template.name}" has been updated to the latest version.`);
+            success('Template Synced', `"${confirmTemplate.name}" has been updated to the latest version.`);
+
+            // Close dialog
+            setConfirmAction(null);
+            setConfirmTemplate(null);
         } catch (err) {
             logger.error('Failed to sync template', { error: err });
             showError('Sync Failed', 'Failed to sync template. Please try again.');
+        } finally {
+            setConfirmLoading(false);
         }
     };
 
-    // Revert shared template to parent version
-    const handleRevert = async (template: Template) => {
-        if (!confirm(`Revert "${template.name}" to the shared version from @${template.sharedBy}?\n\nYour changes will be discarded.`)) {
-            return;
-        }
+    // Revert shared template to parent version - opens confirmation dialog
+    const handleRevert = (template: Template) => {
+        setConfirmTemplate(template);
+        setConfirmAction('revert');
+    };
+
+    // Execute revert after confirmation
+    const executeRevert = async () => {
+        if (!confirmTemplate) return;
 
         try {
-            const response = await axios.post<{ template: Template }>(`/api/templates/${template.id}/sync`);
+            setConfirmLoading(true);
+            const response = await axios.post<{ template: Template }>(`/api/templates/${confirmTemplate.id}/sync`);
             const updated = response.data.template;
             setTemplates(prev => prev.map(t =>
-                t.id === template.id ? { ...t, ...updated, hasUpdate: false, userModified: false } : t
+                t.id === confirmTemplate.id ? { ...t, ...updated, hasUpdate: false, userModified: false } : t
             ));
-            success('Template Reverted', `"${template.name}" has been restored to the shared version.`);
+            success('Template Reverted', `"${confirmTemplate.name}" has been restored to the shared version.`);
+
+            // Close dialog
+            setConfirmAction(null);
+            setConfirmTemplate(null);
         } catch (err) {
             logger.error('Failed to revert template', { error: err });
             showError('Revert Failed', 'Failed to revert template. Please try again.');
+        } finally {
+            setConfirmLoading(false);
+        }
+    };
+
+    // Close confirmation dialog
+    const closeConfirmDialog = () => {
+        setConfirmAction(null);
+        setConfirmTemplate(null);
+    };
+
+    // Get confirmation dialog config based on action
+    const getConfirmConfig = () => {
+        if (!confirmTemplate) return null;
+
+        switch (confirmAction) {
+            case 'apply':
+                return {
+                    title: 'Apply Template',
+                    message: `Apply "${confirmTemplate.name}" to your dashboard?\n\nYour current dashboard will be backed up and can be restored later.`,
+                    confirmLabel: 'Apply',
+                    onConfirm: executeApply,
+                };
+            case 'sync':
+                return {
+                    title: 'Sync Template',
+                    message: `Sync "${confirmTemplate.name}" with the latest version from @${confirmTemplate.sharedBy}?\n\nYour changes will be overwritten.`,
+                    confirmLabel: 'Sync',
+                    variant: 'danger' as const,
+                    onConfirm: executeSync,
+                };
+            case 'revert':
+                return {
+                    title: 'Revert Template',
+                    message: `Revert "${confirmTemplate.name}" to the shared version from @${confirmTemplate.sharedBy}?\n\nYour changes will be discarded.`,
+                    confirmLabel: 'Revert',
+                    variant: 'danger' as const,
+                    onConfirm: executeRevert,
+                };
+            default:
+                return null;
         }
     };
 
@@ -274,6 +354,24 @@ const TemplateList: React.FC<TemplateListProps> = ({
                     isMobile={isMobile}
                 />
             )}
+
+            {/* Confirmation Dialog */}
+            {(() => {
+                const config = getConfirmConfig();
+                if (!config) return null;
+                return (
+                    <ConfirmDialog
+                        isOpen={!!confirmAction}
+                        onClose={closeConfirmDialog}
+                        onConfirm={config.onConfirm}
+                        title={config.title}
+                        message={config.message}
+                        confirmLabel={config.confirmLabel}
+                        variant={config.variant}
+                        isLoading={confirmLoading}
+                    />
+                );
+            })()}
         </div>
     );
 };

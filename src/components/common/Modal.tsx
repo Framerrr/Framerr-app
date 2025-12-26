@@ -9,6 +9,7 @@ export interface ModalProps {
     onClose: () => void;
     title: React.ReactNode;
     children: React.ReactNode;
+    footer?: React.ReactNode;
     size?: ModalSize;
     className?: string;
 }
@@ -21,6 +22,7 @@ const Modal = ({
     onClose,
     title,
     children,
+    footer,
     size = 'md',
     className = ''
 }: ModalProps): React.JSX.Element | null => {
@@ -88,9 +90,16 @@ const Modal = ({
                 </div>
 
                 {/* Content */}
-                <div className={`flex-1 min-h-0 ${size === 'full' ? 'overflow-hidden p-4' : 'overflow-y-auto p-6 custom-scrollbar'}`}>
+                <div className={`flex-1 min-h-0 ${size === 'full' ? 'overflow-y-auto p-4 custom-scrollbar' : 'overflow-y-auto p-6 custom-scrollbar'}`}>
                     {children}
                 </div>
+
+                {/* Footer (optional) */}
+                {footer && (
+                    <div className="flex-shrink-0 px-6 py-4 border-t border-theme bg-theme-secondary/50">
+                        {footer}
+                    </div>
+                )}
             </div>
         </div>
     );

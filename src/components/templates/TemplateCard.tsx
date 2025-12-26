@@ -145,7 +145,30 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                         Delete
                     </Button>
                 </>
+            ) : template.isDraft ? (
+                // Draft templates: Only Edit and Delete
+                <>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => onEdit(template)}
+                        title="Continue editing draft"
+                    >
+                        <Edit2 size={14} />
+                        Edit
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        title="Delete draft"
+                        className="hover:bg-error/20 hover:text-error hover:border-error"
+                    >
+                        <Trash2 size={14} />
+                    </Button>
+                </>
             ) : (
+                // Published templates: Full action set
                 <>
                     <Button
                         variant="primary"
