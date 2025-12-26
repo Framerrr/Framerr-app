@@ -86,6 +86,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         categoryId: initialData?.categoryId || null,
         widgets: initialData?.widgets || [],
         isDraft: initialData?.isDraft || false,
+        isDefault: initialData?.isDefault || false,
         ...(initialData?.id && { id: initialData.id }),
     });
 
@@ -111,6 +112,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 categoryId: initialData?.categoryId || null,
                 widgets: initialData?.widgets || [],
                 isDraft: initialData?.isDraft || false,
+                isDefault: initialData?.isDefault || false,
                 ...(initialData?.id && { id: initialData.id }),
             });
         }
