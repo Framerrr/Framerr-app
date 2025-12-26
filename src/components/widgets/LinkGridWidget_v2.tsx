@@ -624,7 +624,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             ? 'border-success/70 bg-success/20'
             : isError
                 ? 'border-error/70 bg-error/20'
-                : 'hover:border-accent';
+                : ''; // No default hover - editModeClasses handles it
 
         const classes = `${baseClasses} ${shapeClasses} ${stateClasses}`;
 
@@ -679,7 +679,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
         // Visual feedback for drag state and edit mode
         const isDragOver = dragOverLinkId === link.id;
         const dragClasses = isDragOver ? ' ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary' : '';
-        const editModeClasses = editMode ? ' border-accent/50 hover:border-accent' : '';
+        const editModeClasses = editMode ? ' border-accent/50' : ''; // No hover - causes iOS sticky state
 
         // Regular link
         if (link.type === 'link' || !link.type) {
