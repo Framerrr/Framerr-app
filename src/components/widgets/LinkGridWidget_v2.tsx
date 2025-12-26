@@ -659,75 +659,20 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             height: `${height}px`,
         };
 
-        // Edit mode controls (hover overlay)
-        const renderEditControls = (): React.ReactNode => {
-            if (!editMode) return null;
-
-            // Hide controls during drag operations
-            if (draggedLinkId) return null;
-
-            return (
-                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 rounded-inherit pointer-events-none">
-                    {/* Edit button */}
-                    <button
-                        className="p-2 bg-info hover:bg-info-hover rounded-lg transition-colors pointer-events-auto"
-                        title="Edit link"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setEditingLinkId(link.id);
-                            setShowAddForm(false);
-                            setConfirmDeleteId(null);
-                        }}
-                    >
-                        <Edit2 size={16} className="text-white" />
-                    </button>
-                    {/* Delete button with inline confirmation */}
-                    {confirmDeleteId !== link.id ? (
-                        <button
-                            className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
-                            title="Delete link"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setConfirmDeleteId(link.id);
-                            }}
-                        >
-                            <Trash2 size={16} className="text-white" />
-                        </button>
-                    ) : (
-                        <>
-                            <button
-                                className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
-                                title="Confirm delete"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleDeleteLink(link.id);
-                                }}
-                            >
-                                <Check size={16} className="text-white" />
-                            </button>
-                            <button
-                                className="p-2 bg-theme-tertiary hover:bg-theme-hover rounded-lg transition-colors pointer-events-auto"
-                                title="Cancel"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setConfirmDeleteId(null);
-                                }}
-                            >
-                                <X size={16} className="text-white" />
-                            </button>
-                        </>
-                    )}
-                </div>
-            );
+        // Click handler: open edit modal in edit mode
+        const handleLinkClick = (e: React.MouseEvent): void => {
+            if (editMode) {
+                e.preventDefault();
+                e.stopPropagation();
+                setEditingLinkId(link.id);
+                setShowAddForm(false);
+            }
         };
 
-        // Visual feedback for drag state
+        // Visual feedback for drag state and edit mode
         const isDragOver = dragOverLinkId === link.id;
         const dragClasses = isDragOver ? ' ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary' : '';
+        const editModeClasses = editMode ? ' border-accent/50 hover:border-accent' : '';
 
         // Regular link
         if (link.type === 'link' || !link.type) {
@@ -737,10 +682,10 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                     href={editMode ? undefined : link.url}
                     target={editMode ? undefined : "_blank"}
                     rel={editMode ? undefined : "noopener noreferrer"}
-                    className={`${classes} ${editMode ? 'cursor-grab active:cursor-grabbing' : ''}${dragClasses}`}
+                    className={`${classes}${editModeClasses} ${editMode ? 'cursor-pointer' : ''}${dragClasses}`}
                     style={style}
-                    onClick={(e) => editMode && e.preventDefault()}
-                    draggable={editMode}
+                    onClick={handleLinkClick}
+                    draggable={editMode && !editingLinkId}
                     onDragStart={(e) => editMode && handleDragStart(e, link.id)}
                     onDragEnd={handleDragEnd}
                     onDragEnter={(e) => e.preventDefault()}
@@ -750,7 +695,6 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                 >
                     {renderIcon()}
                     {renderText()}
-                    {renderEditControls()}
                 </a>
             );
         }
@@ -761,15 +705,15 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                 key={link.id}
                 onClick={(e) => {
                     if (editMode) {
-                        e.preventDefault();
+                        handleLinkClick(e);
                         return;
                     }
                     executeAction(link, link.id);
                 }}
                 disabled={isLoading}
-                className={`${classes} ${isLoading ? 'cursor-wait' : editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}${dragClasses}`}
+                className={`${classes}${editModeClasses} ${isLoading ? 'cursor-wait' : editMode ? 'cursor-pointer' : 'cursor-pointer'}${dragClasses}`}
                 style={style}
-                draggable={editMode}
+                draggable={editMode && !editingLinkId}
                 onDragStart={(e) => editMode && handleDragStart(e, link.id)}
                 onDragEnd={handleDragEnd}
                 onDragEnter={(e) => e.preventDefault()}
@@ -779,7 +723,6 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             >
                 {renderIcon()}
                 {renderText()}
-                {renderEditControls()}
             </button>
         );
     };
@@ -1064,10 +1007,41 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
 
                         {/* Form actions */}
                         <div className="flex gap-2 pt-2">
+                            {/* Delete button - only show when editing existing link */}
+                            {editingLinkId && (
+                                confirmDeleteId === editingLinkId ? (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                handleDeleteLink(editingLinkId);
+                                                setEditingLinkId(null);
+                                            }}
+                                            className="px-4 py-2 bg-error hover:bg-error/80 rounded text-sm text-white transition-colors"
+                                        >
+                                            Delete
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            className="px-4 py-2 bg-theme-tertiary hover:bg-theme-hover rounded text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => setConfirmDeleteId(editingLinkId)}
+                                        className="px-4 py-2 bg-error/20 hover:bg-error/30 border border-error/50 rounded text-sm text-error transition-colors"
+                                    >
+                                        Delete
+                                    </button>
+                                )
+                            )}
+                            <div className="flex-1" />
                             <button
                                 onClick={() => {
                                     setShowAddForm(false);
                                     setEditingLinkId(null);
+                                    setConfirmDeleteId(null);
                                     // Reset form
                                     setFormData({
                                         title: '',
