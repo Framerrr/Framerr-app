@@ -1009,6 +1009,62 @@ const Dashboard = (): React.JSX.Element => {
             );
         })() : undefined;
 
+        // Create extra edit controls for clock widget (24H, SS, Date toggles)
+        const clockExtraControls = widget.type === 'clock' ? (() => {
+            const format24h = widget.config?.format24h !== false;
+            const showSeconds = widget.config?.showSeconds !== false;
+            const showDate = widget.config?.showDate !== false;
+
+            const toggleConfig = (key: string, currentValue: boolean) => {
+                window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                    detail: {
+                        widgetId: widget.id,
+                        config: { ...widget.config, [key]: !currentValue }
+                    }
+                }));
+            };
+
+            // Button styling - accent when ON, muted when OFF
+            const getButtonClass = (isOn: boolean) => isOn
+                ? 'w-10 h-10 rounded-lg bg-accent/20 hover:bg-accent/30 flex items-center justify-center text-accent transition-all duration-200'
+                : 'w-10 h-10 rounded-lg bg-theme-tertiary hover:bg-theme-hover flex items-center justify-center text-theme-tertiary transition-all duration-200';
+
+            return (
+                <>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('format24h', format24h); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={getButtonClass(format24h)}
+                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                        title={format24h ? '24-hour format (on)' : '12-hour format (off)'}
+                    >
+                        <span className="text-xs font-bold">24H</span>
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showSeconds', showSeconds); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={getButtonClass(showSeconds)}
+                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                        title={showSeconds ? 'Show seconds (on)' : 'Hide seconds (off)'}
+                    >
+                        <span className="text-xs font-bold">:SS</span>
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showDate', showDate); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={getButtonClass(showDate)}
+                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                        title={showDate ? 'Show date (on)' : 'Hide date (off)'}
+                    >
+                        <span className="text-xs font-bold">Date</span>
+                    </button>
+                </>
+            );
+        })() : undefined;
+
+        // Combine extra controls based on widget type
+        const extraControls = linkGridExtraControls || clockExtraControls;
+
         return (
             <WidgetWrapper
                 id={widget.id}
@@ -1019,7 +1075,7 @@ const Dashboard = (): React.JSX.Element => {
                 onDelete={handleDeleteWidget}
                 flatten={widget.config?.flatten as boolean || false}
                 showHeader={widget.config?.showHeader !== false}
-                extraEditControls={linkGridExtraControls}
+                extraEditControls={extraControls}
             >
                 {/* Debug Y-position badge - only visible when debug overlay enabled */}
                 {debugOverlayEnabled && (

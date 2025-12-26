@@ -19,10 +19,10 @@ export interface ClockWidgetProps {
 
 /**
  * Clock Widget
- * Displays current time with timezone support and inline settings
- * Uses widget-config-changed events for dashboard save flow
+ * Displays current time with timezone support
+ * Edit controls are rendered via WidgetWrapper extraEditControls
  */
-const ClockWidget = ({ config, editMode = false, widgetId }: ClockWidgetProps): React.JSX.Element => {
+const ClockWidget = ({ config }: ClockWidgetProps): React.JSX.Element => {
     const [time, setTime] = useState<Date>(new Date());
     const [isWide, setIsWide] = useState<boolean>(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -57,18 +57,6 @@ const ClockWidget = ({ config, editMode = false, widgetId }: ClockWidgetProps): 
         return () => clearInterval(interval);
     }, [showSeconds]);
 
-    // Dispatch config change to Dashboard (enables save button, cancellable)
-    const updateConfig = (newConfig: Partial<ClockPreferences>): void => {
-        if (!widgetId) return;
-
-        window.dispatchEvent(new CustomEvent('widget-config-changed', {
-            detail: {
-                widgetId,
-                config: { ...config, ...newConfig }
-            }
-        }));
-    };
-
     const formatTime = (date: Date): string => {
         const options: Intl.DateTimeFormatOptions = {
             hour: '2-digit',
@@ -91,32 +79,8 @@ const ClockWidget = ({ config, editMode = false, widgetId }: ClockWidgetProps): 
         return date.toLocaleDateString([], options);
     };
 
-    const toggleButtonClass = "px-3 py-1.5 text-xs font-medium rounded-md border-2 border-dashed transition-all no-drag";
-    const activeToggleClass = "border-accent/50 bg-accent/10 text-accent hover:bg-accent/20";
-    const inactiveToggleClass = "border-slate-600 bg-slate-800/30 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300";
-
     return (
         <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-            {/* Edit Mode Controls */}
-            {editMode && (
-                <div className="absolute top-2 left-2 right-2 flex justify-between z-10">
-                    <button
-                        onClick={() => updateConfig({ format24h: !format24h })}
-                        className={`${toggleButtonClass} ${format24h ? activeToggleClass : inactiveToggleClass}`}
-                        title="Toggle time format"
-                    >
-                        {format24h ? '24H' : '12H'}
-                    </button>
-                    <button
-                        onClick={() => updateConfig({ showSeconds: !showSeconds })}
-                        className={`${toggleButtonClass} ${showSeconds ? activeToggleClass : inactiveToggleClass}`}
-                        title="Toggle seconds display"
-                    >
-                        :SS
-                    </button>
-                </div>
-            )}
-
             {/* Main Content */}
             <div className={`flex ${isWide ? 'flex-row items-center gap-6' : 'flex-col items-center text-center'}`}>
                 {/* Time Display */}
@@ -124,23 +88,12 @@ const ClockWidget = ({ config, editMode = false, widgetId }: ClockWidgetProps): 
                     {formatTime(time)}
                 </div>
 
-                {/* Date & Edit Controls */}
+                {/* Date Display */}
                 <div className={`flex flex-col ${isWide ? 'items-start' : 'items-center mt-3'}`}>
                     {showDate && (
                         <div className={`text-theme-secondary ${isWide ? 'text-sm' : 'text-base'}`}>
                             {formatDate(time)}
                         </div>
-                    )}
-
-                    {/* Date Toggle - only in edit mode */}
-                    {editMode && (
-                        <button
-                            onClick={() => updateConfig({ showDate: !showDate })}
-                            className={`mt-2 ${toggleButtonClass} ${showDate ? activeToggleClass : inactiveToggleClass}`}
-                            title="Toggle date display"
-                        >
-                            {showDate ? 'Hide Date' : 'Show Date'}
-                        </button>
                     )}
                 </div>
             </div>
