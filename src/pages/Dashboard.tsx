@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link, LayoutGrid } from 'lucide-react';
+import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link, LayoutGrid, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -958,6 +958,46 @@ const Dashboard = (): React.JSX.Element => {
         const smLayout = layouts.sm.find(l => l.i === widget.id);
         const yPos = smLayout?.y ?? '?';
 
+        // Create extra edit controls for link-grid widget (justify button)
+        const linkGridExtraControls = widget.type === 'link-grid' ? (() => {
+            const gridJustify = (widget.config?.gridJustify as 'left' | 'center' | 'right') || 'center';
+            const JustifyIcon = gridJustify === 'left' ? AlignLeft
+                : gridJustify === 'center' ? AlignCenter
+                    : AlignRight;
+
+            const handleJustifyToggle = () => {
+                const nextJustify = gridJustify === 'left' ? 'center'
+                    : gridJustify === 'center' ? 'right'
+                        : 'left';
+
+                // Update widget config and trigger save detection
+                window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                    detail: {
+                        widgetId: widget.id,
+                        config: { ...widget.config, gridJustify: nextJustify }
+                    }
+                }));
+            };
+
+            return (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleJustifyToggle();
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="w-10 h-10 rounded-lg bg-accent/20 hover:bg-accent/30 
+                        flex items-center justify-center text-accent hover:text-accent
+                        transition-all duration-200"
+                    style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                    title={`Align: ${gridJustify}`}
+                >
+                    <JustifyIcon size={20} />
+                </button>
+            );
+        })() : undefined;
+
         return (
             <WidgetWrapper
                 id={widget.id}
@@ -968,6 +1008,7 @@ const Dashboard = (): React.JSX.Element => {
                 onDelete={handleDeleteWidget}
                 flatten={widget.config?.flatten as boolean || false}
                 showHeader={widget.config?.showHeader !== false}
+                extraEditControls={linkGridExtraControls}
             >
                 {/* Debug Y-position badge - only visible when debug overlay enabled */}
                 {debugOverlayEnabled && (

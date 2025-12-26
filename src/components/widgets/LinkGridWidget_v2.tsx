@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, DragEvent, CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
-import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, Check, X, LucideIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { ExternalLink, Loader, CheckCircle2, XCircle, Plus, Edit2, Trash2, Check, X, LucideIcon } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import axios, { AxiosRequestConfig } from 'axios';
 import logger from '../../utils/logger';
@@ -740,26 +740,6 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
     // Grid width: always use full columns for consistent left-aligned layout
     const gridWidth = cols * cellSize + (cols - 1) * GRID_GAP;
 
-    // Justify toggle handler - cycles through left → center → right → left
-    const handleJustifyToggle = (): void => {
-        const nextJustify: GridJustify = gridJustify === 'left' ? 'center'
-            : gridJustify === 'center' ? 'right'
-                : 'left';
-
-        // Dispatch event to update Dashboard's local state
-        window.dispatchEvent(new CustomEvent('widget-config-changed', {
-            detail: {
-                widgetId,
-                config: { ...config, gridJustify: nextJustify }
-            }
-        }));
-    };
-
-    // Get justify icon based on current setting
-    const JustifyIcon = gridJustify === 'left' ? AlignLeft
-        : gridJustify === 'center' ? AlignCenter
-            : AlignRight;
-
     // Get justify class for container
     const justifyClass = gridJustify === 'left' ? 'justify-start'
         : gridJustify === 'center' ? 'justify-center'
@@ -770,20 +750,6 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             ref={containerRef}
             className={`relative w-full h-full flex items-center ${justifyClass} ${editMode ? 'no-drag' : ''}`}
         >
-            {/* Justify toggle button - edit mode only, positioned below where delete button would be */}
-            {editMode && (
-                <button
-                    onClick={handleJustifyToggle}
-                    className="absolute top-[44px] right-2 z-50 w-8 h-8 rounded-md bg-accent/20 hover:bg-accent/30 
-                        flex items-center justify-center text-accent hover:text-accent
-                        transition-all duration-200 no-drag"
-                    style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    title={`Align: ${gridJustify}`}
-                >
-                    <JustifyIcon size={16} />
-                </button>
-            )}
 
             {/* Empty state */}
             {links.length === 0 && !editMode ? (
