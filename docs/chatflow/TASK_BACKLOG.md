@@ -7,16 +7,23 @@
 
 ## 🔴 High Priority
 
-### Security: Integration Proxy Architecture
+### 1. Security: Integration Proxy Architecture
 - [ ] Refactor integration API calls to route through backend
 - [ ] Users should USE integrations without SEEING credentials
 - [ ] Current issue: `/api/integrations/shared` exposes apiKey, token, password
 - [ ] Widgets call backend → backend calls external service with credentials
-- **Priority:** P1 Security
+- **Priority:** P1 Security - NEXT UP
+
+### 2. Dashboard Undo/Redo System
+- [ ] Port undo/redo functionality from Template Builder to main Dashboard
+- [ ] Track widget add/remove/move/resize operations
+- [ ] Keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z)
+- [ ] Visual undo/redo buttons in edit mode toolbar
+- [ ] History limit (e.g., last 50 operations)
+- **Priority:** P2 UX - After Integration Proxy
 
 ### ~~Bug: Popovers Activating in Edit Mode~~ ✅
 - [x] Widget popovers should not activate when dashboard is in edit mode
-- ~~Affects: Sonarr, Radarr, qBittorrent, Calendar widgets~~ + System Status
 
 ### ~~Navigation Improvements (Mobile)~~ ✅
 - [x] Dashboard button press → scroll to top if already on dashboard
@@ -28,33 +35,8 @@
 
 ### ~~Dashboard Template Engine~~ ✅ (v1.4.0)
 - [x] Admin creates skeleton dashboard layouts
-- [x] Cool/professional UI for template creation
 - [x] Templates can be assigned to users
-- [x] Admins can use templates themselves
 - [x] Template activation applies layout to user dashboard
-
-### ~~Integrations Settings Tab Reorder~~ ✅
-- [x] Widget Gallery
-- [x] Active Widgets
-- [x] Service Settings
-- [x] Dashboard
-- [x] Shared Widgets
-- [x] My Linked Accounts
-
-### ~~User Management Responsive Fix~~ ✅
-- [x] CRUD table should squish more before horizontal scroll kicks in
-
-### ~~Overseerr + Radarr/Sonarr Webhook Integration~~ ✅
-- [x] Show download progress in Overseerr widget
-- [x] Use webhooks from Radarr/Sonarr to track status
-
-### ~~Modal Layout Consistency~~ ✅
-- [x] Spacing consistency across modals
-- [x] Indentation consistency
-- [x] Wording/copy consistency
-
-### ~~Link Grid Widget Refinements~~ ✅
-- [x] Spacing refinements
 
 ### Widget Minimum Sizing Audit
 - [ ] Determine best minimum sizes per widget type
@@ -85,13 +67,70 @@
 
 ---
 
-## 🔮 Future Ideas
+## 🔮 Far-Off Development
 
-### New Widget Brainstorming
-- [ ] Research and identify new useful widgets
-- [ ] Community requests review
+Large features for future consideration:
 
-### New Feature Brainstorming
-- [ ] UX improvements
-- [ ] Power user features
-- [ ] Mobile-specific enhancements
+### Multi-Dashboard Tabs
+- Multiple dashboards per user (Media, System, Home Automation)
+- Quick-switch via swipe or tabs
+- Each dashboard has own layout and widgets
+
+### Dashboard Sharing / Export
+- Export dashboard as shareable config
+- Import dashboards from others
+- Community sharing
+
+### Scheduled Dashboard Views
+- Auto-switch layout based on time of day
+- Morning: Weather, Calendar / Evening: Media widgets
+- User-configurable schedules
+
+### Command Center / Quick Actions
+- Floating action button or swipe-up panel
+- "Request movie", "Pause downloads", "Scan library"
+- User-configurable quick actions
+
+### Widget Alerts & Notification Rules
+- "Alert me when disk usage > 90%"
+- "Notify when download completes"
+- Visual indicators on widgets
+
+### Home Automation Integration
+- Home Assistant widget
+- IoT device status
+- Scene activation ("Movie Mode")
+
+### Activity Feed Widget
+- Unified activity stream
+- Downloads, new media, requests
+- Chronological/filterable view
+
+### User Analytics Dashboard (Admin)
+- Widget usage analytics
+- Template popularity
+- Login activity tracking
+
+### Widget Grouping / Folders
+- Collapsible widget groups
+- "Media" folder expands to show Plex/Sonarr/Radarr
+- Clean up cluttered dashboards
+
+### Public/Guest Mode Dashboard
+- Read-only unauthenticated view
+- Status page / "now playing" display
+
+### Plugin/Extension System
+- Custom widget development spec
+- Load widgets from folder
+- Community plugin repository
+
+### Backup & Disaster Recovery
+- Scheduled automatic backups
+- One-click restore points
+- Export/import entire Framerr config
+
+### AI-Powered Features
+- Natural language queries
+- Smart suggestions
+- Auto-arrange based on usage patterns
