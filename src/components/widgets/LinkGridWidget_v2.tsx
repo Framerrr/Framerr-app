@@ -679,7 +679,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
         // Visual feedback for drag state and edit mode
         const isDragOver = dragOverLinkId === link.id;
         const dragClasses = isDragOver ? ' ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary' : '';
-        const editModeClasses = editMode ? ' border-accent/50' : ''; // No hover - causes iOS sticky state
+        const editModeClasses = ''; // No edit mode styling on links - widget wrapper provides feedback
 
         // Regular link
         if (link.type === 'link' || !link.type) {
