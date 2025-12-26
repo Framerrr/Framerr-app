@@ -318,7 +318,7 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
 router.put('/:id', requireAuth, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
-        const { name, description, categoryId, widgets, thumbnail, isDraft } = req.body;
+        const { name, description, categoryId, widgets, thumbnail, isDraft, isDefault } = req.body;
 
         // Check if this is a shared copy - if so, mark as userModified
         const existing = await templateDb.getTemplateById(req.params.id);
@@ -331,6 +331,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
             widgets,
             thumbnail,
             isDraft,
+            isDefault,
             // Mark as user-modified if this is a shared copy
             ...(isSharedCopy && { userModified: true }),
         });
@@ -663,73 +664,40 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
             }
         }
 
-        // Handle integration sharing if requested
-        let integrationShareResult: { shared: string[]; alreadyShared: string[] } | undefined;
+        // Create user copies for each user using the consolidated helper
+        let integrationsShared: string[] = [];
+        let integrationsAlreadyShared: string[] = [];
 
-        if (shareIntegrations && usersToShare.length > 0) {
-            // Extract required integrations from template widgets using canonical mapping
-            const { getRequiredIntegrations } = await import('../../shared/widgetIntegrations');
-            const widgetTypes = template.widgets.map(w => w.type);
-            const requiredIntegrations = new Set<string>(getRequiredIntegrations(widgetTypes));
-
-            if (requiredIntegrations.size > 0) {
-                integrationShareResult = await integrationSharesDb.shareIntegrationsForUsers(
-                    Array.from(requiredIntegrations),
-                    usersToShare,
-                    authReq.user!.id
-                );
-                logger.info('Integrations shared with template', {
-                    templateId: template.id,
-                    integrations: integrationShareResult.shared,
-                    alreadyShared: integrationShareResult.alreadyShared,
-                    userCount: usersToShare.length
-                });
-            }
-        }
-
-        // Create user copies for each user
         for (const userId of usersToShare) {
-            // Check if user already has a copy
-            const existingCopy = await templateDb.getUserCopyOfTemplate(userId, template.id);
+            try {
+                const result = await templateDb.shareTemplateWithUser(
+                    template,
+                    userId,
+                    authReq.user!.id,
+                    {
+                        stripConfigs: true,
+                        shareIntegrations: !!shareIntegrations,
+                        applyToDashboard: false,
+                    }
+                );
 
-            if (!existingCopy) {
-                try {
-                    // Strip sensitive config from widgets for shared copy
-                    const { stripSensitiveConfig } = await import('../../shared/widgetIntegrations');
-                    const sanitizedWidgets = template.widgets.map(widget => ({
-                        ...widget,
-                        config: stripSensitiveConfig(widget.type, widget.config || {})
-                    }));
-
-                    // Create user's own copy of the template
-                    // Pass parent version so hasUpdate starts as false
-                    const userCopy = await templateDb.createTemplate({
-                        ownerId: userId,
-                        name: template.name,
-                        description: template.description || undefined,
-                        categoryId: template.categoryId || undefined,
-                        widgets: sanitizedWidgets,
-                        sharedFromId: template.id,
-                        version: template.version, // Match parent version so hasUpdate = false
-                        isDraft: false,
-                    });
-
-                    logger.info('User copy created', {
-                        templateId: template.id,
-                        userCopyId: userCopy.id,
-                        userId: userId,
-                        originalOwner: authReq.user!.id
-                    });
-                } catch (copyError) {
-                    logger.error('Failed to create user copy', {
-                        error: (copyError as Error).message,
-                        stack: (copyError as Error).stack,
-                        templateId: template.id,
-                        userId: userId
-                    });
+                // Aggregate integration results
+                if (!result.skipped) {
+                    integrationsShared = [...new Set([...integrationsShared, ...result.integrationsShared])];
                 }
-            } else {
-                logger.debug('User already has copy', { existingCopyId: existingCopy.id, userId: userId });
+
+                logger.info('User copy created via helper', {
+                    templateId: template.id,
+                    userId: userId,
+                    skipped: result.skipped,
+                    integrationsShared: result.integrationsShared
+                });
+            } catch (copyError) {
+                logger.error('Failed to create user copy', {
+                    error: (copyError as Error).message,
+                    templateId: template.id,
+                    userId: userId
+                });
             }
 
             // Send notification (only for specific user shares, not everyone)
@@ -747,6 +715,11 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
                 }
             }
         }
+
+        // Build integration share result for response
+        const integrationShareResult = integrationsShared.length > 0 || integrationsAlreadyShared.length > 0
+            ? { shared: integrationsShared, alreadyShared: integrationsAlreadyShared }
+            : undefined;
 
         logger.info('Template shared', {
             templateId: req.params.id,

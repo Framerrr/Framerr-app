@@ -747,3 +747,128 @@ export async function applyTemplateToUser(
 
     return dashboardWidgets;
 }
+
+// ============================================================================
+// Template Sharing Helper
+// ============================================================================
+
+export interface ShareTemplateOptions {
+    /** Strip sensitive configs from widgets (default: true) */
+    stripConfigs?: boolean;
+    /** Share required integrations with user (default: false) */
+    shareIntegrations?: boolean;
+    /** Apply template to user's dashboard (default: false) */
+    applyToDashboard?: boolean;
+    /** Create backup before applying (default: true, ignored if applyToDashboard=false) */
+    createBackup?: boolean;
+}
+
+export interface ShareTemplateResult {
+    templateCopy: DashboardTemplate | null;
+    integrationsShared: string[];
+    skipped: boolean;
+    reason?: string;
+}
+
+/**
+ * Share a template with a user - creates user's copy with sanitized config.
+ * 
+ * Used by:
+ * - Manual share endpoint (POST /api/templates/:id/share)
+ * - Auto-share for new users (default template)
+ * 
+ * @param template - The template to share
+ * @param targetUserId - User to share with
+ * @param sharedByAdminId - Admin performing the share
+ * @param options - Sharing options
+ */
+export async function shareTemplateWithUser(
+    template: DashboardTemplate,
+    targetUserId: string,
+    sharedByAdminId: string,
+    options: ShareTemplateOptions = {}
+): Promise<ShareTemplateResult> {
+    const {
+        stripConfigs = true,
+        shareIntegrations = false,
+        applyToDashboard = false,
+        createBackup = true,
+    } = options;
+
+    // Check if user already has a copy
+    const existingCopy = await getUserCopyOfTemplate(targetUserId, template.id);
+    if (existingCopy) {
+        logger.debug('User already has template copy', { userId: targetUserId, templateId: template.id });
+        return {
+            templateCopy: existingCopy,
+            integrationsShared: [],
+            skipped: true,
+            reason: 'User already has a copy of this template'
+        };
+    }
+
+    // Strip sensitive configs if requested
+    let sanitizedWidgets = template.widgets;
+    if (stripConfigs) {
+        const { stripSensitiveConfig } = await import('../../shared/widgetIntegrations');
+        sanitizedWidgets = template.widgets.map(widget => ({
+            ...widget,
+            config: stripSensitiveConfig(widget.type, widget.config || {})
+        }));
+    }
+
+    // Create user's copy of the template
+    const userCopy = await createTemplate({
+        ownerId: targetUserId,
+        name: template.name,
+        description: template.description || undefined,
+        categoryId: template.categoryId || undefined,
+        widgets: sanitizedWidgets,
+        sharedFromId: template.id,
+        version: template.version, // Match parent version so hasUpdate = false
+        isDraft: false,
+    });
+
+    logger.info('Template copy created for user', {
+        templateId: template.id,
+        userCopyId: userCopy.id,
+        userId: targetUserId,
+        configsStripped: stripConfigs
+    });
+
+    // Share required integrations if requested
+    let integrationsShared: string[] = [];
+    if (shareIntegrations) {
+        const { getRequiredIntegrations } = await import('../../shared/widgetIntegrations');
+        const widgetTypes = template.widgets.map(w => w.type);
+        const requiredIntegrations = getRequiredIntegrations(widgetTypes);
+
+        if (requiredIntegrations.length > 0) {
+            const integrationSharesDb = await import('./integrationShares');
+            const result = await integrationSharesDb.shareIntegrationsForUsers(
+                requiredIntegrations,
+                [targetUserId],
+                sharedByAdminId
+            );
+            integrationsShared = result.shared;
+
+            logger.info('Integrations shared with user', {
+                templateId: template.id,
+                userId: targetUserId,
+                shared: result.shared,
+                alreadyShared: result.alreadyShared
+            });
+        }
+    }
+
+    // Apply to dashboard if requested
+    if (applyToDashboard) {
+        await applyTemplateToUser(template, targetUserId, createBackup);
+    }
+
+    return {
+        templateCopy: userCopy,
+        integrationsShared,
+        skipped: false
+    };
+}

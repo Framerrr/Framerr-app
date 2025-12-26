@@ -171,64 +171,26 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
             try {
                 const defaultTemplate = await templateDb.getDefaultTemplate();
                 if (defaultTemplate) {
-                    // 1. Create a copy of the default template for the user's template list
-                    await templateDb.createTemplate({
-                        ownerId: id,
-                        name: defaultTemplate.name,
-                        description: defaultTemplate.description || undefined,
-                        categoryId: defaultTemplate.categoryId || undefined,
-                        widgets: defaultTemplate.widgets,
-                        sharedFromId: defaultTemplate.id,
-                        version: defaultTemplate.version,
-                        isDraft: false,
-                    });
-
-                    // 2. Apply template widgets to user's actual dashboard
-                    // Use the shared helper function (same as POST /api/templates/:id/apply)
-                    const dashboardWidgets = await templateDb.applyTemplateToUser(
+                    // Use consolidated helper for template sharing
+                    // Handles: copy creation, config stripping, integration sharing, dashboard apply
+                    const result = await templateDb.shareTemplateWithUser(
                         defaultTemplate,
                         id,
-                        false // Don't create backup for new users (they have no existing dashboard)
-                    );
-
-                    // 3. Share required integrations with the new user
-                    // Use canonical widget-integration mapping
-                    const { getRequiredIntegrations } = await import('../../shared/widgetIntegrations');
-                    const widgetTypes = defaultTemplate.widgets.map(w => w.type);
-                    const requiredIntegrations = getRequiredIntegrations(widgetTypes);
-
-                    // Share each required integration with the new user
-                    if (requiredIntegrations.length > 0) {
-                        // Dynamic import to avoid circular dependency
-                        const integrationShares = await import('./integrationShares');
-                        for (const integrationName of requiredIntegrations) {
-                            try {
-                                await integrationShares.shareIntegration(
-                                    integrationName,
-                                    'user',
-                                    [id], // new user's ID as array
-                                    defaultTemplate.ownerId // admin who created the template
-                                );
-                                logger.info('Integration shared with new user', { integrationName, userId: id });
-                            } catch (shareError) {
-                                // Log the actual error to help diagnose
-                                logger.warn('Failed to share integration with new user', {
-                                    integrationName,
-                                    userId: id,
-                                    error: (shareError as Error).message
-                                });
-                            }
+                        defaultTemplate.ownerId,
+                        {
+                            stripConfigs: true,       // Strip sensitive config (links, custom HTML)
+                            shareIntegrations: true,  // Share required integrations
+                            applyToDashboard: true,   // Apply to user's dashboard
+                            createBackup: false       // No backup for new users
                         }
-                        logger.info('Integrations shared with new user from default template', {
-                            userId: id,
-                            integrations: requiredIntegrations
-                        });
-                    }
+                    );
 
                     logger.info('Default template applied to new user', {
                         userId: id,
                         templateId: defaultTemplate.id,
-                        widgetCount: dashboardWidgets.length
+                        templateCopyId: result.templateCopy?.id,
+                        integrationsShared: result.integrationsShared,
+                        skipped: result.skipped
                     });
                 }
             } catch (templateError) {
