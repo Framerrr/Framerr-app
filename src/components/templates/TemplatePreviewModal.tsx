@@ -151,7 +151,10 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                     <motion.div
                         layoutId={`template-preview-${template.id}`}
                         className="relative z-10 w-full max-w-4xl max-h-[90vh] mx-4 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden"
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        layout
+                        transition={{
+                            layout: { type: 'spring', damping: 25, stiffness: 200, duration: 0.4 }
+                        }}
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-theme">
