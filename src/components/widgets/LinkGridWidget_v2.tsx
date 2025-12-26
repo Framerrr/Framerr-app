@@ -774,14 +774,14 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             {editMode && (
                 <button
                     onClick={handleJustifyToggle}
-                    className="absolute top-14 right-2 z-50 w-10 h-10 rounded-lg bg-accent/20 hover:bg-accent/30 
+                    className="absolute top-[44px] right-2 z-50 w-8 h-8 rounded-md bg-accent/20 hover:bg-accent/30 
                         flex items-center justify-center text-accent hover:text-accent
                         transition-all duration-200 no-drag"
                     style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                     onPointerDown={(e) => e.stopPropagation()}
                     title={`Align: ${gridJustify}`}
                 >
-                    <JustifyIcon size={20} />
+                    <JustifyIcon size={16} />
                 </button>
             )}
 
