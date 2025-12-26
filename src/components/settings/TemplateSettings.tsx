@@ -148,13 +148,30 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
             return;
         }
         try {
-            // Fetch current dashboard widgets
-            const response = await axios.get<{ widgets: WidgetData[] }>('/api/widgets');
-            const widgets = response.data.widgets || [];
+            // Fetch current dashboard widgets and templates in parallel
+            const [widgetsResponse, templatesResponse] = await Promise.all([
+                axios.get<{ widgets: WidgetData[] }>('/api/widgets'),
+                axios.get<{ templates: Template[] }>('/api/templates'),
+            ]);
+
+            const widgets = widgetsResponse.data.widgets || [];
+            const templateList = templatesResponse.data.templates || [];
+            setTemplates(templateList);
 
             setBuilderMode('save-current');
             setCurrentWidgets(widgets);
-            setEditingTemplate(null);
+            // Set editingTemplate with generated name for save-current mode
+            setEditingTemplate({
+                id: '',
+                name: generateDefaultName(templateList),
+                description: '',
+                categoryId: undefined,
+                ownerId: '',
+                widgets: [],
+                isDraft: false,
+                createdAt: '',
+                updatedAt: '',
+            } as Template);
             setShowBuilder(true);
         } catch (error) {
             logger.error('Failed to get current widgets:', { error });
@@ -228,6 +245,7 @@ const TemplateSettings: React.FC<TemplateSettingsProps> = ({ className = '' }) =
     const getBuilderInitialData = () => {
         if (builderMode === 'save-current') {
             return {
+                name: editingTemplate?.name, // Include pre-generated default name
                 widgets: currentWidgets.map(w => ({
                     type: w.type,
                     layout: w.layouts?.lg || { x: 0, y: 0, w: 2, h: 2 },
