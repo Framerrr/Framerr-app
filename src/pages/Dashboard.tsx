@@ -156,6 +156,14 @@ const Dashboard = (): React.JSX.Element => {
     const gridBreakpoints: { [key: string]: number } = isMobile ? { sm: 0 } : { lg: 768, sm: 0 };
     const gridCols: { [key: string]: number } = isMobile ? { sm: 2 } : { lg: 24, sm: 2 };
 
+    // Reset touch drag state when exiting edit mode
+    // This ensures the 'widget-drag-ready' visual class is cleared from all widgets
+    useEffect(() => {
+        if (!editMode) {
+            resetDragReady();
+        }
+    }, [editMode, resetDragReady]);
+
     // Load data on mount
     useEffect(() => {
         fetchWidgets();
