@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Edit2, Copy, Trash2, Play, Check, X, Clock, Share2, Star, RefreshCw, RotateCcw, Tag } from 'lucide-react';
 import { Button } from '../common/Button';
 import TemplateThumbnail from './TemplateThumbnail';
@@ -255,13 +256,14 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 {/* Row 1: Thumbnail + Name + Badges */}
                 <div className="flex items-center gap-3">
                     {/* Thumbnail */}
-                    <button
+                    <motion.button
+                        layoutId={`template-preview-${template.id}`}
                         onClick={() => onPreview?.(template)}
                         className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden hover:ring-2 hover:ring-accent/50 transition-all cursor-pointer"
                         title="Preview template"
                     >
                         <TemplateThumbnail widgets={template.widgets} width={64} height={64} />
-                    </button>
+                    </motion.button>
 
                     {/* Name + Category */}
                     <div className="flex-1 min-w-0">
@@ -315,13 +317,14 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             : 'bg-theme-primary border-theme hover:border-accent/50'
             }`}>
             {/* Thumbnail - clickable to preview */}
-            <button
+            <motion.button
+                layoutId={`template-preview-${template.id}`}
                 onClick={() => onPreview?.(template)}
                 className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden hover:ring-2 hover:ring-accent/50 transition-all cursor-pointer"
                 title="Preview template"
             >
                 <TemplateThumbnail widgets={template.widgets} width={80} height={80} />
-            </button>
+            </motion.button>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
