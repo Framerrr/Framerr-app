@@ -363,7 +363,12 @@ export async function updateTemplate(id: string, ownerId: string, data: UpdateTe
         const updateQuery = `UPDATE dashboard_templates SET ${updates.join(', ')} WHERE id = ?`;
         db.prepare(updateQuery).run(...params);
 
-        logger.debug('Template updated', { id, updates: Object.keys(data) });
+        logger.debug('Template updated', {
+            id,
+            updates: Object.keys(data),
+            isDefaultValue: data.isDefault,
+            isDefaultType: typeof data.isDefault
+        });
 
         return getTemplateById(id);
     } catch (error) {

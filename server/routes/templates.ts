@@ -341,7 +341,13 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
-        logger.info('Template updated', { id: template.id, userId: authReq.user!.id, isSharedCopy });
+        logger.info('Template updated', {
+            id: template.id,
+            userId: authReq.user!.id,
+            isSharedCopy,
+            isDefaultReceived: isDefault,
+            isDefaultSaved: template.isDefault
+        });
         res.json({ template });
     } catch (error) {
         logger.error('Failed to update template', { error: (error as Error).message, id: req.params.id });
