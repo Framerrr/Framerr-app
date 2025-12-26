@@ -1,6 +1,6 @@
 # Session State
 
-**Last Updated:** 2025-12-25 22:38 EST  
+**Last Updated:** 2025-12-25 23:10 EST  
 **Branch:** `feature/template-engine`
 
 ---
@@ -16,23 +16,24 @@
 
 ---
 
-## Widget-Integration Mapping Refactor - COMPLETE ✅
+## This Session Completed ✅
 
-Created canonical widget-integration mapping at `shared/widgetIntegrations.ts`:
+### 1. Widget-Integration Mapping Centralized
+- Created `shared/widgetIntegrations.ts` - single source of truth
+- Updated `server/db/users.ts` to use `getRequiredIntegrations()`
+- Updated `server/routes/templates.ts` to use shared module + `applyTemplateToUser()`
+- Removed hardcoded maps from 4 locations
+- Removed inactive integrations (sabnzbd, upcomingmedia)
 
-### Changes Made
-- **New module:** `shared/widgetIntegrations.ts` - Single source of truth
-- **Updated:** `server/db/users.ts` - Uses `getRequiredIntegrations()` helper
-- **Updated:** `server/routes/templates.ts` - Uses shared module + `applyTemplateToUser()` helper
-- **Removed:** Hardcoded maps from 3 locations (~35 LOC reduction)
-- **Removed:** Inactive integrations (`sabnzbd`, `upcomingmedia`)
+### 2. SharingDropdown UX Aligned with TemplateSharingDropdown
+- Added explicit Save/Cancel buttons (no immediate API calls)
+- Shows user list in Everyone mode (all checked)
+- Auto-switch between everyone/per-user modes on (de)selection
+- Proper `hasChanges` detection for Save button state
 
-### Files Modified
-| File | Change |
-|------|--------|
-| `shared/widgetIntegrations.ts` | **NEW** - Canonical mapping |
-| `server/db/users.ts` | Uses shared module |
-| `server/routes/templates.ts` | Uses shared module + helper |
+### 3. Default Template Checkbox Persistence Fixed
+- Added `isDefault` to TemplateBuilder.tsx initialization (2 locations)
+- Added `isDefault` to TemplateSettings.tsx `getBuilderInitialData()`
 
 ---
 
@@ -40,15 +41,31 @@ Created canonical widget-integration mapping at `shared/widgetIntegrations.ts`:
 
 | Issue | Description | Priority |
 |-------|-------------|----------|
-| Link widget | Not working in dev server | P1 |
+| Link widget | Not working in dev server (needs investigation) | P1 |
 | Legacy config fallback | integrations.ts has config-based sharing fallback | P3 |
+| Deprecated widgets | Skip + badge if widget type no longer exists | P3 |
+
+---
+
+## Template Engine Status
+
+| Phase | Status |
+|-------|--------|
+| Phase 1-7 (Core) | ✅ DONE |
+| Phase 8 (Polish) | ⚠️ Partial |
+
+**The core template engine is complete.** Remaining work is refinement.
 
 ---
 
 ## Next Session
 
-1. Investigate link widget in dev server
-2. (Optional) Remove legacy config-based sharing fallback from integrations.ts
+1. Investigate link widget not working in dev server
+2. (Optional) Implement deprecated widget handling
+3. (Optional) Remove legacy config-based sharing fallback
+
+### Key Files Created This Session
+- `shared/widgetIntegrations.ts` - CANONICAL widget-integration mapping
 
 ### Important Context
 - `shared/widgetIntegrations.ts` is the CANONICAL source for widget-integration mapping
@@ -59,5 +76,4 @@ Created canonical widget-integration mapping at `shared/widgetIntegrations.ts`:
 
 ## SESSION END
 
-Session ended: 2025-12-25 22:38 EST
-
+Session ended: 2025-12-25 23:10 EST
