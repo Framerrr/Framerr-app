@@ -1034,18 +1034,18 @@ const Dashboard = (): React.JSX.Element => {
                     <button
                         onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('format24h', format24h); }}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className={getButtonClass(format24h)}
+                        className={getButtonClass(!format24h)}
                         style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
-                        title={format24h ? '24-hour format (on)' : '12-hour format (off)'}
+                        title={format24h ? '24-hour format' : '12-hour format'}
                     >
                         <span className="text-xs font-bold">24H</span>
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showSeconds', showSeconds); }}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className={getButtonClass(showSeconds)}
+                        className={getButtonClass(!showSeconds)}
                         style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
-                        title={showSeconds ? 'Show seconds (on)' : 'Hide seconds (off)'}
+                        title={showSeconds ? 'Seconds shown' : 'Seconds hidden'}
                     >
                         <span className="text-xs font-bold">:SS</span>
                     </button>
