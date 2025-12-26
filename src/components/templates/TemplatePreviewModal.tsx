@@ -7,7 +7,7 @@
  * - Apply and Edit buttons
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { X, Monitor, Smartphone, Play, Edit2 } from 'lucide-react';
@@ -46,6 +46,16 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
 }) => {
     // On mobile, force mobile view only
     const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? 'mobile' : 'desktop');
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     // Convert template widgets to grid layouts
     const layouts = useMemo(() => {
@@ -137,8 +147,13 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
         <AnimatePresence>
             {isOpen && (
                 <div
-                    className={`fixed inset-0 z-50 flex ${isMobile ? 'items-start pt-4' : 'items-center'} justify-center`}
-                    style={isMobile ? { bottom: 'calc(86px + env(safe-area-inset-bottom, 0px))' } : undefined}
+                    className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden"
+                    style={isMobile ? {
+                        top: 'env(safe-area-inset-top, 0px)',
+                        bottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
+                        left: 0,
+                        right: 0
+                    } : undefined}
                 >
                     {/* Backdrop */}
                     <motion.div
@@ -153,12 +168,10 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                     {/* Modal - animated from thumbnail */}
                     <motion.div
                         layoutId={`template-preview-${template.id}`}
-                        className="relative z-10 w-full max-w-4xl mx-4 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden"
-                        style={{
-                            maxHeight: isMobile
-                                ? 'calc(100% - 16px)'  // Fill available space minus margin
-                                : '90vh'
-                        }}
+                        className={`relative z-10 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden ${isMobile
+                            ? 'w-full h-full m-2 rounded-2xl'
+                            : 'w-full max-w-4xl mx-4 max-h-[90vh]'
+                            }`}
                         layout
                         transition={{
                             layout: { type: 'tween', ease: [0.4, 0, 0.2, 1], duration: 0.35 }
