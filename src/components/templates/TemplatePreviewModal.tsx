@@ -136,7 +136,10 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div
+                    className={`fixed inset-0 z-50 flex ${isMobile ? 'items-start pt-4' : 'items-center'} justify-center`}
+                    style={isMobile ? { bottom: 'calc(86px + env(safe-area-inset-bottom, 0px))' } : undefined}
+                >
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -153,7 +156,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                         className="relative z-10 w-full max-w-4xl mx-4 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden"
                         style={{
                             maxHeight: isMobile
-                                ? 'calc(100vh - 86px - 24px - env(safe-area-inset-bottom, 0px))'  // Tab bar + margin + safe area
+                                ? 'calc(100% - 16px)'  // Fill available space minus margin
                                 : '90vh'
                         }}
                         layout
