@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell, LucideIcon } from 'lucide-react';
+import { User, Layout, Settings as SettingsIcon, Users, Cpu, Shield, FolderTree, Puzzle, Bell, LayoutDashboard, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence, Transition } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -19,6 +19,7 @@ import WidgetsSettings from '../components/settings/WidgetsSettings';
 import TabGroupsSettings from '../components/settings/TabGroupsSettings';
 import AuthSettings from '../components/settings/AuthSettings';
 import AdvancedSettings from '../components/settings/AdvancedSettings';
+import DashboardSettingsPage from '../components/settings/DashboardSettingsPage';
 
 interface SettingsTab {
     id: string;
@@ -83,6 +84,7 @@ const UserSettings = (): React.JSX.Element => {
         { id: 'tabs', label: 'My Tabs', icon: Layout },
         ...(hasAdminAccess ? [{ id: 'tabgroups', label: 'Tab Groups', icon: FolderTree }] : []),
         { id: 'integrations', label: 'Integrations', icon: Puzzle },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'customization', label: 'Customization', icon: SettingsIcon },
         { id: 'profile', label: 'Profile', icon: User },
         { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -151,11 +153,11 @@ const UserSettings = (): React.JSX.Element => {
                             }}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap text-sm font-medium relative text-theme-secondary hover:text-theme-primary"
                         >
-                            {/* Animated sliding indicator */}
+                            {/* Animated sliding indicator - z-0 ensures it's behind text (z-10) even during iOS animations */}
                             {isActive && (
                                 <motion.div
                                     layoutId="settingsTabIndicator"
-                                    className="absolute inset-0 bg-accent rounded-lg"
+                                    className="absolute inset-0 bg-accent rounded-lg z-0"
                                     transition={tabSpring}
                                 />
                             )}
@@ -182,6 +184,17 @@ const UserSettings = (): React.JSX.Element => {
                             transition={contentSpring}
                         >
                             <UserTabsSettings />
+                        </motion.div>
+                    )}
+                    {activeTab === 'dashboard' && (
+                        <motion.div
+                            key="dashboard"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={contentSpring}
+                        >
+                            <DashboardSettingsPage />
                         </motion.div>
                     )}
                     {activeTab === 'customization' && (

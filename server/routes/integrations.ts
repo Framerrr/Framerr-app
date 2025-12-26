@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { getSystemConfig, updateSystemConfig } from '../db/systemConfig';
 import { getUserById } from '../db/users';
+import * as integrationSharesDb from '../db/integrationShares';
 import logger from '../utils/logger';
 import axios from 'axios';
 import { translateHostUrl } from '../utils/urlHelper';
@@ -44,6 +45,8 @@ interface TestResult {
 /**
  * GET /api/integrations/shared
  * Get integrations shared with the current user
+ * 
+ * Uses database-backed sharing (integration_shares table) as the source of truth.
  */
 router.get('/shared', requireAuth, async (req: Request, res: Response) => {
     try {
@@ -53,51 +56,45 @@ router.get('/shared', requireAuth, async (req: Request, res: Response) => {
         const userId = authReq.user!.id;
         const userGroup = authReq.user!.group;
 
+        // Get user's accessible integrations from database
+        const dbAccessible = await integrationSharesDb.getUserAccessibleIntegrations(userId, userGroup);
+        const dbAccessibleSet = new Set(dbAccessible);
+
         const sharedIntegrations: unknown[] = [];
 
         for (const [serviceName, serviceConfig] of Object.entries(integrations)) {
-            const config = serviceConfig as IntegrationConfig;
-            if (!config.enabled) continue;
+            const intConfig = serviceConfig as IntegrationConfig;
+            if (!intConfig.enabled) continue;
 
-            const sharing = config.sharing;
-            if (!sharing || !sharing.enabled) continue;
+            // Check database for access
+            const hasAccess = dbAccessibleSet.has(serviceName);
+            if (!hasAccess) continue;
 
-            let hasAccess = false;
+            // Get sharedBy info from the specific share that grants this user access
+            let sharedByName = 'Admin';
+            let sharedAt: string | null = null;
 
-            switch (sharing.mode) {
-                case 'everyone':
-                    hasAccess = true;
-                    break;
-                case 'groups':
-                    hasAccess = sharing.groups?.includes(userGroup) ?? false;
-                    break;
-                case 'users':
-                    hasAccess = sharing.users?.includes(userId) ?? false;
-                    break;
-            }
-
-            if (hasAccess) {
-                let sharedByName = 'Admin';
-                if (sharing.sharedBy) {
-                    try {
-                        const sharedByUser = await getUserById(sharing.sharedBy);
-                        if (sharedByUser) {
-                            sharedByName = sharedByUser.displayName || sharedByUser.username;
-                        }
-                    } catch {
-                        // Fallback to 'Admin'
+            const share = await integrationSharesDb.getShareForUser(serviceName, userId, userGroup);
+            if (share) {
+                try {
+                    const sharedByUser = await getUserById(share.sharedBy);
+                    if (sharedByUser) {
+                        sharedByName = sharedByUser.displayName || sharedByUser.username;
                     }
+                } catch {
+                    // Fallback to 'Admin'
                 }
-
-                const { sharing: _omit, ...configWithoutSharing } = config;
-                sharedIntegrations.push({
-                    name: serviceName,
-                    ...configWithoutSharing,
-                    enabled: true,
-                    sharedBy: sharedByName,
-                    sharedAt: sharing.sharedAt || null
-                });
+                sharedAt = share.createdAt;
             }
+
+            const { sharing: _omit, ...configWithoutSharing } = intConfig;
+            sharedIntegrations.push({
+                name: serviceName,
+                ...configWithoutSharing,
+                enabled: true,
+                sharedBy: sharedByName,
+                sharedAt: sharedAt
+            });
         }
 
         res.json({ integrations: sharedIntegrations });
@@ -388,5 +385,116 @@ async function testSystemStatus(config: { url?: string; token?: string }): Promi
     }
 }
 
+// ============================================================================
+// Integration Sharing Endpoints (Database-backed)
+// ============================================================================
+
+/**
+ * GET /api/integrations/:name/shares
+ * Get all shares for an integration (admin only)
+ */
+router.get('/:name/shares', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const shares = await integrationSharesDb.getIntegrationShares(req.params.name);
+        res.json({ shares });
+    } catch (error) {
+        logger.error('Failed to get integration shares', { error: (error as Error).message, integration: req.params.name });
+        res.status(500).json({ error: 'Failed to get shares' });
+    }
+});
+
+/**
+ * POST /api/integrations/:name/share
+ * Share an integration with users/groups/everyone (admin only)
+ */
+router.post('/:name/share', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const { shareType, targets } = req.body;
+
+        // Validate shareType
+        if (!shareType || !['everyone', 'user', 'group'].includes(shareType)) {
+            res.status(400).json({ error: 'shareType must be "everyone", "user", or "group"' });
+            return;
+        }
+
+        // Validate targets for non-everyone shares
+        if (shareType !== 'everyone' && (!targets || !Array.isArray(targets) || targets.length === 0)) {
+            res.status(400).json({ error: 'targets array required for user/group shares' });
+            return;
+        }
+
+        const shares = await integrationSharesDb.shareIntegration(
+            req.params.name,
+            shareType,
+            targets || [],
+            authReq.user!.id
+        );
+
+        logger.info('Integration shared', {
+            integration: req.params.name,
+            shareType,
+            targetCount: targets?.length || 0,
+            by: authReq.user!.id
+        });
+
+        res.json({ success: true, shares });
+    } catch (error) {
+        logger.error('Failed to share integration', { error: (error as Error).message, integration: req.params.name });
+        res.status(500).json({ error: 'Failed to share integration' });
+    }
+});
+
+/**
+ * DELETE /api/integrations/:name/share
+ * Revoke sharing for an integration (admin only)
+ */
+router.delete('/:name/share', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { shareType, targets } = req.body;
+
+        const deletedCount = await integrationSharesDb.unshareIntegration(
+            req.params.name,
+            shareType,  // Optional: filter by type
+            targets     // Optional: filter by targets
+        );
+
+        logger.info('Integration sharing revoked', {
+            integration: req.params.name,
+            shareType,
+            targets,
+            deletedCount
+        });
+
+        res.json({ success: true, deletedCount });
+    } catch (error) {
+        logger.error('Failed to revoke integration share', { error: (error as Error).message, integration: req.params.name });
+        res.status(500).json({ error: 'Failed to revoke share' });
+    }
+});
+
+/**
+ * GET /api/integrations/all-shares
+ * Get summary of all shared integrations (admin only)
+ * Used by SharedWidgetsSettings to show overview
+ */
+router.get('/all-shares', requireAuth, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+        const sharesByIntegration = await integrationSharesDb.getAllSharedIntegrations();
+
+        // Convert Map to object for JSON response
+        const shares: Record<string, integrationSharesDb.IntegrationShare[]> = {};
+        sharesByIntegration.forEach((value, key) => {
+            shares[key] = value;
+        });
+
+        res.json({ shares });
+    } catch (error) {
+        logger.error('Failed to get all integration shares', { error: (error as Error).message });
+        res.status(500).json({ error: 'Failed to get shares' });
+    }
+});
+
 export default router;
+
 

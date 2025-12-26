@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
 import { db } from '../database/db';
+import * as templateDb from './templates';
+import { updateUserConfig } from './userConfig';
 
 // Default user preferences
 const DEFAULT_PREFERENCES = {
@@ -162,6 +164,40 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
         );
 
         logger.info(`User created: ${userData.username} (${userData.group || 'user'})`);
+
+        // Apply default template for non-admin users
+        const isAdmin = userData.group === 'admin' || userData.isSetupAdmin;
+        if (!isAdmin) {
+            try {
+                const defaultTemplate = await templateDb.getDefaultTemplate();
+                if (defaultTemplate) {
+                    // Use consolidated helper for template sharing
+                    // Handles: copy creation, config stripping, integration sharing, dashboard apply
+                    const result = await templateDb.shareTemplateWithUser(
+                        defaultTemplate,
+                        id,
+                        defaultTemplate.ownerId,
+                        {
+                            stripConfigs: true,       // Strip sensitive config (links, custom HTML)
+                            shareIntegrations: true,  // Share required integrations
+                            applyToDashboard: true,   // Apply to user's dashboard
+                            createBackup: false       // No backup for new users
+                        }
+                    );
+
+                    logger.info('Default template applied to new user', {
+                        userId: id,
+                        templateId: defaultTemplate.id,
+                        templateCopyId: result.templateCopy?.id,
+                        integrationsShared: result.integrationsShared,
+                        skipped: result.skipped
+                    });
+                }
+            } catch (templateError) {
+                // Don't fail user creation if template application fails
+                logger.warn('Failed to apply default template to new user', { error: (templateError as Error).message, userId: id });
+            }
+        }
 
         return {
             id,

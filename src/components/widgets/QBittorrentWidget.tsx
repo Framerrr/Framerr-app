@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import { useEditModeAware } from '../../hooks/useEditModeAware';
+import { useCloseOnScroll } from '../../hooks/useCloseOnScroll';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -75,6 +77,22 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
     const [limit, setLimit] = useState<number>(20);
     const [dlPopoverOpen, setDlPopoverOpen] = useState<boolean>(false);
     const [ulPopoverOpen, setUlPopoverOpen] = useState<boolean>(false);
+    const { editMode } = useEditModeAware();
+
+    // Close popovers on scroll
+    useCloseOnScroll(dlPopoverOpen, () => setDlPopoverOpen(false));
+    useCloseOnScroll(ulPopoverOpen, () => setUlPopoverOpen(false));
+
+    // Block popover from opening when in edit mode
+    const handleDlPopoverChange = (open: boolean) => {
+        if (editMode && open) return;
+        setDlPopoverOpen(open);
+    };
+
+    const handleUlPopoverChange = (open: boolean) => {
+        if (editMode && open) return;
+        setUlPopoverOpen(open);
+    };
 
     useEffect(() => {
         if (!isIntegrationEnabled) {
@@ -173,7 +191,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                 </div>
 
                 {/* Download Stats - Popover */}
-                <Popover.Root open={dlPopoverOpen} onOpenChange={setDlPopoverOpen}>
+                <Popover.Root open={dlPopoverOpen} onOpenChange={handleDlPopoverChange}>
                     <Popover.Trigger asChild>
                         <button
                             className="bg-success/10 text-center p-2 rounded-lg transition-all hover:bg-success/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-success/50"
@@ -192,7 +210,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                                 <Popover.Content
                                     side="bottom"
                                     align="center"
-                                    sideOffset={8}
+                                    sideOffset={4}
                                     collisionPadding={24}
                                     asChild
                                 >
@@ -204,25 +222,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                                         className="glass-card border-theme rounded-xl shadow-2xl p-4 z-50"
                                         style={{ minWidth: 'max-content' }}
                                     >
-                                        {/* Glass Arrow - matches glass-card */}
-                                        <Popover.Arrow
-                                            width={16}
-                                            height={8}
-                                            style={{
-                                                fill: 'url(#glass-gradient-qbit-dl)',
-                                                filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
-                                            }}
-                                        />
 
-                                        {/* SVG Gradient Definition for Glass Effect */}
-                                        <svg width="0" height="0" style={{ position: 'absolute' }}>
-                                            <defs>
-                                                <linearGradient id="glass-gradient-qbit-dl" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
-                                                    <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
-                                                </linearGradient>
-                                            </defs>
-                                        </svg>
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between gap-4">
                                                 <span className="text-theme-secondary">Download Speed:</span>
@@ -251,7 +251,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                 </Popover.Root>
 
                 {/* Upload Stats - Popover */}
-                <Popover.Root open={ulPopoverOpen} onOpenChange={setUlPopoverOpen}>
+                <Popover.Root open={ulPopoverOpen} onOpenChange={handleUlPopoverChange}>
                     <Popover.Trigger asChild>
                         <button
                             className="bg-info/10 text-center p-2 rounded-lg transition-all hover:bg-info/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-info/50"
@@ -270,7 +270,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                                 <Popover.Content
                                     side="bottom"
                                     align="center"
-                                    sideOffset={8}
+                                    sideOffset={4}
                                     collisionPadding={24}
                                     asChild
                                 >
@@ -282,25 +282,7 @@ const QBittorrentWidget: React.FC<QBittorrentWidgetProps> = ({ config }) => {
                                         className="glass-card border-theme rounded-xl shadow-2xl p-4 z-50"
                                         style={{ minWidth: 'max-content' }}
                                     >
-                                        {/* Glass Arrow - matches glass-card */}
-                                        <Popover.Arrow
-                                            width={16}
-                                            height={8}
-                                            style={{
-                                                fill: 'url(#glass-gradient-qbit-ul)',
-                                                filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
-                                            }}
-                                        />
 
-                                        {/* SVG Gradient Definition for Glass Effect */}
-                                        <svg width="0" height="0" style={{ position: 'absolute' }}>
-                                            <defs>
-                                                <linearGradient id="glass-gradient-qbit-ul" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
-                                                    <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
-                                                </linearGradient>
-                                            </defs>
-                                        </svg>
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between gap-4">
                                                 <span className="text-theme-secondary">Upload Speed:</span>

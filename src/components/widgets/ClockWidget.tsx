@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import logger from '../../utils/logger';
 
 interface ClockPreferences {
     format24h: boolean;
@@ -13,29 +11,19 @@ interface ClockConfig extends Partial<ClockPreferences> {
     [key: string]: unknown;
 }
 
-interface UserConfigResponse {
-    preferences?: {
-        clockWidget?: ClockPreferences;
-    };
-}
-
 export interface ClockWidgetProps {
     config?: ClockConfig;
     editMode?: boolean;
+    widgetId?: string;
 }
 
 /**
  * Clock Widget
- * Displays current time with timezone support and inline settings
+ * Displays current time with timezone support
+ * Edit controls are rendered via WidgetWrapper extraEditControls
  */
-const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.Element => {
+const ClockWidget = ({ config }: ClockWidgetProps): React.JSX.Element => {
     const [time, setTime] = useState<Date>(new Date());
-    const [preferences, setPreferences] = useState<ClockPreferences>({
-        format24h: true,
-        timezone: '',
-        showDate: true,
-        showSeconds: true
-    });
     const [isWide, setIsWide] = useState<boolean>(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -54,22 +42,12 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
         return () => observer.disconnect();
     }, []);
 
-    // Load preferences on mount
-    useEffect(() => {
-        loadPreferences();
-    }, []);
-
-    // Auto-save when preferences change
-    useEffect(() => {
-        if (preferences.timezone !== '' || !preferences.format24h || !preferences.showDate || !preferences.showSeconds) {
-            savePreferences(preferences);
-        }
-    }, [preferences.format24h, preferences.showDate, preferences.showSeconds]);
-
-    // Merge config with preferences (config takes priority)
+    // Get active config from props (managed by Dashboard)
     const activeConfig: ClockPreferences = {
-        ...preferences,
-        ...(config || {})
+        format24h: config?.format24h ?? true,
+        timezone: config?.timezone ?? '',
+        showDate: config?.showDate ?? true,
+        showSeconds: config?.showSeconds ?? true
     };
 
     const { format24h, timezone, showDate, showSeconds } = activeConfig;
@@ -78,33 +56,6 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
         const interval = setInterval(() => setTime(new Date()), showSeconds ? 1000 : 60000);
         return () => clearInterval(interval);
     }, [showSeconds]);
-
-    const loadPreferences = async (): Promise<void> => {
-        try {
-            const response = await axios.get<UserConfigResponse>('/api/config/user', {
-                withCredentials: true
-            });
-            if (response.data?.preferences?.clockWidget) {
-                setPreferences(response.data.preferences.clockWidget);
-            }
-        } catch (error) {
-            logger.error('Failed to load clock preferences:', { error });
-        }
-    };
-
-    const savePreferences = async (newPrefs: ClockPreferences): Promise<void> => {
-        try {
-            await axios.put('/api/config/user', {
-                preferences: {
-                    clockWidget: newPrefs
-                }
-            }, {
-                withCredentials: true
-            });
-        } catch (error) {
-            logger.error('Failed to save clock preferences:', { error });
-        }
-    };
 
     const formatTime = (date: Date): string => {
         const options: Intl.DateTimeFormatOptions = {
@@ -128,32 +79,8 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
         return date.toLocaleDateString([], options);
     };
 
-    const toggleButtonClass = "px-3 py-1.5 text-xs font-medium rounded-md border-2 border-dashed transition-all no-drag";
-    const activeToggleClass = "border-accent/50 bg-accent/10 text-accent hover:bg-accent/20";
-    const inactiveToggleClass = "border-slate-600 bg-slate-800/30 text-slate-400 hover:bg-slate-700/50 hover:text-slate-300";
-
     return (
         <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-            {/* Edit Mode Controls */}
-            {editMode && (
-                <div className="absolute top-2 left-2 right-2 flex justify-between z-10">
-                    <button
-                        onClick={() => setPreferences({ ...preferences, format24h: !preferences.format24h })}
-                        className={`${toggleButtonClass} ${preferences.format24h ? activeToggleClass : inactiveToggleClass}`}
-                        title="Toggle time format"
-                    >
-                        {preferences.format24h ? '24H' : '12H'}
-                    </button>
-                    <button
-                        onClick={() => setPreferences({ ...preferences, showSeconds: !preferences.showSeconds })}
-                        className={`${toggleButtonClass} ${preferences.showSeconds ? activeToggleClass : inactiveToggleClass}`}
-                        title="Toggle seconds display"
-                    >
-                        :SS
-                    </button>
-                </div>
-            )}
-
             {/* Main Content */}
             <div className={`flex ${isWide ? 'flex-row items-center gap-6' : 'flex-col items-center text-center'}`}>
                 {/* Time Display */}
@@ -161,23 +88,12 @@ const ClockWidget = ({ config, editMode = false }: ClockWidgetProps): React.JSX.
                     {formatTime(time)}
                 </div>
 
-                {/* Date & Edit Controls */}
+                {/* Date Display */}
                 <div className={`flex flex-col ${isWide ? 'items-start' : 'items-center mt-3'}`}>
                     {showDate && (
                         <div className={`text-theme-secondary ${isWide ? 'text-sm' : 'text-base'}`}>
                             {formatDate(time)}
                         </div>
-                    )}
-
-                    {/* Date Toggle - only in edit mode */}
-                    {editMode && (
-                        <button
-                            onClick={() => setPreferences({ ...preferences, showDate: !preferences.showDate })}
-                            className={`mt-2 ${toggleButtonClass} ${preferences.showDate ? activeToggleClass : inactiveToggleClass}`}
-                            title="Toggle date display"
-                        >
-                            {preferences.showDate ? 'Hide Date' : 'Show Date'}
-                        </button>
                     )}
                 </div>
             </div>

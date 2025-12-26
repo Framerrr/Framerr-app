@@ -70,4 +70,12 @@
     --blur-strong: 20px;
     --blur-medium: 12px;
     --blur-subtle: 8px;
+
+    /* ============================================
+       EDIT MODE - Dashboard editing indicators
+       ============================================ */
+    --accent-edit: #ff79c6;
+    --accent-edit-soft: rgba(255, 121, 198, 0.3);
+    --scrollbar-thumb: rgba(255, 121, 198, 0.5);
+    --scrollbar-track: rgba(68, 71, 90, 0.5);
 }

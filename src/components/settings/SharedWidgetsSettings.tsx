@@ -3,22 +3,23 @@ import { Share2, Users, User, Globe, Lock, Trash2, Settings, AlertCircle, Lucide
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import logger from '../../utils/logger';
+import axios from 'axios';
 
-interface SharingConfig {
-    enabled: boolean;
-    mode?: 'everyone' | 'groups' | 'users';
-    groups?: string[];
-    users?: string[];
+// Database share record
+interface IntegrationShare {
+    id: string;
+    integrationName: string;
+    shareType: 'everyone' | 'user' | 'group';
+    shareTarget: string | null;
+    sharedBy: string;
+    createdAt: string;
 }
 
-interface IntegrationConfig {
-    enabled: boolean;
-    sharing?: SharingConfig;
-    [key: string]: unknown;
-}
-
-interface SharedWidget extends IntegrationConfig {
+interface SharedWidget {
     serviceName: string;
+    sharingMode: 'everyone' | 'groups' | 'users';
+    targets: string[];
+    source: 'database' | 'config';
 }
 
 /**
@@ -26,17 +27,17 @@ interface SharedWidget extends IntegrationConfig {
  * Allows quick management of shared widgets (change sharing, revoke)
  */
 const SharedWidgetsSettings: React.FC = () => {
-    const [integrations, setIntegrations] = useState<Record<string, IntegrationConfig>>({});
+    const [sharedWidgets, setSharedWidgets] = useState<SharedWidget[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [saving, setSaving] = useState<boolean>(false);
     const { success: showSuccess, error: showError } = useNotifications();
 
     useEffect(() => {
-        fetchIntegrations();
+        fetchShares();
 
         // Listen for integration updates from IntegrationsSettings
         const handleIntegrationsUpdated = (): void => {
-            fetchIntegrations();
+            fetchShares();
         };
         window.addEventListener('integrationsUpdated', handleIntegrationsUpdated);
 
@@ -45,17 +46,45 @@ const SharedWidgetsSettings: React.FC = () => {
         };
     }, []);
 
-    const fetchIntegrations = async (): Promise<void> => {
+    const fetchShares = async (): Promise<void> => {
         try {
-            const response = await fetch('/api/integrations', {
-                credentials: 'include'
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setIntegrations(data.integrations || {});
+            // Fetch from new database endpoint
+            const response = await axios.get<{ shares: Record<string, IntegrationShare[]> }>(
+                '/api/integrations/all-shares',
+                { withCredentials: true }
+            );
+
+            const sharesMap = response.data.shares || {};
+            const widgets: SharedWidget[] = [];
+
+            // Convert database shares to display format
+            for (const [serviceName, shares] of Object.entries(sharesMap)) {
+                if (shares.length === 0) continue;
+
+                // Determine mode from shares
+                const hasEveryone = shares.some(s => s.shareType === 'everyone');
+                const hasGroups = shares.some(s => s.shareType === 'group');
+                const hasUsers = shares.some(s => s.shareType === 'user');
+
+                let sharingMode: 'everyone' | 'groups' | 'users' = 'everyone';
+                let targets: string[] = [];
+
+                if (hasEveryone) {
+                    sharingMode = 'everyone';
+                } else if (hasGroups) {
+                    sharingMode = 'groups';
+                    targets = shares.filter(s => s.shareType === 'group').map(s => s.shareTarget!);
+                } else if (hasUsers) {
+                    sharingMode = 'users';
+                    targets = shares.filter(s => s.shareType === 'user').map(s => s.shareTarget!);
+                }
+
+                widgets.push({ serviceName, sharingMode, targets, source: 'database' });
             }
+
+            setSharedWidgets(widgets);
         } catch (error) {
-            logger.error('Error fetching integrations:', error);
+            logger.error('Error fetching integration shares:', error);
         } finally {
             setLoading(false);
         }
@@ -64,30 +93,18 @@ const SharedWidgetsSettings: React.FC = () => {
     const handleRevokeSharing = async (serviceName: string): Promise<void> => {
         setSaving(true);
         try {
-            const updatedIntegrations = {
-                ...integrations,
-                [serviceName]: {
-                    ...integrations[serviceName],
-                    sharing: { enabled: false }
-                }
-            };
-
-            const response = await fetch('/api/integrations', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ integrations: updatedIntegrations })
+            // Use new DELETE endpoint
+            await axios.delete(`/api/integrations/${serviceName}/share`, {
+                withCredentials: true
             });
 
-            if (response.ok) {
-                setIntegrations(updatedIntegrations);
-                showSuccess('Sharing Revoked', `${serviceName} is no longer shared with users`);
+            showSuccess('Sharing Revoked', `${serviceName} is no longer shared with users`);
 
-                // Dispatch event to notify other components (IntegrationsSettings, etc.)
-                window.dispatchEvent(new CustomEvent('integrationsUpdated'));
-            } else {
-                showError('Failed', 'Could not revoke sharing');
-            }
+            // Refresh the list
+            await fetchShares();
+
+            // Dispatch event to notify other components
+            window.dispatchEvent(new CustomEvent('integrationsUpdated'));
         } catch (error) {
             logger.error('Error revoking sharing:', error);
             showError('Error', 'Failed to revoke sharing');
@@ -96,27 +113,16 @@ const SharedWidgetsSettings: React.FC = () => {
         }
     };
 
-    // Get list of shared integrations
-    const sharedWidgets: SharedWidget[] = Object.entries(integrations)
-        .filter(([_, config]) => config.enabled && config.sharing?.enabled)
-        .map(([serviceName, config]) => ({
-            serviceName,
-            ...config
-        }));
-
-    const getSharingDescription = (sharing?: SharingConfig): string => {
-        if (!sharing?.enabled) return '';
-
-        switch (sharing.mode) {
+    const getSharingDescription = (widget: SharedWidget): string => {
+        switch (widget.sharingMode) {
             case 'everyone':
                 return 'Shared with everyone';
             case 'groups':
-                const groups = sharing.groups || [];
-                return groups.length > 0
-                    ? `Shared with: ${groups.join(', ')}`
+                return widget.targets.length > 0
+                    ? `Shared with: ${widget.targets.join(', ')}`
                     : 'No groups selected';
             case 'users':
-                const userCount = sharing.users?.length || 0;
+                const userCount = widget.targets.length;
                 return `Shared with ${userCount} user${userCount !== 1 ? 's' : ''}`;
             default:
                 return '';
@@ -183,8 +189,8 @@ const SharedWidgetsSettings: React.FC = () => {
                 // Shared Widgets List
                 <div className="space-y-4">
                     {sharedWidgets.map(widget => {
-                        const SharingIcon = getSharingIcon(widget.sharing?.mode);
-                        const description = getSharingDescription(widget.sharing);
+                        const SharingIcon = getSharingIcon(widget.sharingMode);
+                        const description = getSharingDescription(widget);
 
                         return (
                             <div

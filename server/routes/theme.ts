@@ -34,6 +34,57 @@ const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
 };
 
 /**
+ * GET /api/theme/default
+ * Get the default/admin theme (public - no auth required)
+ * Used for login page theming
+ */
+router.get('/default', async (req: Request, res: Response) => {
+    try {
+        // Get the first admin user to use their theme as default
+        const { db } = await import('../database/db');
+        const adminUser = db.prepare(`
+            SELECT id FROM users WHERE group_id = 'admin' LIMIT 1
+        `).get() as { id: string } | undefined;
+
+        if (adminUser) {
+            const userConfig = await getUserConfig(adminUser.id);
+            const themeConfig = userConfig.theme as any;
+
+            // Check for preset (set when user changes theme via UI)
+            if (themeConfig?.preset) {
+                res.json({ theme: themeConfig.preset });
+                return;
+            }
+
+            // Check raw theme_config in database
+            const rawConfig = db.prepare(`
+                SELECT theme_config FROM user_preferences WHERE user_id = ?
+            `).get(adminUser.id) as { theme_config: string | null } | undefined;
+
+            if (rawConfig?.theme_config) {
+                try {
+                    const parsed = JSON.parse(rawConfig.theme_config);
+                    if (parsed.preset) {
+                        res.json({ theme: parsed.preset });
+                        return;
+                    }
+                } catch {
+                    // Parse error - continue to default
+                }
+            }
+        }
+
+        // Default fallback
+        res.json({ theme: 'dark-pro' });
+    } catch (error) {
+        logger.error('Failed to get default theme', {
+            error: (error as Error).message
+        });
+        res.json({ theme: 'dark-pro' });
+    }
+});
+
+/**
  * GET /api/theme
  * Get current user's theme preferences
  */

@@ -9,6 +9,7 @@ export interface ModalProps {
     onClose: () => void;
     title: React.ReactNode;
     children: React.ReactNode;
+    footer?: React.ReactNode;
     size?: ModalSize;
     className?: string;
 }
@@ -21,6 +22,7 @@ const Modal = ({
     onClose,
     title,
     children,
+    footer,
     size = 'md',
     className = ''
 }: ModalProps): React.JSX.Element | null => {
@@ -48,7 +50,7 @@ const Modal = ({
         md: 'max-w-md',
         lg: 'max-w-2xl',
         xl: 'max-w-4xl',
-        full: 'max-w-[95vw]'
+        full: 'max-w-[95vw] h-[95vh]'
     };
 
     const modalContent = (
@@ -65,7 +67,7 @@ const Modal = ({
                 className={`
           relative w-full ${sizeClasses[size]} 
           glass-subtle rounded-xl shadow-deep 
-          border border-theme flex flex-col max-h-[90vh]
+          border border-theme flex flex-col ${size === 'full' ? '' : 'max-h-[90vh]'}
           animate-in fade-in zoom-in-95 duration-200
           ${className}
         `}
@@ -87,10 +89,17 @@ const Modal = ({
                     </button>
                 </div>
 
-                {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                {/* Content */}
+                <div className={`flex-1 min-h-0 ${size === 'full' ? 'overflow-y-auto p-4 custom-scrollbar' : 'overflow-y-auto p-6 custom-scrollbar'}`}>
                     {children}
                 </div>
+
+                {/* Footer (optional) */}
+                {footer && (
+                    <div className="flex-shrink-0 px-6 py-4 border-t border-theme bg-theme-secondary/50">
+                        {footer}
+                    </div>
+                )}
             </div>
         </div>
     );

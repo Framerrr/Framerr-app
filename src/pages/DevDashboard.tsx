@@ -20,7 +20,6 @@ import { LAYOUT } from '../constants/layout';
 import WidgetWrapper from '../components/widgets/WidgetWrapper';
 import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import EmptyDashboard from '../components/dashboard/EmptyDashboard';
 import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/widgetRegistry';
 import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
@@ -810,7 +809,10 @@ const DevDashboard = (): React.JSX.Element => {
                         Edit
                     </button>
                 </header>
-                <EmptyDashboard onAddWidget={handleAddWidget} />
+                <div className="text-center py-12">
+                    <p className="text-theme-secondary">No widgets. Add one to get started.</p>
+                    <button onClick={handleAddWidget} className="mt-4 px-4 py-2 bg-accent text-white rounded">Add Widget</button>
+                </div>
             </div>
         );
     }
@@ -940,8 +942,6 @@ const DevDashboard = (): React.JSX.Element => {
                                     key={widget.id}
                                     className={editMode ? 'edit-mode' : 'locked'}
                                     style={{
-                                        // Debug: dotted border showing grid cell
-                                        border: editMode ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,
                                         // Debug: color-coded background
                                         backgroundColor: pendingUnlink
                                             ? 'rgba(249, 115, 22, 0.1)'

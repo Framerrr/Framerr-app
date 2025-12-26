@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link } from 'lucide-react';
+import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link, LayoutGrid, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -8,7 +8,6 @@ import { LAYOUT } from '../constants/layout';
 import WidgetWrapper from '../components/widgets/WidgetWrapper';
 import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import EmptyDashboard from '../components/dashboard/EmptyDashboard';
 import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/widgetRegistry';
 import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
@@ -134,8 +133,8 @@ const Dashboard = (): React.JSX.Element => {
     const [integrations, setIntegrations] = useState<Record<string, IntegrationConfig>>({});
     const [sharedIntegrations, setSharedIntegrations] = useState<SharedIntegration[]>([]);
     const [widgetVisibility, setWidgetVisibility] = useState<Record<string, boolean>>({}); // Track widget visibility: {widgetId: boolean}
-    const [greetingEnabled] = useState<boolean>(true);
-    const [greetingText] = useState<string>('Your personal dashboard');
+    const [greetingEnabled, setGreetingEnabled] = useState<boolean>(true);
+    const [greetingText, setGreetingText] = useState<string>('Your personal dashboard');
 
     // Debug overlay toggle (controlled from Settings > Advanced > Debug)
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false);
@@ -248,15 +247,64 @@ const Dashboard = (): React.JSX.Element => {
             fetchWidgets();
         };
 
+        // Listen for greeting updates from CustomizationSettings
+        const handleGreetingUpdated = (event: Event): void => {
+            const customEvent = event as CustomEvent<{ enabled: boolean; text: string }>;
+            if (customEvent.detail) {
+                setGreetingEnabled(customEvent.detail.enabled);
+                setGreetingText(customEvent.detail.text);
+            }
+        };
+
+        // Listen for widget config changes (from LinkGridWidget, ActiveWidgets, etc.)
+        // Updates local state, and triggers smart change detection when in edit mode
+        const handleWidgetConfigChanged = (event: Event): void => {
+            const customEvent = event as CustomEvent<{ widgetId: string; config: Record<string, unknown> }>;
+            if (!customEvent.detail) return;
+
+            const { widgetId, config } = customEvent.detail;
+            logger.debug('widget-config-changed received', { widgetId, hasConfig: !!config });
+
+            setWidgets(prev => {
+                const updated = prev.map(w =>
+                    w.id === widgetId ? { ...w, config } : w
+                );
+
+                // Only run change detection in edit mode
+                if (editMode) {
+                    const activeBreakpoint = isMobile ? 'sm' : currentBreakpoint;
+                    const { hasChanges, shouldUnlink } = checkForActualChanges(updated, activeBreakpoint);
+                    setHasUnsavedChanges(hasChanges);
+                    if (activeBreakpoint === 'sm') {
+                        setPendingUnlink(hasChanges ? shouldUnlink : false);
+                    }
+                }
+
+                return updated;
+            });
+        };
+
         window.addEventListener('widgets-added', handleWidgetsAdded);
-        return () => window.removeEventListener('widgets-added', handleWidgetsAdded);
-    }, []);
+        window.addEventListener('greetingUpdated', handleGreetingUpdated);
+        window.addEventListener('widget-config-changed', handleWidgetConfigChanged);
+        return () => {
+            window.removeEventListener('widgets-added', handleWidgetsAdded);
+            window.removeEventListener('greetingUpdated', handleGreetingUpdated);
+            window.removeEventListener('widget-config-changed', handleWidgetConfigChanged);
+        };
+    }, [editMode, isMobile, currentBreakpoint]);
 
     const loadUserPreferences = async (): Promise<void> => {
         try {
             const response = await axios.get<UserConfigResponse>('/api/config/user', { withCredentials: true });
             if (response.data?.preferences?.mobileEditDisclaimerDismissed) {
                 setMobileDisclaimerDismissed(true);
+            }
+            // Load greeting preferences
+            if (response.data?.preferences?.dashboardGreeting) {
+                const greeting = response.data.preferences.dashboardGreeting;
+                setGreetingEnabled(greeting.enabled ?? true);
+                setGreetingText(greeting.text || 'Your personal dashboard');
             }
         } catch (error) {
             logger.debug('Could not load user preferences');
@@ -378,8 +426,9 @@ const Dashboard = (): React.JSX.Element => {
         h: widget.layouts?.sm?.h ?? 2
     });
 
-    // Check if current layouts differ from original (for smart change detection)
+    // Check if current layouts OR configs differ from original (for smart change detection)
     // Returns whether there are actual changes and whether unlink should be pending
+    // Note: shouldUnlink is only true for LAYOUT changes, not config-only changes
     const checkForActualChanges = (
         updatedWidgets: Widget[],
         breakpoint: 'lg' | 'sm'
@@ -394,22 +443,41 @@ const Dashboard = (): React.JSX.Element => {
             return { hasChanges: true, shouldUnlink: breakpoint === 'sm' && mobileLayoutMode === 'linked' };
         }
 
-        // Compare each widget's layout at the relevant breakpoint
-        const hasLayoutChanges = updatedWidgets.some(widget => {
-            const original = originalToCompare.find(w => w.id === widget.id);
-            if (!original) return true; // Widget doesn't exist in original
+        // Track layout and config changes separately
+        let hasLayoutChanges = false;
+        let hasConfigChanges = false;
 
+        // Compare each widget's layout AND config at the relevant breakpoint
+        updatedWidgets.forEach(widget => {
+            const original = originalToCompare.find(w => w.id === widget.id);
+            if (!original) {
+                hasLayoutChanges = true; // Widget doesn't exist in original
+                return;
+            }
+
+            // Check layout changes
             const curr = widget.layouts?.[breakpoint];
             const orig = original.layouts?.[breakpoint];
-
-            return curr?.x !== orig?.x ||
+            if (curr?.x !== orig?.x ||
                 curr?.y !== orig?.y ||
                 curr?.w !== orig?.w ||
-                curr?.h !== orig?.h;
+                curr?.h !== orig?.h) {
+                hasLayoutChanges = true;
+            }
+
+            // Check config changes (for widgets like LinkGrid)
+            const currConfig = JSON.stringify(widget.config || {});
+            const origConfig = JSON.stringify(original.config || {});
+            if (currConfig !== origConfig) {
+                hasConfigChanges = true;
+            }
         });
 
+        const hasChanges = hasLayoutChanges || hasConfigChanges;
+
         return {
-            hasChanges: hasLayoutChanges,
+            hasChanges,
+            // Only trigger unlink for LAYOUT changes, not config-only changes
             shouldUnlink: hasLayoutChanges && breakpoint === 'sm' && mobileLayoutMode === 'linked'
         };
     };
@@ -822,24 +890,35 @@ const Dashboard = (): React.JSX.Element => {
             const newLgHeight = migratedWidget.layouts?.lg?.h ?? metadata.defaultSize.h;
             const newSmHeight = withLayouts.find(w => w.id === newWidgetId)?.layouts?.sm?.h ?? 2;
 
-            // Create layouts with new widget at y:0, FULL WIDTH, and all existing widgets shifted down
-            const lgLayouts = withLayouts.map(w => {
-                const item = createLgLayoutItem(w);
+            // Update widget objects with new positions (new widget at full width, existing shifted down)
+            const updatedWidgets = withLayouts.map(w => {
                 if (w.id === newWidgetId) {
-                    return { ...item, x: 0, y: 0, w: 24 }; // New widget at top, full width
+                    // New widget at top, full width
+                    return {
+                        ...w,
+                        layouts: {
+                            ...w.layouts,
+                            lg: { x: 0, y: 0, w: 24, h: w.layouts?.lg?.h ?? metadata.defaultSize.h },
+                            sm: { x: 0, y: 0, w: 2, h: w.layouts?.sm?.h ?? 2 }
+                        }
+                    };
                 }
-                return { ...item, y: item.y + newLgHeight }; // Shift existing down
+                // Shift existing widgets down
+                return {
+                    ...w,
+                    layouts: {
+                        ...w.layouts,
+                        lg: { ...w.layouts?.lg, y: (w.layouts?.lg?.y ?? 0) + newLgHeight } as WidgetLayout,
+                        sm: { ...w.layouts?.sm, y: (w.layouts?.sm?.y ?? 0) + newSmHeight } as WidgetLayout
+                    }
+                };
             });
 
-            const smLayouts = withLayouts.map(w => {
-                const item = createSmLayoutItem(w);
-                if (w.id === newWidgetId) {
-                    return { ...item, x: 0, y: 0, w: 2 }; // New widget at top, full width
-                }
-                return { ...item, y: item.y + newSmHeight }; // Shift existing down
-            });
+            // Create layouts from updated widgets
+            const lgLayouts = updatedWidgets.map(w => createLgLayoutItem(w));
+            const smLayouts = updatedWidgets.map(w => createSmLayoutItem(w));
 
-            setWidgets(withLayouts);
+            setWidgets(updatedWidgets);
             setLayouts({
                 lg: lgLayouts,
                 sm: smLayouts
@@ -890,16 +969,113 @@ const Dashboard = (): React.JSX.Element => {
         const smLayout = layouts.sm.find(l => l.i === widget.id);
         const yPos = smLayout?.y ?? '?';
 
+        // Create extra edit controls for link-grid widget (justify button)
+        const linkGridExtraControls = widget.type === 'link-grid' ? (() => {
+            const gridJustify = (widget.config?.gridJustify as 'left' | 'center' | 'right') || 'center';
+            const JustifyIcon = gridJustify === 'left' ? AlignLeft
+                : gridJustify === 'center' ? AlignCenter
+                    : AlignRight;
+
+            const handleJustifyToggle = () => {
+                const nextJustify = gridJustify === 'left' ? 'center'
+                    : gridJustify === 'center' ? 'right'
+                        : 'left';
+
+                // Update widget config and trigger save detection
+                window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                    detail: {
+                        widgetId: widget.id,
+                        config: { ...widget.config, gridJustify: nextJustify }
+                    }
+                }));
+            };
+
+            return (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleJustifyToggle();
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="w-10 h-10 rounded-lg bg-accent/20 hover:bg-accent/30 
+                        flex items-center justify-center text-accent hover:text-accent
+                        transition-all duration-200"
+                    style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                    title={`Align: ${gridJustify}`}
+                >
+                    <JustifyIcon size={20} />
+                </button>
+            );
+        })() : undefined;
+
+        // Create extra edit controls for clock widget (24H, SS, Date toggles)
+        const clockExtraControls = widget.type === 'clock' ? (() => {
+            const format24h = widget.config?.format24h !== false;
+            const showSeconds = widget.config?.showSeconds !== false;
+            const showDate = widget.config?.showDate !== false;
+
+            const toggleConfig = (key: string, currentValue: boolean) => {
+                window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                    detail: {
+                        widgetId: widget.id,
+                        config: { ...widget.config, [key]: !currentValue }
+                    }
+                }));
+            };
+
+            // Button styling - accent when ON, muted when OFF
+            const getButtonClass = (isOn: boolean) => isOn
+                ? 'w-10 h-10 rounded-lg bg-accent/20 hover:bg-accent/30 flex items-center justify-center text-accent transition-all duration-200'
+                : 'w-10 h-10 rounded-lg bg-theme-tertiary hover:bg-theme-hover flex items-center justify-center text-theme-tertiary transition-all duration-200';
+
+            return (
+                <>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('format24h', format24h); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={getButtonClass(!format24h)}
+                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                        title={format24h ? '24-hour format' : '12-hour format'}
+                    >
+                        <span className="text-xs font-bold">24H</span>
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showSeconds', showSeconds); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={getButtonClass(showSeconds)}
+                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                        title={showSeconds ? 'Seconds shown' : 'Seconds hidden'}
+                    >
+                        <span className="text-xs font-bold">:SS</span>
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showDate', showDate); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={getButtonClass(showDate)}
+                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                        title={showDate ? 'Show date (on)' : 'Hide date (off)'}
+                    >
+                        <span className="text-xs font-bold">Date</span>
+                    </button>
+                </>
+            );
+        })() : undefined;
+
+        // Combine extra controls based on widget type
+        const extraControls = linkGridExtraControls || clockExtraControls;
+
         return (
             <WidgetWrapper
                 id={widget.id}
                 type={widget.type}
-                title={widget.config?.title as string || 'Widget'}
+                title={widget.config?.title as string || getWidgetMetadata(widget.type)?.name || 'Widget'}
                 icon={Icon as LucideIcon}
                 editMode={editMode}
                 onDelete={handleDeleteWidget}
                 flatten={widget.config?.flatten as boolean || false}
                 showHeader={widget.config?.showHeader !== false}
+                extraEditControls={extraControls}
             >
                 {/* Debug Y-position badge - only visible when debug overlay enabled */}
                 {debugOverlayEnabled && (
@@ -962,29 +1138,8 @@ const Dashboard = (): React.JSX.Element => {
         return <div className="h-full w-full flex items-center justify-center"><LoadingSpinner /></div>;
     }
 
-    // Empty state
-    if (widgets.length === 0 && !editMode) {
-        return (
-            <div className="w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8">
-                <header className="mb-12 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-5xl font-bold mb-3 gradient-text">
-                            Dev Dashboard (Beta)
-                        </h1>
-                        <p className="text-xl text-slate-400">{greetingText}</p>
-                    </div>
-                    <button
-                        onClick={() => setEditMode(true)}
-                        className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
-                    >
-                        <Edit size={16} />
-                        Edit
-                    </button>
-                </header>
-                <EmptyDashboard onAddWidget={handleAddWidget} />
-            </div>
-        );
-    }
+    // Is dashboard empty? (unified layout handles this now)
+    const isEmpty = widgets.length === 0;
 
     return (
         <div className={`w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8 ${editMode ? 'dashboard-edit-mode' : ''}`}>
@@ -994,9 +1149,39 @@ const Dashboard = (): React.JSX.Element => {
                     <h1 className="text-4xl font-bold mb-2 gradient-text">
                         Welcome back, {user?.displayName || user?.username || 'User'}
                     </h1>
-                    <p className="text-lg text-slate-400">
-                        {editMode ? 'Editing mode - Drag to rearrange widgets' : greetingText}
-                    </p>
+                    {(editMode || greetingEnabled) && (
+                        <p className="text-lg text-slate-400">
+                            {editMode ? 'Editing mode - Drag to rearrange widgets' : greetingText}
+                        </p>
+                    )}
+                    {/* Edit mode layout status badge - always visible in edit mode */}
+                    {editMode && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span
+                                className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${mobileLayoutMode === 'linked'
+                                    ? 'bg-accent/20 text-accent'
+                                    : 'bg-green-500/20 text-green-400'
+                                    }`}
+                            >
+                                {mobileLayoutMode === 'linked' ? (
+                                    <>
+                                        <Link size={12} />
+                                        Synced
+                                    </>
+                                ) : (
+                                    <>
+                                        <LayoutGrid size={12} />
+                                        Independent
+                                    </>
+                                )}
+                            </span>
+                            {pendingUnlink && (
+                                <span className="text-xs px-2 py-1 rounded bg-orange-500/20 text-orange-400">
+                                    Pending Unlink
+                                </span>
+                            )}
+                        </div>
+                    )}
                     {/* Debug mode indicator - only visible when debug overlay enabled */}
                     {debugOverlayEnabled && (
                         <div className="flex items-center gap-2 mt-2">
@@ -1066,9 +1251,52 @@ const Dashboard = (): React.JSX.Element => {
                 </div>
             </header>
 
-            {/* Grid Layout */}
+            {/* Grid Layout or Empty State */}
             <div className="relative min-h-[400px]">
-                {widgets.length > 0 && (
+                {isEmpty ? (
+                    /* Empty Dashboard Content - inline */
+                    <div className="flex items-center justify-center py-12">
+                        <div className="glass-card rounded-2xl p-10 max-w-xl w-full border border-theme text-center space-y-5">
+                            {/* Icon with glow effect */}
+                            <div className="flex justify-center mb-2">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-accent/20 blur-2xl rounded-full"></div>
+                                    <LayoutGrid
+                                        size={64}
+                                        className="relative text-accent"
+                                        strokeWidth={1.5}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Heading */}
+                            <div className="space-y-3">
+                                <h2 className="text-2xl font-bold text-theme-primary">
+                                    Your Dashboard is Empty
+                                </h2>
+                                <p className="text-theme-secondary">
+                                    Add your first widget to get started.
+                                </p>
+                            </div>
+
+                            {/* CTA Button */}
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleAddWidget}
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors"
+                                >
+                                    <Plus size={18} />
+                                    Add Your First Widget
+                                </button>
+                            </div>
+
+                            {/* Helper Text */}
+                            <p className="text-xs text-theme-tertiary pt-2">
+                                💡 Widgets can display your media, downloads, system stats, and more.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
                     <ResponsiveGridLayout
                         className="layout"
                         cols={gridCols}
@@ -1122,8 +1350,6 @@ const Dashboard = (): React.JSX.Element => {
                                     onTouchMove={dragReadyWidgetId !== widget.id ? onWidgetTouchMove : undefined}
                                     onTouchEnd={editMode && isMobile ? onWidgetTouchEnd : undefined}
                                     style={{
-                                        // Debug: dotted border showing grid cell (only when overlay enabled)
-                                        border: (editMode && debugOverlayEnabled) ? '2px dashed rgba(59, 130, 246, 0.5)' : undefined,
                                         // Debug: color-coded background (only when overlay enabled)
                                         backgroundColor: debugOverlayEnabled
                                             ? (pendingUnlink
@@ -1138,7 +1364,9 @@ const Dashboard = (): React.JSX.Element => {
                                         ...layoutItem,
                                         minH: metadata?.minSize?.h || 1,
                                         maxW: metadata?.maxSize?.w || 24,
-                                        maxH: metadata?.maxSize?.h || 10
+                                        maxH: metadata?.maxSize?.h || 10,
+                                        // On mobile: only allow dragging the specific widget that passed hold threshold
+                                        isDraggable: editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId === widget.id)
                                     }}
                                 >
                                     {renderedWidget}

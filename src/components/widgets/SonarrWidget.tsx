@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import { useEditModeAware } from '../../hooks/useEditModeAware';
+import { useCloseOnScroll } from '../../hooks/useCloseOnScroll';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -34,6 +36,8 @@ interface EpisodePopoverProps {
 // Episode Detail Popover Component
 const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
+    const { editMode } = useEditModeAware();
+    useCloseOnScroll(isOpen, () => setIsOpen(false));
 
     const seriesTitle = episode.series?.title || episode.seriesTitle || 'Unknown Series';
     const episodeTitle = episode.title || 'TBA';
@@ -46,8 +50,14 @@ const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => 
         ? `${seriesTitle} - ${episodeTitle}`
         : seriesTitle;
 
+    // Block popover from opening when in edit mode
+    const handleOpenChange = (open: boolean) => {
+        if (editMode && open) return;
+        setIsOpen(open);
+    };
+
     return (
-        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
             <Popover.Trigger asChild>
                 <button
                     style={{
@@ -76,7 +86,7 @@ const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => 
                         <Popover.Content
                             side="bottom"
                             align="start"
-                            sideOffset={8}
+                            sideOffset={4}
                             collisionPadding={24}
                             asChild
                         >
@@ -88,24 +98,6 @@ const EpisodePopover = ({ episode }: EpisodePopoverProps): React.JSX.Element => 
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
                                 style={{ minWidth: '200px', maxWidth: '300px' }}
                             >
-                                {/* Improved Arrow */}
-                                <Popover.Arrow
-                                    width={16}
-                                    height={8}
-                                    style={{
-                                        fill: 'url(#glass-gradient-sonarr)',
-                                        filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
-                                    }}
-                                />
-                                {/* SVG Gradient Definition */}
-                                <svg width="0" height="0" style={{ position: 'absolute' }}>
-                                    <defs>
-                                        <linearGradient id="glass-gradient-sonarr" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
-                                            <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
-                                        </linearGradient>
-                                    </defs>
-                                </svg>
 
                                 {/* Series Title */}
                                 <div className="text-sm font-semibold mb-2 text-theme-primary">

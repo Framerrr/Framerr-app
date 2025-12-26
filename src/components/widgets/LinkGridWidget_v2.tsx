@@ -23,6 +23,7 @@ type LinkSize = 'circle' | 'rectangle';
 type LinkType = 'link' | 'action';
 type LinkState = 'idle' | 'loading' | 'success' | 'error';
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+type GridJustify = 'left' | 'center' | 'right';
 
 interface LinkAction {
     method: HttpMethod;
@@ -80,6 +81,7 @@ interface ContainerSize {
 
 interface LinkGridWidgetConfig {
     links?: Link[];
+    gridJustify?: GridJustify;
     [key: string]: unknown;
 }
 
@@ -101,7 +103,7 @@ interface WidgetsResponse {
 }
 
 const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = false, widgetId, setGlobalDragEnabled }) => {
-    const { links = [] } = config || {};
+    const { links = [], gridJustify = 'center' } = config || {};
     const { error: showError, success: showSuccess } = useNotifications();
 
     // Refs for dimension measurement
@@ -110,7 +112,6 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
 
     // Widget state
     const [linkStates, setLinkStates] = useState<Record<string, LinkState>>({}); // HTTP action states
-    const [editModeActive, setEditModeActive] = useState<boolean>(false); // Link widget edit mode
     const [showAddForm, setShowAddForm] = useState<boolean>(false); // Show add link form
     const [editingLinkId, setEditingLinkId] = useState<string | null>(null); // ID of link being edited
     const [draggedLinkId, setDraggedLinkId] = useState<string | null>(null); // ID of link being dragged
@@ -181,12 +182,11 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                 height: rect.height
             });
         }
-    }, [links.length, editModeActive, showAddForm]);
+    }, [links.length, editMode, showAddForm]);
 
-    // Sync local edit mode with global edit mode
+    // Reset form state when dashboard exits edit mode
     useEffect(() => {
         if (!editMode) {
-            setEditModeActive(false);
             setShowAddForm(false);
             setEditingLinkId(null);
         }
@@ -208,10 +208,14 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
 
     /**
      * Pre-populate form when editing a link
+     * Note: We use a ref to access current links without adding to dependencies
      */
+    const linksRef = useRef<Link[]>(links);
+    linksRef.current = links;
+
     useEffect(() => {
         if (editingLinkId) {
-            const linkToEdit = links.find(l => l.id === editingLinkId);
+            const linkToEdit = linksRef.current.find(l => l.id === editingLinkId);
             if (linkToEdit) {
                 setFormData({
                     title: linkToEdit.title || '',
@@ -242,7 +246,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                 action: { method: 'GET', url: '', headers: {}, body: null }
             });
         }
-    }, [editingLinkId, showAddForm, links]);
+    }, [editingLinkId, showAddForm]);
 
     /**
      * Calculate grid dimensions and cell size
@@ -253,15 +257,17 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
      */
     const calculateGridMetrics = (): GridMetrics => {
         if (containerSize.width === 0 || containerSize.height === 0) {
-            return { cols: 3, rows: 1, cellSize: 100, maxRows: 1 }; // Default fallback
+            return { cols: 6, rows: 1, cellSize: 100, maxRows: 1 }; // Default fallback
         }
 
         const availableWidth = containerSize.width;
         const availableHeight = containerSize.height;
 
-        // FIXED: Always use 6 columns on all breakpoints for consistency
-        // Cells will shrink to fit on mobile instead of reducing columns
-        const cols = 6;
+        // Responsive columns based on width (~100px per column)
+        const MIN_COLS = 6;  // Minimum for mobile
+        const MAX_COLS = 12; // Maximum for full-width widget
+        let cols = Math.floor(availableWidth / 100);
+        cols = Math.max(MIN_COLS, Math.min(MAX_COLS, cols));
 
         // Calculate rows that fit in height
         // Simple formula: how many rows can fit in available height?
@@ -397,145 +403,64 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
 
     /**
      * Save link (create or update)
+     * Only updates local state via event - Dashboard handles actual save
      */
-    const handleSaveLink = async (): Promise<void> => {
-        try {
-            // Build link object
-            const newLink: Link = {
-                id: editingLinkId || `link-${Date.now()}`,
-                title: formData.title,
-                icon: formData.icon,
-                size: formData.size,
-                type: formData.type,
-                url: formData.url,
-                style: {
-                    showIcon: formData.showIcon,
-                    showText: formData.showText
-                },
-                action: formData.type === 'action' ? formData.action : undefined
-            };
+    const handleSaveLink = (): void => {
+        // Build link object
+        const newLink: Link = {
+            id: editingLinkId || `link-${Date.now()}`,
+            title: formData.title,
+            icon: formData.icon,
+            size: formData.size,
+            type: formData.type,
+            url: formData.url,
+            style: {
+                showIcon: formData.showIcon,
+                showText: formData.showText
+            },
+            action: formData.type === 'action' ? formData.action : undefined
+        };
 
-            // Update links array
-            const updatedLinks = editingLinkId
-                ? links.map(l => l.id === editingLinkId ? newLink : l)
-                : [...links, newLink];
+        // Update links array
+        const updatedLinks = editingLinkId
+            ? links.map(l => l.id === editingLinkId ? newLink : l)
+            : [...links, newLink];
 
-            // Fetch current widgets from backend
-            const response = await axios.get<WidgetsResponse>('/api/widgets');
-            const allWidgets = response.data.widgets || [];
+        logger.debug(`Link ${editingLinkId ? 'updated' : 'added'} (tentative)`);
 
-            // Check if widget exists in backend (to detect NEW unsaved widgets)
-            const widgetExistsInBackend = allWidgets.some(w => w.id === widgetId);
+        // Close form
+        setShowAddForm(false);
+        setEditingLinkId(null);
 
-            if (widgetExistsInBackend) {
-                // Widget is saved - update backend and trigger full refresh
-                const updatedWidgets = allWidgets.map(w =>
-                    w.id === widgetId ? { ...w, config: { ...w.config, links: updatedLinks } } : w
-                );
-                await axios.put('/api/widgets', { widgets: updatedWidgets });
-
-                logger.debug(`Link ${editingLinkId ? 'updated' : 'added'} (saved widget)`);
-
-                // Close form
-                setShowAddForm(false);
-                setEditingLinkId(null);
-
-                // Trigger full refresh from backend
-                window.dispatchEvent(new CustomEvent('widget-config-updated', {
-                    detail: { widgetId }
-                }));
-
-                // Mark Dashboard as having unsaved changes
-                window.dispatchEvent(new CustomEvent('widgets-modified', {
-                    detail: { widgets: updatedWidgets }
-                }));
-            } else {
-                // Widget is NEW (not in backend) - only update Dashboard's local state
-                // Don't save to backend (would remove widget from state)
-                logger.debug(`Link ${editingLinkId ? 'updated' : 'added'} (unsaved widget)`);
-
-                // Close form
-                setShowAddForm(false);
-                setEditingLinkId(null);
-
-                // Dispatch event to update ONLY this widget's config in Dashboard's local state
-                window.dispatchEvent(new CustomEvent('widget-config-changed', {
-                    detail: {
-                        widgetId,
-                        config: { ...config, links: updatedLinks }
-                    }
-                }));
+        // Dispatch event to update Dashboard's local state
+        // Dashboard will handle save when user saves the dashboard
+        window.dispatchEvent(new CustomEvent('widget-config-changed', {
+            detail: {
+                widgetId,
+                config: { ...config, links: updatedLinks }
             }
-            showSuccess('Link Saved', `Link "${formData.title}" saved successfully`);
-        } catch (error) {
-            logger.error('Failed to save link:', error);
-            logger.error('Error details:', (error as any).response?.data);
-            showError('Save Failed', 'Failed to save link. Please try again.');
-        }
+        }));
     };
 
     /**
      * Delete link (called after inline confirmation)
+     * Only updates local state via event - Dashboard handles actual save
      */
-    const handleDeleteLink = async (linkId: string): Promise<void> => {
+    const handleDeleteLink = (linkId: string): void => {
         setConfirmDeleteId(null); // Clear confirmation state
 
-        try {
-            // Remove from links array
-            const updatedLinks = links.filter(l => l.id !== linkId);
+        // Remove from links array
+        const updatedLinks = links.filter(l => l.id !== linkId);
 
-            // Fetch current widgets from backend
-            const response = await axios.get<WidgetsResponse>('/api/widgets');
-            const allWidgets = response.data.widgets || [];
+        logger.debug('Link deleted (tentative)');
 
-            // Check if widget exists in backend
-            const widgetExistsInBackend = allWidgets.some(w => w.id === widgetId);
-
-            if (widgetExistsInBackend) {
-                // Widget is saved - update backend
-                const updatedWidgets = allWidgets.map(w =>
-                    w.id === widgetId ? { ...w, config: { ...w.config, links: updatedLinks } } : w
-                );
-                await axios.put('/api/widgets', { widgets: updatedWidgets });
-
-                logger.debug('Link deleted (saved widget)');
-
-                // Widget-only refresh with fade animation
-                const widgetElement = document.querySelector(`[data-widget-id="${widgetId}"]`);
-                if (widgetElement) {
-                    (widgetElement as HTMLElement).style.opacity = '0.5';
-                    (widgetElement as HTMLElement).style.transition = 'opacity 0.3s ease';
-                    setTimeout(() => {
-                        (widgetElement as HTMLElement).style.opacity = '1';
-                    }, 100);
-                }
-
-                // Trigger parent re-render
-                window.dispatchEvent(new CustomEvent('widget-config-updated', {
-                    detail: { widgetId }
-                }));
-
-                // Mark Dashboard as having unsaved changes
-                window.dispatchEvent(new CustomEvent('widgets-modified', {
-                    detail: { widgets: updatedWidgets }
-                }));
-            } else {
-                // Widget is NEW (not in backend) - only update local state
-                logger.debug('Link deleted (unsaved widget)');
-
-                // Dispatch event to update ONLY this widget's config
-                window.dispatchEvent(new CustomEvent('widget-config-changed', {
-                    detail: {
-                        widgetId,
-                        config: { ...config, links: updatedLinks }
-                    }
-                }));
+        // Dispatch event to update Dashboard's local state
+        window.dispatchEvent(new CustomEvent('widget-config-changed', {
+            detail: {
+                widgetId,
+                config: { ...config, links: updatedLinks }
             }
-            showSuccess('Link Deleted', 'Link has been removed');
-        } catch (error) {
-            logger.error('Failed to delete link:', error);
-            showError('Delete Failed', 'Failed to delete link. Please try again.');
-        }
+        }));
     };
 
     /**
@@ -583,7 +508,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
         setDragOverLinkId(null);
     };
 
-    const handleDrop = async (e: DragEvent<HTMLAnchorElement | HTMLButtonElement>, targetLinkId: string): Promise<void> => {
+    const handleDrop = (e: DragEvent<HTMLAnchorElement | HTMLButtonElement>, targetLinkId: string): void => {
         e.preventDefault();
 
         if (!draggedLinkId || previewLinks.length === 0) {
@@ -592,43 +517,22 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             return;
         }
 
-        try {
-            // Use the preview links order (already reordered during drag)
-            const reorderedLinks = [...previewLinks];
+        // Use the preview links order (already reordered during drag)
+        const reorderedLinks = [...previewLinks];
 
-            // Save to backend (match existing pattern)
-            const response = await axios.get<WidgetsResponse>('/api/widgets');
-            const allWidgets = response.data.widgets || [];
-            const updatedWidgets = allWidgets.map(w =>
-                w.id === widgetId ? { ...w, config: { ...w.config, links: reorderedLinks } } : w
-            );
-            await axios.put('/api/widgets', { widgets: updatedWidgets });
+        logger.debug('Links reordered (tentative)');
 
-            // Widget-only refresh
-            const widgetElement = document.querySelector(`[data-widget-id="${widgetId}"]`);
-            if (widgetElement) {
-                (widgetElement as HTMLElement).style.opacity = '0.5';
-                (widgetElement as HTMLElement).style.transition = 'opacity 0.3s ease';
-                setTimeout(() => {
-                    (widgetElement as HTMLElement).style.opacity = '1';
-                }, 100);
+        // Clear preview state
+        setPreviewLinks([]);
+        setDragOverLinkId(null);
+
+        // Dispatch event to update Dashboard's local state
+        window.dispatchEvent(new CustomEvent('widget-config-changed', {
+            detail: {
+                widgetId,
+                config: { ...config, links: reorderedLinks }
             }
-
-            // Trigger parent re-render
-            window.dispatchEvent(new CustomEvent('widget-config-updated', {
-                detail: { widgetId }
-            }));
-
-            // Clear preview after a brief delay to allow widget refresh to complete
-            setTimeout(() => {
-                setPreviewLinks([]);
-                setDragOverLinkId(null);
-            }, 100);
-        } catch (error) {
-            logger.error('Failed to reorder links:', error);
-            showError('Reorder Failed', 'Failed to reorder links. Please try again.');
-            setPreviewLinks([]); // Clear on error
-        }
+        }));
     };
 
     // Calculate grid metrics
@@ -637,7 +541,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
     // Calculate positions (edit mode = left-aligned, view mode = centered)
     // Use preview links during drag for live reordering
     const activeLinks = (draggedLinkId && previewLinks.length > 0) ? previewLinks : links;
-    const linkPositions = editModeActive
+    const linkPositions = editMode
         ? calculateEditModeLayout(cols, rows, activeLinks)
         : calculateViewModeLayout(cols, rows);
 
@@ -645,7 +549,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
      * Render grid outlines (edit mode only)
      */
     const renderGridOutlines = (gridCols: number, gridRows: number, gridCellSize: number): React.ReactNode => {
-        if (!editModeActive) return null;
+        if (!editMode) return null;
 
         const outlines: React.ReactNode[] = [];
 
@@ -759,89 +663,34 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             height: `${height}px`,
         };
 
-        // Edit mode controls (hover overlay)
-        const renderEditControls = (): React.ReactNode => {
-            if (!editModeActive) return null;
-
-            // Hide controls during drag operations
-            if (draggedLinkId) return null;
-
-            return (
-                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 rounded-inherit pointer-events-none">
-                    {/* Edit button */}
-                    <button
-                        className="p-2 bg-info hover:bg-info-hover rounded-lg transition-colors pointer-events-auto"
-                        title="Edit link"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setEditingLinkId(link.id);
-                            setShowAddForm(false);
-                            setConfirmDeleteId(null);
-                        }}
-                    >
-                        <Edit2 size={16} className="text-white" />
-                    </button>
-                    {/* Delete button with inline confirmation */}
-                    {confirmDeleteId !== link.id ? (
-                        <button
-                            className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
-                            title="Delete link"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setConfirmDeleteId(link.id);
-                            }}
-                        >
-                            <Trash2 size={16} className="text-white" />
-                        </button>
-                    ) : (
-                        <>
-                            <button
-                                className="p-2 bg-error hover:bg-error-hover rounded-lg transition-colors pointer-events-auto"
-                                title="Confirm delete"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleDeleteLink(link.id);
-                                }}
-                            >
-                                <Check size={16} className="text-white" />
-                            </button>
-                            <button
-                                className="p-2 bg-theme-tertiary hover:bg-theme-hover rounded-lg transition-colors pointer-events-auto"
-                                title="Cancel"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setConfirmDeleteId(null);
-                                }}
-                            >
-                                <X size={16} className="text-white" />
-                            </button>
-                        </>
-                    )}
-                </div>
-            );
+        // Click handler: open edit modal in edit mode
+        const handleLinkClick = (e: React.MouseEvent): void => {
+            if (editMode) {
+                e.preventDefault();
+                e.stopPropagation();
+                setEditingLinkId(link.id);
+                setShowAddForm(false);
+            }
         };
 
-        // Visual feedback for drag state
+        // Visual feedback for drag state and edit mode
         const isDragOver = dragOverLinkId === link.id;
         const dragClasses = isDragOver ? ' ring-2 ring-accent ring-offset-2 ring-offset-theme-secondary' : '';
+        const editModeClasses = editMode ? ' border-accent/50 hover:border-accent' : '';
 
         // Regular link
         if (link.type === 'link' || !link.type) {
             return (
                 <a
                     key={link.id}
-                    href={editModeActive ? undefined : link.url}
-                    target={editModeActive ? undefined : "_blank"}
-                    rel={editModeActive ? undefined : "noopener noreferrer"}
-                    className={`${classes} ${editModeActive ? 'cursor-grab active:cursor-grabbing' : ''}${dragClasses}`}
+                    href={editMode ? undefined : link.url}
+                    target={editMode ? undefined : "_blank"}
+                    rel={editMode ? undefined : "noopener noreferrer"}
+                    className={`${classes}${editModeClasses} ${editMode ? 'cursor-pointer' : ''}${dragClasses}`}
                     style={style}
-                    onClick={(e) => editModeActive && e.preventDefault()}
-                    draggable={editModeActive}
-                    onDragStart={(e) => editModeActive && handleDragStart(e, link.id)}
+                    onClick={handleLinkClick}
+                    draggable={editMode && !editingLinkId}
+                    onDragStart={(e) => editMode && handleDragStart(e, link.id)}
                     onDragEnd={handleDragEnd}
                     onDragEnter={(e) => e.preventDefault()}
                     onDragOver={(e) => handleDragOver(e, link.id)}
@@ -850,7 +699,6 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                 >
                     {renderIcon()}
                     {renderText()}
-                    {renderEditControls()}
                 </a>
             );
         }
@@ -860,17 +708,17 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             <button
                 key={link.id}
                 onClick={(e) => {
-                    if (editModeActive) {
-                        e.preventDefault();
+                    if (editMode) {
+                        handleLinkClick(e);
                         return;
                     }
                     executeAction(link, link.id);
                 }}
                 disabled={isLoading}
-                className={`${classes} ${isLoading ? 'cursor-wait' : editModeActive ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}${dragClasses}`}
+                className={`${classes}${editModeClasses} ${isLoading ? 'cursor-wait' : editMode ? 'cursor-pointer' : 'cursor-pointer'}${dragClasses}`}
                 style={style}
-                draggable={editModeActive}
-                onDragStart={(e) => editModeActive && handleDragStart(e, link.id)}
+                draggable={editMode && !editingLinkId}
+                onDragStart={(e) => editMode && handleDragStart(e, link.id)}
                 onDragEnd={handleDragEnd}
                 onDragEnter={(e) => e.preventDefault()}
                 onDragOver={(e) => handleDragOver(e, link.id)}
@@ -879,7 +727,6 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             >
                 {renderIcon()}
                 {renderText()}
-                {renderEditControls()}
             </button>
         );
     };
@@ -893,44 +740,19 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
     // Grid width: always use full columns for consistent left-aligned layout
     const gridWidth = cols * cellSize + (cols - 1) * GRID_GAP;
 
+    // Get justify class for container
+    const justifyClass = gridJustify === 'left' ? 'justify-start'
+        : gridJustify === 'center' ? 'justify-center'
+            : 'justify-end';
+
     return (
         <div
             ref={containerRef}
-            className={`relative w-full h-full flex items-center justify-center ${editModeActive ? 'no-drag' : ''}`}
+            className={`relative w-full h-full flex items-center ${justifyClass} ${editMode ? 'no-drag' : ''}`}
         >
-            {/* Edit mode controls (Save/Cancel) */}
-            {editModeActive && (
-                <div className="absolute top-2 right-14 flex gap-2 z-30 no-drag">
-                    <button
-                        onClick={() => setEditModeActive(false)}
-                        className="h-10 px-3 bg-theme-tertiary hover:bg-theme-hover rounded-lg text-theme-secondary hover:text-theme-primary transition-all shadow-lg flex items-center border border-theme"
-                    >
-                        <span className="text-xs font-medium">Cancel</span>
-                    </button>
-                    <button
-                        onClick={() => {
-                            setEditModeActive(false);
-                        }}
-                        className="h-10 px-3 bg-accent/80 hover:bg-accent rounded-lg text-white transition-all shadow-lg flex items-center"
-                    >
-                        <span className="text-xs font-medium">Save</span>
-                    </button>
-                </div>
-            )}
-
-            {/* Configure button (dashboard edit mode) */}
-            {editMode && !editModeActive && (
-                <button
-                    onClick={() => setEditModeActive(true)}
-                    className="absolute top-2 right-14 h-10 px-3 bg-theme-tertiary hover:bg-theme-hover rounded-lg text-theme-secondary hover:text-theme-primary transition-all no-drag flex items-center gap-1.5 shadow-lg z-20 border border-theme"
-                >
-                    <Edit2 size={14} />
-                    <span className="text-xs font-medium">Configure</span>
-                </button>
-            )}
 
             {/* Empty state */}
-            {links.length === 0 && !editModeActive ? (
+            {links.length === 0 && !editMode ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                     <p className="text-sm text-theme-secondary">No links configured</p>
                     {editMode && (
@@ -947,7 +769,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                     }}
                 >
                     {/* Grid outlines (edit mode only - shows all available cells) */}
-                    {renderGridOutlines(cols, editModeActive ? maxRows : rows, cellSize)}
+                    {renderGridOutlines(cols, editMode ? maxRows : rows, cellSize)}
 
                     {/* Render links */}
                     {linkPositions.map(position => {
@@ -956,7 +778,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
                     })}
 
                     {/* Add button (in edit mode, if space available) */}
-                    {editModeActive && remainingCapacity > 0 && !showAddForm && (() => {
+                    {editMode && remainingCapacity > 0 && !showAddForm && (() => {
                         // Calculate the next available cell position
                         let nextCol = 0;
                         let nextRow = 0;
@@ -995,7 +817,7 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
             )}
 
             {/* Add/Edit form (rendered outside widget via portal to avoid clipping) */}
-            {editModeActive && (showAddForm || editingLinkId) && ReactDOM.createPortal(
+            {editMode && (showAddForm || editingLinkId) && ReactDOM.createPortal(
                 <>
                     {/* Backdrop */}
                     <div
@@ -1194,10 +1016,41 @@ const LinkGridWidget_v2: React.FC<LinkGridWidgetProps> = ({ config, editMode = f
 
                         {/* Form actions */}
                         <div className="flex gap-2 pt-2">
+                            {/* Delete button - only show when editing existing link */}
+                            {editingLinkId && (
+                                confirmDeleteId === editingLinkId ? (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                handleDeleteLink(editingLinkId);
+                                                setEditingLinkId(null);
+                                            }}
+                                            className="px-4 py-2 bg-error hover:bg-error/80 rounded text-sm text-white transition-colors"
+                                        >
+                                            Delete
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            className="px-4 py-2 bg-theme-tertiary hover:bg-theme-hover rounded text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => setConfirmDeleteId(editingLinkId)}
+                                        className="px-4 py-2 bg-error/20 hover:bg-error/30 border border-error/50 rounded text-sm text-error transition-colors"
+                                    >
+                                        Delete
+                                    </button>
+                                )
+                            )}
+                            <div className="flex-1" />
                             <button
                                 onClick={() => {
                                     setShowAddForm(false);
                                     setEditingLinkId(null);
+                                    setConfirmDeleteId(null);
                                     // Reset form
                                     setFormData({
                                         title: '',

@@ -44,7 +44,5 @@ pnpm-lock.yaml
 # Local development tools
 develop-server/
 
-# Internal documentation (not for public GitHub)
-# Ignore docs/ except docs/typescript/
-docs/*
-!docs/typescript/
+# Note: docs/ and .agent/ ARE tracked in git
+# They contain important documentation and agent rules

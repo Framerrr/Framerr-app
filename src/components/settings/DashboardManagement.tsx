@@ -5,6 +5,7 @@ import { Button } from '../common/Button';
 import Modal from '../common/Modal';
 import { useLayout } from '../../context/LayoutContext';
 import logger from '../../utils/logger';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 type MobileLayoutMode = 'linked' | 'independent';
 
@@ -93,7 +94,7 @@ const DashboardManagement: React.FC<DashboardManagementProps> = ({ className = '
         return (
             <div className={`rounded-xl p-6 border border-theme bg-theme-secondary ${className}`}>
                 <div className="flex items-center justify-center py-4">
-                    <RefreshCw size={20} className="animate-spin text-theme-secondary" />
+                    <LoadingSpinner size="md" />
                 </div>
             </div>
         );

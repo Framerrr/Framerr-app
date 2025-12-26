@@ -6,6 +6,7 @@ import logger from '../../utils/logger';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 interface IntegrationConfig {
     enabled: boolean;
@@ -233,7 +234,11 @@ const WidgetGallery: React.FC = () => {
     );
 
     if (loading) {
-        return <div className="text-center py-16 text-theme-secondary">Loading widgets...</div>;
+        return (
+            <div className="flex items-center justify-center py-16">
+                <LoadingSpinner size="lg" message="Loading widgets..." />
+            </div>
+        );
     }
 
     // Empty state for non-admin users with no shared widgets

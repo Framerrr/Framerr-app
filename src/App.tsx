@@ -20,6 +20,7 @@ import Login from './pages/Login';
 import Setup from './pages/Setup';
 import MainContent from './pages/MainContent';
 import AnimationTest from './pages/AnimationTest';
+import MockWidgetTest from './pages/MockWidgetTest';
 import SafeAreaBlur from './components/common/SafeAreaBlur';
 
 interface CustomColorLoaderProps {
@@ -123,6 +124,7 @@ const App: React.FC = () => {
                                         <Route path="/login" element={<Login />} />
                                         <Route path="/setup" element={<Setup />} />
                                         <Route path="/animation-test" element={<AnimationTest />} />
+                                        <Route path="/mock-widget-test" element={<MockWidgetTest />} />
 
                                         {/* Protected Routes with Layout-aware Wrapper */}
                                         <Route path="/*" element={<MainLayout />} />

@@ -6,6 +6,8 @@ import logger from '../../utils/logger';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../utils/permissions';
+import { useEditModeAware } from '../../hooks/useEditModeAware';
+import { useCloseOnScroll } from '../../hooks/useCloseOnScroll';
 import IntegrationDisabledMessage from '../common/IntegrationDisabledMessage';
 import IntegrationNoAccessMessage from '../common/IntegrationNoAccessMessage';
 import IntegrationConnectionError from '../common/IntegrationConnectionError';
@@ -81,6 +83,14 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
     const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const { editMode } = useEditModeAware();
+    useCloseOnScroll(isOpen, () => setIsOpen(false));
+
+    // Block popover from opening when in edit mode
+    const handleOpenChange = (open: boolean) => {
+        if (editMode && open) return;
+        setIsOpen(open);
+    };
 
     // Metric display configuration - memoized to prevent re-creation on every render
     const config: MetricConfig = useMemo(() => {
@@ -262,7 +272,7 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
     };
 
     return (
-        <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
             <Popover.Trigger asChild>
                 <div className="cursor-pointer group">
                     <div className="flex justify-between mb-1 text-sm text-theme-primary group-hover:text-accent transition-colors">
@@ -290,7 +300,7 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
                         <Popover.Content
                             side="bottom"
                             align="center"
-                            sideOffset={8}
+                            sideOffset={4}
                             collisionPadding={24}
                             asChild
                         >
@@ -302,25 +312,6 @@ const MetricGraphPopover: React.FC<MetricGraphPopoverProps> = ({ metric, value, 
                                 className="glass-card border-theme rounded-xl shadow-2xl p-4 z-[9999]"
                                 style={{ width: '550px', maxWidth: '90vw' }}
                             >
-                                {/* Glass Arrow - matches glass-card */}
-                                <Popover.Arrow
-                                    width={16}
-                                    height={8}
-                                    style={{
-                                        fill: 'url(#glass-gradient)',
-                                        filter: 'drop-shadow(0 -1px 2px rgba(0, 0, 0, 0.3))'
-                                    }}
-                                />
-
-                                {/* SVG Gradient Definition for Glass Effect */}
-                                <svg width="0" height="0" style={{ position: 'absolute' }}>
-                                    <defs>
-                                        <linearGradient id="glass-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style={{ stopColor: 'var(--glass-start)', stopOpacity: 1 }} />
-                                            <stop offset="100%" style={{ stopColor: 'var(--glass-end)', stopOpacity: 1 }} />
-                                        </linearGradient>
-                                    </defs>
-                                </svg>
 
                                 {/* Header */}
                                 <div className="flex justify-between items-center mb-3">

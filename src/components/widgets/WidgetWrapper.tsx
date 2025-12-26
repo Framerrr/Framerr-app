@@ -11,6 +11,7 @@ export interface WidgetWrapperProps {
     flatten?: boolean;
     showHeader?: boolean;
     onDelete?: (id: string) => void;
+    extraEditControls?: React.ReactNode;  // Widget-specific edit controls (rendered below delete)
     children: React.ReactNode;
 }
 
@@ -27,6 +28,7 @@ const WidgetWrapper = ({
     flatten = false,
     showHeader = true,
     onDelete,
+    extraEditControls,
     children
 }: WidgetWrapperProps): React.JSX.Element => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
@@ -39,11 +41,11 @@ const WidgetWrapper = ({
             className={`widget-wrapper h-full overflow-hidden flex flex-col relative ${flatten ? 'flatten-mode' : ''}`}
             padding={type === 'link-grid' ? 'sm' : 'lg'}
         >
-            {/* Delete button - ALWAYS visible in edit mode, positioned absolutely */}
-            {editMode && onDelete && (
-                <div className="absolute top-2 right-2 z-50 flex items-center gap-2 no-drag">
-                    {!showDeleteConfirm ? (
-                        // Normal delete button
+            {/* Edit mode controls - ALWAYS visible in edit mode, positioned absolutely */}
+            {editMode && (onDelete || extraEditControls) && (
+                <div className="absolute top-2 right-2 z-50 flex flex-col items-end gap-1 no-drag">
+                    {/* Delete button */}
+                    {onDelete && !showDeleteConfirm && (
                         <button
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => {
@@ -59,9 +61,11 @@ const WidgetWrapper = ({
                         >
                             <X size={20} />
                         </button>
-                    ) : (
-                        // Inline confirmation buttons (expanded)
-                        <>
+                    )}
+
+                    {/* Delete confirmation buttons */}
+                    {onDelete && showDeleteConfirm && (
+                        <div className="flex items-center gap-2">
                             <button
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
@@ -90,8 +94,11 @@ const WidgetWrapper = ({
                                 <Check size={14} />
                                 <span>Confirm</span>
                             </button>
-                        </>
+                        </div>
                     )}
+
+                    {/* Extra widget-specific controls */}
+                    {extraEditControls}
                 </div>
             )}
 

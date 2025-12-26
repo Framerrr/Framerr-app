@@ -9,6 +9,7 @@ import { Button } from '../common/Button';
 import EventSelectDropdown from './EventSelectDropdown';
 import { INTEGRATION_EVENTS, getDefaultAdminEvents, getDefaultUserEvents } from '../../constants/notificationEvents';
 import logger from '../../utils/logger';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 interface WebhookConfig {
     webhookEnabled?: boolean;
@@ -385,10 +386,7 @@ const NotificationSettings: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-16">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-                    <p className="text-theme-secondary">Loading settings...</p>
-                </div>
+                <LoadingSpinner size="lg" message="Loading settings..." />
             </div>
         );
     }

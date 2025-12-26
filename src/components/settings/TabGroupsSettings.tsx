@@ -24,6 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import logger from '../../utils/logger';
 import { useNotifications } from '../../context/NotificationContext';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 interface TabGroup {
     id: string;
@@ -301,7 +302,13 @@ const TabGroupsSettings: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="text-center py-16 text-theme-secondary">Loading tab groups...</div>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-16">
+                <LoadingSpinner size="lg" message="Loading tab groups..." />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 fade-in">

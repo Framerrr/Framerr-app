@@ -26,6 +26,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import logger from '../../utils/logger';
 import { useNotifications } from '../../context/NotificationContext';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 interface Tab {
     id: string;
@@ -370,8 +371,8 @@ const UserTabsSettings: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-12">
-                <div className="text-theme-secondary">Loading tabs...</div>
+            <div className="flex items-center justify-center py-16">
+                <LoadingSpinner size="lg" message="Loading tabs..." />
             </div>
         );
     }
