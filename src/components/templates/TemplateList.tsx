@@ -344,6 +344,7 @@ Your changes will be discarded.`,
                             onNameChange={handleNameChange}
                             onPreview={setPreviewTemplate}
                             isAdmin={isAdmin}
+                            isBeingPreviewed={previewTemplate?.id === template.id}
                         />
                     ))
                 )}

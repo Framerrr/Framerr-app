@@ -44,6 +44,7 @@ interface TemplateCardProps {
     onNameChange: (template: Template, newName: string) => void;
     onPreview?: (template: Template) => void;
     isAdmin?: boolean;
+    isBeingPreviewed?: boolean;
 }
 
 const TemplateCard: React.FC<TemplateCardProps> = ({
@@ -58,6 +59,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     onNameChange,
     onPreview,
     isAdmin = false,
+    isBeingPreviewed = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(template.name);
@@ -261,6 +263,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                         onClick={() => onPreview?.(template)}
                         className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden hover:ring-2 hover:ring-accent/50 transition-all cursor-pointer"
                         title="Preview template"
+                        style={{ opacity: isBeingPreviewed ? 0 : 1 }}
                     >
                         <TemplateThumbnail widgets={template.widgets} width={64} height={64} />
                     </motion.button>
@@ -322,6 +325,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 onClick={() => onPreview?.(template)}
                 className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden hover:ring-2 hover:ring-accent/50 transition-all cursor-pointer"
                 title="Preview template"
+                style={{ opacity: isBeingPreviewed ? 0 : 1 }}
             >
                 <TemplateThumbnail widgets={template.widgets} width={80} height={80} />
             </motion.button>
