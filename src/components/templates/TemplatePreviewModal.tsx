@@ -153,7 +153,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                         className="relative z-10 w-full max-w-4xl max-h-[90vh] mx-4 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden"
                         layout
                         transition={{
-                            layout: { type: 'spring', damping: 25, stiffness: 200, duration: 0.4 }
+                            layout: { type: 'tween', ease: [0.4, 0, 0.2, 1], duration: 0.35 }
                         }}
                     >
                         {/* Header */}
