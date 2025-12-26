@@ -1043,7 +1043,7 @@ const Dashboard = (): React.JSX.Element => {
                     <button
                         onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showSeconds', showSeconds); }}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className={getButtonClass(!showSeconds)}
+                        className={getButtonClass(showSeconds)}
                         style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                         title={showSeconds ? 'Seconds shown' : 'Seconds hidden'}
                     >
