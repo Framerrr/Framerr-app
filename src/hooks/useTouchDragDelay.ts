@@ -224,6 +224,11 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         // Note: scroll blocking is handled by native event listener (see useEffect above)
         e.stopPropagation();
 
+        // CRITICAL: Prevent iOS from synthesizing mouse events (mousedown, click) after touch
+        // Without this, iOS fires mousedown which RGL captures, enabling tap-to-drag bypass
+        // Safe in edit mode since we want hold-to-drag, not scroll behavior on widgets
+        e.preventDefault();
+
         const touch = e.touches[0];
         const targetElement = e.currentTarget as HTMLElement;
 
