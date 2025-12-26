@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2025-12-26
+
+### Added
+- **Dashboard Template System** - Complete template builder with 3-step wizard, grid editor, undo/redo, and preview thumbnails
+- **Template Sharing (Admin)** - Share templates with users via copy model; users can sync or revert to original
+- **Default Template for New Users** - Auto-apply template to new users with required integrations auto-shared
+- **Database Integration Sharing** - Persistent sharing via new `integration_shares` table (replaces config-based sharing)
+- **Theme-Aware Edit Mode** - Each theme has distinct edit mode colors (borders, placeholders, resize handles)
+- **Theme-Aware Splash Screen** - Instant theme-colored splash prevents flash of wrong theme
+- **Admin Theme on Login** - Login page uses admin's theme for consistent branding
+- **Goodbye Toast** - Shows farewell message when logging out
+- **Navigation Scroll-to-Top** - Re-tap dashboard or safe area to scroll to top (mobile)
+
+### Fixed
+- Template preview modal on mobile (portal-based, proper positioning)
+- Widget settings (flatten/showHeader) now update live without refresh
+- Loading spinners standardized across all 10 settings pages
+- Popover UX: closer to trigger, no arrows, auto-close on scroll
+- Template state caching when reopening builder modal
+
+### Technical
+- New `shared/widgetIntegrations.ts` module centralizes widget→integration mapping
+- 15+ new API endpoints for template CRUD, categories, sharing, backups
+- New CSS variables: `--accent-edit`, `--accent-edit-soft` for all 7 themes
+
+---
+
 ## [1.3.1] - 2025-12-22
 
 ### Added
