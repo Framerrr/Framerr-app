@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link } from 'lucide-react';
+import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link, LayoutGrid } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -8,7 +8,6 @@ import { LAYOUT } from '../constants/layout';
 import WidgetWrapper from '../components/widgets/WidgetWrapper';
 import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import EmptyDashboard from '../components/dashboard/EmptyDashboard';
 import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/widgetRegistry';
 import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
@@ -1018,31 +1017,8 @@ const Dashboard = (): React.JSX.Element => {
         return <div className="h-full w-full flex items-center justify-center"><LoadingSpinner /></div>;
     }
 
-    // Empty state
-    if (widgets.length === 0 && !editMode) {
-        return (
-            <div className="w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8">
-                <header className="mb-12 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-5xl font-bold mb-3 gradient-text">
-                            Dev Dashboard (Beta)
-                        </h1>
-                        {greetingEnabled && (
-                            <p className="text-xl text-slate-400">{greetingText}</p>
-                        )}
-                    </div>
-                    <button
-                        onClick={() => setEditMode(true)}
-                        className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary rounded-lg transition-all duration-300 flex items-center gap-2"
-                    >
-                        <Edit size={16} />
-                        Edit
-                    </button>
-                </header>
-                <EmptyDashboard onAddWidget={handleAddWidget} />
-            </div>
-        );
-    }
+    // Is dashboard empty? (unified layout handles this now)
+    const isEmpty = widgets.length === 0;
 
     return (
         <div className={`w-full min-h-screen max-w-[2000px] mx-auto fade-in p-2 md:p-8 ${editMode ? 'dashboard-edit-mode' : ''}`}>
@@ -1126,9 +1102,52 @@ const Dashboard = (): React.JSX.Element => {
                 </div>
             </header>
 
-            {/* Grid Layout */}
+            {/* Grid Layout or Empty State */}
             <div className="relative min-h-[400px]">
-                {widgets.length > 0 && (
+                {isEmpty ? (
+                    /* Empty Dashboard Content - inline */
+                    <div className="flex items-center justify-center py-12">
+                        <div className="glass-card rounded-2xl p-10 max-w-xl w-full border border-theme text-center space-y-5">
+                            {/* Icon with glow effect */}
+                            <div className="flex justify-center mb-2">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-accent/20 blur-2xl rounded-full"></div>
+                                    <LayoutGrid
+                                        size={64}
+                                        className="relative text-accent"
+                                        strokeWidth={1.5}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Heading */}
+                            <div className="space-y-3">
+                                <h2 className="text-2xl font-bold text-theme-primary">
+                                    Your Dashboard is Empty
+                                </h2>
+                                <p className="text-theme-secondary">
+                                    Add your first widget to get started.
+                                </p>
+                            </div>
+
+                            {/* CTA Button */}
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleAddWidget}
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors"
+                                >
+                                    <Plus size={18} />
+                                    Add Your First Widget
+                                </button>
+                            </div>
+
+                            {/* Helper Text */}
+                            <p className="text-xs text-theme-tertiary pt-2">
+                                💡 Widgets can display your media, downloads, system stats, and more.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
                     <ResponsiveGridLayout
                         className="layout"
                         cols={gridCols}

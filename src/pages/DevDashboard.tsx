@@ -20,7 +20,6 @@ import { LAYOUT } from '../constants/layout';
 import WidgetWrapper from '../components/widgets/WidgetWrapper';
 import WidgetErrorBoundary from '../components/widgets/WidgetErrorBoundary';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import EmptyDashboard from '../components/dashboard/EmptyDashboard';
 import { getWidgetComponent, getWidgetIcon, getWidgetMetadata } from '../utils/widgetRegistry';
 import { generateAllMobileLayouts, migrateWidgetToLayouts } from '../utils/layoutUtils';
 import AddWidgetModal from '../components/dashboard/AddWidgetModal';
@@ -810,7 +809,10 @@ const DevDashboard = (): React.JSX.Element => {
                         Edit
                     </button>
                 </header>
-                <EmptyDashboard onAddWidget={handleAddWidget} />
+                <div className="text-center py-12">
+                    <p className="text-theme-secondary">No widgets. Add one to get started.</p>
+                    <button onClick={handleAddWidget} className="mt-4 px-4 py-2 bg-accent text-white rounded">Add Widget</button>
+                </div>
             </div>
         );
     }
