@@ -867,8 +867,10 @@ export async function shareTemplateWithUser(
     }
 
     // Apply to dashboard if requested
-    if (applyToDashboard) {
-        await applyTemplateToUser(template, targetUserId, createBackup);
+    // IMPORTANT: Use userCopy (sanitized) instead of original template
+    // This ensures sensitive configs (links, custom HTML) are stripped from dashboard widgets
+    if (applyToDashboard && userCopy) {
+        await applyTemplateToUser(userCopy, targetUserId, createBackup);
     }
 
     return {

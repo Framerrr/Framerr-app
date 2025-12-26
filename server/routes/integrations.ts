@@ -46,8 +46,7 @@ interface TestResult {
  * GET /api/integrations/shared
  * Get integrations shared with the current user
  * 
- * Uses database-backed sharing (integration_shares table) as primary source.
- * Falls back to config-based sharing for backwards compatibility during migration.
+ * Uses database-backed sharing (integration_shares table) as the source of truth.
  */
 router.get('/shared', requireAuth, async (req: Request, res: Response) => {
     try {
@@ -67,65 +66,35 @@ router.get('/shared', requireAuth, async (req: Request, res: Response) => {
             const intConfig = serviceConfig as IntegrationConfig;
             if (!intConfig.enabled) continue;
 
-            // Check database first, then fall back to config
-            let hasAccess = dbAccessibleSet.has(serviceName);
+            // Check database for access
+            const hasAccess = dbAccessibleSet.has(serviceName);
+            if (!hasAccess) continue;
+
+            // Get sharedBy info from the specific share that grants this user access
             let sharedByName = 'Admin';
             let sharedAt: string | null = null;
 
-            // If not in database, check legacy config-based sharing
-            if (!hasAccess) {
-                const sharing = intConfig.sharing;
-                if (sharing?.enabled) {
-                    switch (sharing.mode) {
-                        case 'everyone':
-                            hasAccess = true;
-                            break;
-                        case 'groups':
-                            hasAccess = sharing.groups?.includes(userGroup) ?? false;
-                            break;
-                        case 'users':
-                            hasAccess = sharing.users?.includes(userId) ?? false;
-                            break;
+            const share = await integrationSharesDb.getShareForUser(serviceName, userId, userGroup);
+            if (share) {
+                try {
+                    const sharedByUser = await getUserById(share.sharedBy);
+                    if (sharedByUser) {
+                        sharedByName = sharedByUser.displayName || sharedByUser.username;
                     }
-
-                    if (hasAccess && sharing.sharedBy) {
-                        try {
-                            const sharedByUser = await getUserById(sharing.sharedBy);
-                            if (sharedByUser) {
-                                sharedByName = sharedByUser.displayName || sharedByUser.username;
-                            }
-                        } catch {
-                            // Fallback to 'Admin'
-                        }
-                        sharedAt = sharing.sharedAt || null;
-                    }
+                } catch {
+                    // Fallback to 'Admin'
                 }
-            } else {
-                // Get sharedBy info from the specific share that grants this user access
-                const share = await integrationSharesDb.getShareForUser(serviceName, userId, userGroup);
-                if (share) {
-                    try {
-                        const sharedByUser = await getUserById(share.sharedBy);
-                        if (sharedByUser) {
-                            sharedByName = sharedByUser.displayName || sharedByUser.username;
-                        }
-                    } catch {
-                        // Fallback to 'Admin'
-                    }
-                    sharedAt = share.createdAt;
-                }
+                sharedAt = share.createdAt;
             }
 
-            if (hasAccess) {
-                const { sharing: _omit, ...configWithoutSharing } = intConfig;
-                sharedIntegrations.push({
-                    name: serviceName,
-                    ...configWithoutSharing,
-                    enabled: true,
-                    sharedBy: sharedByName,
-                    sharedAt: sharedAt
-                });
-            }
+            const { sharing: _omit, ...configWithoutSharing } = intConfig;
+            sharedIntegrations.push({
+                name: serviceName,
+                ...configWithoutSharing,
+                enabled: true,
+                sharedBy: sharedByName,
+                sharedAt: sharedAt
+            });
         }
 
         res.json({ integrations: sharedIntegrations });
