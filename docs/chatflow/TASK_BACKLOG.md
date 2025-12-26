@@ -22,6 +22,13 @@
 - [ ] History limit (e.g., last 50 operations)
 - **Priority:** P2 UX - After Integration Proxy
 
+### 3. Overseerr Download Progress Integration
+- [ ] Show real-time download progress in Overseerr widget
+- [ ] Integrate with Radarr/Sonarr APIs for download status
+- [ ] Progress bars for active downloads
+- [ ] ETA and speed indicators
+- **Priority:** P3 Feature - After Undo/Redo
+
 ### ~~Bug: Popovers Activating in Edit Mode~~ ✅
 - [x] Widget popovers should not activate when dashboard is in edit mode
 
