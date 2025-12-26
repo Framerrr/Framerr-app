@@ -436,11 +436,18 @@ router.post('/:id/sync', requireAuth, async (req: Request, res: Response) => {
             return;
         }
 
-        // Update user's copy with parent's data
+        // Strip sensitive config from parent widgets before syncing
+        const { stripSensitiveConfig } = await import('../../shared/widgetIntegrations');
+        const sanitizedWidgets = parent.widgets.map(widget => ({
+            ...widget,
+            config: stripSensitiveConfig(widget.type, widget.config || {})
+        }));
+
+        // Update user's copy with parent's data (sanitized)
         await templateDb.updateTemplate(req.params.id, authReq.user!.id, {
             name: parent.name,
             description: parent.description || undefined,
-            widgets: parent.widgets,
+            widgets: sanitizedWidgets,
             userModified: false, // Reset since we're syncing
         });
 
@@ -687,6 +694,13 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
 
             if (!existingCopy) {
                 try {
+                    // Strip sensitive config from widgets for shared copy
+                    const { stripSensitiveConfig } = await import('../../shared/widgetIntegrations');
+                    const sanitizedWidgets = template.widgets.map(widget => ({
+                        ...widget,
+                        config: stripSensitiveConfig(widget.type, widget.config || {})
+                    }));
+
                     // Create user's own copy of the template
                     // Pass parent version so hasUpdate starts as false
                     const userCopy = await templateDb.createTemplate({
@@ -694,7 +708,7 @@ router.post('/:id/share', requireAuth, requireAdmin, async (req: Request, res: R
                         name: template.name,
                         description: template.description || undefined,
                         categoryId: template.categoryId || undefined,
-                        widgets: template.widgets,
+                        widgets: sanitizedWidgets,
                         sharedFromId: template.id,
                         version: template.version, // Match parent version so hasUpdate = false
                         isDraft: false,

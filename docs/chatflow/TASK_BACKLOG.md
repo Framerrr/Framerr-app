@@ -1,11 +1,18 @@
 # Task Backlog
 
 **Priority:** 🔴 High | 🟡 Medium | 🟢 Low  
-**Last Updated:** 2025-12-22
+**Last Updated:** 2025-12-25
 
 ---
 
 ## 🔴 High Priority
+
+### Security: Integration Proxy Architecture
+- [ ] Refactor integration API calls to route through backend
+- [ ] Users should USE integrations without SEEING credentials
+- [ ] Current issue: `/api/integrations/shared` exposes apiKey, token, password
+- [ ] Widgets call backend → backend calls external service with credentials
+- **Priority:** P1 Security
 
 ### ~~Bug: Popovers Activating in Edit Mode~~ ✅
 - [x] Widget popovers should not activate when dashboard is in edit mode

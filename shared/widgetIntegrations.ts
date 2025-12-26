@@ -97,3 +97,69 @@ export const INTEGRATION_DISPLAY_NAMES: Record<string, string> = {
 export function getIntegrationDisplayName(integrationName: string): string {
     return INTEGRATION_DISPLAY_NAMES[integrationName] || integrationName;
 }
+
+// ============================================================================
+// Widget Sensitive Config
+// ============================================================================
+
+/**
+ * Widget Sensitive Config Mapping
+ * 
+ * Defines which widgets have sensitive configuration that should be
+ * stripped when sharing templates with other users.
+ * 
+ * - true: Entire config is sensitive (replaced with {})
+ * - string[]: Only specified fields are sensitive (those fields removed)
+ * 
+ * Note: Widget-level display preferences (flatten, hideHeader) are NOT
+ * part of config and will be preserved when sharing.
+ */
+export const WIDGET_SENSITIVE_CONFIG: Record<string, boolean | string[]> = {
+    'link-grid': true,      // All links are personal
+    'custom-html': true,    // All custom HTML/CSS is personal
+    // Future widgets can use string[] for per-field sensitivity:
+    // 'some-widget': ['sensitiveField1', 'sensitiveField2']
+};
+
+/**
+ * Check if a widget type has sensitive config
+ */
+export function hasSensitiveConfig(widgetType: string): boolean {
+    return widgetType.toLowerCase() in WIDGET_SENSITIVE_CONFIG;
+}
+
+/**
+ * Strip sensitive config from a widget's config object.
+ * Used when creating shared template copies.
+ * 
+ * @param widgetType - The widget type key
+ * @param config - The widget's config object
+ * @returns Sanitized config safe for sharing
+ */
+export function stripSensitiveConfig(
+    widgetType: string,
+    config: Record<string, unknown>
+): Record<string, unknown> {
+    const sensitivity = WIDGET_SENSITIVE_CONFIG[widgetType.toLowerCase()];
+
+    // Not in sensitive map - return as-is
+    if (sensitivity === undefined) {
+        return config;
+    }
+
+    // Entire config is sensitive
+    if (sensitivity === true) {
+        return {};
+    }
+
+    // Per-field sensitivity - remove specified fields
+    if (Array.isArray(sensitivity)) {
+        const sanitized = { ...config };
+        for (const field of sensitivity) {
+            delete sanitized[field];
+        }
+        return sanitized;
+    }
+
+    return config;
+}
