@@ -66,9 +66,13 @@
     border: 2px dashed var(--accent-edit-soft);
 }
 
-.react-grid-item.edit-mode:hover {
-    border-color: var(--accent-edit);
-    box-shadow: 0 4px 20px var(--accent-edit-soft);
+/* Hover effect only on devices with true hover capability (not touch) */
+/* This prevents iOS "sticky hover" where tap applies :hover that doesn't clear */
+@media (hover: hover) {
+    .react-grid-item.edit-mode:hover {
+        border-color: var(--accent-edit);
+        box-shadow: 0 4px 20px var(--accent-edit-soft);
+    }
 }
 
 /* Locked Mode - No visual feedback */
