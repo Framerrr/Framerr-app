@@ -256,11 +256,11 @@ const Dashboard = (): React.JSX.Element => {
             }
         };
 
-        // Listen for widget config changes (from LinkGridWidget, etc.)
-        // Updates local state and triggers smart change detection
+        // Listen for widget config changes (from LinkGridWidget, ActiveWidgets, etc.)
+        // Updates local state, and triggers smart change detection when in edit mode
         const handleWidgetConfigChanged = (event: Event): void => {
             const customEvent = event as CustomEvent<{ widgetId: string; config: Record<string, unknown> }>;
-            if (!customEvent.detail || !editMode) return;
+            if (!customEvent.detail) return;
 
             const { widgetId, config } = customEvent.detail;
             logger.debug('widget-config-changed received', { widgetId, hasConfig: !!config });
@@ -270,12 +270,14 @@ const Dashboard = (): React.JSX.Element => {
                     w.id === widgetId ? { ...w, config } : w
                 );
 
-                // Run change detection after state update
-                const activeBreakpoint = isMobile ? 'sm' : currentBreakpoint;
-                const { hasChanges, shouldUnlink } = checkForActualChanges(updated, activeBreakpoint);
-                setHasUnsavedChanges(hasChanges);
-                if (activeBreakpoint === 'sm') {
-                    setPendingUnlink(hasChanges ? shouldUnlink : false);
+                // Only run change detection in edit mode
+                if (editMode) {
+                    const activeBreakpoint = isMobile ? 'sm' : currentBreakpoint;
+                    const { hasChanges, shouldUnlink } = checkForActualChanges(updated, activeBreakpoint);
+                    setHasUnsavedChanges(hasChanges);
+                    if (activeBreakpoint === 'sm') {
+                        setPendingUnlink(hasChanges ? shouldUnlink : false);
+                    }
                 }
 
                 return updated;

@@ -331,8 +331,9 @@ const ActiveWidgets: React.FC = () => {
                                                     try {
                                                         await axios.put('/api/widgets', { widgets: updatedWidgets });
                                                         // Dispatch event to refresh widget live
-                                                        window.dispatchEvent(new CustomEvent('widget-config-updated', {
-                                                            detail: { widgetId: widget.id }
+                                                        const updatedWidget = updatedWidgets.find(w => w.id === widget.id);
+                                                        window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                                                            detail: { widgetId: widget.id, config: updatedWidget?.config }
                                                         }));
                                                     } catch (error) {
                                                         logger.error('Failed to update widget flatten setting', { widgetId: widget.id, error: (error as Error).message });
@@ -367,8 +368,9 @@ const ActiveWidgets: React.FC = () => {
                                                         try {
                                                             await axios.put('/api/widgets', { widgets: updatedWidgets });
                                                             // Dispatch event to refresh widget live
-                                                            window.dispatchEvent(new CustomEvent('widget-config-updated', {
-                                                                detail: { widgetId: widget.id }
+                                                            const updatedWidget = updatedWidgets.find(w => w.id === widget.id);
+                                                            window.dispatchEvent(new CustomEvent('widget-config-changed', {
+                                                                detail: { widgetId: widget.id, config: updatedWidget?.config }
                                                             }));
                                                         } catch (error) {
                                                             logger.error('Failed to update widget header setting', { widgetId: widget.id, error: (error as Error).message });
