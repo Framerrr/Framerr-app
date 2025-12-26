@@ -238,6 +238,50 @@ export async function getUserAccessibleIntegrations(
 }
 
 /**
+ * Get the share record that grants a specific user access to an integration.
+ * Returns the most relevant share: user-specific > group > everyone
+ * 
+ * @param integrationName - Integration name
+ * @param userId - User ID  
+ * @param userGroup - User's group
+ * @returns The share record or null if no access
+ */
+export async function getShareForUser(
+    integrationName: string,
+    userId: string,
+    userGroup: string
+): Promise<IntegrationShare | null> {
+    // First check for user-specific share (most specific)
+    const userShare = db.prepare(`
+        SELECT * FROM integration_shares 
+        WHERE integration_name = ? AND share_type = 'user' AND share_target = ?
+        LIMIT 1
+    `).get(integrationName, userId) as ShareRow | undefined;
+
+    if (userShare) return rowToShare(userShare);
+
+    // Then check for group share
+    const groupShare = db.prepare(`
+        SELECT * FROM integration_shares 
+        WHERE integration_name = ? AND share_type = 'group' AND share_target = ?
+        LIMIT 1
+    `).get(integrationName, userGroup) as ShareRow | undefined;
+
+    if (groupShare) return rowToShare(groupShare);
+
+    // Finally check for 'everyone' share
+    const everyoneShare = db.prepare(`
+        SELECT * FROM integration_shares 
+        WHERE integration_name = ? AND share_type = 'everyone'
+        LIMIT 1
+    `).get(integrationName) as ShareRow | undefined;
+
+    if (everyoneShare) return rowToShare(everyoneShare);
+
+    return null;
+}
+
+/**
  * Share integrations required by a template with target users.
  * Used when sharing a template with `shareIntegrations: true`.
  * 

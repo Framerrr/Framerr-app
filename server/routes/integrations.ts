@@ -101,19 +101,18 @@ router.get('/shared', requireAuth, async (req: Request, res: Response) => {
                     }
                 }
             } else {
-                // Get sharedBy info from database
-                const shares = await integrationSharesDb.getIntegrationShares(serviceName);
-                if (shares.length > 0) {
-                    // Use the first share's info
+                // Get sharedBy info from the specific share that grants this user access
+                const share = await integrationSharesDb.getShareForUser(serviceName, userId, userGroup);
+                if (share) {
                     try {
-                        const sharedByUser = await getUserById(shares[0].sharedBy);
+                        const sharedByUser = await getUserById(share.sharedBy);
                         if (sharedByUser) {
                             sharedByName = sharedByUser.displayName || sharedByUser.username;
                         }
                     } catch {
                         // Fallback to 'Admin'
                     }
-                    sharedAt = shares[0].createdAt;
+                    sharedAt = share.createdAt;
                 }
             }
 

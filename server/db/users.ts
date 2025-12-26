@@ -224,11 +224,13 @@ export async function createUser(userData: CreateUserData): Promise<Omit<User, '
                                     [id], // new user's ID as array
                                     defaultTemplate.ownerId // admin who created the template
                                 );
+                                logger.info('Integration shared with new user', { integrationName, userId: id });
                             } catch (shareError) {
-                                // Don't fail if integration sharing fails (might already be shared)
-                                logger.debug('Integration share skipped (may already exist)', {
+                                // Log the actual error to help diagnose
+                                logger.warn('Failed to share integration with new user', {
                                     integrationName,
-                                    userId: id
+                                    userId: id,
+                                    error: (shareError as Error).message
                                 });
                             }
                         }
