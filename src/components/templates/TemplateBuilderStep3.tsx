@@ -61,19 +61,24 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
                 categoryId: data.categoryId, // Send null explicitly to clear category
                 widgets: data.widgets,
                 isDraft: false,
+                isDefault: data.isDefault || false, // Include isDefault in the request
             });
 
             const savedTemplate = response.data.template;
 
-            // If marked as default, call the setDefault API
+            // Handle default template setting/clearing
             if (data.isDefault) {
+                // Set as default
                 try {
                     await axios.post(`/api/templates/${savedTemplate.id}/set-default`);
                     logger.info('Template set as default for new users', { templateId: savedTemplate.id });
                 } catch (defaultError) {
                     logger.error('Failed to set template as default:', { error: defaultError });
-                    // Continue with save - don't fail the whole operation
                 }
+            } else if (data.id) {
+                // Only clear default for existing templates (not new ones)
+                // The PUT endpoint with isDefault: false will handle DB update
+                logger.debug('Template isDefault set to false', { templateId: savedTemplate.id });
             }
 
             // Handle action-specific logic
