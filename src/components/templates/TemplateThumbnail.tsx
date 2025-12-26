@@ -49,15 +49,14 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
         return Math.min(scaleX, scaleY);
     }, [width, height]);
 
-    // Calculate offset to center content when using cover-fit
+    // Calculate offset - center horizontally, top-align vertically
     const offset = useMemo(() => {
         const scaledWidth = FULL_WIDTH * scale;
-        const scaledHeight = FULL_HEIGHT * scale;
         return {
-            x: (width - scaledWidth) / 2,
-            y: (height - scaledHeight) / 2
+            x: (width - scaledWidth) / 2,  // Center horizontally
+            y: 0                            // Top-align (padding is in GRID_PADDING)
         };
-    }, [scale, width, height]);
+    }, [scale, width]);
 
     if (widgets.length === 0) {
         return (
@@ -79,14 +78,13 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                 background: 'var(--bg-tertiary)',
             }}
         >
-            {/* Rendered at FULL SIZE, then scaled - centered with cover-fit */}
+            {/* Rendered at FULL SIZE, then scaled - center horizontal, top vertical, bottom overflows */}
             <div
                 style={{
                     position: 'absolute',
                     left: offset.x,
-                    top: offset.y,
+                    top: 0,
                     width: FULL_WIDTH,
-                    height: FULL_HEIGHT,
                     transform: `scale(${scale})`,
                     transformOrigin: 'top left',
                     willChange: 'transform',
