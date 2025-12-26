@@ -43,7 +43,7 @@ const WidgetWrapper = ({
         >
             {/* Edit mode controls - ALWAYS visible in edit mode, positioned absolutely */}
             {editMode && (onDelete || extraEditControls) && (
-                <div className="absolute top-2 right-2 z-50 flex flex-col items-end gap-2 no-drag">
+                <div className="absolute top-2 right-2 z-50 flex flex-col items-end gap-1 no-drag">
                     {/* Delete button */}
                     {onDelete && !showDeleteConfirm && (
                         <button
