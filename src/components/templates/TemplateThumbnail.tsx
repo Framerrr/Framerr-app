@@ -28,6 +28,7 @@ interface TemplateThumbnailProps {
 
 // Grid configuration at FULL SIZE (before scaling)
 const FULL_WIDTH = 600;   // Smaller = more zoomed in
+const FULL_HEIGHT = 450;  // Aspect ratio for grid content (4:3)
 const GRID_COLS = 24;
 const ROW_HEIGHT = 50;    // px per row
 const GRID_GAP = 6;       // px gap
@@ -40,11 +41,23 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
     height = 60,
     className = '',
 }) => {
-    // Calculate scale to fill width (more zoomed in)
+    // Calculate scale to fill container (cover-fit approach)
     const scale = useMemo(() => {
-        // Scale to fit width, let height overflow
-        return width / FULL_WIDTH;
-    }, [width]);
+        const scaleX = width / FULL_WIDTH;
+        const scaleY = height / FULL_HEIGHT;
+        // Use the larger scale to ensure content fills container
+        return Math.max(scaleX, scaleY);
+    }, [width, height]);
+
+    // Calculate offset to center content when using cover-fit
+    const offset = useMemo(() => {
+        const scaledWidth = FULL_WIDTH * scale;
+        const scaledHeight = FULL_HEIGHT * scale;
+        return {
+            x: (width - scaledWidth) / 2,
+            y: (height - scaledHeight) / 2
+        };
+    }, [scale, width, height]);
 
     if (widgets.length === 0) {
         return (
@@ -66,13 +79,14 @@ const TemplateThumbnail: React.FC<TemplateThumbnailProps> = ({
                 background: 'var(--bg-tertiary)',
             }}
         >
-            {/* Rendered at FULL SIZE, then scaled - top-left aligned, bottom overflows */}
+            {/* Rendered at FULL SIZE, then scaled - centered with cover-fit */}
             <div
                 style={{
                     position: 'absolute',
-                    left: 0,
-                    top: 0,
+                    left: offset.x,
+                    top: offset.y,
                     width: FULL_WIDTH,
+                    height: FULL_HEIGHT,
                     transform: `scale(${scale})`,
                     transformOrigin: 'top left',
                     willChange: 'transform',
