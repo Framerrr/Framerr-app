@@ -257,13 +257,41 @@ const Dashboard = (): React.JSX.Element => {
             }
         };
 
+        // Listen for widget config changes (from LinkGridWidget, etc.)
+        // Updates local state and triggers smart change detection
+        const handleWidgetConfigChanged = (event: Event): void => {
+            const customEvent = event as CustomEvent<{ widgetId: string; config: Record<string, unknown> }>;
+            if (!customEvent.detail || !editMode) return;
+
+            const { widgetId, config } = customEvent.detail;
+            logger.debug('widget-config-changed received', { widgetId, hasConfig: !!config });
+
+            setWidgets(prev => {
+                const updated = prev.map(w =>
+                    w.id === widgetId ? { ...w, config } : w
+                );
+
+                // Run change detection after state update
+                const activeBreakpoint = isMobile ? 'sm' : currentBreakpoint;
+                const { hasChanges, shouldUnlink } = checkForActualChanges(updated, activeBreakpoint);
+                setHasUnsavedChanges(hasChanges);
+                if (activeBreakpoint === 'sm') {
+                    setPendingUnlink(hasChanges ? shouldUnlink : false);
+                }
+
+                return updated;
+            });
+        };
+
         window.addEventListener('widgets-added', handleWidgetsAdded);
         window.addEventListener('greetingUpdated', handleGreetingUpdated);
+        window.addEventListener('widget-config-changed', handleWidgetConfigChanged);
         return () => {
             window.removeEventListener('widgets-added', handleWidgetsAdded);
             window.removeEventListener('greetingUpdated', handleGreetingUpdated);
+            window.removeEventListener('widget-config-changed', handleWidgetConfigChanged);
         };
-    }, []);
+    }, [editMode, isMobile, currentBreakpoint]);
 
     const loadUserPreferences = async (): Promise<void> => {
         try {
@@ -397,7 +425,7 @@ const Dashboard = (): React.JSX.Element => {
         h: widget.layouts?.sm?.h ?? 2
     });
 
-    // Check if current layouts differ from original (for smart change detection)
+    // Check if current layouts OR configs differ from original (for smart change detection)
     // Returns whether there are actual changes and whether unlink should be pending
     const checkForActualChanges = (
         updatedWidgets: Widget[],
@@ -413,23 +441,32 @@ const Dashboard = (): React.JSX.Element => {
             return { hasChanges: true, shouldUnlink: breakpoint === 'sm' && mobileLayoutMode === 'linked' };
         }
 
-        // Compare each widget's layout at the relevant breakpoint
-        const hasLayoutChanges = updatedWidgets.some(widget => {
+        // Compare each widget's layout AND config at the relevant breakpoint
+        const hasChanges = updatedWidgets.some(widget => {
             const original = originalToCompare.find(w => w.id === widget.id);
             if (!original) return true; // Widget doesn't exist in original
 
+            // Check layout changes
             const curr = widget.layouts?.[breakpoint];
             const orig = original.layouts?.[breakpoint];
-
-            return curr?.x !== orig?.x ||
+            const hasLayoutChange = curr?.x !== orig?.x ||
                 curr?.y !== orig?.y ||
                 curr?.w !== orig?.w ||
                 curr?.h !== orig?.h;
+
+            if (hasLayoutChange) return true;
+
+            // Check config changes (for widgets like LinkGrid)
+            const currConfig = JSON.stringify(widget.config || {});
+            const origConfig = JSON.stringify(original.config || {});
+            const hasConfigChange = currConfig !== origConfig;
+
+            return hasConfigChange;
         });
 
         return {
-            hasChanges: hasLayoutChanges,
-            shouldUnlink: hasLayoutChanges && breakpoint === 'sm' && mobileLayoutMode === 'linked'
+            hasChanges,
+            shouldUnlink: hasChanges && breakpoint === 'sm' && mobileLayoutMode === 'linked'
         };
     };
 
