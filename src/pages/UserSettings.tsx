@@ -153,11 +153,11 @@ const UserSettings = (): React.JSX.Element => {
                             }}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap text-sm font-medium relative text-theme-secondary hover:text-theme-primary"
                         >
-                            {/* Animated sliding indicator */}
+                            {/* Animated sliding indicator - z-0 ensures it's behind text (z-10) even during iOS animations */}
                             {isActive && (
                                 <motion.div
                                     layoutId="settingsTabIndicator"
-                                    className="absolute inset-0 bg-accent rounded-lg"
+                                    className="absolute inset-0 bg-accent rounded-lg z-0"
                                     transition={tabSpring}
                                 />
                             )}
