@@ -147,13 +147,8 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
         <AnimatePresence>
             {isOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden"
-                    style={isMobile ? {
-                        top: 'env(safe-area-inset-top, 0px)',
-                        bottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
-                        left: 0,
-                        right: 0
-                    } : undefined}
+                    className="fixed inset-0 z-[1050] flex items-center justify-center p-4"
+                    style={isMobile ? { paddingBottom: 'calc(86px + env(safe-area-inset-bottom, 0px) + 16px)' } : undefined}
                 >
                     {/* Backdrop */}
                     <motion.div
@@ -168,10 +163,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                     {/* Modal - animated from thumbnail */}
                     <motion.div
                         layoutId={`template-preview-${template.id}`}
-                        className={`relative z-10 bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden ${isMobile
-                            ? 'w-full h-full m-2 rounded-2xl'
-                            : 'w-full max-w-4xl mx-4 max-h-[90vh]'
-                            }`}
+                        className="relative z-10 w-full max-w-4xl max-h-full bg-theme-secondary rounded-xl border border-theme shadow-2xl flex flex-col overflow-hidden"
                         layout
                         transition={{
                             layout: { type: 'tween', ease: [0.4, 0, 0.2, 1], duration: 0.35 }
