@@ -9,6 +9,7 @@ import PlexIntegration from './integrations/PlexIntegration';
 import SharingDropdown from './SharingDropdown';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 
 interface IntegrationConfig {
@@ -274,7 +275,11 @@ const IntegrationsSettings: React.FC = () => {
     ];
 
     if (loading) {
-        return <div className="text-center py-16 text-theme-secondary">Loading integrations...</div>;
+        return (
+            <div className="flex items-center justify-center py-16">
+                <LoadingSpinner size="lg" message="Loading integrations..." />
+            </div>
+        );
     }
 
     return (
