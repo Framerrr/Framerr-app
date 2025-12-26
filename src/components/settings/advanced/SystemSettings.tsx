@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Server, Cpu, HardDrive, Activity, RefreshCw, CheckCircle, AlertCircle, Database, Wifi, Zap, Loader, Download, Upload, Clock, XCircle } from 'lucide-react';
 import axios from 'axios';
 import logger from '../../../utils/logger';
+import LoadingSpinner from '../../common/LoadingSpinner';
 
 type HealthStatus = 'healthy' | 'error' | 'warning';
 type SpeedTestStage = 'latency' | 'download' | 'upload' | null;
@@ -261,9 +262,8 @@ const SystemSettings = (): React.JSX.Element => {
 
     if (loading) {
         return (
-            <div className="text-center py-12 text-theme-secondary">
-                <Activity className="mx-auto mb-4 animate-spin" size={48} />
-                <p>Loading system information...</p>
+            <div className="flex items-center justify-center py-16">
+                <LoadingSpinner size="lg" message="Loading system information..." />
             </div>
         );
     }

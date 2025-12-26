@@ -6,6 +6,7 @@ import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 interface ProfileData {
     username: string;
@@ -189,10 +190,7 @@ const ProfileSettings: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-16">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-                    <p className="text-theme-secondary">Loading profile...</p>
-                </div>
+                <LoadingSpinner size="lg" message="Loading profile..." />
             </div>
         );
     }

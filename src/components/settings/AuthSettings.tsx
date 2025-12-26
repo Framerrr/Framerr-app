@@ -7,6 +7,7 @@ import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import PlexAuthSettings from './PlexAuthSettings';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 type TabId = 'proxy' | 'plex' | 'iframe';
 type DetectionSensitivity = 'conservative' | 'balanced' | 'aggressive';
@@ -299,10 +300,7 @@ const AuthSettings: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-16">
-                <div className="text-center">
-                    <Loader className="animate-spin text-accent mx-auto mb-4" size={48} />
-                    <p className="text-theme-secondary">Loading authentication settings...</p>
-                </div>
+                <LoadingSpinner size="lg" message="Loading authentication settings..." />
             </div>
         );
     }
