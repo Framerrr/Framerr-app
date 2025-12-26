@@ -1,7 +1,7 @@
 # Task Backlog
 
 **Priority:** 🔴 High | 🟡 Medium | 🟢 Low  
-**Last Updated:** 2025-12-25
+**Last Updated:** 2025-12-26
 
 ---
 
@@ -26,35 +26,35 @@
 
 ## 🟡 Medium Priority
 
-### Dashboard Template Engine
-- [ ] Admin creates skeleton dashboard layouts
-- [ ] Cool/professional UI for template creation
-- [ ] Templates can be assigned to users
-- [ ] Admins can use templates themselves
-- [ ] Template activation applies layout to user dashboard
+### ~~Dashboard Template Engine~~ ✅ (v1.4.0)
+- [x] Admin creates skeleton dashboard layouts
+- [x] Cool/professional UI for template creation
+- [x] Templates can be assigned to users
+- [x] Admins can use templates themselves
+- [x] Template activation applies layout to user dashboard
 
-### Integrations Settings Tab Reorder
-- [ ] Widget Gallery
-- [ ] Active Widgets
-- [ ] Service Settings
-- [ ] Dashboard
-- [ ] Shared Widgets
-- [ ] My Linked Accounts
+### ~~Integrations Settings Tab Reorder~~ ✅
+- [x] Widget Gallery
+- [x] Active Widgets
+- [x] Service Settings
+- [x] Dashboard
+- [x] Shared Widgets
+- [x] My Linked Accounts
 
-### User Management Responsive Fix
-- [ ] CRUD table should squish more before horizontal scroll kicks in
+### ~~User Management Responsive Fix~~ ✅
+- [x] CRUD table should squish more before horizontal scroll kicks in
 
-### Overseerr + Radarr/Sonarr Webhook Integration
-- [ ] Show download progress in Overseerr widget
-- [ ] Use webhooks from Radarr/Sonarr to track status
+### ~~Overseerr + Radarr/Sonarr Webhook Integration~~ ✅
+- [x] Show download progress in Overseerr widget
+- [x] Use webhooks from Radarr/Sonarr to track status
 
-### Modal Layout Consistency
-- [ ] Spacing consistency across modals
-- [ ] Indentation consistency
-- [ ] Wording/copy consistency
+### ~~Modal Layout Consistency~~ ✅
+- [x] Spacing consistency across modals
+- [x] Indentation consistency
+- [x] Wording/copy consistency
 
-### Link Grid Widget Refinements
-- [ ] Spacing refinements
+### ~~Link Grid Widget Refinements~~ ✅
+- [x] Spacing refinements
 
 ### Widget Minimum Sizing Audit
 - [ ] Determine best minimum sizes per widget type
