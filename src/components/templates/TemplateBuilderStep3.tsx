@@ -2,7 +2,7 @@
  * TemplateBuilderStep3 - Review and save screen
  * 
  * Displays:
- * - Thumbnail preview (placeholder for now)
+ * - Live grid preview with mock widgets
  * - Template info (name, category, description, widget count)
  * 
  * Actions:
@@ -12,12 +12,24 @@
  * - Save & Share (admin only)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import axios from 'axios';
-import { Save, Play, Share2, LayoutGrid } from 'lucide-react';
+import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
+import { Save, Play, Share2 } from 'lucide-react';
 import { Button } from '../common/Button';
+import { getWidgetIcon, WIDGET_TYPES } from '../../utils/widgetRegistry';
+import { getMockWidget } from './MockWidgets';
 import type { TemplateData } from './TemplateBuilder';
 import logger from '../../utils/logger';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// Grid configuration for preview
+const GRID_COLS = { lg: 24 };
+const ROW_HEIGHT = 30; // Smaller for preview
+const BREAKPOINTS = { lg: 0 };
 
 interface Step3Props {
     data: TemplateData;
@@ -36,6 +48,18 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
 }) => {
     const [saving, setSaving] = useState(false);
     const [saveAction, setSaveAction] = useState<'save' | 'apply' | 'share' | null>(null);
+
+    // Convert template widgets to grid layouts
+    const layouts = useMemo(() => {
+        const lgLayout: Layout[] = data.widgets.map((widget, index) => ({
+            i: `widget-${index}`,
+            x: widget.layout.x,
+            y: widget.layout.y,
+            w: widget.layout.w,
+            h: widget.layout.h,
+        }));
+        return { lg: lgLayout };
+    }, [data.widgets]);
 
     // Get unique widget types for display
     const getWidgetTypes = () => {
@@ -113,17 +137,51 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
 
     return (
         <div className="space-y-6">
-            {/* Thumbnail Preview Placeholder */}
-            <div className="rounded-lg border border-theme bg-theme-tertiary p-8 flex items-center justify-center min-h-[200px]">
-                <div className="text-center text-theme-secondary">
-                    <LayoutGrid size={48} className="mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Template Preview</p>
-                    <p className="text-xs text-theme-tertiary">
-                        {data.widgets.length === 0
-                            ? 'No widgets added yet'
-                            : `${data.widgets.length} widget${data.widgets.length !== 1 ? 's' : ''}`
-                        }
-                    </p>
+            {/* Live Grid Preview */}
+            <div className="rounded-lg border border-theme bg-theme-tertiary overflow-hidden">
+                <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                    {data.widgets.length === 0 ? (
+                        <div className="flex items-center justify-center h-[150px] text-theme-tertiary">
+                            <p className="text-sm">No widgets added</p>
+                        </div>
+                    ) : (
+                        <div className="p-2">
+                            <ResponsiveGridLayout
+                                layouts={layouts}
+                                breakpoints={BREAKPOINTS}
+                                cols={GRID_COLS}
+                                rowHeight={ROW_HEIGHT}
+                                isDraggable={false}
+                                isResizable={false}
+                                margin={[6, 6]}
+                                containerPadding={[8, 8]}
+                                compactType="vertical"
+                            >
+                                {data.widgets.map((widget, index) => {
+                                    const Icon = getWidgetIcon(widget.type);
+                                    const metadata = WIDGET_TYPES[widget.type];
+                                    const MockWidget = getMockWidget(widget.type);
+
+                                    return (
+                                        <div
+                                            key={`widget-${index}`}
+                                            className="glass-subtle rounded-lg border border-theme overflow-hidden flex flex-col"
+                                        >
+                                            <div className="flex items-center gap-2 p-1.5 border-b border-theme bg-theme-secondary/50">
+                                                <Icon size={12} className="text-accent" />
+                                                <span className="text-xs font-medium text-theme-primary truncate">
+                                                    {metadata?.name || widget.type}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 overflow-hidden p-1.5">
+                                                <MockWidget />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </ResponsiveGridLayout>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -214,3 +272,4 @@ const TemplateBuilderStep3: React.FC<Step3Props> = ({
 };
 
 export default TemplateBuilderStep3;
+
