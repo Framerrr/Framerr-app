@@ -1034,7 +1034,7 @@ const Dashboard = (): React.JSX.Element => {
                     <button
                         onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('format24h', format24h); }}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className={getButtonClass(!format24h)}
+                        className={getButtonClass(format24h)}
                         style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
                         title={format24h ? '24-hour format' : '12-hour format'}
                     >
