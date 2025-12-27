@@ -1401,6 +1401,7 @@ const Dashboard = (): React.JSX.Element => {
                                         }}
                                         data-grid={{
                                             ...layoutItem,
+                                            minW: metadata?.minSize?.w || 1,
                                             minH: metadata?.minSize?.h || 1,
                                             maxW: metadata?.maxSize?.w || 24,
                                             maxH: metadata?.maxSize?.h || 10,
