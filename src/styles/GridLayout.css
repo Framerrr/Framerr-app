@@ -96,6 +96,20 @@
     background: transparent;
 }
 
+/* Larger touch targets for resize handles on mobile (iOS recommended: 44px minimum) */
+@media (max-width: 768px) {
+    .react-resizable-handle {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* Restore pointer-events on resize handles in edit mode */
+/* These need to be touchable even when widget has pointer-events:none */
+.react-grid-item.edit-mode .react-resizable-handle {
+    pointer-events: auto;
+}
+
 /* Only show resize handles in edit mode */
 .react-grid-item:not(.edit-mode) .react-resizable-handle {
     display: none !important;
