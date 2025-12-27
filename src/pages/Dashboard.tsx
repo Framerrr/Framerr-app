@@ -140,10 +140,11 @@ const Dashboard = (): React.JSX.Element => {
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false);
 
     // Touch gesture detection for iOS-style hold-to-drag on mobile
-    // Allows quick swipes to scroll, while holding 250ms enables widget dragging
+    // Uses NATIVE event listeners to block react-draggable's touch handling
+    // registerWidgetRef attaches capture-phase listeners that block touches during hold detection
     const {
         dragReadyWidgetId,
-        onWidgetTouchStart,
+        registerWidgetRef,
         onWidgetTouchMove,
         onWidgetTouchEnd,
         resetDragReady
@@ -1351,10 +1352,17 @@ const Dashboard = (): React.JSX.Element => {
                                 <div
                                     key={widget.id}
                                     className={`${editMode ? 'edit-mode' : 'locked'} ${dragReadyWidgetId === widget.id ? 'widget-drag-ready' : ''}`}
-                                    // Touch handlers for hold detection
-                                    // onTouchStart/Move only active during detection phase
-                                    // onTouchEnd always attached so auto-reset can trigger
-                                    onTouchStart={(e) => editMode && isMobile && dragReadyWidgetId !== widget.id && onWidgetTouchStart(e, widget.id)}
+                                    // Native touch blocking via ref callback
+                                    // registerWidgetRef attaches capture-phase listeners that block react-draggable
+                                    ref={(el) => {
+                                        if (editMode && isMobile) {
+                                            registerWidgetRef(widget.id, el);
+                                        } else {
+                                            // Unregister when not in edit mode or not mobile
+                                            registerWidgetRef(widget.id, null);
+                                        }
+                                    }}
+                                    // Keep React touch handlers for compatibility
                                     onTouchMove={dragReadyWidgetId !== widget.id ? onWidgetTouchMove : undefined}
                                     onTouchEnd={editMode && isMobile ? onWidgetTouchEnd : undefined}
                                     style={{
@@ -1366,7 +1374,9 @@ const Dashboard = (): React.JSX.Element => {
                                                     ? 'rgba(34, 197, 94, 0.1)'
                                                     : 'rgba(59, 130, 246, 0.1)')
                                             : undefined,
-                                        overflow: 'hidden'
+                                        overflow: 'hidden',
+                                        // iOS: Prevent gesture conflicts during edit mode (zoom, scroll gestures)
+                                        touchAction: editMode && isMobile ? 'none' : undefined
                                     }}
                                     data-grid={{
                                         ...layoutItem,
