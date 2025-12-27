@@ -82,6 +82,12 @@
     cursor: default;
 }
 
+/* Restore pointer-events on interactive elements within widgets */
+/* .no-drag elements need to be clickable even when widget has pointer-events:none */
+.react-grid-item.edit-mode .no-drag {
+    pointer-events: auto;
+}
+
 /* Resize Handles */
 .react-resizable-handle {
     position: absolute;

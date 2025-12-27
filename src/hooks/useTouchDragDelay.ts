@@ -226,10 +226,9 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         }
 
         // CRITICAL: Block this touch from reaching react-draggable
+        // Note: We don't call preventDefault() here to allow scrolling
+        // Scroll blocking happens in the separate touchmove listener when dragReadyWidgetId is set
         e.stopImmediatePropagation();
-
-        // Prevent iOS from synthesizing mouse events
-        e.preventDefault();
 
         // Clear any existing timer
         if (touchStateRef.current?.timerId) {
