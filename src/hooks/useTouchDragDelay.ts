@@ -208,6 +208,13 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
             return;
         }
 
+        // Allow touches on resize handles to pass through
+        // These have pointer-events:auto so e.target works correctly for them
+        if (e.target instanceof HTMLElement &&
+            e.target.closest('.react-resizable-handle')) {
+            return;
+        }
+
         // Only track single-finger touches
         if (e.touches.length !== 1) return;
 
