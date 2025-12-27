@@ -171,6 +171,25 @@ const Dashboard = (): React.JSX.Element => {
         setTouchBlockingActive(editMode && isMobile);
     }, [editMode, isMobile, setTouchBlockingActive]);
 
+    // WORKAROUND: iOS PWA has WebKit bug where CSS pointer-events behaves unreliably
+    // We must set pointer-events as inline style via JavaScript for resize handles
+    useEffect(() => {
+        if (!editMode || !isMobile) return;
+
+        // Find all resize handles and set inline style
+        const handles = document.querySelectorAll('.react-resizable-handle');
+        handles.forEach((handle) => {
+            (handle as HTMLElement).style.pointerEvents = 'auto';
+        });
+
+        return () => {
+            // Cleanup: remove inline style when exiting edit mode
+            handles.forEach((handle) => {
+                (handle as HTMLElement).style.pointerEvents = '';
+            });
+        };
+    }, [editMode, isMobile, widgets]); // Re-run when widgets change
+
     // Load data on mount
     useEffect(() => {
         fetchWidgets();
