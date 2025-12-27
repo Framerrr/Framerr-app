@@ -176,19 +176,27 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     }, [dragReadyWidgetId]);
 
     /**
-     * Find the widget ID from an event target by looking for data-widget-id attribute
+     * Find the widget ID from touch coordinates.
+     * With pointer-events:none on widgets, e.target won't be the widget.
+     * We use the touch coordinates to find which widget is visually under the touch.
      */
-    const getWidgetIdFromTarget = useCallback((target: EventTarget | null): { widgetId: string; widgetElement: HTMLElement } | null => {
-        if (!(target instanceof HTMLElement)) return null;
+    const getWidgetIdFromCoordinates = useCallback((clientX: number, clientY: number): { widgetId: string; widgetElement: HTMLElement } | null => {
+        // Find all widgets with data-widget-id
+        const widgetElements = document.querySelectorAll('[data-widget-id]');
 
-        // Look for the widget container with data-widget-id attribute
-        const widgetElement = target.closest('[data-widget-id]') as HTMLElement | null;
-        if (!widgetElement) return null;
+        for (const element of widgetElements) {
+            const rect = (element as HTMLElement).getBoundingClientRect();
+            // Check if touch coordinates are within this widget's bounds
+            if (clientX >= rect.left && clientX <= rect.right &&
+                clientY >= rect.top && clientY <= rect.bottom) {
+                const widgetId = element.getAttribute('data-widget-id');
+                if (widgetId) {
+                    return { widgetId, widgetElement: element as HTMLElement };
+                }
+            }
+        }
 
-        const widgetId = widgetElement.getAttribute('data-widget-id');
-        if (!widgetId) return null;
-
-        return { widgetId, widgetElement };
+        return null;
     }, []);
 
     /**
@@ -203,8 +211,11 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         // Only track single-finger touches
         if (e.touches.length !== 1) return;
 
-        // Find which widget (if any) was touched
-        const widgetInfo = getWidgetIdFromTarget(e.target);
+        const touch = e.touches[0];
+
+        // Find which widget (if any) was touched using coordinates
+        // (e.target won't work because widgets have pointer-events:none)
+        const widgetInfo = getWidgetIdFromCoordinates(touch.clientX, touch.clientY);
         if (!widgetInfo) return; // Touch wasn't on a widget
 
         const { widgetId, widgetElement } = widgetInfo;
@@ -219,8 +230,6 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
 
         // Prevent iOS from synthesizing mouse events
         e.preventDefault();
-
-        const touch = e.touches[0];
 
         // Clear any existing timer
         if (touchStateRef.current?.timerId) {
@@ -267,7 +276,7 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         }, HOLD_THRESHOLD_MS);
 
         touchStateRef.current.timerId = timerId;
-    }, [getWidgetIdFromTarget]);
+    }, [getWidgetIdFromCoordinates]);
 
     /**
      * Native touchmove handler - attached to container with capture phase
