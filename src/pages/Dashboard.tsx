@@ -1375,7 +1375,10 @@ const Dashboard = (): React.JSX.Element => {
                                                 : undefined,
                                             overflow: 'hidden',
                                             // iOS: Prevent gesture conflicts during edit mode (zoom, scroll gestures)
-                                            touchAction: editMode && isMobile ? 'none' : undefined
+                                            touchAction: editMode && isMobile ? 'none' : undefined,
+                                            // CRITICAL: Block ALL pointer events on mobile edit mode until widget is unlocked
+                                            // This prevents RGL from receiving taps. CSS restores pointer-events when drag-ready.
+                                            pointerEvents: editMode && isMobile && dragReadyWidgetId !== widget.id ? 'none' : undefined
                                         }}
                                         data-grid={{
                                             ...layoutItem,

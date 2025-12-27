@@ -39,6 +39,8 @@
         inset 0 0 0 1px var(--accent-edit-soft) !important;
     transition: box-shadow 150ms ease-out !important;
     z-index: 100 !important;
+    /* CRITICAL: Re-enable pointer events when drag-ready */
+    pointer-events: auto !important;
 }
 
 /* Grid Items */
