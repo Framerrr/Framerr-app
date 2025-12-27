@@ -140,11 +140,12 @@ const Dashboard = (): React.JSX.Element => {
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false);
 
     // Touch gesture detection for iOS-style hold-to-drag on mobile
-    // Uses NATIVE event listeners to block react-draggable's touch handling
-    // registerWidgetRef attaches capture-phase listeners that block touches during hold detection
+    // Uses NATIVE event listener on container to block react-draggable's touch handling
+    // containerRef should be attached to the grid container, setTouchBlockingActive enables/disables
     const {
         dragReadyWidgetId,
-        registerWidgetRef,
+        containerRef: touchBlockingContainerRef,
+        setTouchBlockingActive,
         onWidgetTouchMove,
         onWidgetTouchEnd,
         resetDragReady
@@ -164,6 +165,11 @@ const Dashboard = (): React.JSX.Element => {
             resetDragReady();
         }
     }, [editMode, resetDragReady]);
+
+    // Enable/disable touch blocking based on edit mode and mobile state
+    useEffect(() => {
+        setTouchBlockingActive(editMode && isMobile);
+    }, [editMode, isMobile, setTouchBlockingActive]);
 
     // Load data on mount
     useEffect(() => {
@@ -1306,92 +1312,86 @@ const Dashboard = (): React.JSX.Element => {
                         </div>
                     </div>
                 ) : (
-                    <ResponsiveGridLayout
-                        className="layout"
-                        cols={gridCols}
-                        breakpoints={gridBreakpoints}
-                        rowHeight={100}
-                        // FIX: compactType always 'vertical' - never toggles
-                        compactType="vertical"
-                        preventCollision={false}
-                        // On mobile: only allow drag when touch hold threshold is reached
-                        // This requires tap-unlock-drag pattern (two-phase)
-                        // On desktop: allow drag immediately (no touch delay needed)
-                        isDraggable={editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId !== null)}
-                        isResizable={editMode && isGlobalDragEnabled}
-                        resizeHandles={isMobile ? ['s'] : ['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
-                        draggableCancel=".no-drag"
-                        margin={[16, 16]}
-                        containerPadding={[0, 0]}
-                        // FIX: Pass layouts as-is, no sorting
-                        layouts={layouts}
-                        onLayoutChange={handleLayoutChange}
-                        onDragStart={handleDragStart}
-                        onResizeStart={handleResizeStart}
-                        onDragStop={handleDragResizeStop}
-                        onResizeStop={handleDragResizeStop}
-                        onBreakpointChange={handleBreakpointChange}
-                    >
-                        {/* FIX: Always render in consistent order */}
-                        {getDisplayWidgets().map(widget => {
-                            const metadata = getWidgetMetadata(widget.type);
-                            // Use correct breakpoint layout based on current state
-                            const currentBpLayouts = (isMobile || currentBreakpoint === 'sm') ? layouts.sm : layouts.lg;
-                            const layoutItem = currentBpLayouts.find(l => l.i === widget.id) || {
-                                i: widget.id,
-                                x: widget.layouts?.lg?.x || 0,
-                                y: widget.layouts?.lg?.y || 0,
-                                w: widget.layouts?.lg?.w || 4,
-                                h: widget.layouts?.lg?.h || 2
-                            };
+                    <div ref={touchBlockingContainerRef}>
+                        <ResponsiveGridLayout
+                            className="layout"
+                            cols={gridCols}
+                            breakpoints={gridBreakpoints}
+                            rowHeight={100}
+                            // FIX: compactType always 'vertical' - never toggles
+                            compactType="vertical"
+                            preventCollision={false}
+                            // On mobile: only allow drag when touch hold threshold is reached
+                            // This requires tap-unlock-drag pattern (two-phase)
+                            // On desktop: allow drag immediately (no touch delay needed)
+                            isDraggable={editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId !== null)}
+                            isResizable={editMode && isGlobalDragEnabled}
+                            resizeHandles={isMobile ? ['s'] : ['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw']}
+                            draggableCancel=".no-drag"
+                            margin={[16, 16]}
+                            containerPadding={[0, 0]}
+                            // FIX: Pass layouts as-is, no sorting
+                            layouts={layouts}
+                            onLayoutChange={handleLayoutChange}
+                            onDragStart={handleDragStart}
+                            onResizeStart={handleResizeStart}
+                            onDragStop={handleDragResizeStop}
+                            onResizeStop={handleDragResizeStop}
+                            onBreakpointChange={handleBreakpointChange}
+                        >
+                            {/* FIX: Always render in consistent order */}
+                            {getDisplayWidgets().map(widget => {
+                                const metadata = getWidgetMetadata(widget.type);
+                                // Use correct breakpoint layout based on current state
+                                const currentBpLayouts = (isMobile || currentBreakpoint === 'sm') ? layouts.sm : layouts.lg;
+                                const layoutItem = currentBpLayouts.find(l => l.i === widget.id) || {
+                                    i: widget.id,
+                                    x: widget.layouts?.lg?.x || 0,
+                                    y: widget.layouts?.lg?.y || 0,
+                                    w: widget.layouts?.lg?.w || 4,
+                                    h: widget.layouts?.lg?.h || 2
+                                };
 
-                            const renderedWidget = renderWidget(widget);
-                            if (!renderedWidget) return null;
+                                const renderedWidget = renderWidget(widget);
+                                if (!renderedWidget) return null;
 
-                            return (
-                                <div
-                                    key={widget.id}
-                                    className={`${editMode ? 'edit-mode' : 'locked'} ${dragReadyWidgetId === widget.id ? 'widget-drag-ready' : ''}`}
-                                    // Native touch blocking via ref callback
-                                    // registerWidgetRef attaches capture-phase listeners that block react-draggable
-                                    ref={(el) => {
-                                        if (editMode && isMobile) {
-                                            registerWidgetRef(widget.id, el);
-                                        } else {
-                                            // Unregister when not in edit mode or not mobile
-                                            registerWidgetRef(widget.id, null);
-                                        }
-                                    }}
-                                    // Keep React touch handlers for compatibility
-                                    onTouchMove={dragReadyWidgetId !== widget.id ? onWidgetTouchMove : undefined}
-                                    onTouchEnd={editMode && isMobile ? onWidgetTouchEnd : undefined}
-                                    style={{
-                                        // Debug: color-coded background (only when overlay enabled)
-                                        backgroundColor: debugOverlayEnabled
-                                            ? (pendingUnlink
-                                                ? 'rgba(249, 115, 22, 0.1)'
-                                                : mobileLayoutMode === 'independent'
-                                                    ? 'rgba(34, 197, 94, 0.1)'
-                                                    : 'rgba(59, 130, 246, 0.1)')
-                                            : undefined,
-                                        overflow: 'hidden',
-                                        // iOS: Prevent gesture conflicts during edit mode (zoom, scroll gestures)
-                                        touchAction: editMode && isMobile ? 'none' : undefined
-                                    }}
-                                    data-grid={{
-                                        ...layoutItem,
-                                        minH: metadata?.minSize?.h || 1,
-                                        maxW: metadata?.maxSize?.w || 24,
-                                        maxH: metadata?.maxSize?.h || 10,
-                                        // On mobile: only allow dragging the specific widget that passed hold threshold
-                                        isDraggable: editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId === widget.id)
-                                    }}
-                                >
-                                    {renderedWidget}
-                                </div>
-                            );
-                        })}
-                    </ResponsiveGridLayout>
+                                return (
+                                    <div
+                                        key={widget.id}
+                                        // data-widget-id used by native touch listener to identify which widget was touched
+                                        data-widget-id={widget.id}
+                                        className={`${editMode ? 'edit-mode' : 'locked'} ${dragReadyWidgetId === widget.id ? 'widget-drag-ready' : ''}`}
+                                        // Keep React touch handlers for compatibility (native listener handles most work)
+                                        onTouchMove={dragReadyWidgetId !== widget.id ? onWidgetTouchMove : undefined}
+                                        onTouchEnd={editMode && isMobile ? onWidgetTouchEnd : undefined}
+                                        style={{
+                                            // Debug: color-coded background (only when overlay enabled)
+                                            backgroundColor: debugOverlayEnabled
+                                                ? (pendingUnlink
+                                                    ? 'rgba(249, 115, 22, 0.1)'
+                                                    : mobileLayoutMode === 'independent'
+                                                        ? 'rgba(34, 197, 94, 0.1)'
+                                                        : 'rgba(59, 130, 246, 0.1)')
+                                                : undefined,
+                                            overflow: 'hidden',
+                                            // iOS: Prevent gesture conflicts during edit mode (zoom, scroll gestures)
+                                            touchAction: editMode && isMobile ? 'none' : undefined
+                                        }}
+                                        data-grid={{
+                                            ...layoutItem,
+                                            minH: metadata?.minSize?.h || 1,
+                                            maxW: metadata?.maxSize?.w || 24,
+                                            maxH: metadata?.maxSize?.h || 10,
+                                            // On mobile: only allow dragging the specific widget that passed hold threshold
+                                            isDraggable: editMode && isGlobalDragEnabled && (!isMobile || dragReadyWidgetId === widget.id)
+                                        }}
+                                    >
+                                        {renderedWidget}
+                                    </div>
+                                );
+                            })}
+                        </ResponsiveGridLayout>
+                    </div>
                 )}
             </div>
 

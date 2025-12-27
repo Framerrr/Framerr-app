@@ -5,17 +5,15 @@ import logger from '../utils/logger';
  * useTouchDragDelay - iOS-style hold-to-drag gesture detection
  * 
  * ARCHITECTURE:
- * - Uses NATIVE event listeners with capture phase to intercept touches BEFORE react-draggable
- * - React-draggable adds its own native touchstart listener to DOM elements
- * - React's synthetic event stopPropagation() doesn't block native listeners
- * - We must use stopImmediatePropagation() on native events to block RGL
+ * - Provides a containerRef that should be attached to the grid container
+ * - Uses NATIVE event listener with capture phase on the container
+ * - Extracts widget ID from event target's closest parent with data-widget-id attribute
+ * - Blocks touches during hold detection, allows through after threshold
  * 
- * FLOW:
- * 1. User touches widget → our capture listener fires FIRST
- * 2. During hold detection phase, we block with stopImmediatePropagation()
- * 3. If user holds for HOLD_THRESHOLD_MS without moving, we set dragReadyWidgetId
- * 4. We dispatch synthetic touchstart to RGL (which now has isDraggable=true)
- * 5. RGL receives the synthetic touch and begins drag tracking
+ * This approach is more stable than per-widget listeners because:
+ * - Single listener, no re-registration issues
+ * - Works with dynamic widget lists
+ * - Ref attachment is stable (attached once to container)
  * 
  * @returns Touch gesture state and handlers
  */
@@ -43,11 +41,13 @@ interface TouchState {
 interface UseTouchDragDelayReturn {
     /** Widget ID that has passed the hold threshold and is ready to drag */
     dragReadyWidgetId: string | null;
-    /** Attach this ref to widget container to enable native touch blocking */
-    registerWidgetRef: (widgetId: string, element: HTMLElement | null) => void;
-    /** Handler for touchmove - tracks position and cancels hold if moved too much (React synthetic) */
+    /** Ref to attach to the grid container for touch blocking */
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    /** Whether touch blocking is active (for conditional attachment) */
+    setTouchBlockingActive: (active: boolean) => void;
+    /** Handler for touchmove (React synthetic) - for compatibility */
     onWidgetTouchMove: (e: React.TouchEvent) => void;
-    /** Handler for touchend - cleanup (React synthetic) */
+    /** Handler for touchend (React synthetic) - cleanup */
     onWidgetTouchEnd: () => void;
     /** Manual reset - call after drag completes or when exiting edit mode */
     resetDragReady: () => void;
@@ -57,28 +57,25 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     // Widget that has passed hold threshold and is ready to be dragged
     const [dragReadyWidgetId, setDragReadyWidgetId] = useState<string | null>(null);
 
+    // Whether touch blocking is currently active (edit mode + mobile)
+    const [touchBlockingActive, setTouchBlockingActive] = useState(false);
+
+    // Container element ref
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
     // Track touch state for threshold detection
     const touchStateRef = useRef<TouchState | null>(null);
 
     // Auto-reset timer ref
     const autoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Track registered widget elements and their native listeners for cleanup
-    const widgetElementsRef = useRef<Map<string, {
-        element: HTMLElement;
-        touchStartHandler: (e: TouchEvent) => void;
-        touchMoveHandler: (e: TouchEvent) => void;
-    }>>(new Map());
-
     // Ref to track current dragReadyWidgetId for use in native event handlers
-    // (native handlers can't read state directly as they're not re-created on state change)
     const dragReadyWidgetIdRef = useRef<string | null>(null);
     useEffect(() => {
         dragReadyWidgetIdRef.current = dragReadyWidgetId;
     }, [dragReadyWidgetId]);
 
-    // Pending synthetic touch data - stored when hold threshold reached,
-    // dispatched by useEffect after React re-renders with isDraggable=true
+    // Pending synthetic touch data
     const pendingSyntheticTouchRef = useRef<{
         element: HTMLElement;
         touchData: {
@@ -91,6 +88,9 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
             pageY: number;
         };
     } | null>(null);
+
+    // Flag to allow synthetic events through
+    const allowNextTouchRef = useRef(false);
 
     // Global touchend listener for auto-reset
     useEffect(() => {
@@ -129,7 +129,10 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         if (dragReadyWidgetId && pendingSyntheticTouchRef.current) {
             const { element, touchData } = pendingSyntheticTouchRef.current;
 
-            // Small delay to ensure DOM is fully updated
+            // Set flag to allow the next touch through our blocker
+            allowNextTouchRef.current = true;
+
+            // Small delay to ensure DOM is fully updated and flag is set
             requestAnimationFrame(() => {
                 try {
                     const syntheticTouch = new Touch({
@@ -156,12 +159,15 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
                         changedTouches: [syntheticTouch],
                     });
 
-                    // Mark this as our synthetic event so our capture handler lets it through
-                    (syntheticEvent as any)._isSyntheticFromHoldGesture = true;
-
                     element.dispatchEvent(syntheticEvent);
+
+                    // Reset the flag after a short delay
+                    setTimeout(() => {
+                        allowNextTouchRef.current = false;
+                    }, 50);
                 } catch (error) {
                     logger.warn('Synthetic touch dispatch failed', { error });
+                    allowNextTouchRef.current = false;
                 }
             });
 
@@ -170,160 +176,157 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     }, [dragReadyWidgetId]);
 
     /**
-     * Create native touch handlers for a widget element.
-     * These fire in CAPTURE phase, BEFORE react-draggable's listeners.
+     * Find the widget ID from an event target by looking for data-widget-id attribute
      */
-    const createNativeTouchHandlers = useCallback((widgetId: string, element: HTMLElement) => {
-        // Native touchstart handler - blocks RGL during hold detection
-        const touchStartHandler = (e: TouchEvent) => {
-            // Let our synthetic events through (they have a marker)
-            if ((e as any)._isSyntheticFromHoldGesture) {
-                return;
-            }
+    const getWidgetIdFromTarget = useCallback((target: EventTarget | null): { widgetId: string; widgetElement: HTMLElement } | null => {
+        if (!(target instanceof HTMLElement)) return null;
 
-            // Only track single-finger touches
-            if (e.touches.length !== 1) return;
+        // Look for the widget container with data-widget-id attribute
+        const widgetElement = target.closest('[data-widget-id]') as HTMLElement | null;
+        if (!widgetElement) return null;
 
-            // If this widget is already drag-ready, let the touch through to RGL
-            if (dragReadyWidgetIdRef.current === widgetId) {
-                return;
-            }
+        const widgetId = widgetElement.getAttribute('data-widget-id');
+        if (!widgetId) return null;
 
-            // CRITICAL: Block this touch from reaching react-draggable
-            e.stopImmediatePropagation();
-
-            // Prevent iOS from synthesizing mouse events
-            e.preventDefault();
-
-            const touch = e.touches[0];
-
-            // Clear any existing timer
-            if (touchStateRef.current?.timerId) {
-                clearTimeout(touchStateRef.current.timerId);
-            }
-
-            // Store touch state
-            touchStateRef.current = {
-                startX: touch.clientX,
-                startY: touch.clientY,
-                currentX: touch.clientX,
-                currentY: touch.clientY,
-                screenX: touch.screenX,
-                screenY: touch.screenY,
-                pageX: touch.pageX,
-                pageY: touch.pageY,
-                touchIdentifier: touch.identifier,
-                widgetId,
-                targetElement: element,
-                timerId: null
-            };
-
-            // Start hold detection timer
-            const timerId = setTimeout(() => {
-                if (touchStateRef.current && touchStateRef.current.widgetId === widgetId) {
-                    // Store pending touch data for useEffect to dispatch
-                    const state = touchStateRef.current;
-                    pendingSyntheticTouchRef.current = {
-                        element: state.targetElement,
-                        touchData: {
-                            identifier: state.touchIdentifier,
-                            clientX: state.currentX,
-                            clientY: state.currentY,
-                            screenX: state.screenX,
-                            screenY: state.screenY,
-                            pageX: state.pageX,
-                            pageY: state.pageY,
-                        }
-                    };
-
-                    // Set drag-ready state - triggers React re-render
-                    setDragReadyWidgetId(widgetId);
-                    state.timerId = null;
-                }
-            }, HOLD_THRESHOLD_MS);
-
-            touchStateRef.current.timerId = timerId;
-        };
-
-        // Native touchmove handler - tracks position and cancels hold if moved too much
-        const touchMoveHandler = (e: TouchEvent) => {
-            if (!touchStateRef.current) return;
-            if (touchStateRef.current.widgetId !== widgetId) return;
-
-            const touch = e.touches[0];
-
-            // Update current position
-            touchStateRef.current.currentX = touch.clientX;
-            touchStateRef.current.currentY = touch.clientY;
-            touchStateRef.current.screenX = touch.screenX;
-            touchStateRef.current.screenY = touch.screenY;
-            touchStateRef.current.pageX = touch.pageX;
-            touchStateRef.current.pageY = touch.pageY;
-
-            // If already drag-ready, let RGL handle movement
-            if (dragReadyWidgetIdRef.current === widgetId) {
-                return;
-            }
-
-            // Block RGL during hold detection
-            e.stopImmediatePropagation();
-
-            const { startX, startY, timerId } = touchStateRef.current;
-            const deltaX = Math.abs(touch.clientX - startX);
-            const deltaY = Math.abs(touch.clientY - startY);
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            // If moved beyond threshold, cancel the hold timer (user is scrolling)
-            if (distance > MOVE_THRESHOLD_PX && timerId) {
-                clearTimeout(timerId);
-                touchStateRef.current.timerId = null;
-                touchStateRef.current = null;
-            }
-        };
-
-        return { touchStartHandler, touchMoveHandler };
+        return { widgetId, widgetElement };
     }, []);
 
     /**
-     * Register a widget element for native touch blocking.
-     * Call with the widget ID and the DOM element reference.
-     * Call with null element to unregister.
+     * Native touchstart handler - attached to container with capture phase
      */
-    const registerWidgetRef = useCallback((widgetId: string, element: HTMLElement | null) => {
-        // Get existing registration
-        const existing = widgetElementsRef.current.get(widgetId);
-
-        // If same element, do nothing
-        if (existing?.element === element) return;
-
-        // Remove existing listeners if any
-        if (existing) {
-            existing.element.removeEventListener('touchstart', existing.touchStartHandler, { capture: true } as EventListenerOptions);
-            existing.element.removeEventListener('touchmove', existing.touchMoveHandler, { capture: true } as EventListenerOptions);
-            widgetElementsRef.current.delete(widgetId);
+    const handleContainerTouchStart = useCallback((e: TouchEvent) => {
+        // Allow synthetic events through
+        if (allowNextTouchRef.current) {
+            return;
         }
 
-        // Add new listeners if element provided
-        if (element) {
-            const { touchStartHandler, touchMoveHandler } = createNativeTouchHandlers(widgetId, element);
+        // Only track single-finger touches
+        if (e.touches.length !== 1) return;
 
-            // CRITICAL: Use capture phase to fire BEFORE react-draggable's listener
-            // CRITICAL: Use { passive: false } to allow preventDefault()
-            element.addEventListener('touchstart', touchStartHandler, { capture: true, passive: false });
-            element.addEventListener('touchmove', touchMoveHandler, { capture: true, passive: false });
+        // Find which widget (if any) was touched
+        const widgetInfo = getWidgetIdFromTarget(e.target);
+        if (!widgetInfo) return; // Touch wasn't on a widget
 
-            widgetElementsRef.current.set(widgetId, { element, touchStartHandler, touchMoveHandler });
+        const { widgetId, widgetElement } = widgetInfo;
+
+        // If this widget is already drag-ready, let the touch through to RGL
+        if (dragReadyWidgetIdRef.current === widgetId) {
+            return;
         }
-    }, [createNativeTouchHandlers]);
+
+        // CRITICAL: Block this touch from reaching react-draggable
+        e.stopImmediatePropagation();
+
+        // Prevent iOS from synthesizing mouse events
+        e.preventDefault();
+
+        const touch = e.touches[0];
+
+        // Clear any existing timer
+        if (touchStateRef.current?.timerId) {
+            clearTimeout(touchStateRef.current.timerId);
+        }
+
+        // Store touch state
+        touchStateRef.current = {
+            startX: touch.clientX,
+            startY: touch.clientY,
+            currentX: touch.clientX,
+            currentY: touch.clientY,
+            screenX: touch.screenX,
+            screenY: touch.screenY,
+            pageX: touch.pageX,
+            pageY: touch.pageY,
+            touchIdentifier: touch.identifier,
+            widgetId,
+            targetElement: widgetElement,
+            timerId: null
+        };
+
+        // Start hold detection timer
+        const timerId = setTimeout(() => {
+            if (touchStateRef.current && touchStateRef.current.widgetId === widgetId) {
+                const state = touchStateRef.current;
+                pendingSyntheticTouchRef.current = {
+                    element: state.targetElement,
+                    touchData: {
+                        identifier: state.touchIdentifier,
+                        clientX: state.currentX,
+                        clientY: state.currentY,
+                        screenX: state.screenX,
+                        screenY: state.screenY,
+                        pageX: state.pageX,
+                        pageY: state.pageY,
+                    }
+                };
+
+                // Set drag-ready state - triggers React re-render
+                setDragReadyWidgetId(widgetId);
+                state.timerId = null;
+            }
+        }, HOLD_THRESHOLD_MS);
+
+        touchStateRef.current.timerId = timerId;
+    }, [getWidgetIdFromTarget]);
 
     /**
-     * Handle touch move - React synthetic event version (kept for compatibility)
+     * Native touchmove handler - attached to container with capture phase
+     */
+    const handleContainerTouchMove = useCallback((e: TouchEvent) => {
+        if (!touchStateRef.current) return;
+
+        // If already drag-ready, let RGL handle movement
+        if (dragReadyWidgetIdRef.current) return;
+
+        const touch = e.touches[0];
+
+        // Update current position
+        touchStateRef.current.currentX = touch.clientX;
+        touchStateRef.current.currentY = touch.clientY;
+        touchStateRef.current.screenX = touch.screenX;
+        touchStateRef.current.screenY = touch.screenY;
+        touchStateRef.current.pageX = touch.pageX;
+        touchStateRef.current.pageY = touch.pageY;
+
+        // Block RGL during hold detection
+        e.stopImmediatePropagation();
+
+        const { startX, startY, timerId } = touchStateRef.current;
+        const deltaX = Math.abs(touch.clientX - startX);
+        const deltaY = Math.abs(touch.clientY - startY);
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // If moved beyond threshold, cancel the hold timer (user is scrolling)
+        if (distance > MOVE_THRESHOLD_PX && timerId) {
+            clearTimeout(timerId);
+            touchStateRef.current.timerId = null;
+            touchStateRef.current = null;
+        }
+    }, []);
+
+    // Attach/detach native listeners when touchBlockingActive changes
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        if (touchBlockingActive) {
+            container.addEventListener('touchstart', handleContainerTouchStart, { capture: true, passive: false });
+            container.addEventListener('touchmove', handleContainerTouchMove, { capture: true, passive: false });
+        }
+
+        return () => {
+            container.removeEventListener('touchstart', handleContainerTouchStart, { capture: true } as EventListenerOptions);
+            container.removeEventListener('touchmove', handleContainerTouchMove, { capture: true } as EventListenerOptions);
+        };
+    }, [touchBlockingActive, handleContainerTouchStart, handleContainerTouchMove]);
+
+    /**
+     * Handle touch move - React synthetic event version (for compatibility)
      */
     const onWidgetTouchMove = useCallback((e: React.TouchEvent) => {
-        // This is now mostly handled by native listener, but kept for compatibility
+        // This is now mostly handled by native listener
         if (!touchStateRef.current) return;
         if (dragReadyWidgetId) return;
-
         e.stopPropagation();
     }, [dragReadyWidgetId]);
 
@@ -338,7 +341,7 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
     }, []);
 
     /**
-     * Reset drag ready state - call after drag completes or when exiting edit mode
+     * Reset drag ready state
      */
     const resetDragReady = useCallback(() => {
         setDragReadyWidgetId(null);
@@ -351,22 +354,13 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         }
         touchStateRef.current = null;
         pendingSyntheticTouchRef.current = null;
-    }, []);
-
-    // Cleanup all native listeners on unmount
-    useEffect(() => {
-        return () => {
-            widgetElementsRef.current.forEach((registration, widgetId) => {
-                registration.element.removeEventListener('touchstart', registration.touchStartHandler, { capture: true } as EventListenerOptions);
-                registration.element.removeEventListener('touchmove', registration.touchMoveHandler, { capture: true } as EventListenerOptions);
-            });
-            widgetElementsRef.current.clear();
-        };
+        allowNextTouchRef.current = false;
     }, []);
 
     return {
         dragReadyWidgetId,
-        registerWidgetRef,
+        containerRef,
+        setTouchBlockingActive,
         onWidgetTouchMove,
         onWidgetTouchEnd,
         resetDragReady
