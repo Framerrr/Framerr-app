@@ -1,6 +1,6 @@
 import React from 'react';
 
-type CardPadding = 'sm' | 'md' | 'lg' | 'xl';
+type CardPadding = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 
 export interface CardProps {
     children?: React.ReactNode;
@@ -26,6 +26,7 @@ export const Card = ({
     padding = 'lg'
 }: CardProps): React.JSX.Element => {
     const paddingClasses: Record<CardPadding, string> = {
+        none: '',
         sm: 'p-4',
         md: 'p-5',
         lg: 'p-6',

@@ -30,6 +30,7 @@ interface DevDebugOverlayProps {
         sm: Array<{ i: string; x: number; y: number; w: number; h: number }>;
     };
     widgetVisibility?: Record<string, boolean>;
+    widgetPixelSizes?: Record<string, { w: number; h: number }>;
 }
 
 interface Position {
@@ -51,7 +52,8 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
     widgets,
     mobileWidgets,
     layouts,
-    widgetVisibility = {}
+    widgetVisibility = {},
+    widgetPixelSizes = {}
 }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [position, setPosition] = useState<Position>(() => {
@@ -329,8 +331,13 @@ const DevDebugOverlay: React.FC<DevDebugOverlayProps> = ({
                                         </span>
                                         <span style={{ color: '#888', fontSize: '9px' }}>
                                             {currentBreakpoint === 'sm'
-                                                ? `h:${smLayout?.h?.toFixed(2) ?? '?'} y:${smLayout?.y ?? '?'}`
-                                                : `h:${lgLayout?.h?.toFixed(2) ?? '?'} y:${lgLayout?.y ?? '?'}`}
+                                                ? `w:${smLayout?.w ?? '?'} h:${smLayout?.h ?? '?'}`
+                                                : `w:${lgLayout?.w ?? '?'} h:${lgLayout?.h ?? '?'}`}
+                                            {widgetPixelSizes[widget.id] && (
+                                                <span style={{ color: '#22d3ee', marginLeft: '4px' }}>
+                                                    ({widgetPixelSizes[widget.id].w}×{widgetPixelSizes[widget.id].h}px)
+                                                </span>
+                                            )}
                                         </span>
                                     </div>
                                 );

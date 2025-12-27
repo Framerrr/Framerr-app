@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import './ClockWidget.css';
 
 interface ClockPreferences {
     format24h: boolean;
@@ -20,27 +21,11 @@ export interface ClockWidgetProps {
 /**
  * Clock Widget
  * Displays current time with timezone support
+ * Uses CSS Container Queries for responsive scaling
  * Edit controls are rendered via WidgetWrapper extraEditControls
  */
 const ClockWidget = ({ config }: ClockWidgetProps): React.JSX.Element => {
     const [time, setTime] = useState<Date>(new Date());
-    const [isWide, setIsWide] = useState<boolean>(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // Detect container width for responsive layout
-    useEffect(() => {
-        if (!containerRef.current) return;
-
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                // Switch to horizontal layout if width >= 410px
-                setIsWide(entry.contentRect.width >= 410);
-            }
-        });
-
-        observer.observe(containerRef.current);
-        return () => observer.disconnect();
-    }, []);
 
     // Get active config from props (managed by Dashboard)
     const activeConfig: ClockPreferences = {
@@ -80,30 +65,27 @@ const ClockWidget = ({ config }: ClockWidgetProps): React.JSX.Element => {
     };
 
     return (
-        <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-            {/* Main Content */}
-            <div className={`flex ${isWide ? 'flex-row items-center gap-6' : 'flex-col items-center text-center'}`}>
+        <div className="clock-widget">
+            <div className="clock-widget__content">
                 {/* Time Display */}
-                <div className={`font-bold text-theme-primary leading-none ${isWide ? 'text-4xl' : 'text-5xl'}`}>
+                <div className="clock-widget__time">
                     {formatTime(time)}
                 </div>
 
-                {/* Date Display */}
-                <div className={`flex flex-col ${isWide ? 'items-start' : 'items-center mt-3'}`}>
+                {/* Date and Timezone Display */}
+                <div className="clock-widget__info">
                     {showDate && (
-                        <div className={`text-theme-secondary ${isWide ? 'text-sm' : 'text-base'}`}>
+                        <div className="clock-widget__date">
                             {formatDate(time)}
+                        </div>
+                    )}
+                    {timezone && (
+                        <div className="clock-widget__timezone">
+                            {timezone}
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Timezone Display */}
-            {timezone && (
-                <div className="absolute bottom-2 left-0 right-0 text-center text-xs text-theme-secondary opacity-60">
-                    {timezone}
-                </div>
-            )}
         </div>
     );
 };

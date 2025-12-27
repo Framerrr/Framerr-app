@@ -79,7 +79,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'CPU, memory, and temperature monitoring',
         category: 'system',
         defaultSize: { w: 4, h: 3 },
-        minSize: { w: 4, h: 3 }, // Needs space for all 4 metrics + bars
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 4 }, // No width limit, max height only
         requiresIntegration: 'systemstatus'
     },
@@ -92,7 +92,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Now playing and recent activity',
         category: 'media',
         defaultSize: { w: 6, h: 3 },  // Wider for multi-stream display
-        minSize: { w: 4, h: 4 },      // Needs width for images + text, height for header + content
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 6 }, // No width limit, max height only
         requiresIntegration: 'plex'
     },
@@ -104,7 +104,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'TV show management and calendar',
         category: 'media',
         defaultSize: { w: 4, h: 3 },
-        minSize: { w: 3, h: 3 }, // List layout needs vertical space
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 6 }, // No width limit, scrolling list
         requiresIntegration: 'sonarr'
     },
@@ -116,7 +116,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Movie management and calendar',
         category: 'media',
         defaultSize: { w: 4, h: 3 },
-        minSize: { w: 3, h: 3 }, // List layout needs vertical space
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 6 }, // No width limit, scrolling list
         requiresIntegration: 'radarr'
     },
@@ -128,7 +128,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Media requests and discovery',
         category: 'media',
         defaultSize: { w: 6, h: 3 }, // Wider for horizontal carousel
-        minSize: { w: 4, h: 4 }, // Fits one 2:3 poster + text
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 6 }, // No width limit
         requiresIntegration: 'overseerr'
     },
@@ -140,7 +140,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Torrent downloads and management',
         category: 'downloads',
         defaultSize: { w: 6, h: 3 },
-        minSize: { w: 4, h: 3 }, // Stats + torrent list needs space
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 8 }, // No width limit, scrolling list
         requiresIntegration: 'qbittorrent'
     },
@@ -153,8 +153,8 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Current weather and forecast',
         category: 'utility',
         defaultSize: { w: 3, h: 3 },
-        minSize: { w: 3, h: 1 }, // h:1 for compact horizontal, h:2+ for vertical
-        maxSize: { h: 4 }, // No width limit
+        minSize: { w: 6, h: 1 }, // Compact horizontal mode at smallest
+        maxSize: { h: 2 }, // Max height 2, no width limit
         requiresIntegration: false
     },
 
@@ -165,7 +165,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Combined Sonarr and Radarr calendar',
         category: 'media',
         defaultSize: { w: 6, h: 5 },
-        minSize: { w: 5, h: 5 }, // Calendar grid needs space for filters + 7-day grid
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 8 }, // No width limit
         requiresIntegrations: ['sonarr', 'radarr'] // Requires both integrations
     },
@@ -177,7 +177,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'User-defined HTML and CSS content',
         category: 'utility',
         defaultSize: { w: 4, h: 3 },
-        minSize: { w: 2, h: 2 }, // User-defined, flexible
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 10 }, // No width limit
         requiresIntegration: false
     },
@@ -189,7 +189,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Quick access links with icons',
         category: 'utility',
         defaultSize: { w: 4, h: 2 },
-        minSize: { w: 1, h: 1 }, // Minimum: Single cell for one link
+        minSize: { w: 1, h: 1 }, // TEMP: Set to 1x1 for testing
         maxSize: { h: 8 }, // No width limit, allow flexible sizing
         requiresIntegration: false,
         defaultConfig: {
@@ -204,7 +204,7 @@ export const WIDGET_TYPES: WidgetRegistry = {
         description: 'Time display with timezone support',
         category: 'utility',
         defaultSize: { w: 3, h: 2 },
-        minSize: { w: 3, h: 2 }, // Responsive: vertical when narrow, horizontal when wide
+        minSize: { w: 4, h: 1 }, // Compact horizontal mode at smallest
         maxSize: { h: 2 }, // No width limit, shorter max height for inline mode
         requiresIntegration: false
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import {
     Sun,
     Cloud,
@@ -11,6 +11,7 @@ import {
     LucideIcon
 } from 'lucide-react';
 import logger from '../../utils/logger';
+import './WeatherWidget.css';
 
 interface WeatherData {
     temp: number;
@@ -44,27 +45,9 @@ interface LocationResponse {
 }
 
 const WeatherWidget = (): React.JSX.Element | null => {
-    const [weather, setWeather] = useState<WeatherData | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isWide, setIsWide] = useState<boolean>(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // Detect container width for responsive layout
-    useEffect(() => {
-        if (!containerRef.current) return;
-
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                // Switch to horizontal layout if width >= 410px
-                const shouldBeWide = entry.contentRect.width >= 410;
-                setIsWide(prev => prev === shouldBeWide ? prev : shouldBeWide);
-            }
-        });
-
-        observer.observe(containerRef.current);
-        return () => observer.disconnect();
-    }, []);
+    const [weather, setWeather] = React.useState<WeatherData | null>(null);
+    const [loading, setLoading] = React.useState<boolean>(true);
+    const [error, setError] = React.useState<string | null>(null);
 
     // WMO Weather interpretation codes (https://open-meteo.com/en/docs)
     const getWeatherInfo = (code: number): WeatherInfo => {
@@ -79,7 +62,7 @@ const WeatherWidget = (): React.JSX.Element | null => {
         return { label: 'Unknown', icon: Cloud };
     };
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!navigator.geolocation) {
             setError('Geolocation not supported');
             setLoading(false);
@@ -142,8 +125,8 @@ const WeatherWidget = (): React.JSX.Element | null => {
     // Render loading state
     if (loading) {
         return (
-            <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-                <div style={{ color: 'var(--text-secondary)' }}>Loading weather...</div>
+            <div className="weather-widget weather-widget--loading">
+                <span className="weather-widget__loading-text">Loading weather...</span>
             </div>
         );
     }
@@ -151,11 +134,9 @@ const WeatherWidget = (): React.JSX.Element | null => {
     // Render error state
     if (error) {
         return (
-            <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    <CloudOff size={24} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-                    {error}
-                </div>
+            <div className="weather-widget weather-widget--error">
+                <CloudOff className="weather-widget__error-icon" />
+                <span className="weather-widget__error-text">{error}</span>
             </div>
         );
     }
@@ -165,56 +146,30 @@ const WeatherWidget = (): React.JSX.Element | null => {
     const info = getWeatherInfo(weather.code);
     const WeatherIcon = info.icon || Cloud;
 
-    // Render success state with weather data
+    // Render success state - CSS container queries handle all responsive layouts
     return (
-        <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-            {isWide ? (
-                // Horizontal layout
-                <div className="flex items-center gap-5">
-                    {/* Icon */}
-                    <WeatherIcon size={48} className="text-theme-secondary opacity-80 flex-shrink-0" />
+        <div className="weather-widget">
+            <div className="weather-widget__content">
+                {/* Weather Icon */}
+                <WeatherIcon className="weather-widget__icon" />
 
-                    {/* Temperature */}
-                    <div className="text-5xl font-bold text-theme-primary leading-none">
-                        {weather.temp}°
-                    </div>
-
-                    {/* Info Column */}
-                    <div className="flex flex-col items-start">
-                        <div className="flex items-center gap-1 text-sm text-theme-secondary">
-                            <MapPin size={12} className="flex-shrink-0" />
-                            <span>{weather.location}</span>
-                        </div>
-                        <div className="text-theme-secondary font-medium mt-0.5">{info.label}</div>
-                        <div className="text-xs text-theme-tertiary mt-0.5">
-                            H: {weather.high}° · L: {weather.low}°
-                        </div>
-                    </div>
+                {/* Temperature */}
+                <div className="weather-widget__temp">
+                    {weather.temp}°
                 </div>
-            ) : (
-                // Vertical layout - centered
-                <div className="flex flex-col items-center text-center">
-                    {/* Location */}
-                    <div className="flex items-center gap-1 text-xs text-theme-secondary mb-2">
-                        <MapPin size={10} className="flex-shrink-0" />
-                        <span className="text-center">{weather.location}</span>
-                    </div>
 
-                    {/* Temp + Icon row */}
-                    <div className="flex items-center gap-3">
-                        <div className="text-5xl font-bold text-theme-primary leading-none">
-                            {weather.temp}°
-                        </div>
-                        <WeatherIcon size={36} className="text-theme-secondary opacity-70" />
+                {/* Info Section */}
+                <div className="weather-widget__info">
+                    <div className="weather-widget__location">
+                        <MapPin className="weather-widget__location-icon" />
+                        <span>{weather.location}</span>
                     </div>
-
-                    {/* Conditions */}
-                    <div className="text-theme-secondary font-medium mt-2">{info.label}</div>
-                    <div className="text-xs text-theme-tertiary mt-1">
+                    <div className="weather-widget__condition">{info.label}</div>
+                    <div className="weather-widget__highlow">
                         H: {weather.high}° · L: {weather.low}°
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };

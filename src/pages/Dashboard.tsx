@@ -138,6 +138,7 @@ const Dashboard = (): React.JSX.Element => {
 
     // Debug overlay toggle (controlled from Settings > Advanced > Debug)
     const [debugOverlayEnabled, setDebugOverlayEnabled] = useState<boolean>(false);
+    const [widgetPixelSizes, setWidgetPixelSizes] = useState<Record<string, { w: number; h: number }>>({});
 
     // Touch gesture detection for iOS-style hold-to-drag on mobile
     // Uses NATIVE event listener on container to block react-draggable's touch handling
@@ -358,6 +359,52 @@ const Dashboard = (): React.JSX.Element => {
             logger.debug('Failed to load debug overlay setting:', { error });
         }
     };
+
+    // Track widget pixel sizes for debug overlay (only when debug overlay is enabled)
+    // Shows INNER content size (what container queries see) by subtracting padding
+    useEffect(() => {
+        if (!debugOverlayEnabled) return;
+
+        const updateSizes = () => {
+            const widgetElements = document.querySelectorAll('[data-widget-id]');
+            const sizes: Record<string, { w: number; h: number }> = {};
+            widgetElements.forEach((el) => {
+                const widgetId = el.getAttribute('data-widget-id');
+                if (widgetId) {
+                    const rect = el.getBoundingClientRect();
+                    const computed = window.getComputedStyle(el);
+                    const paddingLeft = parseFloat(computed.paddingLeft) || 0;
+                    const paddingRight = parseFloat(computed.paddingRight) || 0;
+                    const paddingTop = parseFloat(computed.paddingTop) || 0;
+                    const paddingBottom = parseFloat(computed.paddingBottom) || 0;
+                    sizes[widgetId] = {
+                        w: Math.round(rect.width - paddingLeft - paddingRight),
+                        h: Math.round(rect.height - paddingTop - paddingBottom)
+                    };
+                }
+            });
+            setWidgetPixelSizes(sizes);
+        };
+
+        // Initial measurement
+        updateSizes();
+
+        // Set up ResizeObserver for all widget elements
+        const observer = new ResizeObserver(() => {
+            updateSizes();
+        });
+
+        const widgetElements = document.querySelectorAll('[data-widget-id]');
+        widgetElements.forEach((el) => observer.observe(el));
+
+        // Also listen for window resize
+        window.addEventListener('resize', updateSizes);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', updateSizes);
+        };
+    }, [debugOverlayEnabled, widgets, mobileWidgets, layouts]);
 
     const fetchIntegrations = async (): Promise<void> => {
         try {
@@ -1099,6 +1146,22 @@ const Dashboard = (): React.JSX.Element => {
         // Combine extra controls based on widget type
         const extraControls = linkGridExtraControls || clockExtraControls;
 
+        // Determine padding size based on widget type
+        // compact: tight padding for data-dense or small min-size widgets
+        // default: balanced padding for most widgets
+        // relaxed: spacious padding for sparse content
+        const getPaddingSize = (widgetType: string): 'compact' | 'default' | 'relaxed' => {
+            switch (widgetType) {
+                case 'weather':
+                case 'clock':
+                    return 'compact';
+                case 'link-grid':
+                    return 'compact'; // WidgetWrapper will handle as 'none'
+                default:
+                    return 'default';
+            }
+        };
+
         return (
             <WidgetWrapper
                 id={widget.id}
@@ -1109,6 +1172,7 @@ const Dashboard = (): React.JSX.Element => {
                 onDelete={handleDeleteWidget}
                 flatten={widget.config?.flatten as boolean || false}
                 showHeader={widget.config?.showHeader !== false}
+                paddingSize={getPaddingSize(widget.type)}
                 extraEditControls={extraControls}
             >
                 {/* Debug Y-position badge - only visible when debug overlay enabled */}
@@ -1432,6 +1496,7 @@ const Dashboard = (): React.JSX.Element => {
                     mobileWidgets={mobileWidgets}
                     layouts={layouts}
                     widgetVisibility={widgetVisibility}
+                    widgetPixelSizes={widgetPixelSizes}
                 />
             )}
 

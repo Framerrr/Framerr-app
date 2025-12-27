@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { X, Check, LucideIcon } from 'lucide-react';
 import { Card } from '../common/Card';
+import './WidgetWrapper.css';
+
+export type WidgetPaddingSize = 'none' | 'compact' | 'default' | 'relaxed';
 
 export interface WidgetWrapperProps {
     id: string;
@@ -10,6 +13,7 @@ export interface WidgetWrapperProps {
     editMode?: boolean;
     flatten?: boolean;
     showHeader?: boolean;
+    paddingSize?: WidgetPaddingSize;  // Fluid padding: 'none' | 'compact' | 'default' | 'relaxed'
     onDelete?: (id: string) => void;
     extraEditControls?: React.ReactNode;  // Widget-specific edit controls (rendered below delete)
     children: React.ReactNode;
@@ -18,6 +22,12 @@ export interface WidgetWrapperProps {
 /**
  * WidgetWrapper - Container component for dashboard widgets
  * Provides consistent styling, header, and controls for all widget types
+ * 
+ * Padding sizes (fluid with clamp()):
+ * - none: 0px (widget handles its own)
+ * - compact: clamp(2px, 1cqi, 8px) - tight, for data-dense widgets
+ * - default: clamp(4px, 2cqi, 16px) - balanced
+ * - relaxed: clamp(8px, 3cqi, 24px) - spacious, for sparse content
  */
 const WidgetWrapper = ({
     id,
@@ -27,6 +37,7 @@ const WidgetWrapper = ({
     editMode = false,
     flatten = false,
     showHeader = true,
+    paddingSize = 'default',
     onDelete,
     extraEditControls,
     children
@@ -36,10 +47,16 @@ const WidgetWrapper = ({
     // Force hide header for link-grid widgets (they don't support headers)
     const shouldShowHeader = type === 'link-grid' ? false : showHeader;
 
+    // Determine padding class - link-grid uses 'none', others use specified or default
+    const actualPaddingSize = type === 'link-grid' ? 'none' : paddingSize;
+
+    // Build content class with fluid padding
+    const contentClass = `widget-content flex-1 overflow-auto widget-padding-${actualPaddingSize}`;
+
     return (
         <Card
             className={`widget-wrapper h-full overflow-hidden flex flex-col relative ${flatten ? 'flatten-mode' : ''}`}
-            padding={type === 'link-grid' ? 'sm' : 'lg'}
+            padding="none"  // Card no longer handles padding, widget-content does with fluid CSS
         >
             {/* Edit mode controls - ALWAYS visible in edit mode, positioned absolutely */}
             {editMode && (onDelete || extraEditControls) && (
@@ -104,7 +121,7 @@ const WidgetWrapper = ({
 
             {/* Widget Header - conditionally rendered */}
             {shouldShowHeader && (
-                <div className="widget-header flex items-center justify-between p-2 md:p-4 border-b border-theme">
+                <div className="widget-header flex items-center justify-between widget-padding-default border-b border-theme">
                     <div className="flex items-center gap-3">
                         {Icon && (
                             <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
@@ -118,8 +135,8 @@ const WidgetWrapper = ({
                 </div>
             )}
 
-            {/* Widget Content */}
-            <div className={`widget-content flex-1 ${type === 'link-grid' ? 'overflow-hidden p-[2px]' : 'overflow-auto p-2 md:p-4'}`}>
+            {/* Widget Content - uses fluid padding class */}
+            <div className={contentClass}>
                 {children}
             </div>
         </Card>

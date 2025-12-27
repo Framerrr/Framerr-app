@@ -1,0 +1,178 @@
+/**
+ * WeatherWidget - Fluid Container Query-based Responsive Styles
+ * 
+ * Uses CSS Container Queries with clamp() and container query units (cqi/cqb)
+ * for fluid, dynamic sizing that scales with container size.
+ * 
+ * Container Query Units:
+ * - cqi = 1% of container inline size (width)
+ * - cqb = 1% of container block size (height)
+ * - cqmin = smaller of cqi/cqb
+ * 
+ * NO PADDING - WidgetWrapper handles padding consistently.
+ */
+
+/* Container setup - enables @container queries with size tracking */
+.weather-widget {
+    container-type: size;
+    container-name: weather;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Loading/Error states */
+.weather-widget--loading,
+.weather-widget--error {
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: clamp(0.7rem, 4cqi, 0.9rem);
+    text-align: center;
+}
+
+.weather-widget__loading-text,
+.weather-widget__error-text {
+    color: var(--text-secondary);
+}
+
+.weather-widget__error-icon {
+    width: clamp(20px, 10cqi, 32px);
+    height: clamp(20px, 10cqi, 32px);
+    opacity: 0.5;
+}
+
+/* ===== MAIN CONTENT: Horizontal by default, fluid sizing ===== */
+.weather-widget__content {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 2cqi, 24px);
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+
+/* Weather Icon - scales fluidly with cqmin (respects both width AND height) */
+.weather-widget__icon {
+    width: clamp(16px, min(12cqi, 40cqb), 56px);
+    height: clamp(16px, min(12cqi, 40cqb), 56px);
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+/* Temperature - scales fluidly with cqmin (respects both width AND height) */
+.weather-widget__temp {
+    font-size: clamp(1rem, min(10cqi, 50cqb), 4rem);
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Info section - contains location, condition, high/low */
+.weather-widget__info {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 2cqi, 16px);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    flex-shrink: 1;
+}
+
+/* Location - shrinks and truncates as needed */
+.weather-widget__location {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: clamp(0.55rem, 3cqi, 1rem);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.weather-widget__location>span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.weather-widget__location-icon {
+    width: clamp(6px, 2cqi, 14px);
+    height: clamp(6px, 2cqi, 14px);
+    flex-shrink: 0;
+}
+
+/* Condition label */
+.weather-widget__condition {
+    font-size: clamp(0.55rem, 3cqi, 1rem);
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* High/Low temps */
+.weather-widget__highlow {
+    font-size: clamp(0.5rem, 2.5cqi, 0.9rem);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ===== LAYOUT BREAKPOINT: Tall container - stack info vertically ===== */
+@container weather (min-height: 100px) {
+    .weather-widget {
+        justify-content: center;
+    }
+
+    .weather-widget__content {
+        gap: clamp(8px, 4cqi, 24px);
+    }
+
+    .weather-widget__info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: clamp(2px, 1cqi, 6px);
+    }
+
+    .weather-widget__location {
+        max-width: none;
+    }
+}
+
+/* ===== COMPACT: Very small container - hide secondary info ===== */
+@container weather (max-width: 160px) {
+
+    .weather-widget__location,
+    .weather-widget__highlow {
+        display: none;
+    }
+
+    .weather-widget__info {
+        gap: 4px;
+    }
+}
+
+/* ===== ULTRA COMPACT: Tiny container - only show temp ===== */
+@container weather (max-width: 80px) {
+
+    .weather-widget__icon,
+    .weather-widget__info {
+        display: none;
+    }
+
+    .weather-widget {
+        justify-content: center;
+    }
+}

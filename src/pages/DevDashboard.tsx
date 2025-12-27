@@ -720,6 +720,19 @@ const DevDashboard = (): React.JSX.Element => {
         const smLayout = layouts.sm.find(l => l.i === widget.id);
         const yPos = smLayout?.y ?? '?';
 
+        // Determine padding size based on widget type (matching Dashboard)
+        const getPaddingSize = (widgetType: string): 'compact' | 'default' | 'relaxed' => {
+            switch (widgetType) {
+                case 'weather':
+                case 'clock':
+                    return 'compact';
+                case 'link-grid':
+                    return 'compact';
+                default:
+                    return 'default';
+            }
+        };
+
         return (
             <WidgetWrapper
                 id={widget.id}
@@ -730,6 +743,7 @@ const DevDashboard = (): React.JSX.Element => {
                 onDelete={handleDeleteWidget}
                 flatten={widget.config?.flatten as boolean || false}
                 showHeader={widget.config?.showHeader !== false}
+                paddingSize={getPaddingSize(widget.type)}
             >
                 {/* Debug Y-position badge */}
                 <div
