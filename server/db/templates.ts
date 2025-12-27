@@ -237,7 +237,7 @@ export async function getTemplatesForUser(userId: string): Promise<TemplateWithM
                 parent.owner_id as parent_owner_id,
                 parent.version as parent_version,
                 u.username as parent_owner_username,
-                (SELECT COUNT(*) FROM dashboard_templates WHERE shared_from_id = t.id) as share_count
+                (SELECT COUNT(*) FROM template_shares WHERE template_id = t.id) as share_count
             FROM dashboard_templates t
             LEFT JOIN dashboard_templates parent ON t.shared_from_id = parent.id
             LEFT JOIN users u ON parent.owner_id = u.id
