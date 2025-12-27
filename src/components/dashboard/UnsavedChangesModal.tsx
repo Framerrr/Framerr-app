@@ -18,35 +18,35 @@ const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({
     onDiscard,
     onSave
 }) => {
-    return (
-        <Modal isOpen={isOpen} onClose={onCancel} title="Unsaved Changes" size="sm">
-            <div className="space-y-4">
-                <p className="text-theme-secondary">
-                    You have unsaved changes to your dashboard layout.
-                    Would you like to save before leaving?
-                </p>
+    const footerContent = (
+        <div className="flex gap-3 justify-end">
+            <button
+                onClick={onCancel}
+                className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary bg-theme-tertiary hover:bg-theme-hover border border-theme rounded-lg transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                onClick={onDiscard}
+                className="px-4 py-2 text-sm font-medium text-error hover:text-error bg-error/10 hover:bg-error/20 border border-error/30 rounded-lg transition-colors"
+            >
+                Discard
+            </button>
+            <button
+                onClick={onSave}
+                className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+            >
+                Save
+            </button>
+        </div>
+    );
 
-                <div className="flex gap-3 justify-end pt-4 border-t border-theme">
-                    <button
-                        onClick={onCancel}
-                        className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary bg-theme-tertiary hover:bg-theme-hover border border-theme rounded-lg transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onDiscard}
-                        className="px-4 py-2 text-sm font-medium text-error hover:text-error bg-error/10 hover:bg-error/20 border border-error/30 rounded-lg transition-colors"
-                    >
-                        Discard
-                    </button>
-                    <button
-                        onClick={onSave}
-                        className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
-                    >
-                        Save
-                    </button>
-                </div>
-            </div>
+    return (
+        <Modal isOpen={isOpen} onClose={onCancel} title="Unsaved Changes" size="sm" footer={footerContent}>
+            <p className="text-theme-secondary">
+                You have unsaved changes to your dashboard layout.
+                Would you like to save before leaving?
+            </p>
         </Modal>
     );
 };

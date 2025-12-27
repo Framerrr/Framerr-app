@@ -32,8 +32,25 @@ const MobileEditDisclaimerModal: React.FC<MobileEditDisclaimerModalProps> = ({
         onCancel();
     };
 
+    const footerContent = (
+        <div className="flex gap-3 justify-end">
+            <button
+                onClick={handleClose}
+                className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary bg-theme-tertiary hover:bg-theme-hover border border-theme rounded-lg transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                onClick={handleContinue}
+                className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+            >
+                Continue Editing
+            </button>
+        </div>
+    );
+
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Mobile Dashboard Editing" size="sm">
+        <Modal isOpen={isOpen} onClose={handleClose} title="Mobile Dashboard Editing" size="sm" footer={footerContent}>
             <div className="space-y-4">
                 <p className="text-theme-secondary">
                     When you rearrange widgets here, your mobile layout becomes
@@ -59,21 +76,6 @@ const MobileEditDisclaimerModal: React.FC<MobileEditDisclaimerModalProps> = ({
                     />
                     Don&apos;t show this again
                 </label>
-
-                <div className="flex gap-3 justify-end pt-4 border-t border-theme">
-                    <button
-                        onClick={handleClose}
-                        className="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary bg-theme-tertiary hover:bg-theme-hover border border-theme rounded-lg transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleContinue}
-                        className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
-                    >
-                        Continue Editing
-                    </button>
-                </div>
             </div>
         </Modal>
     );

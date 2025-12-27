@@ -52,12 +52,32 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         // Note: Caller should close the dialog after async operation if needed
     };
 
+    const footerContent = (
+        <div className="flex gap-3 justify-end">
+            <Button
+                variant="secondary"
+                onClick={onClose}
+                disabled={isLoading}
+            >
+                {cancelLabel}
+            </Button>
+            <Button
+                variant={variant === 'danger' ? 'danger' : 'primary'}
+                onClick={handleConfirm}
+                disabled={isLoading}
+            >
+                {isLoading ? 'Loading...' : confirmLabel}
+            </Button>
+        </div>
+    );
+
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
             title={title}
             size="sm"
+            footer={footerContent}
         >
             <div className="space-y-4">
                 {variant === 'danger' && (
@@ -70,23 +90,6 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 <p className="text-sm text-theme-secondary whitespace-pre-line">
                     {message}
                 </p>
-
-                <div className="flex gap-3 justify-end pt-2">
-                    <Button
-                        variant="secondary"
-                        onClick={onClose}
-                        disabled={isLoading}
-                    >
-                        {cancelLabel}
-                    </Button>
-                    <Button
-                        variant={variant === 'danger' ? 'danger' : 'primary'}
-                        onClick={handleConfirm}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? 'Loading...' : confirmLabel}
-                    </Button>
-                </div>
             </div>
         </Modal>
     );

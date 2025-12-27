@@ -58,12 +58,24 @@ const WidgetConflictModal: React.FC<WidgetConflictModalProps> = ({
         return `@${users[0].username} +${users.length - 1}`;
     };
 
+    const footerContent = (
+        <div className="flex gap-3 justify-end">
+            <Button variant="secondary" onClick={onClose} disabled={loading}>
+                Cancel
+            </Button>
+            <Button variant="primary" onClick={handleContinue} disabled={loading}>
+                {loading ? 'Processing...' : 'Continue'}
+            </Button>
+        </div>
+    );
+
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
             title="Widget Sharing Required"
             size="md"
+            footer={footerContent}
         >
             <div className="space-y-4">
                 {/* Warning message */}
@@ -102,8 +114,8 @@ const WidgetConflictModal: React.FC<WidgetConflictModalProps> = ({
                     <p className="text-xs text-theme-secondary font-medium uppercase tracking-wide">Options</p>
 
                     <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedOption === 'share'
-                            ? 'bg-accent/10 border-accent'
-                            : 'bg-theme-tertiary border-theme hover:bg-theme-hover'
+                        ? 'bg-accent/10 border-accent'
+                        : 'bg-theme-tertiary border-theme hover:bg-theme-hover'
                         }`}>
                         <input
                             type="radio"
@@ -119,8 +131,8 @@ const WidgetConflictModal: React.FC<WidgetConflictModalProps> = ({
                     </label>
 
                     <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedOption === 'proceed'
-                            ? 'bg-accent/10 border-accent'
-                            : 'bg-theme-tertiary border-theme hover:bg-theme-hover'
+                        ? 'bg-accent/10 border-accent'
+                        : 'bg-theme-tertiary border-theme hover:bg-theme-hover'
                         }`}>
                         <input
                             type="radio"
@@ -136,21 +148,11 @@ const WidgetConflictModal: React.FC<WidgetConflictModalProps> = ({
                     </label>
                 </div>
 
-                {/* Info footer */}
-                <p className="text-xs text-theme-tertiary flex items-center gap-1.5 pt-2">
+                {/* Info note */}
+                <p className="text-xs text-theme-tertiary flex items-center gap-1.5">
                     <Share2 size={12} />
                     Widget sharing can be modified at any time in Settings → Widgets → Service Settings.
                 </p>
-
-                {/* Actions */}
-                <div className="flex gap-3 justify-end pt-4 border-t border-theme">
-                    <Button variant="secondary" onClick={onClose} disabled={loading}>
-                        Cancel
-                    </Button>
-                    <Button variant="primary" onClick={handleContinue} disabled={loading}>
-                        {loading ? 'Processing...' : 'Continue'}
-                    </Button>
-                </div>
             </div>
         </Modal>
     );
