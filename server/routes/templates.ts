@@ -498,6 +498,8 @@ router.get('/:id/shares', requireAuth, requireAdmin, async (req: Request, res: R
  * POST /api/templates/:id/check-conflicts
  * Check for widget conflicts before sharing (admin only)
  * Returns which integrations are needed but not shared with target users
+ * 
+ * Uses the database-backed integration_shares table as the source of truth
  */
 router.post('/:id/check-conflicts', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -521,11 +523,6 @@ router.post('/:id/check-conflicts', requireAuth, requireAdmin, async (req: Reque
             return;
         }
 
-        // Get all integration configs to check sharing
-        const { getSystemConfig } = await import('../db/systemConfig');
-        const config = await getSystemConfig();
-        const integrations = config.integrations || {};
-
         interface ConflictResult {
             integration: string;
             integrationDisplayName: string;
@@ -534,58 +531,34 @@ router.post('/:id/check-conflicts', requireAuth, requireAdmin, async (req: Reque
 
         const conflicts: ConflictResult[] = [];
 
-        // For each required integration, check if it's shared with target users
+        // Get target users based on share mode
+        const { getAllUsers } = await import('../db/users');
+        const allUsers = await getAllUsers();
+        const nonAdminUsers = allUsers.filter(u => u.group !== 'admin');
+
+        const targetUsers = shareMode === 'everyone'
+            ? nonAdminUsers
+            : nonAdminUsers.filter(u => userIds?.includes(u.id));
+
+        if (targetUsers.length === 0) {
+            res.json({ conflicts: [] });
+            return;
+        }
+
+        // For each required integration, check if users have access using the DB-backed system
         for (const integration of requiredIntegrations) {
-            const integrationConfig = integrations[integration] as {
-                enabled?: boolean;
-                sharing?: {
-                    enabled?: boolean;
-                    mode?: 'everyone' | 'groups' | 'users';
-                    groups?: string[];
-                    users?: string[];
-                };
-            } | undefined;
-
-            if (!integrationConfig?.enabled) {
-                // Integration not configured - skip
-                continue;
-            }
-
-            const sharing = integrationConfig.sharing;
-            const isSharedWithEveryone = sharing?.enabled && sharing.mode === 'everyone';
-
-            if (isSharedWithEveryone) {
-                // Already shared with everyone, no conflict
-                continue;
-            }
-
-            // Check which users don't have access
             const affectedUsers: { id: string; username: string }[] = [];
 
-            if (shareMode === 'everyone' || (shareMode === 'users' && userIds?.length > 0)) {
-                // Get user details
-                const { getAllUsers } = await import('../db/users');
-                const allUsers = await getAllUsers();
-                const nonAdminUsers = allUsers.filter(u => u.group !== 'admin');
+            for (const user of targetUsers) {
+                // Use the database-backed integration sharing check
+                const hasAccess = await integrationSharesDb.userHasIntegrationAccess(
+                    integration,
+                    user.id,
+                    user.group
+                );
 
-                const targetUsers = shareMode === 'everyone'
-                    ? nonAdminUsers
-                    : nonAdminUsers.filter(u => userIds.includes(u.id));
-
-                for (const user of targetUsers) {
-                    let hasAccess = false;
-
-                    if (sharing?.enabled) {
-                        if (sharing.mode === 'groups' && sharing.groups?.includes(user.group)) {
-                            hasAccess = true;
-                        } else if (sharing.mode === 'users' && sharing.users?.includes(user.id)) {
-                            hasAccess = true;
-                        }
-                    }
-
-                    if (!hasAccess) {
-                        affectedUsers.push({ id: user.id, username: user.username });
-                    }
+                if (!hasAccess) {
+                    affectedUsers.push({ id: user.id, username: user.username });
                 }
             }
 
