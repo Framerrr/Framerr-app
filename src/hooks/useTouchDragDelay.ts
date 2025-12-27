@@ -313,6 +313,20 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         }
     }, []);
 
+    /**
+     * Native touchend handler - CRITICAL for tap detection
+     * With pointer-events:none on widgets, touchend also goes to container
+     * We must cancel the hold timer here or taps will unlock widgets
+     */
+    const handleContainerTouchEnd = useCallback(() => {
+        // Cancel the hold timer if finger lifted before threshold
+        if (touchStateRef.current?.timerId) {
+            clearTimeout(touchStateRef.current.timerId);
+            touchStateRef.current.timerId = null;
+        }
+        touchStateRef.current = null;
+    }, []);
+
     // Attach/detach native listeners when touchBlockingActive changes
     useEffect(() => {
         const container = containerRef.current;
@@ -321,13 +335,17 @@ export const useTouchDragDelay = (): UseTouchDragDelayReturn => {
         if (touchBlockingActive) {
             container.addEventListener('touchstart', handleContainerTouchStart, { capture: true, passive: false });
             container.addEventListener('touchmove', handleContainerTouchMove, { capture: true, passive: false });
+            container.addEventListener('touchend', handleContainerTouchEnd, { capture: true });
+            container.addEventListener('touchcancel', handleContainerTouchEnd, { capture: true });
         }
 
         return () => {
             container.removeEventListener('touchstart', handleContainerTouchStart, { capture: true } as EventListenerOptions);
             container.removeEventListener('touchmove', handleContainerTouchMove, { capture: true } as EventListenerOptions);
+            container.removeEventListener('touchend', handleContainerTouchEnd, { capture: true } as EventListenerOptions);
+            container.removeEventListener('touchcancel', handleContainerTouchEnd, { capture: true } as EventListenerOptions);
         };
-    }, [touchBlockingActive, handleContainerTouchStart, handleContainerTouchMove]);
+    }, [touchBlockingActive, handleContainerTouchStart, handleContainerTouchMove, handleContainerTouchEnd]);
 
     /**
      * Handle touch move - React synthetic event version (for compatibility)
