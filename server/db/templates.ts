@@ -520,10 +520,25 @@ export async function shareTemplate(templateId: string, sharedWith: string): Pro
 
 /**
  * Unshare a template
+ * Also clears shared_from_id on user copies so they become "normal" templates
  */
 export async function unshareTemplate(templateId: string, sharedWith: string): Promise<boolean> {
     try {
+        // Delete the share permission
         const result = db.prepare('DELETE FROM template_shares WHERE template_id = ? AND shared_with = ?').run(templateId, sharedWith);
+
+        // Also clear shared_from_id on user copies so they look like normal templates
+        // This removes the "shared by" badge on the user's copy
+        if (sharedWith === 'everyone') {
+            // If sharing with everyone was revoked, clear all copies
+            db.prepare('UPDATE dashboard_templates SET shared_from_id = NULL WHERE shared_from_id = ?').run(templateId);
+            logger.debug('Cleared shared_from_id on all user copies', { templateId });
+        } else {
+            // Clear shared_from_id only for the specific user's copy
+            db.prepare('UPDATE dashboard_templates SET shared_from_id = NULL WHERE shared_from_id = ? AND owner_id = ?').run(templateId, sharedWith);
+            logger.debug('Cleared shared_from_id on user copy', { templateId, userId: sharedWith });
+        }
+
         return result.changes > 0;
     } catch (error) {
         logger.error('Failed to unshare template', { error: (error as Error).message, templateId, sharedWith });
