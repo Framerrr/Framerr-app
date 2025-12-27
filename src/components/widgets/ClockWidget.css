@@ -65,24 +65,11 @@
     opacity: 0.7;
 }
 
-/* ===== LAYOUT: Vertical when container is narrow (<250px) or tall (>100px height) ===== */
-@container clock (max-width: 250px) {
+/* ===== LAYOUT: Vertical (stacked) by default, horizontal only when very wide (>557px) ===== */
+@container clock (max-width: 557px) {
     .clock-widget__content {
         flex-direction: column;
         gap: clamp(2px, 1cqi, 8px);
-    }
-
-    .clock-widget__info {
-        align-items: center;
-        text-align: center;
-    }
-}
-
-/* Also go vertical when tall enough to benefit from stacking */
-@container clock (min-height: 100px) and (max-width: 400px) {
-    .clock-widget__content {
-        flex-direction: column;
-        gap: clamp(4px, 2cqi, 12px);
     }
 
     .clock-widget__info {

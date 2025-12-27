@@ -1,6 +1,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link, LayoutGrid, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Edit, Save, X as XIcon, Plus, LucideIcon, RotateCcw, Link, LayoutGrid, AlignLeft, AlignCenter, AlignRight, Settings } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLayout } from '../context/LayoutContext';
@@ -1091,6 +1093,7 @@ const Dashboard = (): React.JSX.Element => {
         })() : undefined;
 
         // Create extra edit controls for clock widget (24H, SS, Date toggles)
+        // Uses Radix Popover for smart positioning, framer-motion for bounce animation
         const clockExtraControls = widget.type === 'clock' ? (() => {
             const format24h = widget.config?.format24h !== false;
             const showSeconds = widget.config?.showSeconds !== false;
@@ -1110,36 +1113,87 @@ const Dashboard = (): React.JSX.Element => {
                 ? 'w-10 h-10 rounded-lg bg-accent/20 hover:bg-accent/30 flex items-center justify-center text-accent transition-all duration-200'
                 : 'w-10 h-10 rounded-lg bg-theme-tertiary hover:bg-theme-hover flex items-center justify-center text-theme-tertiary transition-all duration-200';
 
+            // Spring animation for bubble pop effect
+            const springConfig = { type: "spring" as const, stiffness: 500, damping: 25 };
+            const buttonVariants = {
+                hidden: { opacity: 0, scale: 0.3, y: -8 },
+                visible: (i: number) => ({
+                    opacity: 1,
+                    scale: 1,
+                    y: 0,
+                    transition: { ...springConfig, delay: i * 0.04 }
+                }),
+                exit: { opacity: 0, scale: 0.3, y: -8, transition: { duration: 0.15 } }
+            };
+
             return (
-                <>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('format24h', format24h); }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        className={getButtonClass(format24h)}
-                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
-                        title={format24h ? '24-hour format' : '12-hour format'}
-                    >
-                        <span className="text-xs font-bold">24H</span>
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showSeconds', showSeconds); }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        className={getButtonClass(showSeconds)}
-                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
-                        title={showSeconds ? 'Seconds shown' : 'Seconds hidden'}
-                    >
-                        <span className="text-xs font-bold">:SS</span>
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showDate', showDate); }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        className={getButtonClass(showDate)}
-                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
-                        title={showDate ? 'Show date (on)' : 'Hide date (off)'}
-                    >
-                        <span className="text-xs font-bold">Date</span>
-                    </button>
-                </>
+                <Popover.Root>
+                    <Popover.Trigger asChild>
+                        <button
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className="w-10 h-10 rounded-lg bg-theme-tertiary hover:bg-theme-hover flex items-center justify-center text-theme-secondary transition-all duration-200"
+                            style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                            title="Clock settings"
+                        >
+                            <Settings size={20} />
+                        </button>
+                    </Popover.Trigger>
+                    <Popover.Portal>
+                        <Popover.Content
+                            sideOffset={4}
+                            align="end"
+                            className="z-[100] outline-none"
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            <AnimatePresence>
+                                <div className="flex flex-col gap-1">
+                                    <motion.button
+                                        custom={0}
+                                        variants={buttonVariants}
+                                        initial="hidden"
+                                        animate="visible"
+                                        exit="exit"
+                                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('format24h', format24h); }}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        className={getButtonClass(format24h)}
+                                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                                        title={format24h ? '24-hour format' : '12-hour format'}
+                                    >
+                                        <span className="text-xs font-bold">24H</span>
+                                    </motion.button>
+                                    <motion.button
+                                        custom={1}
+                                        variants={buttonVariants}
+                                        initial="hidden"
+                                        animate="visible"
+                                        exit="exit"
+                                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showSeconds', showSeconds); }}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        className={getButtonClass(showSeconds)}
+                                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                                        title={showSeconds ? 'Seconds shown' : 'Seconds hidden'}
+                                    >
+                                        <span className="text-xs font-bold">:SS</span>
+                                    </motion.button>
+                                    <motion.button
+                                        custom={2}
+                                        variants={buttonVariants}
+                                        initial="hidden"
+                                        animate="visible"
+                                        exit="exit"
+                                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleConfig('showDate', showDate); }}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        className={getButtonClass(showDate)}
+                                        style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'none' }}
+                                        title={showDate ? 'Show date (on)' : 'Hide date (off)'}
+                                    >
+                                        <span className="text-xs font-bold">Date</span>
+                                    </motion.button>
+                                </div>
+                            </AnimatePresence>
+                        </Popover.Content>
+                    </Popover.Portal>
+                </Popover.Root>
             );
         })() : undefined;
 
